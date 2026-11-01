@@ -2399,12 +2399,17 @@ function pgSldPro(doc, sheet, M) {
       }
       hBrk(X.acB, t.yIn, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.yIn);
-      pen.line(R, X.acB + g + 0.75, t.yIn, X.acBus, t.yIn);
-      if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
+      /* หลายเครื่อง: สายเข้าชนขอบบัสบาร์ ไม่มีจุดต่อ (ผู้ใช้ 2026-11-01 "เอาจุดกลมๆ ออก") */
+      pen.line(R, X.acB + g + 0.75, t.yIn, oneInv ? X.acBus : X.acBus - 0.6, t.yIn);
     });
     /* เครื่องเดียว: สายเข้าตู้ที่ระดับสายเมน ตู้ไม่ต้องสูงถึงขั้วอินเวอร์เตอร์ (ผู้ใช้ชี้หลอดไฟลอยสูง 2026-10-30) */
     const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain), busLo = Math.min(tMinIn, yMain);
-    if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
+    /* หลายเครื่อง = บัสบาร์ (แท่ง) แบบตู้ MDB ลูกค้า (ผู้ใช้ 2026-11-01 "ถ้ามี inverter หลายตัวก็ต้องเป็นบัสบาร์เหมือนเขา") */
+    if (!oneInv) {
+      pen.rect(R, X.acBus - 0.6, busLo - 1.4, 1.2, busHi - busLo + 2.8);
+      pen.text(T, X.acBus, busLo - 2.2, TS.tag, "CU. BUSBAR", { align: 1, valign: 3 });
+      pen.text(T, X.acBus, busLo - 2.2 - TS.tag - 0.5, TS.tag, "P=100%, N=100%, G=50%", { align: 1, valign: 3 });
+    }
     /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
        (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
@@ -2429,8 +2434,7 @@ function pgSldPro(doc, sheet, M) {
     if (sideMtr) acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 9, busHi + 6.5) + 2.2;
     const acTop = dongleTop || sideMtr ? Math.max(acTop1, acMtrY + 3.8) : acTop1;   // มีมิเตอร์ในตู้: ขอบบนสูงขึ้นวางมิเตอร์เหนือป้ายเบรกเกอร์ (ผู้ใช้ 2026-10-31)
     /* เมนของตู้ */
-    if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
-    pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
+    pen.line(R, oneInv ? oneX : X.acBus + 0.6, yMain, mx - g - 0.75, yMain);   // หลายเครื่อง: ออกจากขอบบัสบาร์ ไม่มีจุด
     hBrk(mx, yMain, isCb(P.mainTxt));
     /* งานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31: ต้องแยกเป็นสองอัน) — MCB แล้วตามด้วย RCCB
        ของทางขวา (ไฟเลี้ยง PM · SPD · ขอบตู้ · MDB) เลื่อนตามระยะที่เพิ่ม */

@@ -3431,12 +3431,15 @@ function BOQEditor({
     const lpsTxt = isHome ? "Type 2" : projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
     const mRows = cs.filter(c => /MCB_SOLAR-MDB/i.test(c.name || ""));
     const boards = mRows.length ? mRows : [null];
+    const proCu = !isHome && !mdbList.length ? window.BOQ.proCuOf ? window.BOQ.proCuOf(job) : "slot" : "";
+    const proCuTxt = proCu === "far" ? ((job && job.survey || {}).mdbSpace === "full" ? "ตู้ MDB เต็ม (ใบสำรวจ)" : "ตู้ AC โซลาร์ห่างตู้ MDB " + (job && job.survey || {}).cableAc + " ม. > " + RU.proCuFarM + " ม.") + " → ตู้ MDB SOLAR ใหม่ข้างตู้ MDB ต่อเข้าบัสบาร์" : "ตู้ MDB มีช่องว่าง → ใส่ MCCB SOLAR ในตู้ MDB ต่อเข้าบัสบาร์ (TIE IN POSITION)";
+    const farN = proCu === "far" ? boards.length : 0;
     if (!(+projBoard.ac > 0)) out.ac.push({
       name: "ตู้ไฟ AC",
-      qty: boards.length,
+      qty: boards.length + farN,
       unit: "ตู้",
       auto: 1,
-      why: "1 ตู้ต่อสายเมน MCB SOLAR → MDB 1 เส้น"
+      why: "1 ตู้ต่อสายเมน MCB SOLAR → MDB 1 เส้น" + (farN ? " + ตู้ MDB SOLAR " + farN + " ตู้ (" + proCuTxt + ")" : "")
     });
     let solAt = 0;
     boards.forEach((m, bi) => {
@@ -3474,6 +3477,14 @@ function BOQEditor({
           unit: "ตัว",
           auto: 1,
           why: tag + "คอยล์สั่งตัด MCCB เมน " + k.at + " AT (อุปกรณ์เสริมของเมน · ตรงรุ่นเฟรม)" + (bOn("gf") ? " รับสัญญาณจาก GFR" : "")
+        });
+        if (proCu) out.ac.push({
+          name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, "main")),
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          ok: k.ok,
+          why: tag + "MCCB SOLAR ใน" + (proCu === "far" ? "ตู้ MDB SOLAR" : "ตู้ MDB ลูกค้า") + " ขนาดเท่าเมนตู้ AC " + k.at + " AT · " + proCuTxt
         });
       }
       nos.forEach(no => {

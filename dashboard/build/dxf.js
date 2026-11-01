@@ -3418,12 +3418,21 @@ function pgSldPro(doc, sheet, M) {
       }
       hBrk(X.acB, t.yIn, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.yIn);
-      pen.line(R, X.acB + g + 0.75, t.yIn, X.acBus, t.yIn);
-      if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
+      pen.line(R, X.acB + g + 0.75, t.yIn, oneInv ? X.acBus : X.acBus - 0.6, t.yIn);
     });
     const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain),
       busLo = Math.min(tMinIn, yMain);
-    if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
+    if (!oneInv) {
+      pen.rect(R, X.acBus - 0.6, busLo - 1.4, 1.2, busHi - busLo + 2.8);
+      pen.text(T, X.acBus, busLo - 2.2, TS.tag, "CU. BUSBAR", {
+        align: 1,
+        valign: 3
+      });
+      pen.text(T, X.acBus, busLo - 2.2 - TS.tag - 0.5, TS.tag, "P=100%, N=100%, G=50%", {
+        align: 1,
+        valign: 3
+      });
+    }
     const mainL0 = P.mainTxt + (P.lsig ? " LSIG" : "");
     const ctGap = Math.max(10, (pgTextW("CT " + P.pmCt, TS.spec) + (/AF/.test(mainL0) ? pgTextW("MCCB", TS.spec * 1.12) : pgTextW(mainL0, TS.spec))) / 2 + 1.5);
     const cx = X.acBus + (oneInv ? -12.5 : isMain ? 13 : 4.5),
@@ -3439,8 +3448,7 @@ function pgSldPro(doc, sheet, M) {
     const sideMtr = monSide && !!M.mon.meter;
     if (sideMtr) acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 9, busHi + 6.5) + 2.2;
     const acTop = dongleTop || sideMtr ? Math.max(acTop1, acMtrY + 3.8) : acTop1;
-    if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
-    pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
+    pen.line(R, oneInv ? oneX : X.acBus + 0.6, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = mSplit ? mSplit[1] : P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);
