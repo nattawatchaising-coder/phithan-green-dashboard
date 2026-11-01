@@ -3054,8 +3054,8 @@
     return { ok: !!pair, unknown: false, pair: pair };
   }
 
-  /* Rapid Shutdown หรือไม่: กรอกชื่อตัวส่ง RSS ในคลัง หรือชื่อรุ่นบอกเอง (Tigo TS4-A-F · RSD · rapid shutdown) */
-  const isRsdOpt = (o, model) => !!(o && o.rss) || /TS4-A-F|TS4-A-2F|\bRSD\b|rapid|shutdown/i.test(String(model || (o && o.model) || ""));
+  /* Rapid Shutdown หรือไม่: กรอกชื่อตัวส่ง RSS ในคลัง หรือชื่อรุ่นบอกเอง (Tigo TS4-A-F · Sungrow SR20D-M ที่ใช้อยู่ · RSD · rapid shutdown) */
+  const isRsdOpt = (o, model) => !!(o && o.rss) || /TS4-A-F|TS4-A-2F|\bSR\d+D\b|\bRSD\b|rapid|shutdown/i.test(String(model || (o && o.model) || ""));
   /* แผงต่อตัวคุม — คลังกรอกไว้ใช้ตามนั้น · ยังไม่กรอก: RSD ส่วนมาก 1 ตัว 2 แผง (ผู้ใช้ 2026-11-01) · Optimizer 1:1 */
   const optPerPanel = (o, model) => (o && o.perPanel > 0 ? o.perPanel : isRsdOpt(o, model) ? 2 : 1);
   function optimizerQty(model, panels) {

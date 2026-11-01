@@ -2523,7 +2523,7 @@ function pgSldPro(doc, sheet, M) {
     const firstY = top - 10.5 - (M.opt ? 3 : 0);
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16 - (M.opt && M.opt.rsd ? 6 : 0);
+    const dBot = lastY - 16 - (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) ? 6 : 0);
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
@@ -3009,7 +3009,7 @@ function pgSldPro(doc, sheet, M) {
       dBot = G.dBot - dDy;
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
-    if (M.opt && M.opt.rsd && strY.length) {
+    if (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) && strY.length) {
       const xC = (X.dc1 + X.iv0) / 2,
         eRx = 0.6,
         eRy = 1.5;

@@ -1748,7 +1748,7 @@ function pgSldPro(doc, sheet, M) {
     /* ระยะจากแถวแรกถึงแถวสุดท้าย = ผลรวมระยะของทุกแถวยกเว้นแถวสุดท้าย (แถวว่างใช้ EH) */
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16 - (M.opt && M.opt.rsd ? 6 : 0);   // RSD: กล่อง RSS TRANSMITTER อยู่ในตู้ DC ใต้สตริงสุดท้าย ตู้ยาวลงให้ที่
+    const dBot = lastY - 16 - (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) ? 6 : 0);   // RSD: กล่อง RSS TRANSMITTER อยู่ในตู้ DC ใต้สตริงสุดท้าย ตู้ยาวลงให้ที่
     /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
@@ -2122,7 +2122,8 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     /* Rapid Shutdown (Tigo TS4-A-F ฯลฯ): ตัวส่งสัญญาณ RSS ต้องมีคู่กับ RSD ทุกแผง (ผู้ใช้สั่ง 2026-11-01 "วาด RSS ด้วย")
        แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
-    if (M.opt && M.opt.rsd && strY.length) {
+    /* วาดเฉพาะรุ่นที่ต้องมีตัวส่งแยก (กรอกชื่อ RSS ในคลัง หรือ Tigo TS4) — Sungrow SR20D-M สื่อสารผ่านอินเวอร์เตอร์ Sungrow เอง ไม่มีตัวส่ง (เอกสารผู้ผลิตที่ผู้ใช้ส่ง 2026-11-01) */
+    if (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) && strY.length) {
       const xC = (X.dc1 + X.iv0) / 2, eRx = 0.6, eRy = 1.5;
       const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
       strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
