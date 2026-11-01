@@ -2082,7 +2082,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
          CT คล้องเมนลูกค้า → อัตราส่วนตัวแรกที่ ≥ เมนเบรกเกอร์เดิมของลูกค้า (ใบขออนุญาต mainAT / ใบสำรวจ mainBreaker · ผู้ใช้ 2026-11-01 "ต้องดูจาก Main ลูกค้า")
          ยังไม่กรอกเมนลูกค้า = ใช้เมนตู้ AC ไปก่อน ขึ้นเตือนให้ตรวจ · UMG511 แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริงอีกครั้ง */
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz && bi === 0) {
+      if (jz === "UMG96RM" && bi === 0) {   // UMG511 แรงสูง: CT/VT แรงกลางจ้างทีมภายนอก ไม่ถอด (ผู้ใช้ 2026-11-01)
         const sv0 = (job && job.survey) || {};
         const cuMain = +((String(((job && job.permit) || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0]);
         const ref = cuMain || mainAt;

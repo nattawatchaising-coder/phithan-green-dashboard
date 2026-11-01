@@ -3573,7 +3573,7 @@ function BOQEditor({
         });
       }
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz && bi === 0) {
+      if (jz === "UMG96RM" && bi === 0) {
         const sv0 = job && job.survey || {};
         const cuMain = +(String((job && job.permit || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0];
         const ref = cuMain || mainAt;
