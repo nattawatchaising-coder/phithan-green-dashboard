@@ -3174,6 +3174,18 @@ function pgSldPro(doc, sheet, M) {
       return "G-" + cu + " Sq.mm. IEC01(THW)";
     };
     const oneX = X.ac0 - 3;
+    const upT = !isMain && !oneInv ? taps.filter(t => t.y > yMain).sort((a, b) => b.y - a.y) : [];
+    const yCap = yMain + (P.pm ? 17 : 8),
+      tDn = upT.length ? Math.max(0, upT[upT.length - 1].y - yCap) : 0;
+    taps.forEach(t => {
+      t.yIn = t.y;
+      t.xDn = null;
+    });
+    if (tDn > 0) upT.forEach((t, k) => {
+      t.yIn = t.y - tDn;
+      t.xDn = oneX - k * 1.6;
+    });
+    const tMaxIn = Math.max.apply(null, taps.map(t => t.yIn));
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y);
@@ -3206,7 +3218,11 @@ function pgSldPro(doc, sheet, M) {
         }));
         return;
       }
-      pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
+      if (t.xDn != null) {
+        pen.line(R, X.iv1 + 0.6, t.y, t.xDn, t.y);
+        pen.line(R, t.xDn, t.y, t.xDn, t.yIn);
+        pen.line(R, t.xDn, t.yIn, X.acB - g - 0.75, t.yIn);
+      } else pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       if (isMain) {
         const lc = String(M.acCableOf && M.acCableOf[t.b.no] || invCab).replace(/\s*(0\.6\/1kV|450\/750V)\s*$/, ""),
           gl = M.acGndOf && M.acGndOf[t.b.no] || invG(t.b.brk);
@@ -3221,12 +3237,12 @@ function pgSldPro(doc, sheet, M) {
           valign: 3
         }));
       }
-      hBrk(X.acB, t.y, isCb(t.b.brk));
-      brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
-      pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
-      if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
+      hBrk(X.acB, t.yIn, isCb(t.b.brk));
+      brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.yIn);
+      pen.line(R, X.acB + g + 0.75, t.yIn, X.acBus, t.yIn);
+      if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
     });
-    const busHi = oneInv ? yMain : Math.max(tMax, yMain),
+    const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain),
       busLo = Math.min(tMin, yMain);
     if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     const mainL0 = P.mainTxt + (P.lsig ? " LSIG" : "");

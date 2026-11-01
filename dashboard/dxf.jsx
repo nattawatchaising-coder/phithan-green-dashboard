@@ -2234,6 +2234,14 @@ function pgSldPro(doc, sheet, M) {
     /* เครื่องเดียว: สายเมนอยู่ต่ำกว่าขั้วอินเวอร์เตอร์ได้ (ตู้ต้องเหลือที่ไฟแสดงเฟสด้านบน) → สายลงที่ oneX ก่อน CT
        เดิมลงที่บัสซึ่งอยู่ขวาของ CT ทำให้ CT ลอยไม่คล้องสาย (ผู้ใช้ชี้ 2026-10-30) */
     const oneX = X.ac0 - 3;   // ลงนอกตู้ ไม่ทับเส้นประขอบตู้ แล้วเข้าตู้แนวนอน
+    /* แผ่นรายละเอียดหลายเครื่อง: เครื่องที่อยู่สูงกว่าสายเมน สายลงนอกตู้ก่อน แล้วเข้าเบรกเกอร์ต่ำลงมาเหนือแถวหลอดไฟแสดงเฟส
+       ตู้/บัสไม่ต้องสูงถึงขั้วอินเวอร์เตอร์ (ผู้ใช้วาดชี้ 2026-11-01 "จะได้ไม่ยาวไป") · เลื่อนลงเท่ากันทุกเครื่อง ระยะห่างแถวเดิม
+       เครื่องบนสุดลงชิดตู้ เครื่องถัดลงมาลงซ้ายกว่า สายไม่ไขว้กัน */
+    const upT = !isMain && !oneInv ? taps.filter((t) => t.y > yMain).sort((a, b) => b.y - a.y) : [];
+    const yCap = yMain + (P.pm ? 17 : 8), tDn = upT.length ? Math.max(0, upT[upT.length - 1].y - yCap) : 0;
+    taps.forEach((t) => { t.yIn = t.y; t.xDn = null; });
+    if (tDn > 0) upT.forEach((t, k) => { t.yIn = t.y - tDn; t.xDn = oneX - k * 1.6; });
+    const tMaxIn = Math.max.apply(null, taps.map((t) => t.yIn));
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain);
@@ -2253,7 +2261,8 @@ function pgSldPro(doc, sheet, M) {
         pen.line(T, bx0, bT, bx0 + bw, bT);   // เส้นโยงจบที่เส้นนอนเหนือข้อความ ไม่มีกรอบ (ผู้ใช้วาดชี้ 2026-10-31)
         cL.forEach((l, k) => pen.text(T, bx0 + pad, bT - pad / 2 - lh / 2 - k * lh, cH, l, { valign: 2 }));        return;
       }
-      pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
+      if (t.xDn != null) { pen.line(R, X.iv1 + 0.6, t.y, t.xDn, t.y); pen.line(R, t.xDn, t.y, t.xDn, t.yIn); pen.line(R, t.xDn, t.yIn, X.acB - g - 0.75, t.yIn); }
+      else pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       /* แผ่นภาพรวม: ป้ายสาย AC อินเวอร์เตอร์เหนือเส้นทุกเส้น + จำนวนเส้นรวม (ผู้ใช้ 2026-10-29) */
       if (isMain) {
         /* ตัวหนังสือขนาดเท่าบรรทัดสรุป PV ข้างอินเวอร์เตอร์ (ผู้ใช้ชี้ 2026-10-29) — แยก 3 บรรทัดไม่ให้ต้องย่อ:
@@ -2267,13 +2276,13 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, tx, t.y + 0.7, ch, lc, { valign: 1 });
         dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
       }
-      hBrk(X.acB, t.y, isCb(t.b.brk));
-      brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
-      pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
-      if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
+      hBrk(X.acB, t.yIn, isCb(t.b.brk));
+      brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.yIn);
+      pen.line(R, X.acB + g + 0.75, t.yIn, X.acBus, t.yIn);
+      if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
     });
     /* เครื่องเดียว: สายเข้าตู้ที่ระดับสายเมน ตู้ไม่ต้องสูงถึงขั้วอินเวอร์เตอร์ (ผู้ใช้ชี้หลอดไฟลอยสูง 2026-10-30) */
-    const busHi = oneInv ? yMain : Math.max(tMax, yMain), busLo = Math.min(tMin, yMain);
+    const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain), busLo = Math.min(tMin, yMain);
     if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
