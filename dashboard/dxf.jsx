@@ -1701,7 +1701,8 @@ function pgSldPro(doc, sheet, M) {
       sub: r.ins.length + " STR  Voc " + P.vocAt(nMax) + "V  Isc " + P.isc + "A",
       tag: r.ins.length > 1 ? "IN1-" + r.ins.length : "IN" + r.ins[0].inNo, last: nMax, k: r.ins.length };
   };
-  let RH = 10;
+  const RH0 = M.opt ? 14 : 10;   // มีตัวคุมแผง = แผงอยู่เหนือกล่อง OPT แถวสูงขึ้น
+  let RH = RH0;
   const GAP = 2;
   /* ทุกช่องต่อของ MPPT ขึ้นในแบบ (ผู้ใช้ 2026-10-29: "MPPT มีกี่ INPUT ก็ใส่ไว้ จะอยู่ที่เราต่อไว้แบบไหน") — ช่องที่ไม่ได้ต่อ = ขั้วเปล่า + ป้าย IN
      ไม่รู้จำนวนช่อง (phys = 0 · สองรุ่นปนกัน) = ขึ้นเฉพาะช่องที่ต่อเหมือนเดิม */
@@ -1743,7 +1744,7 @@ function pgSldPro(doc, sheet, M) {
   const geo = (b, top) => {
     if (b.mini) { const boxBot = top - MH + 3, yG = boxBot - 1.4; return { firstY: top, lastY: top, dBot: boxBot, boxBot, yG, bottom: yG - 0.4 }; }
     const all = b.groups.reduce((t, gq) => t.concat(gq.rows), []);
-    const firstY = top - 10.5;
+    const firstY = top - 10.5 - (M.opt ? 3 : 0);   // แผงเหนือกล่อง OPT ไม่ชนขอบบนบล็อก
     /* ระยะจากแถวแรกถึงแถวสุดท้าย = ผลรวมระยะของทุกแถวยกเว้นแถวสุดท้าย (แถวว่างใช้ EH) */
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
@@ -1907,8 +1908,8 @@ function pgSldPro(doc, sheet, M) {
       const G0 = geo(blocks[0], yTop), tap0 = (yTop - 1 + G0.boxBot) / 2;
       const need = tap0 - Math.max(Math.min(tap0, A.y1 - 34 - MON_H), yE0 + 44), room = G0.bottom - (yE0 + 20);
       cur = yTop - Math.max(0, Math.min(need, room));
-      if (need <= room || RH <= 10) break;
-      RH = Math.max(10, RH - 0.5);   // แถวที่ขยายเต็มแผ่นไว้ หดลงจนเลื่อนบล็อกได้ (สตริงน้อยแต่บล็อกสูง)
+      if (need <= room || RH <= RH0) break;
+      RH = Math.max(RH0, RH - 0.5);   // แถวที่ขยายเต็มแผ่นไว้ หดลงจนเลื่อนบล็อกได้ (สตริงน้อยแต่บล็อกสูง)
     }
   }  /* บล็อกสูง (สตริงเยอะ) เลื่อนลงไม่พอให้ที่เหนืออินเวอร์เตอร์ = กล่องมอนิเตอร์ทับหัวคอลัมน์ → ใช้แบบวางใต้ขวาอินเวอร์เตอร์แทน (ผู้ใช้ชี้ 2026-11-01: โดนทับ) */
   let monSide = false;   // แบบนั้นวางกล่องมอนิเตอร์ข้างขวาบนอินเวอร์เตอร์ ที่ว่างใต้หัว AC COMBINER BOX (ผู้ใช้วาดกรอบชี้ 2026-11-01)
@@ -1968,18 +1969,38 @@ function pgSldPro(doc, sheet, M) {
         }
         /* สตริง: แผงแรก ─ ─ แผงสุดท้าย */
         /* ช่องแผงจากขวา: 1 · 2 · 3 · (• • •) · n — เลขอยู่ในตัวแผงฝั่งซ้ายของสามเหลี่ยม */
-        const nP = row.last || 1, slots = nP <= 4 ? Array.from({ length: nP }, (_, i) => i + 1) : [1, 2, 3, nP];
-        const sxOf = (i) => (i < 3 ? X.mn - i * 8 : X.m1);
+        /* มีตัวคุมแผง: ช่องเป็นตัวคุม (OPT-1 · OPT-2 · … · OPT-n) ต่ออนุกรมบนเส้นสตริง แผงอยู่เหนือกล่องต่อเข้าขั้วบน (ผู้ใช้วาดให้ดู 2026-11-01)
+           ตัวคุม 1 ตัวต่อ per แผง → จำนวนช่อง = ceil(แผง / per) · ป้าย RSD-n เมื่อเป็นอุปกรณ์ Rapid Shutdown */
+        const OP = M.opt, nP0 = row.last || 1, nP = OP ? Math.ceil(nP0 / OP.per) : nP0;
+        const slots = nP <= 4 ? Array.from({ length: nP }, (_, i) => i + 1) : [1, 2, 3, nP];
+        const sxOf = (i) => (i < 3 ? X.mn - i * 8 : X.m1), hw = OP ? 2.6 : 3.2;
         slots.forEach((no, i) => {
           const px = sxOf(i);
-          pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
-          /* เลขแผงในวงกลม ตัวใหญ่ขึ้น (ผู้ใช้ 2026-10-30) — เลขหลายหลักย่อให้พอดีวง */
-          pen.circle(S, px - 1.5, y, 1.3);
-          pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), { align: 1, valign: 2 });
-          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + 3.2, y, sxOf(i - 1) - 3.2, y);   // แผง n กับ • • • ไม่มีเส้นต่อ (ผู้ใช้ขีดฆ่า)
+          if (OP) {
+            const bh = 2;
+            pen.rect(S, px - hw, y - bh, 2 * hw, 2 * bh);
+            pen.line(S, px - hw, y - bh, px + hw, y + bh);   // สัญลักษณ์ DC/DC: เส้นทแยง + เครื่องหมาย = สองมุม
+            [[px - hw * 0.5, y + bh * 0.5], [px + hw * 0.5, y - bh * 0.5]].forEach(([qx, qy]) => {
+              pen.line(S, qx - 0.8, qy + 0.3, qx + 0.8, qy + 0.3); pen.line(S, qx - 0.8, qy - 0.3, qx + 0.8, qy - 0.3);
+            });
+            const pw = OP.per > 1 ? 3.2 : 4.6, ph = OP.per > 1 ? 2.4 : 2.8, py = y + bh + 1.4 + ph / 2;
+            const nPan = OP.per > 1 ? 2 : 1;
+            for (let k = 0; k < nPan; k++) {
+              const qx = nPan > 1 ? px + (k ? 1.8 : -1.8) : px;
+              pgSym.pv(pen, qx, py, pw, ph, null, true);
+              pen.line(CM, qx, py - ph / 2, qx, y + bh);
+            }
+            pen.text(T, px, y - bh - 0.5, TS.tag, (OP.rsd ? "RSD-" : "OPT-") + no, { align: 1, valign: 3 });
+          } else {
+            pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
+            /* เลขแผงในวงกลม ตัวใหญ่ขึ้น (ผู้ใช้ 2026-10-30) — เลขหลายหลักย่อให้พอดีวง */
+            pen.circle(S, px - 1.5, y, 1.3);
+            pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), { align: 1, valign: 2 });
+          }
+          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + hw, y, sxOf(i - 1) - hw, y);   // แผง n กับ • • • ไม่มีเส้นต่อ (ผู้ใช้ขีดฆ่า)
         });
-        if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));   // • • •
-        const mLeft = sxOf(slots.length - 1) - 3.2;
+        if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - hw - 1.6 - k * 1.6, y, 0.3));   // • • •
+        const mLeft = sxOf(slots.length - 1) - hw, peDy = OP ? 4.6 : 1.2;   // มีตัวคุม: สายฝากโครงลงใต้ป้าย OPT
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, { valign: 1 });
         /* ขนาดสาย DC บนเส้นสตริง ช่องว่างระหว่างป้ายสตริงกับขีดคู่ (ผู้ใช้ 2026-10-30: ขาดการบอกขนาดสาย DC) — สเปคเต็มอยู่ในตาราง/แผ่นต่อสาย DC */
@@ -1992,10 +2013,10 @@ function pgSldPro(doc, sheet, M) {
         }
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, { valign: 3 });
         /* ต่อฝากโครงแผงเข้า PE trunk */
-        pen.line(PE, X.pe0, y - 1.2, mLeft, y - 1.2);
-        if (peTop == null) peTop = y - 1.2; else peDot(X.pe0, y - 1.2);
+        pen.line(PE, X.pe0, y - peDy, mLeft, y - peDy);
+        if (peTop == null) peTop = y - peDy; else peDot(X.pe0, y - peDy);
         /* สายสตริง → อุปกรณ์ป้องกัน → ขั้วอินเวอร์เตอร์ (ขีดสองขีด = วงจร DC +/−) */
-        pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
+        pen.line(R, X.mn + hw, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y); else hBrk(X.dcB, y);
         /* ป้ายเหนือฟิวส์ทุกตัว (ผู้ใช้ 2026-10-30): DC FUSE 20A 1500VDC — แทนสเปคหัวตู้ */
         if (ivSpd) {

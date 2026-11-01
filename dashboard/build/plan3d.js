@@ -4159,6 +4159,16 @@ function p3SldModel(st, job, design) {
     acRoute: "IN CONDUIT",
     mainRoute: "IN CONDUIT",
     combinerModel: "",
+    opt: (() => {
+      const o = !micro && typeof scOptSpec === "function" ? scOptSpec(sys) : null;
+      const md = o && o.model || !micro && sys.optModel || "";
+      if (!md) return null;
+      return {
+        model: md,
+        per: Math.max(1, o && o.perPanel || 1),
+        rsd: /TS4-A-F|TS4-A-2F|\bRSD\b|rapid|shutdown/i.test(md + " " + (o && o.name || ""))
+      };
+    })(),
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
     rccb: totA * 1.25 > 63 ? "MCCB 3P," + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
     rccbType: totA * 1.25 > 63 ? "c/w GFR + ZCT + SHUNT TRIP" : "Type A 100mA",

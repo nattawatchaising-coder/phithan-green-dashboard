@@ -2440,7 +2440,8 @@ function pgSldPro(doc, sheet, M) {
       k: r.ins.length
     };
   };
-  let RH = 10;
+  const RH0 = M.opt ? 14 : 10;
+  let RH = RH0;
   const GAP = 2;
   const phys = +M.mppt.phys || 0;
   const rowsOf = r => {
@@ -2519,7 +2520,7 @@ function pgSldPro(doc, sheet, M) {
       };
     }
     const all = b.groups.reduce((t, gq) => t.concat(gq.rows), []);
-    const firstY = top - 10.5;
+    const firstY = top - 10.5 - (M.opt ? 3 : 0);
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
@@ -2746,8 +2747,8 @@ function pgSldPro(doc, sheet, M) {
       const need = tap0 - Math.max(Math.min(tap0, A.y1 - 34 - MON_H), yE0 + 44),
         room = G0.bottom - (yE0 + 20);
       cur = yTop - Math.max(0, Math.min(need, room));
-      if (need <= room || RH <= 10) break;
-      RH = Math.max(10, RH - 0.5);
+      if (need <= room || RH <= RH0) break;
+      RH = Math.max(RH0, RH - 0.5);
     }
   }
   let monSide = false;
@@ -2822,23 +2823,50 @@ function pgSldPro(doc, sheet, M) {
           y -= EH;
           return;
         }
-        const nP = row.last || 1,
-          slots = nP <= 4 ? Array.from({
-            length: nP
-          }, (_, i) => i + 1) : [1, 2, 3, nP];
-        const sxOf = i => i < 3 ? X.mn - i * 8 : X.m1;
+        const OP = M.opt,
+          nP0 = row.last || 1,
+          nP = OP ? Math.ceil(nP0 / OP.per) : nP0;
+        const slots = nP <= 4 ? Array.from({
+          length: nP
+        }, (_, i) => i + 1) : [1, 2, 3, nP];
+        const sxOf = i => i < 3 ? X.mn - i * 8 : X.m1,
+          hw = OP ? 2.6 : 3.2;
         slots.forEach((no, i) => {
           const px = sxOf(i);
-          pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
-          pen.circle(S, px - 1.5, y, 1.3);
-          pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), {
-            align: 1,
-            valign: 2
-          });
-          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + 3.2, y, sxOf(i - 1) - 3.2, y);
+          if (OP) {
+            const bh = 2;
+            pen.rect(S, px - hw, y - bh, 2 * hw, 2 * bh);
+            pen.line(S, px - hw, y - bh, px + hw, y + bh);
+            [[px - hw * 0.5, y + bh * 0.5], [px + hw * 0.5, y - bh * 0.5]].forEach(([qx, qy]) => {
+              pen.line(S, qx - 0.8, qy + 0.3, qx + 0.8, qy + 0.3);
+              pen.line(S, qx - 0.8, qy - 0.3, qx + 0.8, qy - 0.3);
+            });
+            const pw = OP.per > 1 ? 3.2 : 4.6,
+              ph = OP.per > 1 ? 2.4 : 2.8,
+              py = y + bh + 1.4 + ph / 2;
+            const nPan = OP.per > 1 ? 2 : 1;
+            for (let k = 0; k < nPan; k++) {
+              const qx = nPan > 1 ? px + (k ? 1.8 : -1.8) : px;
+              pgSym.pv(pen, qx, py, pw, ph, null, true);
+              pen.line(CM, qx, py - ph / 2, qx, y + bh);
+            }
+            pen.text(T, px, y - bh - 0.5, TS.tag, (OP.rsd ? "RSD-" : "OPT-") + no, {
+              align: 1,
+              valign: 3
+            });
+          } else {
+            pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
+            pen.circle(S, px - 1.5, y, 1.3);
+            pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), {
+              align: 1,
+              valign: 2
+            });
+          }
+          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + hw, y, sxOf(i - 1) - hw, y);
         });
-        if (nP > 4) [0, 1, 2].forEach(k => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));
-        const mLeft = sxOf(slots.length - 1) - 3.2;
+        if (nP > 4) [0, 1, 2].forEach(k => pen.dot(CM, sxOf(2) - hw - 1.6 - k * 1.6, y, 0.3));
+        const mLeft = sxOf(slots.length - 1) - hw,
+          peDy = OP ? 4.6 : 1.2;
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, {
           valign: 1
@@ -2858,9 +2886,9 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, {
           valign: 3
         });
-        pen.line(PE, X.pe0, y - 1.2, mLeft, y - 1.2);
-        if (peTop == null) peTop = y - 1.2;else peDot(X.pe0, y - 1.2);
-        pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
+        pen.line(PE, X.pe0, y - peDy, mLeft, y - peDy);
+        if (peTop == null) peTop = y - peDy;else peDot(X.pe0, y - peDy);
+        pen.line(R, X.mn + hw, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
         if (ivSpd) {
           const ft0 = P.dcDev.tag.replace(/ gPV/, "").replace(/\s*\(\+\/-\)\s*$/, "");
