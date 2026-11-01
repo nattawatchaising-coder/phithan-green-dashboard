@@ -15,7 +15,7 @@ const DS_LAY = {
   walk: ["DS-WALKWAY", 2, 50], rail: ["DS-GUARDRAIL", 6, 40], lad: ["DS-LADDER", 1, 40],
   tag: ["DS-TAG", 7, 18], grp: ["DS-GROUP", 1, 18], dcp: ["DS-DC-POS", 1, 35], dcn: ["DS-DC-NEG", 7, 35],
   jmp: ["DS-JUMPER", 7, 25], mod: ["DS-MODULE", 7, 25], cell: ["DS-MODULE-CELL", 9, 9], earth: ["DS-EARTH", 3, 35],
-  eq: ["DS-EQUIP", 7, 30], flow: ["DS-FLOW", 8, 13], optIn: ["DS-OPT-LEAD", 3, 25], ret: ["DS-DC-RETURN", 5, 35], cov: ["DS-COVER", 7, 50], cov2: ["DS-COVER-2", 7, 18],
+  eq: ["DS-EQUIP", 7, 30], flow: ["DS-FLOW", 8, 13], optIn: ["DS-OPT-LEAD", 7, 25], ret: ["DS-DC-RETURN", 7, 35], cov: ["DS-COVER", 7, 50], cov2: ["DS-COVER-2", 7, 18],
   covT: ["DS-COVER-TEXT", 7, 25], covC: ["DS-COVER-CO", 7, 25],   // ปกสีดำทั้งหมด (ผู้ใช้ขอ)
 };
 const DL = (k) => DS_LAY[k][0];
@@ -648,7 +648,7 @@ function dsChain(pen, T, from, to) {   // ต่อขั้ว from (−) ไ�
 }
 /* รูปการเดินสายแบบมีตัวคุมแผง (Optimizer / Rapid Shutdown) — ตามรูปที่ผู้ใช้ส่ง 2026-11-01 (TYPE-16PV / TYPE-18PV)
    สองแถว: แถวบน 1..m ซ้าย→ขวา · แถวล่าง m+1..n ขวา→ซ้าย · ตัวคุม 1 ตัวต่อ per แผง (1 หรือ 2) คร่อมขอบบน (แถวบน) / ขอบล่าง (แถวล่าง)
-   สายแผงเข้าตัวคุม (เขียว − / แดง +) · ตัวคุมต่ออนุกรมด้วยสายแดง · สายลบกลับ (น้ำเงิน) เดินขนานแนวสตริงกลับมาออกข้างเดียวกับสายบวก
+   สายแผงเข้าตัวคุม (ดำ − / แดง + · ผู้ใช้สั่งสายดำกับแดง) · ตัวคุมต่ออนุกรมด้วยสายแดง · สายลบกลับ (ดำ) เดินขนานแนวสตริงกลับมาออกข้างเดียวกับสายบวก
    m คี่ + 2 แผงต่อตัว = ตัวคุมคู่ข้ามแถว (แผง m กับ m+1) อยู่ขอบบนแผง m สายแผง m+1 อ้อมขวามาเข้าด้านบน
    o = { n, per, rsd, model, xs (ปลายสายออกซ้าย), yA (ขอบบนแถวบน), pw, ph, cab, thL } · คืน yBot ล่างสุดที่ใช้ */
 function dsOptType(pen, o) {
@@ -679,7 +679,6 @@ function dsOptType(pen, o) {
     bx.push(b);
     return b;
   };
-  let cross = false;
   for (let k = 1; k <= n; k += per) {
     const a = pan[k], c = per > 1 && k + 1 <= n ? pan[k + 1] : null;
     if (!c) {
@@ -693,18 +692,17 @@ function dsOptType(pen, o) {
       lead(G, Bp.tL, lane(Bp, 0.3), b.xc + ow * 0.125, b.near);
       lead(R, Bp.tR, lane(Bp, 0.2), b.xc + ow * 0.375, b.near);
     } else {
-      /* ข้ามแถว: แผงบน (m) ต่อด้านใกล้ · แผงล่าง (m+1) อ้อมขวาขึ้นมาเข้าด้านบนตัวคุม */
-      cross = true;
+      /* ข้ามแถว: แผงบน (m) ต่อด้านใกล้ · แผงล่าง (m+1) ขึ้นตรงผ่านแผง m เข้าใต้ตัวคุม (ผู้ใช้วาดชี้ 2026-11-01 เดิมอ้อมขวา) */
       const Pt = a.top ? a : c, Pb = a.top ? c : a, b = box(Pt.x + pw / 2, Pt);
-      lead(G, Pt.tL, lane(Pt, 0.2), b.xc - ow * 0.25, b.near);
-      lead(R, Pt.tR, lane(Pt, 0.2), b.xc + ow * 0.25, b.near);
-      const xe1 = xR0 + 1.2, xe2 = xR0 + 2.4, yHiL = Pb.top2 - 0.15 * ph, yLoL = Pb.top2 - 0.28 * ph;
-      L(G, [Pb.tL, [Pb.tL[0], yHiL], [xe2, yHiL], [xe2, b.far + 2.4], [b.xc - ow * 0.25, b.far + 2.4], [b.xc - ow * 0.25, b.far]]);
-      L(R, [Pb.tR, [Pb.tR[0], yLoL], [xe1, yLoL], [xe1, b.far + 1.2], [b.xc + ow * 0.25, b.far + 1.2], [b.xc + ow * 0.25, b.far]]);
+      lead(G, Pt.tL, lane(Pt, 0.15), b.xc - ow * 0.375, b.near);
+      lead(R, Pt.tR, lane(Pt, 0.15), b.xc + ow * 0.375, b.near);
+      const yJ = Pb.top2 - 0.15 * ph, yK = lane(Pt, 0.25);
+      L(G, [Pb.tL, [Pb.tL[0], yJ], [Pt.x + pw * 0.24, yJ], [Pt.x + pw * 0.24, yK], [b.xc - ow * 0.125, yK], [b.xc - ow * 0.125, b.near]]);
+      L(R, [Pb.tR, [Pb.tR[0], yJ], [Pt.x + pw * 0.76, yJ], [Pt.x + pw * 0.76, yK], [b.xc + ow * 0.125, yK], [b.xc + ow * 0.125, b.near]]);
     }
   }
   /* ตัวคุมต่ออนุกรม · แถวบนลงแถวล่างทางขวา */
-  const xc = xR0 + (cross ? 3.8 : 1.5), xB = xc + 1.5;
+  const xc = xR0 + 1.5, xB = xc + 1.5;
   for (let i = 0; i < bx.length - 1; i++) {
     const a = bx[i], b = bx[i + 1];
     if (a.s === b.s) L(R, [a.out, b.in]);

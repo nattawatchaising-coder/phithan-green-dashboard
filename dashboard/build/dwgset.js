@@ -20,8 +20,8 @@ const DS_LAY = {
   earth: ["DS-EARTH", 3, 35],
   eq: ["DS-EQUIP", 7, 30],
   flow: ["DS-FLOW", 8, 13],
-  optIn: ["DS-OPT-LEAD", 3, 25],
-  ret: ["DS-DC-RETURN", 5, 35],
+  optIn: ["DS-OPT-LEAD", 7, 25],
+  ret: ["DS-DC-RETURN", 7, 35],
   cov: ["DS-COVER", 7, 50],
   cov2: ["DS-COVER-2", 7, 18],
   covT: ["DS-COVER-TEXT", 7, 25],
@@ -1050,7 +1050,6 @@ function dsOptType(pen, o) {
     bx.push(b);
     return b;
   };
-  let cross = false;
   for (let k = 1; k <= n; k += per) {
     const a = pan[k],
       c = per > 1 && k + 1 <= n ? pan[k + 1] : null;
@@ -1067,21 +1066,18 @@ function dsOptType(pen, o) {
       lead(G, Bp.tL, lane(Bp, 0.3), b.xc + ow * 0.125, b.near);
       lead(R, Bp.tR, lane(Bp, 0.2), b.xc + ow * 0.375, b.near);
     } else {
-      cross = true;
       const Pt = a.top ? a : c,
         Pb = a.top ? c : a,
         b = box(Pt.x + pw / 2, Pt);
-      lead(G, Pt.tL, lane(Pt, 0.2), b.xc - ow * 0.25, b.near);
-      lead(R, Pt.tR, lane(Pt, 0.2), b.xc + ow * 0.25, b.near);
-      const xe1 = xR0 + 1.2,
-        xe2 = xR0 + 2.4,
-        yHiL = Pb.top2 - 0.15 * ph,
-        yLoL = Pb.top2 - 0.28 * ph;
-      L(G, [Pb.tL, [Pb.tL[0], yHiL], [xe2, yHiL], [xe2, b.far + 2.4], [b.xc - ow * 0.25, b.far + 2.4], [b.xc - ow * 0.25, b.far]]);
-      L(R, [Pb.tR, [Pb.tR[0], yLoL], [xe1, yLoL], [xe1, b.far + 1.2], [b.xc + ow * 0.25, b.far + 1.2], [b.xc + ow * 0.25, b.far]]);
+      lead(G, Pt.tL, lane(Pt, 0.15), b.xc - ow * 0.375, b.near);
+      lead(R, Pt.tR, lane(Pt, 0.15), b.xc + ow * 0.375, b.near);
+      const yJ = Pb.top2 - 0.15 * ph,
+        yK = lane(Pt, 0.25);
+      L(G, [Pb.tL, [Pb.tL[0], yJ], [Pt.x + pw * 0.24, yJ], [Pt.x + pw * 0.24, yK], [b.xc - ow * 0.125, yK], [b.xc - ow * 0.125, b.near]]);
+      L(R, [Pb.tR, [Pb.tR[0], yJ], [Pt.x + pw * 0.76, yJ], [Pt.x + pw * 0.76, yK], [b.xc + ow * 0.125, yK], [b.xc + ow * 0.125, b.near]]);
     }
   }
-  const xc = xR0 + (cross ? 3.8 : 1.5),
+  const xc = xR0 + 1.5,
     xB = xc + 1.5;
   for (let i = 0; i < bx.length - 1; i++) {
     const a = bx[i],
