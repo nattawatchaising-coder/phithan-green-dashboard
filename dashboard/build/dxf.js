@@ -2555,7 +2555,7 @@ function pgSldPro(doc, sheet, M) {
     ref: PT.ref && PT.ref[no] || ""
   })) : (isDet ? [PT.nos[0]] : invNos).map(n => mkBlock(n, true));
   const yB0 = isMain ? yTop - (P.pm ? 24 : 10) : yTop;
-  if (isMain) MH = Math.max(7, Math.min(16, (avail - (yTop - yB0)) / blocks.length - 0.8));else if (sumH(blocks) > avail) blocks = blocks.map(b => mkBlock(b.no, false));
+  if (isMain) MH = Math.max(7, Math.min(16, (avail - (yTop - yB0)) / blocks.length - 0.8));else if (sumH(blocks) > avail && (isDet || blocks.length === 1)) blocks = blocks.map(b => mkBlock(b.no, false));
   if (isDet && PT.nos.length > 1) blocks[0].names = pgInvNames(PT.nos) + " (x" + PT.nos.length + ")";
   if (!isMain && sumH(blocks) > avail) {
     M.needSplit = true;
@@ -2867,8 +2867,10 @@ function pgSldPro(doc, sheet, M) {
           if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + hw, y, sxOf(i - 1) - hw, y);
         });
         if (nP > 4) [0, 1, 2].forEach(k => pen.dot(CM, sxOf(2) - hw - 1.6 - k * 1.6, y, 0.3));
-        const mLeft = sxOf(slots.length - 1) - hw,
-          peDy = OP ? 4.6 : 1.2;
+        const oPh = OP ? OP.per > 1 ? 2.4 : 2.8 : 0,
+          oPw = OP ? OP.per > 1 ? 1.8 + 1.6 : 2.3 : 0;
+        const mLeft = sxOf(slots.length - 1) - (OP ? oPw : hw),
+          peDy = OP ? -(2 + 1.4 + oPh / 2) : 1.2;
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, {
           valign: 1

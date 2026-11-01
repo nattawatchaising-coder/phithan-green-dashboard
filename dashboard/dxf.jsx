@@ -1768,7 +1768,9 @@ function pgSldPro(doc, sheet, M) {
   /* แผ่นภาพรวม: บัส AC ยาวขึ้นถึงเครื่องแรก — เริ่มบล็อกต่ำลงให้หลอดไฟแสดงเฟส/กล่อง logger เหนือตู้ไม่ทับหัวคอลัมน์ */
   const yB0 = isMain ? yTop - (P.pm ? 24 : 10) : yTop;
   if (isMain) MH = Math.max(7, Math.min(16, (avail - (yTop - yB0)) / blocks.length - 0.8));   // แผ่นภาพรวมกระจายเต็มแผ่น · เครื่องเยอะย่อลงได้ถึง 7 มม.
-  else if (sumH(blocks) > avail) blocks = blocks.map((b) => mkBlock(b.no, false));
+  /* ไม่พอที่: หลายเครื่องแยกแผ่นย่อยละกลุ่มก่อน (needSplit ข้างล่าง) สตริงแยก Input ครบทุกเส้น (ผู้ใช้ 2026-11-01: "อยากให้แยก Input")
+     ยุบรวมแถวละ MPPT (S1+S9 · IN1-2) เฉพาะแผ่นที่เหลือเครื่องเดียวแล้วยังไม่พอ */
+  else if (sumH(blocks) > avail && (isDet || blocks.length === 1)) blocks = blocks.map((b) => mkBlock(b.no, false));
   if (isDet && PT.nos.length > 1) blocks[0].names = pgInvNames(PT.nos) + " (x" + PT.nos.length + ")";
   if (!isMain && sumH(blocks) > avail) {
     M.needSplit = true;   // แผ่นเดียวไม่พอ — p3PrepSet แยกเป็นภาพรวม + แผ่นย่อย (แผ่นเดียวยังวาดแบบ TYPICAL ได้ถ้าเรียกตรง)
@@ -2002,7 +2004,9 @@ function pgSldPro(doc, sheet, M) {
           if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + hw, y, sxOf(i - 1) - hw, y);   // แผง n กับ • • • ไม่มีเส้นต่อ (ผู้ใช้ขีดฆ่า)
         });
         if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - hw - 1.6 - k * 1.6, y, 0.3));   // • • •
-        const mLeft = sxOf(slots.length - 1) - hw, peDy = OP ? 4.6 : 1.2;   // มีตัวคุม: สายฝากโครงลงใต้ป้าย OPT
+        /* มีตัวคุม: สายฝากโครงแผงเข้าที่กึ่งกลางแผงที่อยู่เหนือกล่อง OPT ซ้ายสุด (ผู้ใช้ตีกรอบชี้ 2026-11-01: เส้นกราวด์ไม่ถึงแผง) */
+        const oPh = OP ? (OP.per > 1 ? 2.4 : 2.8) : 0, oPw = OP ? (OP.per > 1 ? 1.8 + 1.6 : 2.3) : 0;
+        const mLeft = sxOf(slots.length - 1) - (OP ? oPw : hw), peDy = OP ? -(2 + 1.4 + oPh / 2) : 1.2;
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, { valign: 1 });
         /* ขนาดสาย DC บนเส้นสตริง ช่องว่างระหว่างป้ายสตริงกับขีดคู่ (ผู้ใช้ 2026-10-30: ขาดการบอกขนาดสาย DC) — สเปคเต็มอยู่ในตาราง/แผ่นต่อสาย DC */
