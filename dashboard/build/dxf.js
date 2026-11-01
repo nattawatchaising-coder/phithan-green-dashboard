@@ -2483,7 +2483,9 @@ function pgSldPro(doc, sheet, M) {
   const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt),
     RD = 24,
     MSPL = RD + 4;
-  let acMtrX = null;
+  let acMtrX = null,
+    acSpdX = null,
+    acMtrY = null;
   if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
     X[k] += MSPL;
   });
@@ -2756,6 +2758,8 @@ function pgSldPro(doc, sheet, M) {
     monUp = false;
     monSide = true;
   }
+  const dongleTop = !!M.mon && !M.mon.logger && !!M.mon.meter && isMain && blocks.length > 1 && blocks.every(b => b.mini);
+  if (dongleTop) cur = yB0 - 18;
   const miniLines = b => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
   if (isMain) {
     const hT = Math.min(TS.spec, 2.6 * 0.8);
@@ -2776,7 +2780,8 @@ function pgSldPro(doc, sheet, M) {
       pgSym.inverter(pen, sx, tapY, sh * 1.3, sh);
       pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
       pgTerm(pen, S, X.iv1, tapY);
-      pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, {
+      const lh0 = Math.min(TS.head, bt - (tapY + sh / 2) - 0.9);
+      pen.text(LB, sx - (dongleTop && b === blocks[0] ? 1.4 : 0), tapY + sh / 2 + 0.7, lh0, "INV" + b.no, {
         align: 1,
         valign: 1
       });
@@ -2797,6 +2802,9 @@ function pgSldPro(doc, sheet, M) {
         y: tapY,
         b,
         bot: tapY - sh / 2,
+        top: tapY + sh / 2,
+        sh,
+        lblTop: tapY + sh / 2 + 0.7 + lh0,
         vx: sx
       });
       cur = G.bottom - 2;
@@ -3384,6 +3392,8 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, tx, t.y + 0.7, ch, lc, {
           valign: 1
         });
+        t.txtTop = t.y + 0.7 + ch;
+        t.txtBot = t.y - 0.7 - (dn.length - 1) * (ch + 0.6) - ch;
         dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, {
           valign: 3
         }));
@@ -3403,7 +3413,12 @@ function pgSldPro(doc, sheet, M) {
     if (P.pm && !oneInv && !isMain) X.ac1 += ctGap - 7;
     const hasGf = P.gf && !P.lsig;
     const acTop0 = busHi + 12 + (monUp && M.mon.meter ? 9 : 0),
-      acTop = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;
+      acTop1 = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;
+    if (dongleTop) {
+      taps[0].dgBot = Math.max(taps[0].txtTop + 1.4, taps[0].lblTop + 0.2);
+      acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 4, busHi + 6.5, taps[0].dgBot + 6.7) + 2.2;
+    }
+    const acTop = dongleTop ? Math.max(acTop1, acMtrY + 3.8) : acTop1;
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
@@ -3463,6 +3478,7 @@ function pgSldPro(doc, sheet, M) {
     const px = mx2 + 11,
       lx = px + 3.6,
       sx = lx + 4.5;
+    acSpdX = sx;
     let pmLow = yMain;
     if (P.pm) {
       const pb = yMain - 19,
@@ -3830,6 +3846,90 @@ function pgSldPro(doc, sheet, M) {
         }
         sig(mx0 + mw / 2, mBot, mBot - 8);
       } else sig(dx0 + dw / 2, dBot, dBot - 8);
+    } else if (M.mon && !M.mon.logger && M.mon.meter && taps.length > 1 && taps[0].sh && taps[0].txtTop != null) {
+      const mon = M.mon,
+        COM = PG_SLD.comm,
+        t1 = taps[0],
+        t2 = taps[1];
+      const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
+      const ctSpec = pgMeterCt(mon.meter).ct ? pgMeterCt(mon.meter).ct : "";
+      const meterNm = mon.meter.replace(/\s*\+\s*CT.*$/i, "");
+      const xm = t1.vx + t1.sh * 0.62;
+      const dw = Math.max(20, pgTextW(mon.dev, TS.spec) + 3),
+        dh = 5,
+        dx0 = X.iv1 + 1.5,
+        dBot = t1.dgBot,
+        yc = dBot + dh / 2,
+        xr = dx0 + dw;
+      pen.rect(S, dx0, dBot, dw, dh);
+      pen.text(T, dx0 + dw / 2, yc, TS.spec, mon.dev, {
+        align: 1,
+        valign: 2
+      });
+      pen.line(COM, dx0, yc, xm, yc);
+      pen.line(COM, xm, yc, xm, t1.top + 1.6);
+      arrow(xm, t1.top + 1.6, 0, -1);
+      pen.text(T, t1.vx + t1.sh * 0.4 - 0.8, yc, TS.tag, "PLUG-IN COM PORT", {
+        align: 2,
+        valign: 2
+      });
+      pen.line(COM, xr, yc, xr + 5, yc);
+      arrow(xr + 5, yc, 1, 0);
+      pen.text(LB, xr + 7.2, yc + 0.4, TS.spec, "INTERNET", {
+        valign: 1
+      });
+      pen.text(T, xr + 7.2, yc - 0.6, TS.tag, /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", {
+        valign: 3
+      });
+      for (let i = 0; i + 1 < taps.length; i++) {
+        const a = taps[i],
+          c = taps[i + 1],
+          xc = a.vx + a.sh * 0.36;
+        pen.line(COM, xc, a.bot, xc, c.top + 1.6);
+        arrow(xc, c.top + 1.6, 0, -1);
+        pen.text(T, xc + 0.8, (a.bot + c.lblTop) / 2, TS.tag, "RS485", {
+          valign: 2
+        });
+      }
+      const mTx = meterNm.replace(/^smart *meter */i, ""),
+        mh = 4.4,
+        myc = acMtrY,
+        mw = pgTextW(mTx, TS.spec) + 4;
+      const fx = acSpdX != null ? acSpdX : X.ac1 - 6,
+        mx0 = fx + 3 - mw,
+        mx1 = mx0 + mw,
+        mTop = myc + mh / 2,
+        mB = myc - mh / 2;
+      pen.rect(S, mx0, mB, mw, mh);
+      pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, {
+        align: 1,
+        valign: 2
+      });
+      pen.line(W, fx, yMain, fx, mB);
+      pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", {
+        valign: 3
+      });
+      const x2 = t1.vx + t1.sh * 0.4;
+      pen.line(COM, mx0, myc, x2, myc);
+      pen.line(COM, x2, myc, x2, t1.top + 1.6);
+      arrow(x2, t1.top + 1.6, 0, -1);
+      pen.text(T, (X.ac0 + mx0) / 2, myc + 0.6, TS.tag, "RS485", {
+        align: 1,
+        valign: 1
+      });
+      const cTx = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
+      const cxm = (mx0 + mx1) / 2,
+        yct = mTop + 3.4,
+        xe = Math.max(mx1 + 6, X.ac1 + 2);
+      pen.line(PG_SLD.ctsig, xe, yct, cxm, yct);
+      pen.line(PG_SLD.ctsig, cxm, yct, cxm, mTop + 1.6);
+      arrow(cxm, mTop + 1.6, 0, -1);
+      pen.text(T, xe + 0.8, yct + 0.3, TS.tag, cTx[0], {
+        valign: 1
+      });
+      pen.text(T, xe + 0.8, yct - 0.3, TS.tag, cTx[1], {
+        valign: 3
+      });
     } else if (M.mon) {
       const mon = M.mon,
         ib = taps[taps.length - 1].bot,

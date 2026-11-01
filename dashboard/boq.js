@@ -973,7 +973,8 @@
     if (!inv) return [];
     const ph = +inv.phase || 1;
     if (isHwInv(inv.model)) {
-      const out = isProject ? [] : [{ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" }];
+      /* ใช้ Smart Dongle ต้องมีมิเตอร์ในตู้ AC ส่ง RS485 เข้าอินเวอร์เตอร์เครื่องแรก (ผู้ใช้ 2026-11-01) — งานโครงการก็ถอด · SmartLogger งานโครงการ CT ผ่าน Logger */
+      const out = isProject && (+nInv || 1) > RULES.hwDongleMax ? [] : [{ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" }];
       if ((+nInv || 1) > RULES.hwDongleMax) out.push({ name: HW.logger, qty: 1, unit: "ตัว" });
       else if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(inv.model)) out.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
       return out;
@@ -2292,8 +2293,9 @@
           pushBatt(invItems);
         } else {
           /* Huawei ตัวส่งข้อมูลตามจำนวนเครื่อง (ผู้ใช้ 2026-11-01): ไม่เกิน hwDongleMax เครื่อง = Smart Dongle · เกิน = SmartLogger (มิเตอร์ RS485 เข้า Logger)
-             งานบ้านมี Smart Meter ตามเฟส · งานโครงการไม่ถอดมิเตอร์ Huawei (ใช้ power meter ในตู้ AC) */
-          if (!isProject) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+             งานบ้านมี Smart Meter ตามเฟส · งานโครงการที่ใช้ SmartLogger ไม่ถอดมิเตอร์ Huawei (ใช้ power meter ในตู้ AC) */
+          /* ใช้ Smart Dongle (ไม่เกิน hwDongleMax เครื่อง) ต้องมีมิเตอร์ในตู้ AC ส่ง RS485 เข้า INV1 — งานโครงการก็ถอด (ผู้ใช้ 2026-11-01) */
+          if (!isProject || invTotal <= RULES.hwDongleMax) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
           if (invTotal > RULES.hwDongleMax) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
           // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
           else if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });

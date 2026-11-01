@@ -1729,7 +1729,7 @@ function pgSldPro(doc, sheet, M) {
   if (ivIn && !ivSpd) ["iv1", "ac0", "acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += 16; });
   /* เมนงานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31) — ขอบขวาตู้ AC + MDB เลื่อนขวาตั้งแต่ต้น หัวโซนจะได้อยู่กลางตู้ */
   const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt), RD = 24, MSPL = RD + 4;   // RCCB ห่างจาก MCB ให้มิเตอร์ดึงไฟเลี้ยงตรงกลาง (ผู้ใช้วาดชี้ 2026-10-31)
-  let acMtrX = null;   // จุดดึงไฟเลี้ยงมิเตอร์บนสายเมนในตู้ (ระหว่าง MCB กับ RCCB)
+  let acMtrX = null, acSpdX = null, acMtrY = null;   // acSpdX/acMtrY: มิเตอร์ขวาบนตู้ AC ของแบบหลายเครื่อง + Dongle   // จุดดึงไฟเลี้ยงมิเตอร์บนสายเมนในตู้ (ระหว่าง MCB กับ RCCB)
   if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += MSPL; });
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
@@ -1917,6 +1917,9 @@ function pgSldPro(doc, sheet, M) {
   }  /* บล็อกสูง (สตริงเยอะ) เลื่อนลงไม่พอให้ที่เหนืออินเวอร์เตอร์ = กล่องมอนิเตอร์ทับหัวคอลัมน์ → ใช้แบบวางใต้ขวาอินเวอร์เตอร์แทน (ผู้ใช้ชี้ 2026-11-01: โดนทับ) */
   let monSide = false;   // แบบนั้นวางกล่องมอนิเตอร์ข้างขวาบนอินเวอร์เตอร์ ที่ว่างใต้หัว AC COMBINER BOX (ผู้ใช้วาดกรอบชี้ 2026-11-01)
   if (monUp && yTop - cur < MON_H) { monUp = false; monSide = true; }
+  /* หลายเครื่อง + Smart Dongle: กล่องดองเกิลอยู่เหนือ INV1 — เลื่อนทั้งก้อนลงไม่เบียดหัวคอลัมน์ (ผู้ใช้ชี้ 2026-11-01 ที่ว่างล่างเหลือเยอะ) */
+  const dongleTop = !!M.mon && !M.mon.logger && !!M.mon.meter && isMain && blocks.length > 1 && blocks.every((b) => b.mini);
+  if (dongleTop) cur = yB0 - 18;
 
   const miniLines = (b) => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
     [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
@@ -1939,7 +1942,8 @@ function pgSldPro(doc, sheet, M) {
       pgSym.inverter(pen, sx, tapY, sh * 1.3, sh);
       pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
       pgTerm(pen, S, X.iv1, tapY);
-      pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, { align: 1, valign: 1 });
+      const lh0 = Math.min(TS.head, bt - (tapY + sh / 2) - 0.9);
+      pen.text(LB, sx - (dongleTop && b === blocks[0] ? 1.4 : 0), tapY + sh / 2 + 0.7, lh0, "INV" + b.no, { align: 1, valign: 1 });   // มีสายสื่อสารลงหัว INV1 สองเส้น ป้ายหลบซ้าย
       const tx = sl - 2.5, tw = tx - X.m1;
       const ls = miniLines(b);
       const lp = Math.min(2.6, (bt - G.boxBot) / ls.length), lh = Math.min.apply(null, ls.map((l) => fitH(l[1], TS.spec, tw)));
@@ -1948,7 +1952,7 @@ function pgSldPro(doc, sheet, M) {
       pen.line(PE, peX, tapY - sh / 2, peX, G.yG);
       pen.line(PE, X.pe0, G.yG, peX, G.yG);
       if (peTop == null) peTop = G.yG; else peDot(X.pe0, G.yG);
-      taps.push({ y: tapY, b, bot: tapY - sh / 2, vx: sx });
+      taps.push({ y: tapY, b, bot: tapY - sh / 2, top: tapY + sh / 2, sh, lblTop: tapY + sh / 2 + 0.7 + lh0, vx: sx });
       cur = G.bottom - 2;
       return;
     }
@@ -2381,6 +2385,7 @@ function pgSldPro(doc, sheet, M) {
         /* วัดจากความกว้างตัวอักษรจริง (pgTextW) — fitH นับทุกตัวเท่ากันเลยย่อเกินจนเหลือครึ่งช่อง */
         const ch = Math.max(0.9, Math.min.apply(null, [TS.spec * 1.3, (tGap - 2.4) / 3.4].concat([lc].concat(dn).map((l) => cw / (pgTextW(l, 1) * 1.12)))));
         pen.text(T, tx, t.y + 0.7, ch, lc, { valign: 1 });
+        t.txtTop = t.y + 0.7 + ch; t.txtBot = t.y - 0.7 - (dn.length - 1) * (ch + 0.6) - ch;   // ขอบป้ายสาย (สายสื่อสารหลายเครื่องหลบ)
         dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
       }
       hBrk(X.acB, t.yIn, isCb(t.b.brk));
@@ -2404,7 +2409,13 @@ function pgSldPro(doc, sheet, M) {
     /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
     /* แผ่นภาพรวม: หลอดไฟอยู่ต่ำชิดสายเมน ไม่ต้องเผื่อขอบบนตู้ 15 หน่วยให้แถว PM (ผู้ใช้ชี้ 2026-10-29 ขอบบนลอยสูงเกิน) · +12 พ้นป้าย MCCB เศษส่วนของเครื่องบนสุด */
     /* หลอดไฟแสดงเฟสอยู่เหนือสายเมน 12 หน่วยทุกจำนวนเครื่อง — ขอบบนตู้คลุมหลอด ไม่ลอยไปชนหัว AC COMBINER BOX (ผู้ใช้ชี้ 2026-10-30) */
-    const acTop0 = busHi + 12 + (monUp && M.mon.meter ? 9 : 0), acTop = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;   // มีมิเตอร์ในตู้: ขอบบนสูงขึ้นวางมิเตอร์เหนือป้ายเบรกเกอร์ (ผู้ใช้ 2026-10-31)
+    const acTop0 = busHi + 12 + (monUp && M.mon.meter ? 9 : 0), acTop1 = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;
+    /* หลายเครื่อง + Dongle: มิเตอร์ขวาบนในตู้ เหนือหลอดไฟ/ป้ายเบรกเกอร์ INV1 · สาย RS485 เหนือกล่องดองเกิล (ผู้ใช้วาดชี้ 2026-11-01) → ขอบบนตู้สูงขึ้นคลุม */
+    if (dongleTop) {
+      taps[0].dgBot = Math.max(taps[0].txtTop + 1.4, taps[0].lblTop + 0.2);   // กล่องดองเกิล: ป้าย PLUG-IN COM PORT สูงพ้นป้าย INV1
+      acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 4, busHi + 6.5, taps[0].dgBot + 6.7) + 2.2;
+    }
+    const acTop = dongleTop ? Math.max(acTop1, acMtrY + 3.8) : acTop1;   // มีมิเตอร์ในตู้: ขอบบนสูงขึ้นวางมิเตอร์เหนือป้ายเบรกเกอร์ (ผู้ใช้ 2026-10-31)
     /* เมนของตู้ */
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
@@ -2443,6 +2454,7 @@ function pgSldPro(doc, sheet, M) {
     }
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     const px = mx2 + 11, lx = px + 3.6, sx = lx + 4.5;
+    acSpdX = sx;
     let pmLow = yMain;
     if (P.pm) {
       /* Power meter: CT บนสายเมน → PM2230 */
@@ -2689,7 +2701,54 @@ function pgSldPro(doc, sheet, M) {
           pen.text(T, (X.iv1 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
         }
         sig(mx0 + mw / 2, mBot, mBot - 8);
-      } else sig(dx0 + dw / 2, dBot, dBot - 8);    } else if (M.mon) {
+      } else sig(dx0 + dw / 2, dBot, dBot - 8);    } else if (M.mon && !M.mon.logger && M.mon.meter && taps.length > 1 && taps[0].sh && taps[0].txtTop != null) {
+      /* หลายเครื่อง + Smart Dongle (ผู้ใช้ 2026-11-01): ดองเกิลเสียบ INV1 (กล่องขวาบน INV1 เหนือป้ายสาย) · INV1 → INV2 → … ต่อกันด้วย RS485
+         มิเตอร์อยู่ในตู้ AC ระหว่างแถว INV1–INV2 ไฟเลี้ยงจากบัส · ส่ง RS485 เข้าก้น INV1 ตรง ไม่ผ่านดองเกิล · ไม่มีเส้นตัดกัน */
+      const mon = M.mon, COM = PG_SLD.comm, t1 = taps[0], t2 = taps[1];
+      const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
+      const ctSpec = (pgMeterCt(mon.meter).ct ? pgMeterCt(mon.meter).ct : "");
+      const meterNm = mon.meter.replace(/\s*\+\s*CT.*$/i, "");
+      const xm = t1.vx + t1.sh * 0.62;   // ดองเกิลลงหัว INV1 (มิเตอร์ลงข้างซ้ายของเส้นนี้)
+      /* ดองเกิล */
+      const dw = Math.max(20, pgTextW(mon.dev, TS.spec) + 3), dh = 5, dx0 = X.iv1 + 1.5, dBot = t1.dgBot, yc = dBot + dh / 2, xr = dx0 + dw;
+      pen.rect(S, dx0, dBot, dw, dh);
+      pen.text(T, dx0 + dw / 2, yc, TS.spec, mon.dev, { align: 1, valign: 2 });
+      pen.line(COM, dx0, yc, xm, yc);
+      pen.line(COM, xm, yc, xm, t1.top + 1.6);
+      arrow(xm, t1.top + 1.6, 0, -1);
+      pen.text(T, t1.vx + t1.sh * 0.4 - 0.8, yc, TS.tag, "PLUG-IN COM PORT", { align: 2, valign: 2 });   // ซ้ายสาย RS485 มิเตอร์ที่ลงหัว INV1
+      pen.line(COM, xr, yc, xr + 5, yc);
+      arrow(xr + 5, yc, 1, 0);
+      pen.text(LB, xr + 7.2, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
+      pen.text(T, xr + 7.2, yc - 0.6, TS.tag, /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", { valign: 3 });
+      /* RS485 ต่อเครื่อง: ก้นเครื่องบน → หัวเครื่องถัดไป */
+      for (let i = 0; i + 1 < taps.length; i++) {
+        const a = taps[i], c = taps[i + 1], xc = a.vx + a.sh * 0.36;
+        pen.line(COM, xc, a.bot, xc, c.top + 1.6);
+        arrow(xc, c.top + 1.6, 0, -1);
+        pen.text(T, xc + 0.8, (a.bot + c.lblTop) / 2, TS.tag, "RS485", { valign: 2 });
+      }
+      /* มิเตอร์ขวาบนในตู้ AC เหนือหลอดไฟแสดงเฟส (ผู้ใช้วาดชี้ 2026-11-01) · ไฟเลี้ยงขึ้นจากจุดแยก SPD บนสายเมน
+         3 เฟส = R, S, T, N · 1 เฟส = L, N · CT เข้าหัวมิเตอร์จากขวา · RS485 ออกซ้ายอ้อมเหนือดองเกิลลงหัว INV1 */
+      const mTx = meterNm.replace(/^smart *meter */i, ""), mh = 4.4, myc = acMtrY, mw = pgTextW(mTx, TS.spec) + 4;
+      const fx = acSpdX != null ? acSpdX : X.ac1 - 6, mx0 = fx + 3 - mw, mx1 = mx0 + mw, mTop = myc + mh / 2, mB = myc - mh / 2;
+      pen.rect(S, mx0, mB, mw, mh);
+      pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, { align: 1, valign: 2 });
+      pen.line(W, fx, yMain, fx, mB);
+      pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", { valign: 3 });
+      const x2 = t1.vx + t1.sh * 0.4;
+      pen.line(COM, mx0, myc, x2, myc);
+      pen.line(COM, x2, myc, x2, t1.top + 1.6);
+      arrow(x2, t1.top + 1.6, 0, -1);
+      pen.text(T, (X.ac0 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+      const cTx = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
+      const cxm = (mx0 + mx1) / 2, yct = mTop + 3.4, xe = Math.max(mx1 + 6, X.ac1 + 2);
+      pen.line(PG_SLD.ctsig, xe, yct, cxm, yct);
+      pen.line(PG_SLD.ctsig, cxm, yct, cxm, mTop + 1.6);
+      arrow(cxm, mTop + 1.6, 0, -1);
+      pen.text(T, xe + 0.8, yct + 0.3, TS.tag, cTx[0], { valign: 1 });
+      pen.text(T, xe + 0.8, yct - 0.3, TS.tag, cTx[1], { valign: 3 });
+    } else if (M.mon) {
       /* ผู้ใช้วาดชี้ 2026-10-30: กลุ่มนี้อยู่ใต้ขวาอินเวอร์เตอร์เครื่องล่างสุด (ที่ว่างเหนือตาราง SYSTEM DATA)
          [Smart Meter] ← CT MAIN (คล้องเมน MDB เดิม) · กล่อง Logger/Dongle อยู่ใต้ ลูกศรขึ้นไปมิเตอร์
          ซ้าย: RS485 เลี้ยวขึ้นเข้าก้นอินเวอร์เตอร์ · ขวา: INTERNET */
