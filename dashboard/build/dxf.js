@@ -2523,9 +2523,9 @@ function pgSldPro(doc, sheet, M) {
     const firstY = top - 10.5 - (M.opt ? 3 : 0);
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16 - (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) ? 6 : 0);
+    const dBot = lastY - 16;
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
-    const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 18 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
       firstY,
       lastY,
@@ -3009,7 +3009,7 @@ function pgSldPro(doc, sheet, M) {
       dBot = G.dBot - dDy;
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
-    if (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) && strY.length) {
+    if (M.opt && M.opt.rsd && strY.length) {
       const xC = (X.dc1 + X.iv0) / 2,
         eRx = 0.6,
         eRy = 1.5;
@@ -3021,25 +3021,66 @@ function pgSldPro(doc, sheet, M) {
           pen.line(S, p[0], p[1], q[0], q[1]);
         }
       });
-      const bB = dBot + 6,
-        bT = bB + 4.4,
-        bx0 = X.dc0 + 1.5,
-        bx1 = X.dc1 - 1.5,
-        bm = (bB + bT) / 2;
-      pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
-      const t1 = "RSS TRANSMITTER",
-        t2 = "(" + (M.opt.rss || M.opt.model) + ")";
-      pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, {
+      const sg = !M.opt.rss && /\bSR\d+D\b/i.test(M.opt.model),
+        txN = n => sg ? "SUNGO SD-" + n : M.opt.rss || M.opt.model;
+      const nxt = invNos[invNos.indexOf(b.no) + 1];
+      const base = dBot - 18,
+        bx0 = X.dc0,
+        bx1 = X.dc1,
+        W = bx1 - bx0;
+      const tB = base + 9,
+        tD = tB + 2.6,
+        tT = tD + 4.4,
+        bm = (tD + tT) / 2;
+      pen.rect(S, bx0, tB, W, tT - tB);
+      pen.line(S, bx0, tD, bx1, tD);
+      const t1 = "TRANSMITTER",
+        t2 = txN(b.no);
+      pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, {
         align: 1,
         valign: 1
       });
-      pen.text(T, (bx0 + bx1) / 2, bm - 0.25, fitH(t2, TS.tag, bx1 - bx0 - 1), t2, {
+      pen.text(T, bx0 + W / 2, bm - 0.25, fitH(t2, TS.tag, W - 1), t2, {
         align: 1,
         valign: 3
       });
+      const c1 = bx0 + W * 0.4,
+        c2 = bx0 + W * 0.7,
+        ch = TS.tag;
+      pen.text(T, c1, tB + 1.3, ch, "C1", {
+        align: 1,
+        valign: 2
+      });
+      pen.text(T, c2, tB + 1.3, ch, "C2", {
+        align: 1,
+        valign: 2
+      });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, bm);
-      pen.line(CS, xC, bm, bx1, bm);
+      pen.line(CS, xC, strY[0] - eRy, xC, tB - 1.0);
+      pen.line(CS, xC, tB - 1.0, c1, tB - 1.0);
+      pen.line(CS, c1, tB - 1.0, c1, tB);
+      if (nxt != null) {
+        pen.line(CS, c2, tB, c2, tB - 3.2);
+        pen.solid(S, [c2 - 0.5, tB - 2.8], [c2, tB - 3.8], [c2 + 0.5, tB - 2.8]);
+        const tt = "TO " + txN(nxt);
+        pen.text(T, c2 + 0.8, tB - 3.4, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, {
+          valign: 2
+        });
+      }
+      const ex = bx0 + W * 0.15,
+        eT = base + 5,
+        eB = base + 2.4,
+        ew = Math.min(5, W * 0.26);
+      pen.line(S, ex, tB, ex, eT);
+      pen.rect(S, ex - ew / 2, eB, ew, eT - eB);
+      const em = (eT + eB) / 2;
+      pen.line(S, ex - ew * 0.3, em - 0.4, ex + ew * 0.3, em - 0.4);
+      pen.line(S, ex, em - 0.4, ex, em + 0.7);
+      pen.line(S, ex - ew * 0.22, em + 0.7, ex + ew * 0.22, em + 0.7);
+      const el = "EMERGENCY BUTTON";
+      pen.text(T, bx0, base + 1.4, fitH(el, TS.tag, W), el, {
+        valign: 2
+      });
     }
     const barT = rowsY[0] - 5.6,
       barB = lastY - 10;

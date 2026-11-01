@@ -1748,10 +1748,11 @@ function pgSldPro(doc, sheet, M) {
     /* ระยะจากแถวแรกถึงแถวสุดท้าย = ผลรวมระยะของทุกแถวยกเว้นแถวสุดท้าย (แถวว่างใช้ EH) */
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16 - (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) ? 6 : 0);   // RSD: กล่อง RSS TRANSMITTER อยู่ในตู้ DC ใต้สตริงสุดท้าย ตู้ยาวลงให้ที่
+    const dBot = lastY - 16;
     /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
-    const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    /* RSD: กล่อง TRANSMITTER + ปุ่มฉุกเฉินอยู่นอกตู้ DC ใต้ตู้ (ผู้ใช้ 2026-11-01) สายดินลงต่ำให้ที่ */
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 18 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
   const blockH = (b) => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
@@ -2122,19 +2123,45 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     /* Rapid Shutdown (Tigo TS4-A-F ฯลฯ): ตัวส่งสัญญาณ RSS ต้องมีคู่กับ RSD ทุกแผง (ผู้ใช้สั่ง 2026-11-01 "วาด RSS ด้วย")
        แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
-    /* วาดเฉพาะรุ่นที่ต้องมีตัวส่งแยก (กรอกชื่อ RSS ในคลัง หรือ Tigo TS4) — Sungrow SR20D-M สื่อสารผ่านอินเวอร์เตอร์ Sungrow เอง ไม่มีตัวส่ง (เอกสารผู้ผลิตที่ผู้ใช้ส่ง 2026-11-01) */
-    if (M.opt && M.opt.rsd && (M.opt.rss || /TS4/i.test(M.opt.model)) && strY.length) {
+    /* ทุกรุ่น RSD มีตัวส่ง — Sungrow SR20D-M ใช้ TRANSMITTER SUNGO SD-2 (ผู้ใช้ส่งแบบงานจริง 2026-11-01) · ชื่อจากคลัง (optRss) ก่อน */
+    if (M.opt && M.opt.rsd && strY.length) {
       const xC = (X.dc1 + X.iv0) / 2, eRx = 0.6, eRy = 1.5;
       const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
       strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
-      const bB = dBot + 6, bT = bB + 4.4, bx0 = X.dc0 + 1.5, bx1 = X.dc1 - 1.5, bm = (bB + bT) / 2;
-      pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
-      const t1 = "RSS TRANSMITTER", t2 = "(" + (M.opt.rss || M.opt.model) + ")";   // ชื่อตัวส่งจากคลัง ไม่มีใช้รุ่น RSD
-      pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, { align: 1, valign: 1 });
-      pen.text(T, (bx0 + bx1) / 2, bm - 0.25, fitH(t2, TS.tag, bx1 - bx0 - 1), t2, { align: 1, valign: 3 });
+      /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
+         C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
+      const sg = !M.opt.rss && /\bSR\d+D\b/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" + n : M.opt.rss || M.opt.model);
+      const nxt = invNos[invNos.indexOf(b.no) + 1];
+      const base = dBot - 18, bx0 = X.dc0, bx1 = X.dc1, W = bx1 - bx0;   // นอกตู้ DC ใต้ขอบล่าง (ผู้ใช้ 2026-11-01)
+      const tB = base + 9, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;
+      pen.rect(S, bx0, tB, W, tT - tB);
+      pen.line(S, bx0, tD, bx1, tD);
+      const t1 = "TRANSMITTER", t2 = txN(b.no);
+      pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, { align: 1, valign: 1 });
+      pen.text(T, bx0 + W / 2, bm - 0.25, fitH(t2, TS.tag, W - 1), t2, { align: 1, valign: 3 });
+      const c1 = bx0 + W * 0.4, c2 = bx0 + W * 0.7, ch = TS.tag;
+      pen.text(T, c1, tB + 1.3, ch, "C1", { align: 1, valign: 2 });
+      pen.text(T, c2, tB + 1.3, ch, "C2", { align: 1, valign: 2 });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, bm);
-      pen.line(CS, xC, bm, bx1, bm);
+      pen.line(CS, xC, strY[0] - eRy, xC, tB - 1.0);   // แกน → C1
+      pen.line(CS, xC, tB - 1.0, c1, tB - 1.0);
+      pen.line(CS, c1, tB - 1.0, c1, tB);
+      if (nxt != null) {   // C2 → ตัวส่งเครื่องถัดไป
+        pen.line(CS, c2, tB, c2, tB - 3.2);
+        pen.solid(S, [c2 - 0.5, tB - 2.8], [c2, tB - 3.8], [c2 + 0.5, tB - 2.8]);
+        const tt = "TO " + txN(nxt);
+        pen.text(T, c2 + 0.8, tB - 3.4, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, { valign: 2 });
+      }
+      /* ปุ่มฉุกเฉิน: สายจากขอบซ้ายล่างตัวส่งลงหาปุ่ม (กล่อง + สัญลักษณ์กดปุ่ม) ป้ายใต้ปุ่ม */
+      const ex = bx0 + W * 0.15, eT = base + 5, eB = base + 2.4, ew = Math.min(5, W * 0.26);
+      pen.line(S, ex, tB, ex, eT);
+      pen.rect(S, ex - ew / 2, eB, ew, eT - eB);
+      const em = (eT + eB) / 2;
+      pen.line(S, ex - ew * 0.3, em - 0.4, ex + ew * 0.3, em - 0.4);   // หน้าสัมผัส
+      pen.line(S, ex, em - 0.4, ex, em + 0.7);
+      pen.line(S, ex - ew * 0.22, em + 0.7, ex + ew * 0.22, em + 0.7);   // หัวปุ่ม
+      const el = "EMERGENCY BUTTON";
+      pen.text(T, bx0, base + 1.4, fitH(el, TS.tag, W), el, { valign: 2 });
     }
     const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
     if (!ivSpd) {   // งานโครงการไม่มี SPD ในตู้ DC = ไม่มี PE bar (ผู้ใช้ขีดฆ่า 2026-10-30)
