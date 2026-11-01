@@ -2082,7 +2082,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
          CT คล้องเมนลูกค้า → อัตราส่วนตัวแรกที่ ≥ เมนเบรกเกอร์เดิมของลูกค้า (ใบขออนุญาต mainAT / ใบสำรวจ mainBreaker · ผู้ใช้ 2026-11-01 "ต้องดูจาก Main ลูกค้า")
          ยังไม่กรอกเมนลูกค้า = ใช้เมนตู้ AC ไปก่อน ขึ้นเตือนให้ตรวจ · UMG511 แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริงอีกครั้ง */
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz === "UMG96RM" && bi === 0) {   // UMG511 = CT/VT แรงกลาง อยู่ตู้ DATA LOGGER (ด้านล่าง)
+      if (jz && bi === 0) {
         const sv0 = (job && job.survey) || {};
         const cuMain = +((String(((job && job.permit) || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0]);
         const ref = cuMain || mainAt;
@@ -2149,38 +2149,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(S.v) + " · " + S.p + " · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA"
           + (!S.okV ? " · แรงดันที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "") });
     }
-    /* ── ชุดวัดแรงกลาง Janitza UMG511 (ผู้ใช้ส่งแบบ 2026-11-01) → ตู้ไฟ DATA LOGGER ──
-       ลูกค้ามีหม้อแปลงหลายลูก/ตู้ Main หลายตู้ วัดรวมที่สายแรงกลาง: 3xCT แรงกลาง x/5A 30VA CL0.5 + 3xVT kV/√3:110/√3 50VA CL0.5 + ดรอปฟิวส์ 3A กัน VT
-       ตู้ PQM PANEL (PQM · FUSE 3A · ISOLATE TR. 110/240V 30VA · UPS 1000VA) + ตู้ COMMUNICATION PANEL (SmartLogger อยู่หมวดอินเวอร์เตอร์)
-       CT = อัตราส่วนแรกที่ ≥ (kVA รวม ÷ (√3 × kV)) × ctMvK · สาย CVV-S 4Cx2.5 สองเส้น (CT · VT) เส้นละ mvSigM ม. */
-    out.logger = [];
-    if (b.monMeter === "umg511") {
-      const kv = +b.mvKv || 22, kva = (String(b.mvTr || "").match(/\d+(\.\d+)?/g) || []).reduce((a, x) => a + +x, 0);
-      const cls = kv <= 24 ? 24 : 36, kvV = Math.round(kv * 1000);
-      out.logger.push({ name: "ตู้ไฟ DATA LOGGER", qty: 2, unit: "ตู้", auto: 1, why: "PQM PANEL + COMMUNICATION PANEL (INDOOR)" });
-      if (kva > 0) {
-        const ia = kva / (Math.sqrt(3) * kv), need = ia * RU.ctMvK;
-        const r = RU.ctMvR.find((x) => x >= need) || RU.ctMvR[RU.ctMvR.length - 1];
-        out.logger.push({ name: "CT " + cls + "kV " + r + "/5A 30VA CL0.5", qty: 3, unit: "ตัว", auto: 1,
-          why: "CT แรงกลางเฟสละ 1 ตัว · หม้อแปลงรวม " + kva + " kVA ÷ (√3 × " + kv + " kV) = " + Math.round(ia * 10) / 10 + " A × " + RU.ctMvK + " = " + Math.round(need * 10) / 10 + " A → " + r + "/5A" });
-      } else out.logger.push({ name: "CT " + cls + "kV x/5A 30VA CL0.5", qty: 3, unit: "ตัว", auto: 1, ok: false, why: "CT แรงกลางเฟสละ 1 ตัว · ยังไม่ได้กรอก kVA หม้อแปลงลูกค้า เลือกอัตราส่วนไม่ได้" });
-      out.logger.push({ name: "VT " + kvV + "/√3:110/√3 50VA CL0.5", qty: 3, unit: "ตัว", auto: 1, why: "วัดแรงดันแรงกลางเฟสละ 1 ตัว" });
-      out.logger.push({ name: "DROPOUT FUSE " + cls + "kV 3A", qty: 3, unit: "ตัว", auto: 1, why: "กัน VT เฟสละ 1 ตัว" });
-      out.logger.push({ name: "FUSE 3A", qty: 1, unit: "ตัว", auto: 1, why: "ตู้ PQM PANEL กันไฟเลี้ยง PQM" });
-      out.logger.push({ name: "ISOLATE TRANSFORMER 110/240V 30VA", qty: 1, unit: "ตัว", auto: 1, why: "ตู้ PQM PANEL ไฟเลี้ยงจาก VT 110V" });
-      out.logger.push({ name: "UPS 1000VA", qty: 1, unit: "ตัว", auto: 1, why: "ตู้ PQM PANEL สำรองไฟ PQM" });
-      out.logger.push({ name: "CVV-S 4Cx2.5 Sq.mm.", qty: 2 * RU.mvSigM, unit: "ม.", auto: 1, why: "สายสัญญาณ CT + VT เข้า PQM 2 เส้น × " + RU.mvSigM + " ม." });
-    }
     return out;
   })();
-  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc, boardAuto.logger || []).map((x) => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || "", projBoard.gf || "", projBoard.pm || ""]);
+  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map((x) => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || "", projBoard.gf || "", projBoard.pm || ""]);
   React.useEffect(() => {
     setB((p) => {
       const pr = window.BOQ.normProject(p.project), bd = Object.assign({}, pr.board);
       let changed = false;
-      ["ac", "dc", "logger"].forEach((key) => {
+      ["ac", "dc"].forEach((key) => {
         const ek = "extra_" + key, cur = bd[ek] || [];
-        const nx = (bd["noauto_" + key] ? [] : boardAuto[key] || []).concat(cur.filter((x) => !x.auto));
+        const nx = (bd["noauto_" + key] ? [] : boardAuto[key]).concat(cur.filter((x) => !x.auto));
         if (JSON.stringify(nx) !== JSON.stringify(cur)) { bd[ek] = nx; changed = true; }
       });
       if (!changed) return p;
@@ -3526,13 +3504,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                 <Field label="ระบบมิเตอร์">
                   <Dropdown value={b.monMeter || "auto"} onChange={(v) => set("monMeter", v)} options={window.BOQ.MON_METER_OPTIONS} />
                 </Field>
-                {/* UMG511 แรงกลาง: ขนาด CT แรงกลางคิดจาก kVA หม้อแปลงลูกค้ารวม (ผู้ใช้ 2026-11-01) */}
-                {b.monMeter === "umg511" && <Field label="แรงดันระบบแรงกลาง">
-                  <Dropdown value={String(+b.mvKv || 22)} onChange={(v) => set("mvKv", +v)} options={[{ value: "22", label: "22 kV" }, { value: "33", label: "33 kV" }]} />
-                </Field>}
-                {b.monMeter === "umg511" && <Field label="หม้อแปลงลูกค้า (kVA คั่นด้วย ,)">
-                  <div className="bq-fld"><input value={b.mvTr || ""} onChange={(e) => set("mvTr", e.target.value)} placeholder="เช่น 1000, 800" /><span className="u">kVA</span></div>
-                </Field>}
                 <Field label="Optimizer / ตัวคุมแผง">
                   <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
                     onChange={(v) => setB((p) => Object.assign({}, p, { optimizerModel: v, hwOptimizer: !!v }))} />
