@@ -2822,15 +2822,13 @@ function pgSldPro(doc, sheet, M) {
     const strY = [];
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
-      const ys = [];
+      const ys = [],
+        emp = [];
       gq.rows.forEach(row => {
         ys.push(y);
         nStrB += row.k;
         if (row.empty) {
-          pgTerm(pen, S, X.iv0, y);
-          pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, {
-            valign: 1
-          });
+          emp.push([ys.length - 1, row.tag]);
           y -= EH;
           return;
         }
@@ -2955,6 +2953,15 @@ function pgSldPro(doc, sheet, M) {
       const bx = X.iv0 + (ivIn ? 16 : 5.5),
         y0 = ys[0],
         y1 = ys[ys.length - 1];
+      emp.forEach(([i]) => {
+        if (i > 0 && i < ys.length - 1) ys[i] = Math.min(ys[i - 1] - 3, y0 + (y1 - y0) * i / (ys.length - 1));
+      });
+      emp.forEach(([i, tag]) => {
+        pgTerm(pen, S, X.iv0, ys[i]);
+        pen.text(T, X.iv0 + 1.2, ys[i] + 0.4, TS.tag, tag, {
+          valign: 1
+        });
+      });
       const ym = ys.length % 2 ? ys[(ys.length - 1) / 2] : (y0 + y1) / 2;
       if (ivIn) {
         const sw = X.iv0 + 8.5;
