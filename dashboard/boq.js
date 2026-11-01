@@ -83,6 +83,10 @@
     { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 63, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
+    /* ชุดวัดแรงกลาง (Janitza UMG511 · ผู้ใช้ส่งแบบ 2026-11-01): ใช้เมื่อลูกค้ามีหม้อแปลงหลายลูก/ตู้ Main หลายตู้ — วัดรวมที่สาย 22/33 kV */
+    { sec: "acBoard", g: "แรงกลาง (MV) · UMG511", key: "ctMvR", th: "อัตราส่วน CT แรงกลางที่มีขาย (/5A · เลือกตัวแรกที่ ≥ กระแสหม้อแปลงรวม × เผื่อ)", unit: "A", type: "nums", def: [10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 400] },
+    { sec: "acBoard", g: "แรงกลาง (MV) · UMG511", key: "ctMvK", th: "CT แรงกลาง เผื่อกระแสหม้อแปลงรวม ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acBoard", g: "แรงกลาง (MV) · UMG511", key: "mvSigM", th: "สายสัญญาณ CT/VT (CVV-S 4Cx2.5) ยาวเส้นละ", unit: "ม.", def: 30, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "zctAt", th: "ZCT · ขนาดเมนแต่ละขั้น (ไม่เกิน)", unit: "AT", type: "nums", def: [125, 250, 630] },
     { sec: "acBoard", g: "งานโครงการ", key: "zctD", th: "ZCT · ขนาดรูของแต่ละขั้น (ตัวสุดท้าย = เมนใหญ่กว่าขั้นสุดท้าย)", unit: "มม.", type: "nums", def: [60, 80, 120, 200] },
@@ -2061,6 +2065,8 @@
       hwBackup: "none",
       monComm: "auto",    // ระบบสื่อสาร: auto | dongle | logger | none (ผู้ใช้ 2026-11-01)
       monMeter: "auto",   // ระบบมิเตอร์: auto | smart | umg96rm | umg511 | none
+      mvKv: 22,           // UMG511: แรงดันระบบแรงกลาง kV
+      mvTr: "",           // UMG511: หม้อแปลงลูกค้า kVA คั่นด้วย , (เช่น "1000, 800")
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
       optimizerModel: "",
       hwOptimizer: !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี"),
@@ -2324,7 +2330,7 @@
           /* ใช้ Smart Dongle (ไม่เกิน hwDongleMax เครื่อง) ต้องมีมิเตอร์ในตู้ AC ส่ง RS485 เข้า INV1 — งานโครงการก็ถอด (ผู้ใช้ 2026-11-01) */
           /* ตอนถอด BOQ เลือกระบบสื่อสาร/มิเตอร์ทับได้ (ผู้ใช้ 2026-11-01) — auto = ตามจำนวนเครื่องแบบเดิม */
           const comm = b.monComm || "auto", mtr = b.monMeter || "auto";
-          const useLogger = comm === "logger" || (comm === "auto" && invTotal > RULES.hwDongleMax);
+          const useLogger = comm === "logger" || (comm === "auto" && (invTotal > RULES.hwDongleMax || mtr === "umg511"));   // MV: UMG511 ส่ง RS485 เข้า SmartLogger
           if (mtr === "smart" || (mtr === "auto" && (!isProject || !useLogger))) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
           else if (JZ[mtr]) invItems.push({ name: JZ[mtr], qty: 1, unit: "ตัว" });
           if (useLogger) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });

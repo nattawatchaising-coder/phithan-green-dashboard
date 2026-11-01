@@ -3573,7 +3573,7 @@ function BOQEditor({
         });
       }
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz && bi === 0) {
+      if (jz === "UMG96RM" && bi === 0) {
         const sv0 = job && job.survey || {};
         const cuMain = +(String((job && job.permit || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0];
         const ref = cuMain || mainAt;
@@ -3699,18 +3699,93 @@ function BOQEditor({
         why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(S.v) + " · " + S.p + " · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA" + (!S.okV ? " · แรงดันที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "")
       });
     }
+    out.logger = [];
+    if (b.monMeter === "umg511") {
+      const kv = +b.mvKv || 22,
+        kva = (String(b.mvTr || "").match(/\d+(\.\d+)?/g) || []).reduce((a, x) => a + +x, 0);
+      const cls = kv <= 24 ? 24 : 36,
+        kvV = Math.round(kv * 1000);
+      out.logger.push({
+        name: "ตู้ไฟ DATA LOGGER",
+        qty: 2,
+        unit: "ตู้",
+        auto: 1,
+        why: "PQM PANEL + COMMUNICATION PANEL (INDOOR)"
+      });
+      if (kva > 0) {
+        const ia = kva / (Math.sqrt(3) * kv),
+          need = ia * RU.ctMvK;
+        const r = RU.ctMvR.find(x => x >= need) || RU.ctMvR[RU.ctMvR.length - 1];
+        out.logger.push({
+          name: "CT " + cls + "kV " + r + "/5A 30VA CL0.5",
+          qty: 3,
+          unit: "ตัว",
+          auto: 1,
+          why: "CT แรงกลางเฟสละ 1 ตัว · หม้อแปลงรวม " + kva + " kVA ÷ (√3 × " + kv + " kV) = " + Math.round(ia * 10) / 10 + " A × " + RU.ctMvK + " = " + Math.round(need * 10) / 10 + " A → " + r + "/5A"
+        });
+      } else out.logger.push({
+        name: "CT " + cls + "kV x/5A 30VA CL0.5",
+        qty: 3,
+        unit: "ตัว",
+        auto: 1,
+        ok: false,
+        why: "CT แรงกลางเฟสละ 1 ตัว · ยังไม่ได้กรอก kVA หม้อแปลงลูกค้า เลือกอัตราส่วนไม่ได้"
+      });
+      out.logger.push({
+        name: "VT " + kvV + "/√3:110/√3 50VA CL0.5",
+        qty: 3,
+        unit: "ตัว",
+        auto: 1,
+        why: "วัดแรงดันแรงกลางเฟสละ 1 ตัว"
+      });
+      out.logger.push({
+        name: "DROPOUT FUSE " + cls + "kV 3A",
+        qty: 3,
+        unit: "ตัว",
+        auto: 1,
+        why: "กัน VT เฟสละ 1 ตัว"
+      });
+      out.logger.push({
+        name: "FUSE 3A",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: "ตู้ PQM PANEL กันไฟเลี้ยง PQM"
+      });
+      out.logger.push({
+        name: "ISOLATE TRANSFORMER 110/240V 30VA",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: "ตู้ PQM PANEL ไฟเลี้ยงจาก VT 110V"
+      });
+      out.logger.push({
+        name: "UPS 1000VA",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: "ตู้ PQM PANEL สำรองไฟ PQM"
+      });
+      out.logger.push({
+        name: "CVV-S 4Cx2.5 Sq.mm.",
+        qty: 2 * RU.mvSigM,
+        unit: "ม.",
+        auto: 1,
+        why: "สายสัญญาณ CT + VT เข้า PQM 2 เส้น × " + RU.mvSigM + " ม."
+      });
+    }
     return out;
   })();
-  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || "", projBoard.gf || "", projBoard.pm || ""]);
+  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc, boardAuto.logger || []).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || "", projBoard.gf || "", projBoard.pm || ""]);
   React.useEffect(() => {
     setB(p => {
       const pr = window.BOQ.normProject(p.project),
         bd = Object.assign({}, pr.board);
       let changed = false;
-      ["ac", "dc"].forEach(key => {
+      ["ac", "dc", "logger"].forEach(key => {
         const ek = "extra_" + key,
           cur = bd[ek] || [];
-        const nx = (bd["noauto_" + key] ? [] : boardAuto[key]).concat(cur.filter(x => !x.auto));
+        const nx = (bd["noauto_" + key] ? [] : boardAuto[key] || []).concat(cur.filter(x => !x.auto));
         if (JSON.stringify(nx) !== JSON.stringify(cur)) {
           bd[ek] = nx;
           changed = true;
@@ -6964,7 +7039,29 @@ function BOQEditor({
     value: b.monMeter || "auto",
     onChange: v => set("monMeter", v),
     options: window.BOQ.MON_METER_OPTIONS
-  })), React.createElement(Field, {
+  })), b.monMeter === "umg511" && React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E23\u0E07\u0E01\u0E25\u0E32\u0E07"
+  }, React.createElement(Dropdown, {
+    value: String(+b.mvKv || 22),
+    onChange: v => set("mvKv", +v),
+    options: [{
+      value: "22",
+      label: "22 kV"
+    }, {
+      value: "33",
+      label: "33 kV"
+    }]
+  })), b.monMeter === "umg511" && React.createElement(Field, {
+    label: "\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 (kVA \u0E04\u0E31\u0E48\u0E19\u0E14\u0E49\u0E27\u0E22 ,)"
+  }, React.createElement("div", {
+    className: "bq-fld"
+  }, React.createElement("input", {
+    value: b.mvTr || "",
+    onChange: e => set("mvTr", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 1000, 800"
+  }), React.createElement("span", {
+    className: "u"
+  }, "kVA"))), React.createElement(Field, {
     label: "Optimizer / \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07"
   }, React.createElement(Dropdown, {
     value: optModel,
