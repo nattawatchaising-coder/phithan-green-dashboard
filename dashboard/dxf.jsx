@@ -2236,12 +2236,16 @@ function pgSldPro(doc, sheet, M) {
     const oneX = X.ac0 - 3;   // ลงนอกตู้ ไม่ทับเส้นประขอบตู้ แล้วเข้าตู้แนวนอน
     /* แผ่นรายละเอียดหลายเครื่อง: เครื่องที่อยู่สูงกว่าสายเมน สายลงนอกตู้ก่อน แล้วเข้าเบรกเกอร์ต่ำลงมาเหนือแถวหลอดไฟแสดงเฟส
        ตู้/บัสไม่ต้องสูงถึงขั้วอินเวอร์เตอร์ (ผู้ใช้วาดชี้ 2026-11-01 "จะได้ไม่ยาวไป") · เลื่อนลงเท่ากันทุกเครื่อง ระยะห่างแถวเดิม
-       เครื่องบนสุดลงชิดตู้ เครื่องถัดลงมาลงซ้ายกว่า สายไม่ไขว้กัน */
+       เครื่องบนสุดลงชิดตู้ เครื่องถัดลงมาลงซ้ายกว่า สายไม่ไขว้กัน
+       เครื่องที่อยู่ต่ำกว่าสายเมนทำกลับด้าน: ขึ้นนอกตู้แล้วเข้าเบรกเกอร์ใต้สายเมนระดับกล่อง DM (ผู้ใช้วาดชี้ 2026-11-01) */
     const upT = !isMain && !oneInv ? taps.filter((t) => t.y > yMain).sort((a, b) => b.y - a.y) : [];
+    const loT = !isMain && !oneInv ? taps.filter((t) => t.y < yMain).sort((a, b) => a.y - b.y) : [];
     const yCap = yMain + (P.pm ? 17 : 8), tDn = upT.length ? Math.max(0, upT[upT.length - 1].y - yCap) : 0;
+    const yFlo = yMain - (P.pm ? 14 : 8), tUp = loT.length ? Math.max(0, yFlo - loT[loT.length - 1].y) : 0;
     taps.forEach((t) => { t.yIn = t.y; t.xDn = null; });
     if (tDn > 0) upT.forEach((t, k) => { t.yIn = t.y - tDn; t.xDn = oneX - k * 1.6; });
-    const tMaxIn = Math.max.apply(null, taps.map((t) => t.yIn));
+    if (tUp > 0) loT.forEach((t, k) => { t.yIn = t.y + tUp; t.xDn = oneX - k * 1.6; });
+    const tMaxIn = Math.max.apply(null, taps.map((t) => t.yIn)), tMinIn = Math.min.apply(null, taps.map((t) => t.yIn));
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain);
@@ -2282,7 +2286,7 @@ function pgSldPro(doc, sheet, M) {
       if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
     });
     /* เครื่องเดียว: สายเข้าตู้ที่ระดับสายเมน ตู้ไม่ต้องสูงถึงขั้วอินเวอร์เตอร์ (ผู้ใช้ชี้หลอดไฟลอยสูง 2026-10-30) */
-    const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain), busLo = Math.min(tMin, yMain);
+    const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain), busLo = Math.min(tMinIn, yMain);
     if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้

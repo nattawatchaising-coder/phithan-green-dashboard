@@ -3175,8 +3175,11 @@ function pgSldPro(doc, sheet, M) {
     };
     const oneX = X.ac0 - 3;
     const upT = !isMain && !oneInv ? taps.filter(t => t.y > yMain).sort((a, b) => b.y - a.y) : [];
+    const loT = !isMain && !oneInv ? taps.filter(t => t.y < yMain).sort((a, b) => a.y - b.y) : [];
     const yCap = yMain + (P.pm ? 17 : 8),
       tDn = upT.length ? Math.max(0, upT[upT.length - 1].y - yCap) : 0;
+    const yFlo = yMain - (P.pm ? 14 : 8),
+      tUp = loT.length ? Math.max(0, yFlo - loT[loT.length - 1].y) : 0;
     taps.forEach(t => {
       t.yIn = t.y;
       t.xDn = null;
@@ -3185,7 +3188,12 @@ function pgSldPro(doc, sheet, M) {
       t.yIn = t.y - tDn;
       t.xDn = oneX - k * 1.6;
     });
-    const tMaxIn = Math.max.apply(null, taps.map(t => t.yIn));
+    if (tUp > 0) loT.forEach((t, k) => {
+      t.yIn = t.y + tUp;
+      t.xDn = oneX - k * 1.6;
+    });
+    const tMaxIn = Math.max.apply(null, taps.map(t => t.yIn)),
+      tMinIn = Math.min.apply(null, taps.map(t => t.yIn));
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y);
@@ -3243,7 +3251,7 @@ function pgSldPro(doc, sheet, M) {
       if (t.yIn !== tMaxIn || yMain > tMaxIn) pen.dot(R, X.acBus, t.yIn, 0.5);
     });
     const busHi = oneInv ? yMain : Math.max(tMaxIn, yMain),
-      busLo = Math.min(tMin, yMain);
+      busLo = Math.min(tMinIn, yMain);
     if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     const mainL0 = P.mainTxt + (P.lsig ? " LSIG" : "");
     const ctGap = Math.max(10, (pgTextW("CT " + P.pmCt, TS.spec) + (/AF/.test(mainL0) ? pgTextW("MCCB", TS.spec * 1.12) : pgTextW(mainL0, TS.spec))) / 2 + 1.5);
