@@ -1166,7 +1166,7 @@ function dsStrDetSheet(st, job, media) {
     if (!sizes.length) sizes.push(n);
     sizes.sort((a, b) => a - b);
     const cab = "PV CABLE " + (M.pro && M.pro.dcCable || "PV1-F 1x4 Sq.mm.").replace(/\s*\(H1Z2Z2-K\)/i, "").replace(/\s*1\.5kV DC/i, ""),
-      thL = 1.9,
+      thL = 2.5,
       lw = pgTextW("(+) " + cab, thL) + 3;
     const X0 = A.x0 + 6,
       X1 = A.x1 - 36,
@@ -1174,7 +1174,7 @@ function dsStrDetSheet(st, job, media) {
       yLo = bandTop + 6,
       Hf = (yHi - yLo) / sizes.length;
     const mMax = Math.ceil(Math.max.apply(null, sizes) / 2);
-    const pw = Math.min(17, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95),
+    const pw = Math.min(30, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95),
       ph = pw * 1.8;
     sizes.forEach((sz, i) => {
       const m = Math.ceil(sz / 2),

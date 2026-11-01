@@ -3440,7 +3440,7 @@ async function p3PrepSet(st, job, photos, design) {
   const list = [plan];
   if (design) {
     /* ชุด SHOP DRAWING ตามแบบที่บริษัทใช้จริง (dwgset.jsx · ขั้นที่ 1 ต.ค. 2026): ปก → รายการประกอบแบบ → ผัง → ผังวางแผง
-       → ผังสตริง → รูปการเดินสายสตริง → SLD → ต่อสาย DC → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
+       → ผังสตริง → SLD → ต่อสาย DC → รูปการเดินสายสตริง → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
        แผ่นที่ไม่มีข้อมูลรองรับ (ไม่มีราง ฯลฯ) ไม่ขึ้น */
     const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
     const add = (k) => { if (X[k]) list.push(X[k]); };
@@ -3448,7 +3448,6 @@ async function p3PrepSet(st, job, photos, design) {
     add("COVER"); add("NOTES"); list.push(plan); add("PANEL");
     if ((design.paths || []).some((q) => q.uids && q.uids.length))
       list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
-    add("STRDET");
     /* SLD แผ่นเดียวพอ = แผ่นเดียว · ไม่พอ = ภาพรวม + แผ่นย่อยละกลุ่มเครื่องที่สตริงเหมือนกัน (ผู้ใช้ 2026-10-29) */
     /* งานแรงกลาง: แผ่นภาพรวมหม้อแปลง/MDB/SMDB ขึ้นก่อน SLD (ผู้ใช้ 2026-11-01) */
     const MV = typeof pgMvSheet === "function" ? p3MvModel(st, job, design) : null;
@@ -3475,6 +3474,7 @@ async function p3PrepSet(st, job, photos, design) {
     if (MS.pro && (MS.pro.home || !MV) && MS.mppt && MS.mode === "string" && MS.mppt.rows.some((r) => r.ins.length) && typeof pgCuSheet === "function")
       list.push({ key: "CU", gk: "SLD", label: MS.pro.home ? "ต่อเข้าตู้ไฟบ้าน" : "ต่อเข้าตู้ MDB ลูกค้า", en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION", fn: (o) => p3CuSheet(st, job, o) });
     list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
+    add("STRDET");   // รูปการเดินสายสตริงต่อจากแผ่นต่อสาย DC (ผู้ใช้ 2026-11-02 "ย้ายไปอยู่หน้า 11" — เดิมต่อจากผังสตริง)
     add("GROUND"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
     list.push({ key: "MAT", label: "วัสดุหน้างาน", fn: (o) => p3EquipSheet(st, job, o) });

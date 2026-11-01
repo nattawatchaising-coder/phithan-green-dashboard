@@ -5366,7 +5366,6 @@ async function p3PrepSet(st, job, photos, design) {
       label: "ผังสตริงหน้างาน",
       fn: o => p3StrLayout(st, job, o)
     });
-    add("STRDET");
     const MV = typeof pgMvSheet === "function" ? p3MvModel(st, job, design) : null;
     if (MV) list.push({
       key: "MV",
@@ -5443,6 +5442,7 @@ async function p3PrepSet(st, job, photos, design) {
       label: "ต่อสาย DC",
       fn: o => p3DcSheet(st, job, o)
     });
+    add("STRDET");
     add("GROUND");
     add("TRAY");
     add("WALK");

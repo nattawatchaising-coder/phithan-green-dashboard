@@ -769,10 +769,11 @@ function dsStrDetSheet(st, job, media) {
     const sizes = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a).slice(0, 2);
     if (!sizes.length) sizes.push(n);
     sizes.sort((a, b) => a - b);
-    const cab = "PV CABLE " + ((M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm.").replace(/\s*\(H1Z2Z2-K\)/i, "").replace(/\s*1\.5kV DC/i, ""), thL = 1.9, lw = pgTextW("(+) " + cab, thL) + 3;
+    const cab = "PV CABLE " + ((M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm.").replace(/\s*\(H1Z2Z2-K\)/i, "").replace(/\s*1\.5kV DC/i, ""), thL = 2.5, lw = pgTextW("(+) " + cab, thL) + 3;
     const X0 = A.x0 + 6, X1 = A.x1 - 36, yHi = A.y1 - 12, yLo = bandTop + 6, Hf = (yHi - yLo) / sizes.length;
     const mMax = Math.ceil(Math.max.apply(null, sizes) / 2);
-    const pw = Math.min(17, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95), ph = pw * 1.8;
+    /* รูปใหญ่เต็มที่ที่ว่าง (ผู้ใช้ 2026-11-02 "ใหญ่หน่อย" เดิมเพดาน 17) */
+    const pw = Math.min(30, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95), ph = pw * 1.8;
     sizes.forEach((sz, i) => {
       const m = Math.ceil(sz / 2), W = lw + 4 + m * pw + 7, hF = 2 * ph + 2 + 0.4 * pw + 3 + 12;
       const yA = yHi - i * Hf - Math.max(0, (Hf - hF) / 2) - 0.14 * pw - 3;
