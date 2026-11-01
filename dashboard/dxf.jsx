@@ -2159,6 +2159,8 @@ function pgSldPro(doc, sheet, M) {
       /* ปุ่มฉุกเฉินตามแบบงานจริง (ผู้ใช้ส่งรูป 2026-11-01): สายจากตัวส่งลงแล้วเลี้ยวเข้าข้างซ้ายกล่องปุ่ม
          ในกล่อง = สัญลักษณ์ปุ่มกด (ขาซ้าย · หน้าสัมผัสเอียง · ขาขวา · ก้านขึ้นหัวเห็ด) · สายเดียวกันแตกกิ่งลูกศร TO ตัวส่งเครื่องอื่น */
       /* สายปุ่มฉุกเฉินออกข้างขวาตัวส่ง (ซ้ายมีสาย C1 จากแกนผ่าน ไม่ให้ตัดกัน) ลงแล้วเลี้ยวเข้าข้างขวากล่องปุ่ม */
+      /* ปุ่มฉุกเฉินมีตัวเดียวที่ตัวส่งเครื่องแรก แตกกิ่งไปเครื่องอื่น — เครื่องอื่นไม่วาดปุ่มซ้ำ (ผู้ใช้ขีดฆ่า 2026-11-01) */
+      if (b.no === invNos[0]) {
       const ex = bx1 + 1.5, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex - 2 - bw, yEo = (tB + tD) / 2;
       pen.line(S, bx1, yEo, ex, yEo);
       pen.line(S, ex, yEo, ex, yBt);
@@ -2188,6 +2190,7 @@ function pgSldPro(doc, sheet, M) {
       for (let k = 0; k < 8; k++) pen.line(S, sx + hr * Math.cos(Math.PI * k / 8), hy + hr * Math.sin(Math.PI * k / 8), sx + hr * Math.cos(Math.PI * (k + 1) / 8), hy + hr * Math.sin(Math.PI * (k + 1) / 8));   // หัวเห็ด
       const el = "EMERGENCY BUTTON";
       pen.text(T, bL + bw / 2, yBt - bh / 2 - 1.2, fitH(el, TS.tag, W), el, { align: 1, valign: 2 });
+      }
     }
     const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
     if (!ivSpd) {   // งานโครงการไม่มี SPD ในตู้ DC = ไม่มี PE bar (ผู้ใช้ขีดฆ่า 2026-10-30)

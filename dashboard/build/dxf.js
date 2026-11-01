@@ -3071,52 +3071,54 @@ function pgSldPro(doc, sheet, M) {
           valign: 2
         });
       }
-      const ex = bx1 + 1.5,
-        yBt = base + 3.6,
-        bw = Math.min(8, W * 0.5),
-        bh = 4,
-        bL = ex - 2 - bw,
-        yEo = (tB + tD) / 2;
-      pen.line(S, bx1, yEo, ex, yEo);
-      pen.line(S, ex, yEo, ex, yBt);
-      pen.line(S, ex, yBt, bL + bw, yBt);
-      const oth = invNos.filter(k => k !== b.no);
-      if (oth.length) {
-        const runs = [];
-        oth.forEach(k => {
-          const r = runs[runs.length - 1];
-          if (r && k === r[1] + 1) r[1] = k;else runs.push([k, k]);
-        });
-        const pre = sg ? "SUNGO " : "",
-          sd = k => "SD-" + k;
-        const tt = "TO " + pre + runs.map(r => r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1])).join(", ");
-        const xa = bL - 2.2,
-          xt = xa - 1.4;
-        pen.line(S, bL, yBt, xa, yBt);
-        pen.solid(S, [xa, yBt + 0.5], [xa - 1.0, yBt], [xa, yBt - 0.5]);
-        pen.text(T, xt, yBt, Math.min(txH, fitH(tt, TS.tag, xt - X.sl + 25)), tt, {
-          align: 2,
+      if (b.no === invNos[0]) {
+        const ex = bx1 + 1.5,
+          yBt = base + 3.6,
+          bw = Math.min(8, W * 0.5),
+          bh = 4,
+          bL = ex - 2 - bw,
+          yEo = (tB + tD) / 2;
+        pen.line(S, bx1, yEo, ex, yEo);
+        pen.line(S, ex, yEo, ex, yBt);
+        pen.line(S, ex, yBt, bL + bw, yBt);
+        const oth = invNos.filter(k => k !== b.no);
+        if (oth.length) {
+          const runs = [];
+          oth.forEach(k => {
+            const r = runs[runs.length - 1];
+            if (r && k === r[1] + 1) r[1] = k;else runs.push([k, k]);
+          });
+          const pre = sg ? "SUNGO " : "",
+            sd = k => "SD-" + k;
+          const tt = "TO " + pre + runs.map(r => r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1])).join(", ");
+          const xa = bL - 2.2,
+            xt = xa - 1.4;
+          pen.line(S, bL, yBt, xa, yBt);
+          pen.solid(S, [xa, yBt + 0.5], [xa - 1.0, yBt], [xa, yBt - 0.5]);
+          pen.text(T, xt, yBt, Math.min(txH, fitH(tt, TS.tag, xt - X.sl + 25)), tt, {
+            align: 2,
+            valign: 2
+          });
+        }
+        pen.rect(S, bL, yBt - bh / 2, bw, bh);
+        const yc = yBt - 0.7,
+          p1 = bL + bw * 0.38,
+          p2 = bL + bw * 0.64;
+        pen.line(S, bL + 0.8, yc, p1, yc);
+        pen.line(S, p1, yc, p2 - 0.2, yc + 1.0);
+        pen.line(S, p2, yc, bL + bw - 0.8, yc);
+        const sx = (p1 + p2) / 2 - 0.1,
+          hy = yc + 1.9,
+          hr = 0.75;
+        pen.line(S, sx, yc + 0.5, sx, hy);
+        pen.line(S, sx - hr, hy, sx + hr, hy);
+        for (let k = 0; k < 8; k++) pen.line(S, sx + hr * Math.cos(Math.PI * k / 8), hy + hr * Math.sin(Math.PI * k / 8), sx + hr * Math.cos(Math.PI * (k + 1) / 8), hy + hr * Math.sin(Math.PI * (k + 1) / 8));
+        const el = "EMERGENCY BUTTON";
+        pen.text(T, bL + bw / 2, yBt - bh / 2 - 1.2, fitH(el, TS.tag, W), el, {
+          align: 1,
           valign: 2
         });
       }
-      pen.rect(S, bL, yBt - bh / 2, bw, bh);
-      const yc = yBt - 0.7,
-        p1 = bL + bw * 0.38,
-        p2 = bL + bw * 0.64;
-      pen.line(S, bL + 0.8, yc, p1, yc);
-      pen.line(S, p1, yc, p2 - 0.2, yc + 1.0);
-      pen.line(S, p2, yc, bL + bw - 0.8, yc);
-      const sx = (p1 + p2) / 2 - 0.1,
-        hy = yc + 1.9,
-        hr = 0.75;
-      pen.line(S, sx, yc + 0.5, sx, hy);
-      pen.line(S, sx - hr, hy, sx + hr, hy);
-      for (let k = 0; k < 8; k++) pen.line(S, sx + hr * Math.cos(Math.PI * k / 8), hy + hr * Math.sin(Math.PI * k / 8), sx + hr * Math.cos(Math.PI * (k + 1) / 8), hy + hr * Math.sin(Math.PI * (k + 1) / 8));
-      const el = "EMERGENCY BUTTON";
-      pen.text(T, bL + bw / 2, yBt - bh / 2 - 1.2, fitH(el, TS.tag, W), el, {
-        align: 1,
-        valign: 2
-      });
     }
     const barT = rowsY[0] - 5.6,
       barB = lastY - 10;
