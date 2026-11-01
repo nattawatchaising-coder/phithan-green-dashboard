@@ -15,27 +15,30 @@ const DS_LAY = {
   walk: ["DS-WALKWAY", 2, 50], rail: ["DS-GUARDRAIL", 6, 40], lad: ["DS-LADDER", 1, 40],
   tag: ["DS-TAG", 7, 18], grp: ["DS-GROUP", 1, 18], dcp: ["DS-DC-POS", 1, 35], dcn: ["DS-DC-NEG", 7, 35],
   jmp: ["DS-JUMPER", 7, 25], mod: ["DS-MODULE", 7, 25], cell: ["DS-MODULE-CELL", 9, 9], earth: ["DS-EARTH", 3, 35],
-  eq: ["DS-EQUIP", 7, 30], flow: ["DS-FLOW", 8, 13], optIn: ["DS-OPT-LEAD", 7, 25], ret: ["DS-DC-RETURN", 7, 35], cov: ["DS-COVER", 7, 50], cov2: ["DS-COVER-2", 7, 18],
+  eq: ["DS-EQUIP", 7, 30], flow: ["DS-FLOW", 8, 13], optIn: ["DS-OPT-LEAD", 7, 25], ret: ["DS-DC-RETURN", 7, 35],
+  gw: ["DS-GROUND-6", 7, 60], gw16: ["DS-GROUND-16", 7, 70], railD: ["DS-RAIL-HIDDEN", 7, 18], cov: ["DS-COVER", 7, 50], cov2: ["DS-COVER-2", 7, 18],
   covT: ["DS-COVER-TEXT", 7, 25], covC: ["DS-COVER-CO", 7, 25],   // ปกสีดำทั้งหมด (ผู้ใช้ขอ)
 };
 const DL = (k) => DS_LAY[k][0];
 function dsLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
-  Object.keys(DS_LAY).forEach((k) => { const L = DS_LAY[k]; doc.layer(L[0], L[1], k === "flow" ? "PG-DASH" : "CONTINUOUS", L[2]); });
+  doc.ltype("PG-HIDDEN", "Hidden _ _ _", [3, -1.5]); doc.ltype("PG-DOTS", "Dots . . .", [0.8, -0.6]);
+  const LT = { flow: "PG-DASH", railD: "PG-HIDDEN", gw16: "PG-DOTS" };
+  Object.keys(DS_LAY).forEach((k) => { const L = DS_LAY[k]; doc.layer(L[0], L[1], LT[k] || "CONTINUOUS", L[2]); });
 }
 
 /* ── ชื่อแผ่น (ภาษาอังกฤษ) ไว้ใช้บนป้ายเหนือแผ่นในไฟล์รวม + สารบัญ ── */
 const DS_SET_EN = {
   COVER: "COVER", NOTES: "GENERAL NOTES & LEGEND", PLAN: "OVERALL LAYOUT", PANEL: "PV MODULE LAYOUT",
   STRING: "STRING LAYOUT", STRDET: "PV STRING WIRING DETAIL", SLD: "SINGLE LINE DIAGRAM", CU: "CONSUMER UNIT CONNECTION", DC: "DC WIRING",
-  GROUND: "GROUNDING DIAGRAM", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
+  GROUND: "GROUNDING DIAGRAM", GROUND2: "GROUNDING DETAIL", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
   SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST",
 };
 
 /* หมวดของแต่ละแผ่นในไฟล์รวม (pgCombine groups) — แผ่นหมวดเดียวกันอยู่แถว/กรอบเดียวกัน */
 const DS_SET_GROUP = {
   COVER: "COVER", NOTES: "COVER", PLAN: "LAYOUT", PANEL: "LAYOUT", STRING: "LAYOUT",
-  STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL",
+  STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL", GROUND2: "ELECTRICAL",
   TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
 };
 
@@ -837,155 +840,336 @@ function dsStrDetSheet(st, job, media) {
   return S.doc.build();
 }
 
+/* ── ตัวช่วยวาดแผ่นต่อลงดินแบบลอกรูปต้นแบบ: พิกัดเป็นพิกเซลของรูปที่ผู้ใช้ส่ง (y ชี้ลง) แปลงเป็นมม.บนแผ่น ──
+   w = ความกว้างรูปต้นแบบ (px) · yT = ขอบบนของรูปบนแผ่น (มม.) */
+function dsPx(pen, A, w, yT) {
+  const k = (A.x1 - A.x0 - 4) / w, X = (x) => A.x0 + 2 + x * k, Y = (y) => yT - y * k, T = PG_TBL.txt;
+  const P = (p) => [X(p[0]), Y(p[1])];
+  const o = {
+    k, X, Y,
+    ln: (L, x1, y1, x2, y2) => pen.line(L, X(x1), Y(y1), X(x2), Y(y2)),
+    pl: (L, pts, closed) => { const q = pts.map(P); for (let i = 0; i < q.length - 1; i++) pen.line(L, q[i][0], q[i][1], q[i + 1][0], q[i + 1][1]); if (closed) pen.line(L, q[q.length - 1][0], q[q.length - 1][1], q[0][0], q[0][1]); },
+    rc: (L, x, y, w2, h2) => pen.rect(L, X(x), Y(y + h2), w2 * k, h2 * k),
+    ci: (L, x, y, r) => pen.circle(L, X(x), Y(y), r * k),
+    el: (L, x, y, rx, ry, rot) => { const c = Math.cos(rot || 0), sn = Math.sin(rot || 0), q = [];
+      for (let i = 0; i <= 32; i++) { const t = i / 32 * Math.PI * 2, u = rx * Math.cos(t), v = ry * Math.sin(t); q.push([x + u * c - v * sn, y + u * sn + v * c]); }
+      o.pl(L, q); },
+    dot: (L, x, y, r) => pen.dot(L, X(x), Y(y), r * k),
+    /* ตัวหนังสือ: (x, y) = มุมซ้ายล่างของบรรทัดในรูป · h = สูง (มม.) */
+    tx: (x, y, s, h, opt) => pen.text(T, X(x), Y(y), h || PG_TS.cell, s, Object.assign({ valign: 1 }, opt || {})),
+    /* ป้ายมีเส้นใต้แล้วลากเส้นชี้ไปจุด (ex, ey) — แบบเส้นชี้ในรูปต้นแบบ */
+    lead: (x, y, s, h, pts) => {
+      h = h || PG_TS.cell;
+      pen.text(T, X(x), Y(y) + 0.6, h, s, { valign: 1 });
+      const w2 = pgTextW(s, h) / k;
+      o.ln(T, x, y, x + w2, y);
+      if (pts && pts.length) o.pl(T, [[pts[0][0] >= x + w2 / 2 ? x + w2 : x, y]].concat(pts));
+    },
+    cap: (xc, y, s, h) => { h = h || PG_TS.body; pen.text(T, X(xc), Y(y), h, s, { align: 1, valign: 1 }); const w2 = pgTextW(s, h); pen.line(T, X(xc) - w2 / 2, Y(y) - 1, X(xc) + w2 / 2, Y(y) - 1); },
+  };
+  return o;
+}
+/* บัสดิน (แท่งทองแดง + หัวน็อตเรียง) ในรูปต้นแบบ */
+function dsBus(D, L, x, y, w, n) {
+  D.rc(L, x, y, w, 7);
+  for (let i = 0; i < n; i++) { const cx = x + 5 + i * (w - 10) / Math.max(1, n - 1); D.pl(L, [[cx - 2.6, y + 3.5], [cx, y + 1], [cx + 2.6, y + 3.5], [cx, y + 6]], true); }
+}
+
 /* ==================================================================
-   ระบบต่อลงดิน (GROUNDING DIAGRAM FOR SOLAR SYSTEM)
-   ฝั่ง PV (โครงแผง · PE BAR ตู้ DC · ตัวอินเวอร์เตอร์ · รางไฟ/บันได/ราวกันตก) → หลักดิน PV ปักแยก ไม่ต่อเข้า MET
-   ฝั่ง AC (PE ตู้ AC · AC SPD · N-PE ของ MDB) → MET → หลักดินระบบ — ตรงกับ SLD (pgSldPro)
+   ระบบต่อลงดิน แผ่นที่ 1 (GROUNDING DIAGRAM) — ลอกแบบมาตรฐานที่ผู้ใช้ส่ง 2026-11-02 ("ขอเหมือนๆ 100%")
+   ซ้าย INVERTER STATION: MDB EXISTING ↔ SOLAR MDB ↔ GROUND BUS INVERTER STATION (อินเวอร์เตอร์ · ตู้ DC FUSE · INV RACK)
+   ขวา ROOFTOP: สายเมนดินขึ้นหลังคา → RAIL ทุกเส้น (PV STRING) · ทางเดิน · รางไฟ (มีในแบบ 3D เท่านั้น)
+   ล่าง DETAIL A–D · REMARK ปักหลักดินเพิ่มถ้าเกิน 5 โอห์ม
+   ขนาดสาย: เมน = M.pro.earthCu · อินเวอร์เตอร์ ≈ ครึ่งหนึ่ง (ไม่ต่ำกว่า 10 / ไม่เกินเมน) · ขึ้นหลังคา 16 · อุปกรณ์ 6
    ================================================================== */
 function dsGroundSheet(st, job, media) {
   media = media || {};
   const S = dsMm(st, job, media, "GROUND", "GROUNDING DIAGRAM FOR SOLAR SYSTEM");
-  const pen = S.pen, A = S.A, T = PG_TBL.txt, E = DL("earth"), Q = DL("eq"), F = DL("flow");
-  pgSldLayers(S.doc);
+  const pen = S.pen, A = S.A, E = DL("eq"), T = PG_TBL.txt;
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
-  const nInv = M ? M.units.length : 1;
-  const eCu = (M && M.pro && M.pro.earthCu) || +(/(\d+)\s*sq/i.exec((M && M.mainCable && M.mainCable[1]) || "") || [])[1] || 10;
-  const bond = "THW(G) 1x6 Sq.mm.", main = "THW(G) 1x" + eCu + " Sq.mm.";
-  const head = (x, y, s) => { pen.text(T, x, y, PG_TS.body, s, { align: 1, valign: 1 }); };
-  const lug = (x, y) => pen.dot(E, x, y, 0.7);
-  const busY = A.y0 + 112;
+  const P = (M && M.pro) || {};
+  const nInv = M ? Math.max(1, M.units.length) : 1, home = !!P.home, fuse = P.dcDev && P.dcDev.k === "fuse";
+  const eCu = P.earthCu || 10, CU = [6, 10, 16, 25, 35, 50, 70, 95];
+  const invCu = Math.max(Math.min(10, eCu), Math.min(eCu, CU.find((c) => c >= eCu / 2) || eCu)), roofCu = 16;
+  const tray = dsObs(st, "tray").length > 0, walk = dsObs(st, "walkway").length > 0;
+  const D = dsPx(pen, A, 1366, A.y1 - 16), H = PG_TS.cell, HB = PG_TS.body;
+  const sl = (x, y) => D.ln(T, x - 4, y + 6, x + 4, y - 6);          // ขีดเฉียงบอกขนาดสายบนเส้น
+  const slV = (x, y) => D.ln(T, x - 6, y + 4, x + 6, y - 4);
 
-  /* ── แผงบนโครง (2 แถว × 4 แผง) · RAIL 2 เส้นต่อแถว · ทุกแถวต่อ lug ลงสายประสาน ── */
-  const ax = A.x0 + 18, pw = 15, ph = 26, g = 2;
-  const rowsY = [busY + 60, busY + 60 + ph + 12];
-  const trunkX = ax - 8;
-  rowsY.forEach((ry) => {
-    for (let i = 0; i < 4; i++) {
-      const x = ax + i * (pw + g);
-      pgModFace(pen, DL("mod"), DL("cell"), x, ry, pw, ph, 6, 12, false);
-    }
-    [0.25, 0.75].forEach((f) => {
-      const y = ry + ph * f, x1 = ax + 4 * pw + 3 * g + 3;
-      pen.line(Q, ax - 3, y, x1, y);
-      lug(ax - 3, y);
-      pen.line(E, ax - 3, y, trunkX, y);
+  /* กรอบตาราง: หัว INVERTER STATION | ROOFTOP · แถว DETAIL */
+  D.ln(E, 0, 66, 1366, 66); D.ln(E, 0, 520, 1366, 520); D.ln(E, 718, 66, 718, 520);
+  D.rc(E, 0, 42, 1366, 693);
+  D.tx(359, 58, "INVERTER STATION", HB, { align: 1 }); D.tx(1042, 58, "ROOFTOP", HB, { align: 1 });
+
+  /* ── INVERTER STATION ── */
+  const mdbN = home ? "CONSUMER UNIT EXISTING" : "MDB EXISTING", solN = home ? "AC BOX (SOLAR)" : "SOLAR MDB";
+  D.rc(E, 45, 220, 125, 220); D.tx(45, 213, mdbN, H);
+  dsBus(D, E, 48, 313, 112, 14); D.tx(104, 333, "GROUND BUS", H, { align: 1, valign: 3 }); D.tx(104, 344, home ? "CONSUMER UNIT" : "MDB EXISTING", H, { align: 1, valign: 3 });
+  D.rc(E, 190, 205, 125, 235); D.tx(190, 198, solN, H);
+  dsBus(D, E, 192, 313, 113, 11); D.tx(248, 333, "GROUND BUS", H, { align: 1, valign: 3 }); D.tx(248, 344, home ? "AC BOX" : "SOLAR MDB", H, { align: 1, valign: 3 });
+  D.ln(E, 160, 317, 192, 317); sl(178, 317);
+  D.lead(80, 292, "IEC01 " + eCu + "sq.mm.", H, [[178, 292], [178, 311]]);
+  D.ln(E, 305, 317, 600, 317); sl(448, 317);
+  D.lead(338, 370, "IEC01 " + eCu + " sq.mm.", H, [[448, 370], [448, 323]]);
+
+  /* อินเวอร์เตอร์ (วาดสูงสุด 2 เครื่อง · เกิน = INVERTER-2 ~ n) */
+  const nDraw = Math.min(2, nInv), invNm = (i) => "INVERTER-" + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
+  for (let i = 0; i < nDraw; i++) {
+    const x = 395 + i * 75, y = 80;
+    D.rc(E, x, y, 60, 56); D.tx(x + 2, 75, invNm(i), H);
+    D.tx(x + 4, y + 13, "3~", HB); D.ln(E, x, y + 56, x + 60, y);
+    D.tx(x + 46, y + 32, "DC", H); D.ln(E, x + 46, y + 22, x + 56, y + 22);
+    D.rc(E, x + 15, y + 41, 32, 13);
+    ["L1", "L2", "L3", "N", "G"].forEach((s, j) => { D.tx(x + 16.5 + j * 6.2, y + 51, s, 1.1); if (j) D.ln(E, x + 15 + j * 6.4, y + 41, x + 15 + j * 6.4, y + 54); });
+    /* สายดินตัวเครื่อง (G) → GROUND BUS ตู้ SOLAR MDB */
+    const gx = x + 44, ly = 145 + i * 10, bx = 282 - i * 12;
+    D.pl(E, [[gx, y + 54], [gx, ly], [bx, ly], [bx, 313]]);
+    sl(420 - i * 0, ly);
+  }
+  D.lead(312, 138, "IEC01 " + invCu + " sq.mm.", H, [[420, 143]]);
+
+  /* ตู้ DC FUSE (ตามจำนวนเครื่อง) → GROUND BUS INVERTER STATION */
+  const dcNm = (i) => (fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
+  for (let i = 0; i < nDraw; i++) {
+    const x = 370 + i * 93, y = 210;
+    D.rc(E, x, y, 70, 30); D.tx(x + 2, 203, dcNm(i), H);
+    [[x - 3, y + 15], [x + 73, y + 15]].forEach((p) => { D.rc(E, p[0] - 3, p[1] - 5, 6, 10); D.ln(E, p[0] - 3, p[1], p[0] + 3, p[1]); });
+    const gx = x + 42, ly = 275 - i * 10, bx = 625 + i * 15;
+    D.pl(E, [[gx, y + 30], [gx, ly], [bx, ly], [bx, 313]]);
+    slV(bx, 300);
+  }
+  D.lead(500, 292, "IEC01 6 sq.mm.", H, [[620, 292]]);
+  if (!home) {
+    /* INV RACK: โครงตั้ง + ขา · ขาซ้ายต่อลงบัส */
+    const x = 610, y = 80;
+    D.tx(x + 12, 75, "INV RACK", H);
+    D.pl(E, [[x + 5, y + 65], [x + 5, y + 5], [x + 75, y + 5], [x + 75, y + 65]]);
+    D.pl(E, [[x + 9, y + 65], [x + 9, y + 9], [x + 71, y + 9], [x + 71, y + 65]]);
+    [20, 32, 44].forEach((d) => { D.ln(E, x + 9, y + d, x + 71, y + d); D.ln(E, x + 9, y + d + 3, x + 71, y + d + 3); });
+    D.ln(E, x, y + 66, x + 14, y + 66); D.ln(E, x + 66, y + 66, x + 80, y + 66);
+    D.dot(E, x + 7, y + 64, 2.2);
+    D.pl(E, [[x + 7, y + 66], [x + 7, y + 74], [655, y + 74], [655, 313]]);
+    slV(655, 300);
+  }
+  dsBus(D, E, 600, 313, 70, 8);
+  D.tx(635, 333, "GROUND BUS", H, { align: 1, valign: 3 }); D.tx(635, 344, "INVERTER STATION", H, { align: 1, valign: 3 });
+  D.pl(T, [[670, 313], [674, 285], [686, 285]]); D.tx(690, 288, "DETAIL C", H);
+
+  /* ── ROOFTOP: สายขึ้นหลังคา → แกนดิน x=920 ── */
+  const tY1 = tray ? 458 : walk ? 410 : 330;
+  D.pl(E, [[670, 317], [690, 317], [690, 340], [920, 340]]); sl(845, 340);
+  D.lead(760, 292, "IEC01 " + roofCu + " sq.mm.", H, [[845, 292], [845, 334]]);
+  D.ln(E, 920, 105, 920, tY1);
+  D.tx(935, 92, "IEC01 6 sq.mm.", H); if (tray) D.tx(935, 104, "IN PERFORATED TRAY", H);
+  D.pl(T, [[920, 118], [906, 118]]); D.tx(872, 121, "DETAIL B", H);
+  /* แผง 2 กลุ่ม · RAIL 2 เส้นต่อกลุ่ม ต่อจากแกนดินทุกเส้น */
+  D.tx(958, 136, "PV STRING", H);
+  [[143, [160, 222]], [255, [272, 330]]].forEach((g) => {
+    for (let i = 0; i < 4; i++) D.rc(E, 955 + i * 49.5, g[0], 49.5, 97);
+    D.rc(E, 1208, g[0], 47, 97);
+    D.tx(1182, g[0] + 52, "ooo", H, { align: 1 });
+    g[1].forEach((ry) => {
+      D.ln(DL("cell"), 940, ry, 1300, ry);
+      D.ln(E, 920, ry, 952, ry); slV(935, ry);
+      D.dot(E, 920, ry, 2.2);
+      [1004, 1103, 1208].forEach((cx) => D.rc(E, cx - 3, ry - 4, 6, 8));
+      D.tx(1215, ry - 3, "ALUMINUM RAIL", H);
     });
   });
-  pen.line(E, trunkX, rowsY[1] + ph * 0.75, trunkX, busY);
-  head(ax + 2 * pw + 1.5 * g, rowsY[1] + ph + 5, "GROUNDING FOR MOUNTING STRUCTURE");
-  /* ป้ายจุดต่อ lug ใต้แถวล่าง (ด้านขวาเป็นตู้ DC ไม่มีที่) */
-  pen.line(T, ax - 3, rowsY[0] + ph * 0.25, ax - 3, rowsY[0] - 3.2);
-  pen.text(T, ax - 3, rowsY[0] - 4, PG_TS.cell, "EARTHING CLIP / GROUNDING LUG", { valign: 3 });
-  pen.text(T, trunkX - 1.5, (busY + rowsY[0]) / 2, PG_TS.cell, bond, { align: 1, valign: 0, rot: 90 });
+  D.pl(T, [[1004, 156], [1004, 113], [1012, 113]]); D.tx(1015, 116, "DETAIL A", H);
+  if (walk) {
+    D.dot(E, 920, 410, 2.2); D.ln(E, 920, 410, 955, 410); slV(935, 410);
+    D.tx(958, 405, "WALK WAY", H);
+    D.rc(E, 955, 408, 80, 22);
+    for (let i = 0; i < 16; i++) D.ln(DL("cell"), 958 + i * 5, 410, 958 + i * 5, 428);
+    D.ln(E, 955, 414, 1035, 414); D.ln(E, 955, 424, 1035, 424);
+    D.lead(935, 378, "IEC01 6 sq.mm.", H, [[935, 404]]);
+  }
+  if (tray) {
+    D.dot(E, 920, 458, 2.2); D.ln(E, 920, 458, 955, 458); slV(935, 458);
+    D.tx(958, 452, "PERFORRATE TRAY", H);
+    D.rc(E, 955, 455, 350, 7);
+    D.ci(E, 1118, 458, 7); D.ln(E, 1118, 451, 1118, 465);
+    D.pl(T, [[1125, 451], [1130, 445], [1138, 445]]); D.tx(1140, 448, "DETAIL D", H);
+    D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]); D.tx(1122, 485, "IEC01 6 sq.mm.", H);
+  }
 
-  /* ── ตู้ DC + อินเวอร์เตอร์ (ฝั่ง PV) ── */
-  const box = (x, y, w, h, title, sub) => {
-    pen.rect(Q, x, y, w, h);
-    head(x + w / 2, y + h + 4, title);
-    if (sub) pen.text(T, x + w / 2, y + h + 0.8, PG_TS.cell, sub, { align: 1, valign: 1 });
+  /* ── DETAIL A–D ── */
+  const box = (x0, x1, title, det) => {
+    D.rc(E, x0, 560, x1 - x0, 155);
+    D.tx((x0 + x1) / 2, 550, title, H, { align: 1 });
+    D.tx((x0 + x1) / 2, 705, det, H, { align: 1 });
+    D.ln(T, (x0 + x1) / 2 - 65, 690, (x0 + x1) / 2 + 65, 690);
   };
-  const peBar = (x, y, w) => {
-    pen.rect(E, x, y, w, 2.4);
-    for (let i = 1; i < 5; i++) pen.circle(E, x + w * i / 5, y + 1.2, 0.45);
-    pen.text(T, x + w / 2, y + 3.4, PG_TS.cell * 0.85, "PE BAR", { align: 1, valign: 1 });
-  };
-  const dX = A.x0 + 108, dY = busY + 72;
-  box(dX, dY, 32, 42, "DC BOX", nInv > 1 ? "x " + nInv : "");
-  pgSym.spd(pen, dX + 12, dY + 26);
-  pen.line(E, dX + 12, dY + 22, dX + 12, dY + 6.4);
-  peBar(dX + 3, dY + 4, 26);
-  pen.line(E, dX + 16, dY + 4, dX + 16, busY);
-  const iX = dX + 52, iY = dY;
-  box(iX, iY, 38, 42, "INVERTER", nInv > 1 ? "x " + nInv : "");
-  pgSym.inverter(pen, iX + 19, iY + 24, 26, 22);
-  lug(iX + 19, iY);
-  pen.line(E, iX + 19, iY, iX + 19, busY);
-  pen.text(T, iX + 20.5, (busY + iY) / 2, PG_TS.cell, "BODY EARTH", { valign: 2 });
-  /* ทางไฟ (ประ) แผง → ตู้ DC → อินเวอร์เตอร์ → ตู้ AC — ให้เห็นว่าแต่ละชิ้นอยู่ตรงไหนของระบบ */
-  pen.line(F, ax + 4 * pw + 3 * g + 3, rowsY[1] + ph * 0.5, dX, dY + 32);
-  pen.line(F, dX + 32, dY + 32, iX, iY + 32);
-
-  /* ── บัสดิน PV → หลักดิน PV ── */
-  const busX1 = iX + 38;
-  pen.line(E, trunkX, busY, busX1, busY);
-  pen.text(T, trunkX + 2, busY + 1.4, PG_TS.cell, "PV EARTH BUS  " + main, { valign: 1 });
-  const rX = trunkX + 22, rY = busY - 32;
-  pen.line(E, rX, busY, rX, rY);
-  pgSym.ground(pen, rX, rY);
-  ["PV EARTH ROD (SEPARATE)", "COPPER BONDED 5/8\" x 2.4 m.", "R <= 5 OHM"].forEach((s, i) =>
-    pen.text(T, rX + 5, rY + 6 - i * 3.6, PG_TS.cell, s, { valign: 2 }));
-
-  /* ── ฝั่ง AC: ตู้ AC (SOLAR) + MDB → MET → หลักดินระบบ ── */
-  const cX = busX1 + 26, cY = dY - 4;
-  box(cX, cY, 36, 50, "AC BOX (SOLAR)", "");
-  pgSym.spd(pen, cX + 12, cY + 30);
-  pen.text(T, cX + 16, cY + 37, PG_TS.cell * 0.85, "AC SPD", { valign: 2 });
-  pen.line(E, cX + 12, cY + 26, cX + 12, cY + 6.4);
-  peBar(cX + 4, cY + 4, 28);
-  const mX = cX + 50, mW = Math.min(52, A.x1 - 6 - mX), mY = cY - 6;
-  box(mX, mY, mW, 62, "MDB (EXISTING)", "");
-  pen.line(Q, mX, mY + 48, mX + mW, mY + 48);
-  pen.line(Q, mX + mW / 2, mY + 48, mX + mW / 2, mY + 62);
-  peBar(mX + 6, mY + 4, mW - 12);
-  pen.line(F, iX + 38, iY + 32, cX, cY + 40);
-  pen.line(F, cX + 36, cY + 40, mX, mY + 40);
-  const metY = busY, metX0 = cX + 6, metX1 = mX + mW - 6;
-  pen.rect(E, metX0, metY - 1.4, metX1 - metX0, 2.8);
-  pen.text(T, (metX0 + metX1) / 2, metY - 4.4, PG_TS.cell, "MET (MAIN EARTH TERMINAL)", { align: 1, valign: 2 });
-  pen.line(E, cX + 18, cY + 4, cX + 18, metY + 1.4);
-  pen.line(E, mX + mW / 2, mY + 4, mX + mW / 2, metY + 1.4);
-  pen.text(T, cX + 19.5, (cY + metY) / 2, PG_TS.cell, main, { valign: 0, rot: 90 });
-  const sX = (metX0 + metX1) / 2 + 10, sY = metY - 34;
-  pen.line(E, sX, metY - 1.4, sX, sY);
-  pgSym.ground(pen, sX, sY);
-  ["EARTH ROD (SYSTEM)", "COPPER BONDED 5/8\" x 2.4 m.", "R <= 5 OHM"].forEach((s, i) =>
-    pen.text(T, sX + 5, sY + 6 - i * 3.6, PG_TS.cell, s, { valign: 2 }));
-
-  /* ── โลหะบนหลังคา (เฉพาะที่มีในแบบ) → บัสดิน PV ── */
-  const metal = [];
-  if (dsObs(st, "tray").length) metal.push(["tray", "GROUNDING FOR CABLE TRAY"]);
-  if (dsObs(st, "ladder").length) metal.push(["ladder", "GROUNDING FOR LADDER"]);
-  if (dsObs(st, "rail").length) metal.push(["rail", "GROUNDING FOR GUARD RAIL"]);
-  let mx = rX + 36;
-  const top = busY - 26;
-  metal.forEach((it) => {
-    if (it[0] === "tray") {
-      const w = 46, y = top - 14;
-      pen.rect(Q, mx, y, w, 7); pen.line(Q, mx, y + 2.2, mx + w, y + 2.2);
-      for (let i = 1; i < 12; i++) pen.line(DL("cell"), mx + i * w / 12, y + 3.2, mx + i * w / 12, y + 6);
-      lug(mx + 4, y + 7); pen.line(E, mx + 4, y + 7, mx + 4, busY);
-      head(mx + w / 2, y - 6, it[1]);
-      pen.text(T, mx + w / 2, y - 9.6, PG_TS.cell * 0.85, "BONDING JUMPER " + "ทุกรอยต่อ", { align: 1, valign: 1 });
-      mx += w + 16;
-    } else if (it[0] === "ladder") {
-      const y = top - 36, h = 34;
-      pen.line(Q, mx, y, mx, y + h); pen.line(Q, mx + 10, y, mx + 10, y + h);
-      for (let i = 1; i < 8; i++) pen.line(Q, mx, y + i * h / 8, mx + 10, y + i * h / 8);
-      lug(mx + 10, y + h); pen.line(E, mx + 10, y + h, mx + 10, busY);
-      head(mx + 5, y - 6, it[1]);
-      mx += 46;
-    } else {
-      const y = top - 20, w = 40;
-      pen.line(Q, mx, y + 14, mx + w, y + 14); pen.line(Q, mx, y + 7, mx + w, y + 7);
-      [0, w / 2, w].forEach((d) => pen.line(Q, mx + d, y, mx + d, y + 14));
-      lug(mx, y + 14); pen.line(E, mx, y + 14, mx, busY);
-      head(mx + w / 2, y - 6, it[1]);
-      mx += w + 16;
-    }
-  });
-
-  dsNoteBlock(pen, cX, A.y0 + 4 + dsNoteH(dsGroundNotes(eCu), A.x1 - 4 - cX), A.x1 - 4 - cX, dsGroundNotes(eCu));
+  /* A: แผ่นกราวด์ใต้แคลมป์กลาง (GROUNDING SHEET) + แผง/แคลมป์บนราง */
+  box(105, 385, "GROUNDING FOR PV MODULE AND RIAL", "DETAIL A");
+  D.pl(E, [[190, 582], [218, 582], [218, 610], [190, 610]], true);
+  D.pl(E, [[199, 582], [199, 596], [209, 596], [209, 582]]);
+  [[194, 588], [194, 600], [214, 588], [214, 600]].forEach((p) => D.ci(E, p[0], p[1], 1.6));
+  D.dot(E, 204, 603, 2);
+  D.rc(E, 262, 592, 22, 6); D.ln(E, 268, 598, 268, 627); D.ln(E, 278, 598, 278, 627);
+  D.rc(E, 240, 600, 26, 14); D.rc(E, 280, 600, 26, 14);
+  D.rc(E, 232, 627, 82, 8);
+  D.lead(318, 608, "PV MODULE", H, [[306, 606]]);
+  D.lead(318, 620, "INTER CLAMP", H, [[284, 616]]);
+  D.lead(270, 652, "RAIL", H, [[270, 635]]);
+  D.lead(115, 640, "GROUNDING SHEET", H, [[200, 640], [204, 610]]);
+  /* B: GROUNDING LUG บนราง ลงสาย IEC01-6 */
+  box(405, 690, "BONDING FOR RAIL TO GROUNDING SYSTEM", "DETAIL B");
+  D.pl(E, [[562, 585], [505, 685]]); D.pl(E, [[590, 585], [533, 685]]);
+  D.rc(E, 522, 618, 38, 9); D.rc(E, 528, 610, 22, 8);
+  for (let i = 0; i < 5; i++) D.ci(E, 532 + i * 4, 606, 2.4);
+  D.rc(E, 560, 616, 8, 8);
+  D.lead(420, 610, "GROUNDING LUG", H, [[524, 610], [524, 618]]);
+  D.lead(430, 652, "IEC01-6 sq.mm.", H, [[522, 652], [535, 630]]);
+  D.lead(610, 640, "RAIL", H, [[578, 640]]);
+  /* C: GROUND STATION (แท่งบัส 300x25x5 บนลูกถ้วย) */
+  box(700, 975, "GROUND STATION INSTALLATION DETAIL", "DETAIL C");
+  D.pl(E, [[775, 630], [880, 592], [888, 597], [783, 635]], true);
+  D.pl(E, [[783, 635], [783, 640], [888, 602], [888, 597]]);
+  for (let i = 0; i < 6; i++) D.ci(E, 795 + i * 15, 624 - i * 5.4, 1.8);
+  [[770, 634], [885, 592]].forEach((p) => { D.rc(E, p[0] - 6, p[1] - 4, 10, 14); D.rc(E, p[0] - 9, p[1] + 10, 16, 4); });
+  D.pl(E, [[862, 604], [864, 618], [868, 640]]); D.rc(E, 859, 603, 8, 6);
+  D.lead(708, 592, "GROUND STATION FOR", H, [[790, 592], [800, 618]]);
+  D.tx(708, 603, "INVERTER STATION", H, { valign: 3 }); D.tx(708, 614, "300x25x5 mm.", H, { valign: 3 });
+  D.lead(712, 652, "INSULATOR", H, [[760, 652], [766, 642]]);
+  D.tx(712, 663, "GROUNDING BAR", H, { valign: 3 });
+  D.lead(885, 628, "COPPER LUG", H, [[868, 628]]);
+  /* D: บอนด์รอยต่อรางไฟ (SPLICE PLATE + สายจัมเปอร์ 6 sq.mm.) */
+  if (tray) {
+    box(995, 1270, "PERFORRATE TRAY BONDING", "DETAIL D");
+    D.ln(E, 1005, 650, 1258, 650); D.ln(E, 1005, 654, 1258, 654); D.ln(E, 1005, 668, 1258, 668); D.ln(E, 1005, 672, 1258, 672);
+    D.rc(E, 1090, 650, 40, 22);
+    [1097, 1123].forEach((x) => D.dot(E, x, 661, 2.2)); D.ci(E, 1110, 661, 2);
+    D.pl(E, [[1076, 652], [1072, 661], [1076, 670], [1140, 670], [1144, 661], [1140, 652]], true);
+    D.lead(1000, 608, "6 sq.mm. ,IEC-01 ,GREEN", H, [[1080, 608], [1080, 652]]);
+    D.lead(1160, 608, "SPLICE PLATE", H, [[1125, 608], [1125, 650]]);
+  }
+  D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
+  D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
 }
-function dsGroundNotes(eCu) {
-  return [
-    "RAIL ทุกแถวต่อประสานด้วย EARTHING CLIP / GROUNDING LUG แล้วรวมลงบัสดิน PV",
-    "ตัวอินเวอร์เตอร์ · PE BAR ตู้ DC (DC SPD) · รางไฟ · บันได · ราวกันตก ลงหลักดิน PV ที่ปักแยกจากระบบไฟฟ้าอาคาร",
-    "PE ตู้ AC (AC SPD) และ N-PE ของ MDB ต่อเข้า MET → หลักดินระบบ",
-    "สายต่อประสานอุปกรณ์ไม่ต่ำกว่า 6 Sq.mm. · สายลงหลักดิน THW(G) " + eCu + " Sq.mm.",
-    "ความต้านทานหลักดินแต่ละชุดไม่เกิน 5 โอห์ม — วัดและบันทึกผลก่อนจ่ายไฟ",
-  ];
+
+/* ==================================================================
+   ระบบต่อลงดิน แผ่นที่ 2 (GROUNDING DETAIL) — ลอกแบบมาตรฐานที่ผู้ใช้ส่ง 2026-11-02
+   TOP VIEW แผง/ราง/สาย 1C-6 ลงสายเมน 1C-16 ในรางไฟ · SECTION A · GROUNDING FOR PERFORATED TRAY · DETAIL A (หางปลา) · B (C-CLAMP) · C (แคลมป์กลาง + RAIL EARTHING)
+   ================================================================== */
+function dsGroundDetSheet(st, job, media) {
+  media = media || {};
+  const S = dsMm(st, job, media, "GROUND2", "GROUNDING DETAIL");
+  const pen = S.pen, A = S.A, E = DL("eq"), T = PG_TBL.txt, W = DL("gw"), G16 = DL("gw16"), RL = DL("railD");
+  const D = dsPx(pen, A, 1337, A.y1 - 16), H = PG_TS.cell;
+  const lug = (x, y) => { D.ci(E, x, y, 7); D.dot(E, x, y, 4.5); };
+
+  /* ── TOP VIEW ── */
+  const cols = [[85, 135], [137, 260], [262, 385]], rows = [[95, 350], [355, 660]];
+  rows.forEach((r) => cols.forEach((c, i) => { if (i) D.rc(E, c[0], r[0], c[1] - c[0], r[1] - r[0]); else D.pl(E, [[c[1], r[0]], [c[0], r[0]]]), D.pl(E, [[c[0], r[1]], [c[1], r[1]]]), D.ln(E, c[1], r[0], c[1], r[1]); }));
+  /* ขอบตัดซ้าย (ซิกแซก) */
+  [[95, 350, 270], [355, 660, 580]].forEach((z) => D.pl(E, [[85, z[0]], [85, z[2] - 12], [72, z[2]], [85, z[2] + 12], [85, z[1]]]));
+  [163, 300, 465, 610].forEach((y) => {
+    D.ln(RL, 85, y - 3, 405, y - 3); D.ln(RL, 85, y + 3, 405, y + 3);
+    [135, 260].forEach((x) => D.rc(E, x - 3, y - 4, 6, 8));
+    D.rc(E, 382, y - 4, 6, 8);
+  });
+  D.ci(T, 260, 163, 12); D.ci(T, 385, 163, 12); D.ci(T, 262, 300, 12);
+  /* สาย 1C-6 เลียบปลายราง → เลี้ยวเข้าสาย 1C-16 ในรางไฟ */
+  D.pl(W, [[398, 163], [398, 640], [403, 652], [415, 660], [437, 662]]);
+  [163, 310, 465, 610].forEach((y) => lug(398, y));
+  D.ln(G16, 437, 150, 437, 675);
+  D.pl(E, [[431, 145], [434, 140], [440, 148], [443, 143]]);
+  D.tx(440, 128, "to Ground Test Box", H, { align: 1 });
+  /* เครื่องหมายรูปตัด A */
+  D.ci(E, 480, 40, 13); D.ln(E, 467, 40, 493, 40); D.tx(480, 37, "A", H, { align: 1 });
+  D.pl(E, [[467, 40], [480, 22], [493, 40]]);
+  D.pl(E, [[490, 705], [490, 717], [465, 717]]); D.pl(E, [[470, 712], [462, 717], [470, 722]], true);
+  D.lead(180, 62, "PV MODULE", H, [[165, 62], [150, 95]]);
+  D.tx(100, 104, "MIDDLE CLAMP AND RAIL EARTHING", H); D.tx(160, 116, "SEE DETAIL C", H);
+  D.pl(T, [[230, 104], [252, 152]]);
+  D.lead(300, 103, "END CLAMP", H, [[352, 103], [378, 152]]);
+  D.lead(20, 163, "RAIL MOUNTING", H, [[95, 163], [132, 163]]);
+  D.lead(130, 248, "MIDDLE CLAMP", H, [[205, 248], [255, 292]]);
+  D.tx(330, 265, "COPPER LUG", H); D.tx(330, 277, "SEE DETAIL A", H); D.pl(T, [[375, 270], [392, 304]]);
+  D.lead(480, 225, "1C-6 sq.mm. IEC01", H, [[398, 225]]);
+  D.lead(480, 255, "1C-16 sq.mm. IEC01", H, [[437, 255]]); D.tx(480, 267, "IN PERFORATED TRAY", H);
+  D.lead(480, 560, "1C-16 sq.mm. IEC01", H, [[420, 655]]);
+  D.cap(170, 690, "TOP VIEW");
+
+  /* ── SECTION A ── */
+  D.rc(E, 158, 815, 322, 7); D.rc(E, 637, 815, 322, 7);
+  D.ln(W, 195, 828, 1080, 828);
+  D.ln(G16, 180, 832, 1085, 832);
+  D.ci(E, 195, 830, 8); D.dot(E, 195, 830, 5);
+  [415, 705, 900].forEach((x) => lug(x, 828));
+  [195, 415, 705, 900].forEach((x) => { D.ln(E, x, 822, x, 850); D.pl(E, [[x - 3, 845], [x, 851], [x + 3, 845]]); });
+  D.tx(1092, 835, "to Ground bar MDB", H); D.pl(E, [[1086, 826], [1083, 830], [1088, 833], [1085, 838]]);
+  D.lead(165, 748, "1C-6 sq.mm. IEC01", H, [[262, 748], [300, 826]]);
+  D.tx(45, 788, "COPPER C-CLAMP", H); D.tx(55, 800, "SEE DETAIL B", H); D.pl(T, [[110, 794], [180, 794], [190, 822]]);
+  D.tx(568, 778, "COPPER LUG", H); D.tx(568, 790, "SEE DETAIL A", H); D.pl(T, [[568, 784], [520, 784], [425, 820]]);
+  D.lead(1100, 790, "1C-16 sq.mm. IEC01", H, [[1085, 790], [1040, 828]]); D.tx(1100, 802, "IN PERFORATED TRAY", H);
+  D.cap(560, 885, "SECTION A");
+
+  /* ── GROUNDING FOR PERFORATED TRAY (มองเฉียง: รางเปิดบนเฉียงขึ้นขวา · แผ่นต่อราง + หางปลา 4 ตัว · สายจัมเปอร์ตัว U) ── */
+  const sl0 = -0.46, at = (x, y0) => [x, y0 + (x - 660) * sl0];
+  D.pl(E, [at(660, 165), at(915, 165)]); D.pl(E, [at(660, 215), at(915, 215)]);   // ผนังหน้า บน/ล่าง
+  D.pl(E, [at(660, 160), at(915, 160)]);                                          // ขอบพับ
+  const bk = (x) => [x, 140 + (x - 700) * sl0];                                   // ขอบผนังหลัง (ขนานผนังหน้า)
+  D.pl(E, [[660, 160], bk(700), bk(955), at(915, 160)]); D.pl(E, [bk(700), [700, 146]]);
+  D.pl(E, [[660, 160], [660, 215]]); D.pl(E, [at(915, 160), at(915, 215)]);
+  for (let i = 0; i < 10; i++) { const p = at(675 + i * 24, 200); D.ln(DL("cell"), p[0], p[1], p[0] + 5, p[1] - 2.3); }   // รูรางไฟ
+  const pA = at(735, 168), pB = at(805, 168);
+  D.pl(E, [pA, pB, [pB[0], pB[1] + 40], [pA[0], pA[1] + 40]], true);                 // SPLICE PLATE
+  D.pl(E, [[pA[0] + 4, pA[1] - 3], [pB[0] + 4, pB[1] - 3], [pB[0] + 4, pB[1] + 37], [pB[0], pB[1] + 40]]);
+  const lg = [0, 1, 2, 3].map((i) => { const p = at(746 + i * 16, 182); D.ci(E, p[0], p[1], 3.2); D.rc(E, p[0] - 2.5, p[1] + 3, 5, 7); return [p[0], p[1] + 10]; });
+  D.pl(W, [lg[0], [lg[0][0], lg[0][1] + 18], [lg[3][0] - 3, lg[3][1] + 10], [lg[3][0], lg[3][1] + 6], lg[3]]);
+  D.lead(830, 210, "1C-6 sq.mm. IEC01", H, [[815, 210], [770, 196]]);
+  D.lead(905, 120, "PERFORATED TRAY", H, [[890, 120], [860, 112]]);
+  D.cap(778, 265, "GROUNDING FOR PERFORATED TRAY");
+
+  /* ── DETAIL A: สาย 1C-16 เข้ากระบอกหางปลา · ลิ้นหางปลายึดน็อต M8 (น็อตบน · สลักล่าง) ── */
+  D.pl(E, [[1036, 130], [1098, 171], [1112, 178]]); D.pl(E, [[1028, 142], [1090, 183], [1104, 190]]);
+  D.el(E, 1032, 136, 8, 4.5, 0.6);
+  for (let i = 0; i < 5; i++) D.ln(E, 1046 + i * 9, 144 + i * 6, 1054 + i * 9, 138 + i * 6);
+  D.pl(E, [[1104, 190], [1162, 197], [1188, 182], [1112, 178]], true);
+  D.pl(E, [[1104, 190], [1104, 194], [1162, 201], [1188, 186], [1188, 182]]);
+  const hex = (cx, cy, w, h) => D.pl(E, [[cx - w / 2, cy], [cx - w / 4, cy - h / 2], [cx + w / 4, cy - h / 2], [cx + w / 2, cy], [cx + w / 4, cy + h / 2], [cx - w / 4, cy + h / 2]], true);
+  hex(1146, 166, 24, 14); D.pl(E, [[1134, 166], [1134, 174], [1158, 174], [1158, 166]]);
+  D.ln(E, 1140, 152, 1140, 160); D.ln(E, 1152, 152, 1152, 160); D.ln(E, 1140, 152, 1152, 152);
+  D.ln(E, 1140, 198, 1140, 218); D.ln(E, 1152, 198, 1152, 218);
+  hex(1146, 224, 26, 12);
+  D.lead(1110, 108, "1C-16 sq.mm. IEC01", H, [[1095, 108], [1050, 145]]);
+  D.lead(1200, 150, "NUT M8", H, [[1158, 162]]);
+  D.lead(1205, 185, "GROUND LUG", H, [[1188, 184]]);
+  D.lead(1200, 225, "BOLT M8", H, [[1159, 224]]);
+  D.cap(1135, 280, "DETAIL A");
+
+  /* ── DETAIL C: แคลมป์กลาง + RAIL EARTHING (ภาพแยกชิ้น) ── */
+  D.ln(T, 750, 390, 750, 730);
+  D.pl(E, [[735, 418], [742, 406], [758, 406], [765, 418], [758, 430], [742, 430]], true); D.ci(E, 750, 418, 6);
+  D.el(E, 750, 466, 20, 8); D.el(E, 750, 470, 20, 8); D.el(E, 750, 466, 8, 3.2);
+  D.pl(E, [[700, 540], [740, 515], [805, 528], [810, 545], [770, 575], [705, 560]], true);
+  D.pl(E, [[705, 560], [705, 590], [722, 600], [722, 570]]); D.pl(E, [[770, 575], [770, 605], [810, 575], [810, 545]]);
+  D.ci(E, 755, 540, 9);
+  D.pl(E, [[715, 625], [760, 610], [800, 620], [758, 640]], true); D.pl(E, [[740, 622], [775, 612]]);
+  D.rc(E, 740, 660, 20, 70); for (let i = 0; i < 9; i++) D.ln(E, 740, 668 + i * 7, 760, 664 + i * 7);
+  D.pl(E, [[722, 730], [778, 730], [770, 748], [730, 748]], true);
+  D.lead(810, 412, "NUT M8", H, [[765, 412]]);
+  D.lead(810, 455, "WASHER", H, [[770, 460]]);
+  D.lead(810, 515, "MIDDLE CLAMP", H, [[790, 520]]);
+  D.lead(810, 605, "RAIL EARTHING", H, [[795, 618]]);
+  D.lead(810, 670, "BOLT M8", H, [[762, 675]]);
+  D.cap(750, 775, "DETAIL C");
+
+  /* ── DETAIL B: C-CLAMP ทองแดงรัดสาย 1C-6 เข้าสาย 1C-16 ── */
+  D.pl(E, [[1000, 610], [1150, 545]]); D.pl(E, [[1010, 628], [1160, 562]]); D.el(E, 1005, 619, 10, 5, -0.41);
+  D.pl(E, [[1050, 560], [1170, 510]]); D.pl(E, [[1058, 576], [1180, 526]]);
+  D.pl(E, [[1100, 585], [1150, 575], [1200, 600]]); D.pl(E, [[1105, 600], [1150, 592], [1195, 615]]);
+  [0, 7, 14].forEach((d) => { D.el(E, 1080 + d, 575 - d * 0.4, 9, 18, 0.25); });
+  D.lead(1110, 488, "1C-6 sq.mm. IEC01", H, [[1095, 488], [1130, 525]]);
+  D.lead(985, 535, "COPPER C-CLAMP", H, [[1070, 535], [1078, 560]]);
+  D.lead(1215, 625, "1C-16 sq.mm. IEC01", H, [[1200, 625], [1190, 605]]);
+  D.cap(1120, 655, "DETAIL B");
+  return S.doc.build();
 }
 
 /* ==================================================================
@@ -1003,6 +1187,7 @@ function dsSheetDefs(st, job, design, imgs) {
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", (o) => dsGroundSheet(st, job, o));
+  add("GROUND2", "รายละเอียดต่อลงดิน", (o) => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
   if (dsObs(st, "pipe").length) add("WATER", "ผังท่อน้ำ", withImg(dsWaterSheet));
   if (dsObs(st, "walkway").length) add("WALK", "ผังทางเดิน", withImg(dsWalkSheet));
@@ -1053,4 +1238,4 @@ async function dsExportPdf(prep, onStep) {
 }
 
 Object.assign(window, { DS_SET_EN, DS_SET_GROUP, dsSheetDefs, dsExportPdf, dsCover, dsNotesSheet, dsPanelSheet, dsTraySheet, dsWaterSheet,
-  dsWalkSheet, dsSafetySheet, dsStrDetSheet, dsGroundSheet, dsGroups });
+  dsWalkSheet, dsSafetySheet, dsStrDetSheet, dsGroundSheet, dsGroundDetSheet, dsGroups });

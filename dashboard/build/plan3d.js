@@ -5444,6 +5444,7 @@ async function p3PrepSet(st, job, photos, design) {
     });
     add("STRDET");
     add("GROUND");
+    add("GROUND2");
     add("TRAY");
     add("WALK");
     add("SAFETY");
