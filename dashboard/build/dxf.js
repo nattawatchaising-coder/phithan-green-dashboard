@@ -3920,16 +3920,13 @@ function pgSldPro(doc, sheet, M) {
         valign: 1
       });
       const cTx = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
-      const cxm = (mx0 + mx1) / 2,
-        yct = mTop + 3.4,
-        xe = Math.max(mx1 + 6, X.ac1 + 2);
-      pen.line(PG_SLD.ctsig, xe, yct, cxm, yct);
-      pen.line(PG_SLD.ctsig, cxm, yct, cxm, mTop + 1.6);
-      arrow(cxm, mTop + 1.6, 0, -1);
-      pen.text(T, xe + 0.8, yct + 0.3, TS.tag, cTx[0], {
+      const xe = Math.max(mx1 + 10, X.ac1 + 6);
+      pen.line(PG_SLD.ctsig, xe, myc, mx1 + 1.6, myc);
+      arrow(mx1 + 1.6, myc, -1, 0);
+      pen.text(T, xe + 0.8, myc + 0.3, TS.tag, cTx[0], {
         valign: 1
       });
-      pen.text(T, xe + 0.8, yct - 0.3, TS.tag, cTx[1], {
+      pen.text(T, xe + 0.8, myc - 0.3, TS.tag, cTx[1], {
         valign: 3
       });
     } else if (M.mon) {

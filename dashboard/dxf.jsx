@@ -2744,12 +2744,12 @@ function pgSldPro(doc, sheet, M) {
       arrow(x2, t1.top + 1.6, 0, -1);
       pen.text(T, (X.ac0 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
       const cTx = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
-      const cxm = (mx0 + mx1) / 2, yct = mTop + 3.4, xe = Math.max(mx1 + 6, X.ac1 + 2);
-      pen.line(PG_SLD.ctsig, xe, yct, cxm, yct);
-      pen.line(PG_SLD.ctsig, cxm, yct, cxm, mTop + 1.6);
-      arrow(cxm, mTop + 1.6, 0, -1);
-      pen.text(T, xe + 0.8, yct + 0.3, TS.tag, cTx[0], { valign: 1 });
-      pen.text(T, xe + 0.8, yct - 0.3, TS.tag, cTx[1], { valign: 3 });
+      /* CT เข้าด้านขวามิเตอร์ระดับกึ่งกลาง ข้อความอยู่นอกตู้ทางขวาระดับเดียวกัน (ผู้ใช้วาดชี้ 2026-11-01) */
+      const xe = Math.max(mx1 + 10, X.ac1 + 6);   // ข้อความพ้นเส้นขอบตู้ไปทางขวา (ผู้ใช้ชี้)
+      pen.line(PG_SLD.ctsig, xe, myc, mx1 + 1.6, myc);
+      arrow(mx1 + 1.6, myc, -1, 0);
+      pen.text(T, xe + 0.8, myc + 0.3, TS.tag, cTx[0], { valign: 1 });
+      pen.text(T, xe + 0.8, myc - 0.3, TS.tag, cTx[1], { valign: 3 });
     } else if (M.mon) {
       /* ผู้ใช้วาดชี้ 2026-10-30: กลุ่มนี้อยู่ใต้ขวาอินเวอร์เตอร์เครื่องล่างสุด (ที่ว่างเหนือตาราง SYSTEM DATA)
          [Smart Meter] ← CT MAIN (คล้องเมน MDB เดิม) · กล่อง Logger/Dongle อยู่ใต้ ลูกศรขึ้นไปมิเตอร์
