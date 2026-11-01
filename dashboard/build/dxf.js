@@ -2902,8 +2902,10 @@ function pgSldPro(doc, sheet, M) {
           });
         }
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
-        pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0);
-        pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
+        if (!(M.opt && M.opt.rsd)) {
+          pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0);
+          pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
+        }
         if (first && !ivSpd) {
           const tw = X.dc1 - X.dc0 - 2;
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
@@ -2980,7 +2982,7 @@ function pgSldPro(doc, sheet, M) {
       const tw = Math.max(cw[0] + eq + cw[1], pgTextW(head, th) + 2 * pd);
       cw[1] = tw - cw[0] - eq;
       const nR = rows.length + 1,
-        x0 = X.dc0 - 2.5 - tw,
+        x0 = (M.opt && M.opt.rsd ? X.sl - 2.5 : X.dc0 - 2.5) - tw,
         yTop = lastY - 4.5;
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, {
@@ -3010,7 +3012,7 @@ function pgSldPro(doc, sheet, M) {
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     if (M.opt && M.opt.rsd && strY.length) {
-      const xC = X.dc0 - 1.3,
+      const xC = X.sl + 0.4,
         eRx = 1.0,
         yLt = strY[0] + 2.2,
         yLb = strY[strY.length - 1] - 2.2;
@@ -3088,10 +3090,12 @@ function pgSldPro(doc, sheet, M) {
         const pre = sg ? "SUNGO " : "",
           sd = k => "SD-" + k;
         const tt = "TO " + pre + runs.map(r => r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1])).join(", ");
-        const yy = yBt + bh / 2 + 1.5;
-        pen.line(S, ex, yy, ex + 3.2, yy);
-        pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
-        pen.text(T, ex + 4.6, yy, Math.min(txH, fitH(tt, TS.tag, W + 6 - 4.6)), tt, {
+        const xa = bL - 2.2,
+          xt = xa - 1.4;
+        pen.line(S, bL, yBt, xa, yBt);
+        pen.solid(S, [xa, yBt + 0.5], [xa - 1.0, yBt], [xa, yBt - 0.5]);
+        pen.text(T, xt, yBt, Math.min(txH, fitH(tt, TS.tag, xt - X.sl + 25)), tt, {
+          align: 2,
           valign: 2
         });
       }

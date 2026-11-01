@@ -2031,7 +2031,8 @@ function pgSldPro(doc, sheet, M) {
           pen.text(T, X.dcB, y + 1.4, Math.min(TS.spec, fitH(ft0, TS.spec, X.dc1 - X.dc0 - 1.5)), ft0, { align: 1, valign: 1 });
         }
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
-        pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0); pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
+        /* RSD: ไม่วาดขีดคู่ — แกนคล้องสายวาดตรงนี้แทน (ผู้ใช้ 2026-11-01) */
+        if (!(M.opt && M.opt.rsd)) { pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0); pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0); }
         if (first && !ivSpd) {
           /* สเปคฟิวส์/MCB + DC SPD ขนาดตัวหนังสือเท่าสเปคอื่น (TS.spec) — ยาวเกินช่องตัดขึ้นบรรทัดใหม่ ไม่ย่อตัว */
           const tw = X.dc1 - X.dc0 - 2;
@@ -2104,7 +2105,7 @@ function pgSldPro(doc, sheet, M) {
       const tw = Math.max(cw[0] + eq + cw[1], pgTextW(head, th) + 2 * pd);
       cw[1] = tw - cw[0] - eq;
       /* ตารางอยู่ใต้สตริงสุดท้ายของเครื่อง ชิดขวาก่อนตู้ DC (ผู้ใช้วาดชี้ 2026-10-30) */
-      const nR = rows.length + 1, x0 = X.dc0 - 2.5 - tw, yTop = lastY - 4.5;
+      const nR = rows.length + 1, x0 = (M.opt && M.opt.rsd ? X.sl - 2.5 : X.dc0 - 2.5) - tw, yTop = lastY - 4.5;
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });
       rows.forEach((r, k) => {
@@ -2125,8 +2126,8 @@ function pgSldPro(doc, sheet, M) {
        แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
     /* ทุกรุ่น RSD มีตัวส่ง — Sungrow SR20D-M ใช้ TRANSMITTER SUNGO SD-2 (ผู้ใช้ส่งแบบงานจริง 2026-11-01) · ชื่อจากคลัง (optRss) ก่อน */
     if (M.opt && M.opt.rsd && strY.length) {
-      /* แกนคล้องสายวงเดียวรอบสายสตริงทุกเส้น ก่อนเข้าตู้ DC (ระหว่างขีดคู่กับขอบตู้ · ผู้ใช้วาดชี้ 2026-11-01 "ปกติจะคล้องก่อนเข้าตู้ DC") */
-      const xC = X.dc0 - 1.3, eRx = 1.0, yLt = strY[0] + 2.2, yLb = strY[strY.length - 1] - 2.2;
+      /* แกนคล้องสายวงเดียวรอบสายสตริงทุกเส้น ก่อนเข้าตู้ DC (ตำแหน่งขีดคู่ ไม่วาดขีดคู่แล้ว · ตารางสรุปถอยซ้ายพ้นสาย C1 · ผู้ใช้วาดชี้ 2026-11-01 "ปกติจะคล้องก่อนเข้าตู้ DC") */
+      const xC = X.sl + 0.4, eRx = 1.0, yLt = strY[0] + 2.2, yLb = strY[strY.length - 1] - 2.2;
       const eCy = (yLt + yLb) / 2, eRy = (yLt - yLb) / 2;
       for (let k = 0; k < 48; k++) { const t0 = Math.PI * k / 24, t1 = Math.PI * (k + 1) / 24; pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1)); }
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
@@ -2170,10 +2171,11 @@ function pgSldPro(doc, sheet, M) {
         oth.forEach((k) => { const r = runs[runs.length - 1]; if (r && k === r[1] + 1) r[1] = k; else runs.push([k, k]); });
         const pre = sg ? "SUNGO " : "", sd = (k) => "SD-" + k;
         const tt = "TO " + pre + runs.map((r) => (r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1]))).join(", ");
-        const yy = yBt + bh / 2 + 1.5;
-        pen.line(S, ex, yy, ex + 3.2, yy);
-        pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
-        pen.text(T, ex + 4.6, yy, Math.min(txH, fitH(tt, TS.tag, W + 6 - 4.6)), tt, { valign: 2 });
+        /* ออกข้างซ้ายกล่องปุ่ม ลูกศรชี้ซ้าย ป้ายชิดขวา — ทางขวามีสายดินอินเวอร์เตอร์ ไม่ให้ทับ (ผู้ใช้ชี้ 2026-11-01) */
+        const xa = bL - 2.2, xt = xa - 1.4;
+        pen.line(S, bL, yBt, xa, yBt);
+        pen.solid(S, [xa, yBt + 0.5], [xa - 1.0, yBt], [xa, yBt - 0.5]);
+        pen.text(T, xt, yBt, Math.min(txH, fitH(tt, TS.tag, xt - X.sl + 25)), tt, { align: 2, valign: 2 });   // ใต้ตาราง: สาย C1 จบเหนือแถวนี้ ยื่นซ้ายได้
       }
       pen.rect(S, bL, yBt - bh / 2, bw, bh);
       const yc = yBt - 0.7, p1 = bL + bw * 0.38, p2 = bL + bw * 0.64;
