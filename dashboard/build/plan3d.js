@@ -709,6 +709,25 @@ function p3DomeGeo(roof) {
     zAt: t => rad * Math.sin(t)
   };
 }
+function p3DomePlan(roof) {
+  const D = p3DomeGeo(roof),
+    X = p3Xf(roof, null),
+    L = D.len / 2,
+    W = D.span / 2;
+  const P = (x, z) => {
+    const w = X.world({
+      x,
+      y: 0,
+      z
+    }, false);
+    return [w.x, -w.z];
+  };
+  return {
+    pts: [P(-L, -W), P(L, -W), P(L, W), P(-L, W)],
+    crown: [P(-L, 0), P(L, 0)],
+    ribs: [-L, L].map(x => [P(x, -W), P(x, W)])
+  };
+}
 function p3MinRect(pts) {
   let best = null;
   for (let i = 0; i < pts.length; i++) {
@@ -1095,6 +1114,9 @@ function p3PlanBox(st, imgs) {
   (st.roofs || []).forEach(r => {
     try {
       (p3RoofSurf(r) || []).forEach(f => (f.pts || []).forEach(p => add(p.x, p.z)));
+    } catch (e) {}
+    if (r.kind === "dome") try {
+      p3DomePlan(r).pts.forEach(p => put(p[0], p[1]));
     } catch (e) {}
   });
   try {
@@ -1913,6 +1935,17 @@ function p3RoofPlan(st, k) {
       sp: Math.max(M[1], minSp)
     });
   });
+  (st.roofs || []).forEach(roof => {
+    if (roof.kind !== "dome") return;
+    let DP;
+    try {
+      DP = p3DomePlan(roof);
+    } catch (e) {
+      return;
+    }
+    DP.pts.forEach((p, i) => edges.push([p, DP.pts[(i + 1) % 4]]));
+    ridge.push(DP.crown);
+  });
   return {
     edges,
     tex,
@@ -2278,6 +2311,9 @@ function p3StrLayout(st, job, media) {
       fs = [];
     }
     fs.forEach(f => (f.pts || []).forEach(q => put(q.x, -q.z)));
+    if (r.kind === "dome") try {
+      p3DomePlan(r).pts.forEach(p => put(p[0], p[1]));
+    } catch (e) {}
   });
   const MG = 1.5;
   const B = {

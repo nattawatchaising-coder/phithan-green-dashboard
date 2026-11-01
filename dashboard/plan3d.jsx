@@ -390,6 +390,14 @@ function p3DomeGeo(roof) {
   return { span, len, rise, rad, th, arc: 2 * th * rad,
     yAt: (t) => rad * Math.cos(t) - (rad - rise), zAt: (t) => rad * Math.sin(t) };
 }
+/* โดมบนผัง (มองจากบน): กรอบสี่เหลี่ยม ยาวตามสัน (len) × กว้าง span + เส้นยอดโค้งกลาง (ครอบสัน)
+   คืนพิกัดผัง [x, -z] · p3RoofSurf ของโดมว่าง (ผิวโค้ง) เดิมผัง/ผังสตริงเลยไม่มีเส้นหลังคาเลย (ผู้ใช้ 2026-11-01 "ทำไมไม่มีเส้นโครงสร้างหลังคา") */
+function p3DomePlan(roof) {
+  const D = p3DomeGeo(roof), X = p3Xf(roof, null), L = D.len / 2, W = D.span / 2;
+  const P = (x, z) => { const w = X.world({ x, y: 0, z }, false); return [w.x, -w.z]; };
+  return { pts: [P(-L, -W), P(L, -W), P(L, W), P(-L, W)], crown: [P(-L, 0), P(L, 0)],
+    ribs: [-L, L].map((x) => [P(x, -W), P(x, W)]) };
+}
 /* กรอบสี่เหลี่ยมที่เล็กที่สุดที่ครอบรูปหลายเหลี่ยม (rotating calipers อย่างง่าย — ลองหมุนตามทุกขอบ)
    → { ang: มุมของด้าน w, w, d, cx, cz } ใช้แปลงผืนที่วาดเองให้เป็นทรงที่ต้องกว้าง×ยาว×ทิศ (เช่น โดม) */
 function p3MinRect(pts) {
@@ -617,6 +625,7 @@ function p3PlanBox(st, imgs) {
   const add = (x, z) => put(x, -z);
   (st.roofs || []).forEach((r) => {
     try { (p3RoofSurf(r) || []).forEach((f) => (f.pts || []).forEach((p) => add(p.x, p.z))); } catch (e) { /* หลังคาที่ยังตั้งไม่ครบ ข้ามไป */ }
+    if (r.kind === "dome") try { p3DomePlan(r).pts.forEach((p) => put(p[0], p[1])); } catch (e) { /* ข้าม */ }
   });
   try { (p3FootAll(st).panels || []).forEach((p) => (p.pts || []).forEach((q) => add(q[0], q[1]))); } catch (e) { /* ยังไม่มีแผง */ }
   (st.obstacles || []).forEach((o) => {
@@ -1233,6 +1242,13 @@ function p3RoofPlan(st, k) {
     if (M[1]) hatch.push({ loops, ang: ang + 90, sp: Math.max(M[1], minSp) });  // แป/แถวกระเบื้อง (ระยะต่างกัน = แยกอีกอัน)
   });
 
+  /* โดม: ขอบกรอบ + เส้นยอดโค้ง (ไม่มีผืนเรียบให้ตัดบัง — วาดตรง ๆ) */
+  (st.roofs || []).forEach((roof) => {
+    if (roof.kind !== "dome") return;
+    let DP; try { DP = p3DomePlan(roof); } catch (e) { return; }
+    DP.pts.forEach((p, i) => edges.push([p, DP.pts[(i + 1) % 4]]));
+    ridge.push(DP.crown);
+  });
   return { edges, tex, ridge, hatch };
 }
 /* ── ตัวช่วยรูปหลายเหลี่ยม 2D (ใช้ทำเกาะของ HATCH) ── */
@@ -1441,6 +1457,7 @@ function p3StrLayout(st, job, media) {
     let fs = [];
     try { fs = p3RoofSurf(r) || []; } catch (e) { fs = []; }
     fs.forEach((f) => (f.pts || []).forEach((q) => put(q.x, -q.z)));
+    if (r.kind === "dome") try { p3DomePlan(r).pts.forEach((p) => put(p[0], p[1])); } catch (e) { /* ข้าม */ }
   });
   const MG = 1.5;
   const B = { minX: a - MG, minY: b - MG, maxX: c + MG, maxY: d + MG };
