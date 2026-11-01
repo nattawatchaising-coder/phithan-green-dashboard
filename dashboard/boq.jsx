@@ -2079,12 +2079,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         out.ac.push({ name: "CT " + ct + "/5A", qty: ph, unit: "ตัว", auto: 1, why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT" });
       }
       /* Janitza UMG96RM / UMG511 ที่เลือกในช่องระบบมิเตอร์ (ผู้ใช้ 2026-11-01 "ถอด CT ด้วย") — CT x/5A ชุดของมิเตอร์เอง เฟสละ 1 ตัว ตู้แรกตู้เดียว
-         อัตราส่วนกฎเดียวกับ PM2230 (ตัวแรกที่ ≥ เมนตู้ AC) · UMG511 แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริงอีกครั้ง */
+         CT คล้องเมนลูกค้า → อัตราส่วนตัวแรกที่ ≥ เมนเบรกเกอร์เดิมของลูกค้า (ใบขออนุญาต mainAT / ใบสำรวจ mainBreaker · ผู้ใช้ 2026-11-01 "ต้องดูจาก Main ลูกค้า")
+         ยังไม่กรอกเมนลูกค้า = ใช้เมนตู้ AC ไปก่อน ขึ้นเตือนให้ตรวจ · UMG511 แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริงอีกครั้ง */
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz && bi === 0 && mainAt > 0) {
-        const ct = RU.ctR.find((x) => x >= mainAt) || RU.ctR[RU.ctR.length - 1];
-        out.ac.push({ name: "CT " + ct + "/5A", qty: ph, unit: "ตัว", auto: 1, why: tag + "CT ของ Janitza " + jz + " เฟสละ 1 ตัว · อัตราส่วน ≥ เมน " + mainAt + " AT"
-          + (jz === "UMG511" ? " · แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริง" : "") });
+      if (jz && bi === 0) {
+        const sv0 = (job && job.survey) || {};
+        const cuMain = +((String(((job && job.permit) || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0]);
+        const ref = cuMain || mainAt;
+        if (ref > 0) {
+          const ct = RU.ctR.find((x) => x >= ref) || RU.ctR[RU.ctR.length - 1];
+          out.ac.push({ name: "CT " + ct + "/5A", qty: ph, unit: "ตัว", auto: 1, ok: !!cuMain,
+            why: tag + "CT ของ Janitza " + jz + " คล้องเมนลูกค้า เฟสละ 1 ตัว · "
+              + (cuMain ? "อัตราส่วน ≥ เมนเดิมลูกค้า " + cuMain + " A" : "ใบสำรวจยังไม่กรอกขนาดเมนเดิมลูกค้า — ใช้เมนตู้ AC " + mainAt + " AT ไปก่อน ตรวจอีกครั้ง")
+              + (jz === "UMG511" ? " · แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริง" : "") });
+        }
       }
       const gfSep = bOn("gf") && mainAt < GF_IN_AT, pmOn = bOn("pm");
       if ((gfSep || pmOn) && mainAt > 0)

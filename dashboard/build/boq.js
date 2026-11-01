@@ -3573,15 +3573,21 @@ function BOQEditor({
         });
       }
       const jz = b.monMeter === "umg96rm" ? "UMG96RM" : b.monMeter === "umg511" ? "UMG511" : "";
-      if (jz && bi === 0 && mainAt > 0) {
-        const ct = RU.ctR.find(x => x >= mainAt) || RU.ctR[RU.ctR.length - 1];
-        out.ac.push({
-          name: "CT " + ct + "/5A",
-          qty: ph,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "CT ของ Janitza " + jz + " เฟสละ 1 ตัว · อัตราส่วน ≥ เมน " + mainAt + " AT" + (jz === "UMG511" ? " · แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริง" : "")
-        });
+      if (jz && bi === 0) {
+        const sv0 = job && job.survey || {};
+        const cuMain = +(String((job && job.permit || {}).mainAT || sv0.mainBreaker || "").match(/\d+/) || [0])[0];
+        const ref = cuMain || mainAt;
+        if (ref > 0) {
+          const ct = RU.ctR.find(x => x >= ref) || RU.ctR[RU.ctR.length - 1];
+          out.ac.push({
+            name: "CT " + ct + "/5A",
+            qty: ph,
+            unit: "ตัว",
+            auto: 1,
+            ok: !!cuMain,
+            why: tag + "CT ของ Janitza " + jz + " คล้องเมนลูกค้า เฟสละ 1 ตัว · " + (cuMain ? "อัตราส่วน ≥ เมนเดิมลูกค้า " + cuMain + " A" : "ใบสำรวจยังไม่กรอกขนาดเมนเดิมลูกค้า — ใช้เมนตู้ AC " + mainAt + " AT ไปก่อน ตรวจอีกครั้ง") + (jz === "UMG511" ? " · แรงกลาง: ตรวจอัตราส่วนกับจุดติดตั้งจริง" : "")
+          });
+        }
       }
       const gfSep = bOn("gf") && mainAt < GF_IN_AT,
         pmOn = bOn("pm");
