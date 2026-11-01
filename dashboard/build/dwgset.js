@@ -1350,6 +1350,7 @@ function dsPx(pen, A, w, yT) {
     art: (name, x0, y0, s, L, Lg) => {
       const a = (window.DS_ART || {})[name];
       if (!a) return;
+      s *= a.q || 1;
       a.d.split(";").forEach(c => {
         const g = c[0] === "g",
           n = (g ? c.slice(1) : c).split(",").map(Number),

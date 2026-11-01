@@ -1,7 +1,7 @@
 /* ลอกรูปลายเส้น (PNG ขาวดำจากแบบ CAD) เป็นเส้น polyline สำหรับวาดในชุดแบบ — ใช้กับรูปที่ผู้ใช้ส่งมาให้ "เหมือน 100%"
    node tools/trace-art.mjs out.js NAME=รูป.png [NAME=รูป.png ...]
    ขั้นตอน: ถอด PNG → จุดมืด → บางลงเหลือเส้น 1 px (Zhang-Suen) → ไล่เส้นเป็นสาย → ลดจุด (Douglas-Peucker)
-   ผล: window.DS_ART[NAME] = { w, h, d } · d = "x,y,dx,dy,…" คั่นเส้นด้วย ";" · เส้นสีจาง (เทา) ขึ้นต้น "g"
+   ผล: window.DS_ART[NAME] = { w, h, q, d } · d = "x,y,dx,dy,…" (หน่วย 1/q พิกเซล) คั่นเส้นด้วย ";" · เส้นสีจาง (เทา) ขึ้นต้น "g"
    ไม่มี dependency (ถอด PNG เองด้วย zlib) — รองรับ PNG 8 bit gray/RGB/RGBA ไม่ interlace */
 import fs from "fs";
 import zlib from "zlib";
@@ -104,19 +104,44 @@ function trace(file, opt) {
     nb(x, y).forEach(([a, b]) => { if (!seen.has(ek(x, y, a, b))) walk(x, y, a, b); });
   }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (on(x, y)) nb(x, y).forEach(([a, b]) => { if (!seen.has(ek(x, y, a, b))) walk(x, y, a, b); });
+  /* เส้นเรียบ: (1) ย้ายจุดไปกลางเส้นจริงแบบละเอียดกว่าพิกเซล (ถ่วงความเข้ม 3×3 ของรูปเดิม) · (2) เฉลี่ยกับจุดข้างเคียง ไม่ข้ามมุมหักคม
+     (3) ลดจุด · (4) เส้นเกือบตรงแนวนอน/ตั้งดัดให้ตรง · เก็บพิกัดละเอียดครึ่งพิกเซล (q = 2) */
+  const Q = 2, cen = new Map();
+  const ctr = ([x, y]) => { const key = y * w + x; if (cen.has(key)) return cen.get(key);
+    let sw = 0, sx = 0, sy = 0;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const xx = x + i, yy = y + j; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue; const l = lum[yy * w + xx]; if (l >= TH) continue; const wt = TH - l; sw += wt; sx += wt * xx; sy += wt * yy; }
+    const r = sw ? [sx / sw, sy / sw] : [x, y]; cen.set(key, r); return r; };
+  const smooth = (c) => {
+    const n = c.length; if (n < 5) return c;
+    const ang = (i) => { const a = c[Math.max(0, i - 3)], b = c[i], e = c[Math.min(n - 1, i + 3)];
+      const u = [b[0] - a[0], b[1] - a[1]], v = [e[0] - b[0], e[1] - b[1]], lu = Math.hypot(...u), lv = Math.hypot(...v);
+      return lu && lv ? Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / lu / lv))) : 0; };
+    const corner = c.map((_, i) => i === 0 || i === n - 1 || ang(i) > 0.8);
+    return c.map((p, i) => { if (corner[i]) return p;
+      let sw = 3, sx = 3 * p[0], sy = 3 * p[1];
+      for (const [d, wt] of [[1, 2], [2, 1]]) for (const sg of [-1, 1]) { let ok = true; for (let k = 1; k <= d; k++) if (corner[i + sg * k] && k < d) ok = false;
+        const q = c[i + sg * d]; if (!q || !ok) continue; sw += wt; sx += wt * q[0]; sy += wt * q[1]; }
+      return [sx / sw, sy / sw]; });
+  };
+  const snap = (p) => { for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+      if (L < 8) continue;
+      if (Math.abs(dy) / L < 0.025) { const m = (a[1] + b[1]) / 2; a[1] = b[1] = m; }
+      else if (Math.abs(dx) / L < 0.025) { const m = (a[0] + b[0]) / 2; a[0] = b[0] = m; } }
+    return p; };
   const out = [];
   chains.forEach((c) => {
     let len = 0; for (let i = 1; i < c.length; i++) len += Math.hypot(c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]);
     if (len < (opt.minLen || 1.5) && c.length > 2) return;
     const gv = c.reduce((s, p) => s + dark(p[0], p[1]), 0) / c.length, g = gv > (opt.gray || 130);
-    out.push({ g, p: dp(c, opt.tol || 0.75) });
+    const p = snap(dp(smooth(c.map(ctr)), opt.tol || 0.4).map((q) => q.slice())).map((q) => [Math.round(q[0] * Q), Math.round(q[1] * Q)]);
+    out.push({ g, p });
   });
   /* ต่อสายที่ปลายชนกันและไม่ใช่ทางแยก ลดจำนวนเส้น */
   const d = out.map((o) => (o.g ? "g" : "") + o.p.map((q, i) => (i ? [q[0] - o.p[i - 1][0], q[1] - o.p[i - 1][1]] : q).join(",")).join(",")).join(";");
-  return { w, h, d, n: out.length, pts: out.reduce((s, o) => s + o.p.length, 0) };
+  return { w, h, q: Q, d, n: out.length, pts: out.reduce((s, o) => s + o.p.length, 0) };
 }
 
 const [outFile, ...args] = process.argv.slice(2);
 const res = {};
-args.forEach((a) => { const [k, f] = a.split("="); const r = trace(f, {}); res[k] = { w: r.w, h: r.h, d: r.d }; console.log(k, r.w + "x" + r.h, "เส้น", r.n, "จุด", r.pts, "ขนาด", r.d.length); });
+args.forEach((a) => { const [k, f] = a.split("="); const r = trace(f, {}); res[k] = { w: r.w, h: r.h, q: r.q, d: r.d }; console.log(k, r.w + "x" + r.h, "เส้น", r.n, "จุด", r.pts, "ขนาด", r.d.length); });
 fs.writeFileSync(outFile, "/* สร้างด้วย tools/trace-art.mjs — รูปลายเส้นรายละเอียดต่อลงดินตามแบบผู้ใช้ (ห้ามแก้มือ) */\nwindow.DS_ART = Object.assign(window.DS_ART || {}, " + JSON.stringify(res) + ");\n");

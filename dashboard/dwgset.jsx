@@ -887,7 +887,7 @@ function dsPx(pen, A, w, yT) {
     },
     /* รูปลายเส้นที่ลอกอัตโนมัติจากรูปต้นแบบ (dashboard/groundart.js · tools/trace-art.mjs) วางที่มุม x0,y0 ย่อ s เท่า · เส้นเทาลงชั้น Lg */
     art: (name, x0, y0, s, L, Lg) => {
-      const a = (window.DS_ART || {})[name]; if (!a) return;
+      const a = (window.DS_ART || {})[name]; if (!a) return; s *= a.q || 1;
       a.d.split(";").forEach((c) => {
         const g = c[0] === "g", n = (g ? c.slice(1) : c).split(",").map(Number), pts = [];
         for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1]; pts.push([x0 + x / s, y0 + y / s]); }
