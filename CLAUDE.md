@@ -45,6 +45,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | Sungrow iSolarCloud (`isolarcloud.mjs` `isolarcloud-probe/mock`) | `docs/isolarcloud.md` |
 | ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 | Huawei FusionSolar · หน้าไซต์ทั้งหมด · ซิงก์ไซต์/อุปกรณ์/ข้อมูลผลิต (`fusionsolar.jsx` `fusionsolar-scene.jsx` `fusionsolar-house.jsx` `api/_lib/fusionsolar.mjs` `api/cron/fusionsolar.mjs`) | `docs/fusionsolar.md` |
+| แปลงรูปแบบ CAD ที่ผู้ใช้ส่งเป็นเส้นในชุดแบบ (ขอ "เหมือน 100%" · `tools/trace-art.mjs` `D.art` `groundart.js`) | `docs/trace-art.md` |
 
 ข้อตกลงใหม่ของเรื่องไหนให้เขียนลงไฟล์ของเรื่องนั้น (ไม่ใช่ที่นี่) · เรื่องใหม่ที่ยังไม่มีไฟล์ = สร้าง `docs/<เรื่อง>.md` แล้วเพิ่มแถวในตารางนี้
 
