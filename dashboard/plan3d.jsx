@@ -2790,7 +2790,7 @@ function p3SldModel(st, job, design, only) {
     if (spdBk) S.push(["SPD BACK-UP", spdBk + (/FUSE/.test(spdBk) ? " + FUSE BASE" : ""), 1]);
     S.push(["MAIN BREAKER", mainTxt + (lsig ? " LSIG" : gf ? " c/w SHUNT TRIP" : ""), 1]);
     if (gf && !lsig) S.push(["GROUND FAULT", "ZCT + GFR (ADJ. 0.1-30A)", 1]);
-    if (pm) S.push(["POWER METER", "PM2230 + CT " + M.pro.pmCt + " + MCB 2P 6A", 1]);
+    if (pm) S.push(["POWER METER", "PM2230 + CT " + M.pro.pmCt + (M.phase === 3 ? " x3" : " x1") + " + MCB 2P 6A", 1]);
     S.push(["SMART METER / LOGGER", (inv.brand || "") + " (ZERO EXPORT / MONITOR)", 1]);
     S.push(["MDB SOLAR BREAKER", M.mccb[0], 1]);
     S.push(["DC CABLE", M.pro.dcCable, "-"]);

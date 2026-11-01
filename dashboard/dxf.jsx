@@ -2487,7 +2487,7 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, x, ly + lr + 0.8, TS.tag, ph[ph.length - 1 - i], { align: 1, valign: 1 });   // ซ้าย→ขวา R S T
       });
       pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
-      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
+      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt + (M.phase === 3 ? " x3" : " x1"), { align: 1, valign: 1 });   // บอกจำนวน CT ด้วย (ผู้ใช้ 2026-11-01)   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
       pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CL.0.5, 5VA", { align: 1, valign: 1 });   // class CT วัดพลังงาน (ผู้ใช้ 2026-10-29)
       /* กล่อง PM2230 ใต้ CT — สาย CT ลงตรงเข้าด้านบน (ผู้ใช้วาดชี้ 2026-10-29) */
       /* สัญลักษณ์มิเตอร์ดิจิทัล (ผู้ใช้ส่งรูป 2026-10-29): กล่องมีแถบบน · "DM" ข้างใน · ชื่อรุ่นใต้กล่อง */
@@ -2501,8 +2501,8 @@ function pgSldPro(doc, sheet, M) {
       pen.line(CS, cx + cr2, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
-      pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", { align: 1, valign: 2 });
-      pen.text(T, pmx, pbB - 0.8, TS.spec, "PM2230", { align: 1, valign: 3 });
+      pen.text(T, pmx, (pbB + pt - 1.3) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", { align: 1, valign: 2 });   // Digital Power Meter (ผู้ใช้ 2026-11-01: DM → DPM)
+      pen.text(T, pmx, pt + 0.8, TS.spec, "PM2230", { align: 1, valign: 1 });   // ชื่อรุ่นเหนือกล่อง (ผู้ใช้วาดชี้ 2026-11-01)
       /* ไฟเลี้ยง PM2230: แยกจากสายเมนหลัง MCCB/ZCT → ลง → MCB 2P 6A แนวนอน → เข้าข้างขวากล่อง */
       const hx = mx + 5;
       pen.dot(R, px, yMain, 0.5);
@@ -2531,7 +2531,7 @@ function pgSldPro(doc, sheet, M) {
         if (fuse) { vFuse(x, by); sy = Math.min(by - 2.4, top0 - 4.8); pen.line(R, x, by - 2.4, x, sy); }
         else { pen.line(R, x, by + 2.4, x, by + g + 0.75); pgSym.breaker(pen, x, by, "", "", g); sy = by - g - 0.75; }
         /* ป้ายฟิวส์เขียนตั้งขวาตัวฟิวส์ ปลายอยู่ระดับหัวฟิวส์ (ผู้ใช้ชี้ 2026-10-29) — เบรกเกอร์ยังเขียนนอนทางซ้าย */
-        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, P.spdBk, { rot: 90, align: 2, valign: 2 });
+        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, "HRC FUSE", { rot: 90, align: 2, valign: 2 });   // บนแบบเขียนสั้น ๆ สเปคเต็มอยู่ในตาราง EQUIPMENT SCHEDULE (ผู้ใช้ 2026-11-01)
         else pen.text(T, x - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });   // พ้นโค้งเบรกเกอร์ที่โป่งซ้าย (ผู้ใช้ 2026-10-31: โดนทับ)
       } else sy = top0 + 2;
       pen.line(R, x, sy, x, sy - 5.5 + 2.4);

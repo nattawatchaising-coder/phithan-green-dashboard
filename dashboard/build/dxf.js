@@ -3531,7 +3531,7 @@ function pgSldPro(doc, sheet, M) {
         align: 2,
         valign: 2
       });
-      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt, {
+      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt + (M.phase === 3 ? " x3" : " x1"), {
         align: 1,
         valign: 1
       });
@@ -3550,13 +3550,13 @@ function pgSldPro(doc, sheet, M) {
       pen.line(CS, cx + cr2, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
-      pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {
+      pen.text(T, pmx, (pbB + pt - 1.3) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", {
         align: 1,
         valign: 2
       });
-      pen.text(T, pmx, pbB - 0.8, TS.spec, "PM2230", {
+      pen.text(T, pmx, pt + 0.8, TS.spec, "PM2230", {
         align: 1,
-        valign: 3
+        valign: 1
       });
       const hx = mx + 5;
       pen.dot(R, px, yMain, 0.5);
@@ -3590,7 +3590,7 @@ function pgSldPro(doc, sheet, M) {
           pgSym.breaker(pen, x, by, "", "", g);
           sy = by - g - 0.75;
         }
-        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, P.spdBk, {
+        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, "HRC FUSE", {
           rot: 90,
           align: 2,
           valign: 2
