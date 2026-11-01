@@ -2412,7 +2412,7 @@ function pgSldPro(doc, sheet, M) {
     };
     bar(S, xN - 16, "N", false);
     bar(PE, xN - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (xN + 2) ออกไป MET · ทั้งชุดขยับซ้ายตาม SPD (ผู้ใช้ 2026-10-31: ขยับให้สั้นลง)
-    const acR = Math.min(X.ac1, xN + 9);   // ขอบขวาตู้ AC หดมาพ้นป้ายบาร์ G (ผู้ใช้วาดกรอบชี้ 2026-10-31)
+    const acR = xN + 9;   // ขอบขวาตู้ AC อยู่พ้นป้ายบาร์ G (ผู้ใช้วาดกรอบชี้ 2026-10-31) · ตู้แคบกว่าแกน SPD เดิมเส้นขอบทับฟิวส์/SPD → ขยายออก (ผู้ใช้ชี้ 2026-11-01)
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
     /* แผ่นเครื่องเดียว: หัว AC COMBINER BOX ลงมาเหนือขอบบนตู้ (ผู้ใช้วาดชี้ 2026-11-01) · แบบมิเตอร์ในตู้ (monUp) มีข้อความสัญญาณ CT เหนือตู้ = คงที่เดิม */
@@ -2425,7 +2425,7 @@ function pgSldPro(doc, sheet, M) {
     /* ป้ายสายเมน (ไม่มีขีดตัดสาย — ผู้ใช้ 2026-10-29): สายกำลังเหนือเส้น · สายดินใต้เส้น (ผู้ใช้ส่งตัวอย่าง 2026-10-29) */
     const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");   // ขนาด/วิธีเดินจาก BOQ เมื่อมี (p3SldFromBoq)
-    const ctx = X.ac1 + 4;
+    const ctx = Math.max(X.ac1, acR) + 4;
     pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
     pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
     const clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
