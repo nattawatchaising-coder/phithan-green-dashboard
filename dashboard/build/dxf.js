@@ -2523,7 +2523,7 @@ function pgSldPro(doc, sheet, M) {
     const firstY = top - 10.5 - (M.opt ? 3 : 0);
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16;
+    const dBot = lastY - 16 - (M.opt && M.opt.rsd ? 6 : 0);
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
@@ -2809,6 +2809,7 @@ function pgSldPro(doc, sheet, M) {
     const trunkX = X.iv1 - (ivIn ? 22 : 16.5);
     let nStrB = 0,
       first = true;
+    const strY = [];
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
       const ys = [];
@@ -2823,6 +2824,7 @@ function pgSldPro(doc, sheet, M) {
           y -= EH;
           return;
         }
+        strY.push(y);
         const OP = M.opt,
           nP0 = row.last || 1,
           nP = OP ? Math.ceil(nP0 / OP.per) : nP0;
@@ -3009,6 +3011,38 @@ function pgSldPro(doc, sheet, M) {
       dBot = G.dBot - dDy;
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
+    if (M.opt && M.opt.rsd && strY.length) {
+      const xC = (X.dc1 + X.iv0) / 2,
+        eRx = 0.6,
+        eRy = 1.5;
+      const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
+      strY.forEach(yy => {
+        for (let k = 0; k < 24; k++) {
+          const p = eP(yy, k),
+            q = eP(yy, k + 1);
+          pen.line(S, p[0], p[1], q[0], q[1]);
+        }
+      });
+      const bB = dBot + 6,
+        bT = bB + 4.4,
+        bx0 = X.dc0 + 1.5,
+        bx1 = X.dc1 - 1.5,
+        bm = (bB + bT) / 2;
+      pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
+      const t1 = "RSS TRANSMITTER",
+        t2 = "(" + M.opt.model + ")";
+      pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, {
+        align: 1,
+        valign: 1
+      });
+      pen.text(T, (bx0 + bx1) / 2, bm - 0.25, fitH(t2, TS.tag, bx1 - bx0 - 1), t2, {
+        align: 1,
+        valign: 3
+      });
+      const CS = PG_SLD.ctsig;
+      pen.line(CS, xC, strY[0] - eRy, xC, bm);
+      pen.line(CS, xC, bm, bx1, bm);
+    }
     const barT = rowsY[0] - 5.6,
       barB = lastY - 10;
     if (!ivSpd) {

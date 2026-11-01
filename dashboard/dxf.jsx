@@ -1748,7 +1748,7 @@ function pgSldPro(doc, sheet, M) {
     /* ระยะจากแถวแรกถึงแถวสุดท้าย = ผลรวมระยะของทุกแถวยกเว้นแถวสุดท้าย (แถวว่างใช้ EH) */
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
-    const dBot = lastY - 16;
+    const dBot = lastY - 16 - (M.opt && M.opt.rsd ? 6 : 0);   // RSD: กล่อง RSS TRANSMITTER อยู่ในตู้ DC ใต้สตริงสุดท้าย ตู้ยาวลงให้ที่
     /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
@@ -1955,6 +1955,7 @@ function pgSldPro(doc, sheet, M) {
     const rowsY = [], mids = [];
     const trunkX = X.iv1 - (ivIn ? 22 : 16.5);   // แกนรวม MPPT → สัญลักษณ์อินเวอร์เตอร์ (ขอบซ้ายสัญลักษณ์ = iv1 − 13.5)
     let nStrB = 0, first = true;
+    const strY = [];   // แถวที่มีสตริงจริง (แกน RSS คล้องสาย)
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
       const ys = [];
@@ -1967,6 +1968,7 @@ function pgSldPro(doc, sheet, M) {
           y -= EH;
           return;
         }
+        strY.push(y);
         /* สตริง: แผงแรก ─ ─ แผงสุดท้าย */
         /* ช่องแผงจากขวา: 1 · 2 · 3 · (• • •) · n — เลขอยู่ในตัวแผงฝั่งซ้ายของสามเหลี่ยม */
         /* มีตัวคุมแผง: ช่องเป็นตัวคุม (OPT-1 · OPT-2 · … · OPT-n) ต่ออนุกรมบนเส้นสตริง แผงอยู่เหนือกล่องต่อเข้าขั้วบน (ผู้ใช้วาดให้ดู 2026-11-01)
@@ -2112,6 +2114,21 @@ function pgSldPro(doc, sheet, M) {
     const dDy = oneRow ? Math.max(0, Math.min(G.firstY - rowsY[0], G.dBot - G.boxBot)) : 0, dBot = G.dBot - dDy;
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
+    /* Rapid Shutdown (Tigo TS4-A-F ฯลฯ): ตัวส่งสัญญาณ RSS ต้องมีคู่กับ RSD ทุกแผง (ผู้ใช้สั่ง 2026-11-01 "วาด RSS ด้วย")
+       แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
+    if (M.opt && M.opt.rsd && strY.length) {
+      const xC = (X.dc1 + X.iv0) / 2, eRx = 0.6, eRy = 1.5;
+      const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
+      strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
+      const bB = dBot + 6, bT = bB + 4.4, bx0 = X.dc0 + 1.5, bx1 = X.dc1 - 1.5, bm = (bB + bT) / 2;
+      pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
+      const t1 = "RSS TRANSMITTER", t2 = "(" + M.opt.model + ")";
+      pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, { align: 1, valign: 1 });
+      pen.text(T, (bx0 + bx1) / 2, bm - 0.25, fitH(t2, TS.tag, bx1 - bx0 - 1), t2, { align: 1, valign: 3 });
+      const CS = PG_SLD.ctsig;
+      pen.line(CS, xC, strY[0] - eRy, xC, bm);
+      pen.line(CS, xC, bm, bx1, bm);
+    }
     const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
     if (!ivSpd) {   // งานโครงการไม่มี SPD ในตู้ DC = ไม่มี PE bar (ผู้ใช้ขีดฆ่า 2026-10-30)
       pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
