@@ -2246,6 +2246,8 @@ function pgSldPro(doc, sheet, M) {
     const tMax = Math.max.apply(null, tY), tMin = Math.min.apply(null, tY);
     let yMain = Math.min((tMax + tMin) / 2, A.y1 - (taps.length === 1 && !taps[0].b.typical ? 34 + MON_H : 66));
     yMain = Math.max(yMain, yE0 + 44);
+    /* สายเมนห่างจากเส้นเครื่องใดไม่ถึง 3 = ใช้ระดับเดียวกัน เส้นตรงไม่หักขั้นบันได (ผู้ใช้ 2026-11-01: ทำเส้นให้ตรงๆ) */
+    { const near = taps.find((t) => Math.abs(t.y - yMain) < 3); if (taps.length > 1 && near && near.y >= yE0 + 44) yMain = near.y; }
     const oneInv = taps.length === 1 && !taps[0].b.typical;
     /* ป้ายเบรกเกอร์อินเวอร์เตอร์แบบเศษส่วน (ผู้ใช้ 2026-10-29 วาดให้ดู): MCCB 3P 36kA / 400AF ── 400AT
        ความสูงตัวอักษรย่อตามระยะห่างแถว ไม่ให้ชนแถวบน · รูปแบบอื่น (MCB 2P 32A) เขียนบรรทัดเดียวเหมือนเดิม */
@@ -2695,7 +2697,9 @@ function pgSldPro(doc, sheet, M) {
   ty = tabTop;
   tabRows().forEach((t) => { ty -= grid(t[0], t[1], t[2] || [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3; });
   /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น · มุมซ้ายล่าง บรรทัดเดียวยาว (ผู้ใช้ย้าย) */
-  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + pgInvNames(PT.nos) + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
+  /* ชื่อแผ่นย่อยเขียนเต็ม (INVERTER 01) ไม่ย่อ INV1 (ผู้ใช้ 2026-11-01) */
+  const tInv = isDet ? pgInvNames(PT.nos).replace(/INV(\d+)/g, (m, d) => "INVERTER " + d.padStart(2, "0")) : "";
+  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 /* ชื่อเครื่องแบบย่อช่วง: [1,2,3,5] → "INV1-INV3, INV5" */
 function pgInvNames(nos) {

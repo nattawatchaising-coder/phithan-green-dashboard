@@ -3193,6 +3193,10 @@ function pgSldPro(doc, sheet, M) {
       tMin = Math.min.apply(null, tY);
     let yMain = Math.min((tMax + tMin) / 2, A.y1 - (taps.length === 1 && !taps[0].b.typical ? 34 + MON_H : 66));
     yMain = Math.max(yMain, yE0 + 44);
+    {
+      const near = taps.find(t => Math.abs(t.y - yMain) < 3);
+      if (taps.length > 1 && near && near.y >= yE0 + 44) yMain = near.y;
+    }
     const oneInv = taps.length === 1 && !taps[0].b.typical;
     const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
     const brkLabel = (bl, cnt, x, y) => {
@@ -3840,7 +3844,8 @@ function pgSldPro(doc, sheet, M) {
   tabRows().forEach(t => {
     ty -= grid(t[0], t[1], t[2] || [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
   });
-  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + pgInvNames(PT.nos) + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
+  const tInv = isDet ? pgInvNames(PT.nos).replace(/INV(\d+)/g, (m, d) => "INVERTER " + d.padStart(2, "0")) : "";
+  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 function pgInvNames(nos) {
   const out = [];
