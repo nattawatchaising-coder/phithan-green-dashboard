@@ -3059,11 +3059,13 @@ function pgSldPro(doc, sheet, M) {
       pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);
       pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
       pen.line(CS, c1, tB - 2.4, c1, tB);
+      const txH = fitH("TO " + txN(88), TS.tag, W * 0.75);
       if (nxt != null) {
-        pen.line(CS, c2, tB, c2, tB - 4.8);
-        pen.solid(S, [c2 - 0.5, tB - 4.4], [c2, tB - 5.4], [c2 + 0.5, tB - 4.4]);
+        pen.line(CS, c2, tB, c2, tB - 3.6);
+        pen.solid(S, [c2 - 0.5, tB - 3.2], [c2, tB - 4.2], [c2 + 0.5, tB - 3.2]);
         const tt = "TO " + txN(nxt);
-        pen.text(T, c2 + 0.8, tB - 5.0, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, {
+        pen.text(T, c2, tB - 5.2, txH, tt, {
+          align: 1,
           valign: 2
         });
       }
@@ -3072,18 +3074,23 @@ function pgSldPro(doc, sheet, M) {
         bw = Math.min(8, W * 0.5),
         bh = 4,
         bL = ex + 2;
-      const oth = invNos.filter(k => k !== b.no).slice(0, 2);
-      pen.line(S, ex, tB, ex, yBt);
-      pen.line(S, ex, yBt, bL, yBt);
-      oth.forEach((k, i) => {
-        const yy = yBt + bh / 2 + 1.5 + 2.6 * (oth.length - 1 - i),
-          tt = "TO " + txN(k);
+      const oth = invNos.filter(k => k !== b.no);
+      if (oth.length) {
+        const runs = [];
+        oth.forEach(k => {
+          const r = runs[runs.length - 1];
+          if (r && k === r[1] + 1) r[1] = k;else runs.push([k, k]);
+        });
+        const pre = sg ? "SUNGO " : "",
+          sd = k => "SD-" + k;
+        const tt = "TO " + pre + runs.map(r => r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1])).join(", ");
+        const yy = yBt + bh / 2 + 1.5;
         pen.line(S, ex, yy, ex + 3.2, yy);
         pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
-        pen.text(T, ex + 4.6, yy, fitH(tt, TS.tag, bx1 + 8 - ex - 4.6), tt, {
+        pen.text(T, ex + 4.6, yy, Math.min(txH, fitH(tt, TS.tag, W + 6 - 4.6)), tt, {
           valign: 2
         });
-      });
+      }
       pen.rect(S, bL, yBt - bh / 2, bw, bh);
       const yc = yBt - 0.7,
         p1 = bL + bw * 0.38,

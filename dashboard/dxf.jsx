@@ -2147,24 +2147,29 @@ function pgSldPro(doc, sheet, M) {
       pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);   // แกน → C1 · ห่างขอบกล่องพอ ไม่ชิด (ผู้ใช้ 2026-11-01)
       pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
       pen.line(CS, c1, tB - 2.4, c1, tB);
+      const txH = fitH("TO " + txN(88), TS.tag, W * 0.75);   // ป้าย TO ทุกจุดขนาดเดียวกัน
       if (nxt != null) {   // C2 → ตัวส่งเครื่องถัดไป
-        pen.line(CS, c2, tB, c2, tB - 4.8);
-        pen.solid(S, [c2 - 0.5, tB - 4.4], [c2, tB - 5.4], [c2 + 0.5, tB - 4.4]);
+        pen.line(CS, c2, tB, c2, tB - 3.6);
+        pen.solid(S, [c2 - 0.5, tB - 3.2], [c2, tB - 4.2], [c2 + 0.5, tB - 3.2]);
         const tt = "TO " + txN(nxt);
-        pen.text(T, c2 + 0.8, tB - 5.0, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, { valign: 2 });
+        pen.text(T, c2, tB - 5.2, txH, tt, { align: 1, valign: 2 });   // ใต้หัวลูกศร ขนาดเท่าป้าย TO ของปุ่มฉุกเฉิน (ผู้ใช้ 2026-11-01)
       }
       /* ปุ่มฉุกเฉินตามแบบงานจริง (ผู้ใช้ส่งรูป 2026-11-01): สายจากตัวส่งลงแล้วเลี้ยวเข้าข้างซ้ายกล่องปุ่ม
          ในกล่อง = สัญลักษณ์ปุ่มกด (ขาซ้าย · หน้าสัมผัสเอียง · ขาขวา · ก้านขึ้นหัวเห็ด) · สายเดียวกันแตกกิ่งลูกศร TO ตัวส่งเครื่องอื่น */
       const ex = bx0 + W * 0.1, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex + 2;
-      const oth = invNos.filter((k) => k !== b.no).slice(0, 2);
-      pen.line(S, ex, tB, ex, yBt);
-      pen.line(S, ex, yBt, bL, yBt);
-      oth.forEach((k, i) => {
-        const yy = yBt + bh / 2 + 1.5 + 2.6 * (oth.length - 1 - i), tt = "TO " + txN(k);
+      /* ตัวส่งเครื่องอื่นทั้งหมดรวมเป็นกิ่งเดียวบรรทัดเดียว (หลายเครื่องไม่ซ้อนขึ้นไปทับป้าย C2 · ผู้ใช้ถาม 2026-11-01)
+         เลขเรียงติดกันเกิน 2 ตัวเขียนเป็นช่วง SD-2 ~ SD-5 · ไม่ติดกันคั่นด้วย , */
+      const oth = invNos.filter((k) => k !== b.no);
+      if (oth.length) {
+        const runs = [];
+        oth.forEach((k) => { const r = runs[runs.length - 1]; if (r && k === r[1] + 1) r[1] = k; else runs.push([k, k]); });
+        const pre = sg ? "SUNGO " : "", sd = (k) => "SD-" + k;
+        const tt = "TO " + pre + runs.map((r) => (r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1]))).join(", ");
+        const yy = yBt + bh / 2 + 1.5;
         pen.line(S, ex, yy, ex + 3.2, yy);
         pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
-        pen.text(T, ex + 4.6, yy, fitH(tt, TS.tag, bx1 + 8 - ex - 4.6), tt, { valign: 2 });
-      });
+        pen.text(T, ex + 4.6, yy, Math.min(txH, fitH(tt, TS.tag, W + 6 - 4.6)), tt, { valign: 2 });
+      }
       pen.rect(S, bL, yBt - bh / 2, bw, bh);
       const yc = yBt - 0.7, p1 = bL + bw * 0.38, p2 = bL + bw * 0.64;
       pen.line(S, bL + 0.8, yc, p1, yc);                 // ขาซ้าย
