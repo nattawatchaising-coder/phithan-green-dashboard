@@ -16,6 +16,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
   - ข้อมูลจริงอ่านได้ · เขียน/แก้คลังหรืองานจริงต้องได้คำอนุญาตจากผู้ใช้ก่อน · ห้ามลบข้อมูลถาวร ให้ผู้ใช้ลบเองในหน้าเว็บ · ไฟล์ export ข้อมูลจริง/config ทดสอบ/กุญแจ service account ห้าม commit
 - **ห้าม deploy ด้วย `vercel` CLI** — push ขึ้น master อย่างเดียว (เคยมีงานค้างเครื่องเดียว 25 คอมมิตเพราะ deploy ตรง) · branch `claude/**` ปิด preview ใน vercel.json แล้ว (พื้นที่ Deployment Storage ฟรี 10 GB เต็มเร็ว)
 - **commit เองได้เลยไม่ต้องถาม** เมื่องานเสร็จและตรวจแล้ว — hook `.githooks/post-commit` push ให้เอง (ปิดชั่วคราวด้วยไฟล์ `.git/no-autopush`) · ข้อความ commit ภาษาไทย บอกเหตุผล
+- **push แล้วต้องตรวจเว็บจริงให้ทุกครั้ง** (ผู้ใช้สั่ง 2026-11-01): รอ Vercel deploy (fetch `/index.html` ดู `?v=` ตรงที่บัมป์) → รีโหลดแท็บเว็บจริงให้ผู้ใช้ → ตรวจจุดที่แก้ด้วยการอ่าน/วาดภาพ (ห้ามกดบันทึก) แล้วรายงาน
 
 ## build และเวอร์ชัน
 - แก้ `.jsx` แล้ว `npm run build` (เว็บโหลดจาก `dashboard/build/` ไม่ใช่ .jsx) — มี hook `.claude/hooks/build-on-jsx.js` ช่วย build ให้ แต่ต้องเช็กเสมอ
