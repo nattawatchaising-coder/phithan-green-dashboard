@@ -1923,7 +1923,7 @@ function pgSldPro(doc, sheet, M) {
 
   const miniLines = (b) => [[LB, "INVERTER " + String(b.no).padStart(2, "0") + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
     [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
-    [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
+    ].filter((l) => l[1]);   // ไม่เขียน SEE DWG. SLDn ข้างอินเวอร์เตอร์ (ผู้ใช้ขีดฆ่า 2026-11-01)
   /* แผ่นภาพรวม: เส้นดินรวม (PE trunk) ขยับเข้ามาชิดข้อความสรุปที่ยาวสุด ไม่ลากยาวจากขอบแผ่น (ผู้ใช้ 2026-10-29) */
   if (isMain) {
     const hT = Math.min(TS.spec, 2.6 * 0.8);

@@ -2760,7 +2760,7 @@ function pgSldPro(doc, sheet, M) {
   }
   const dongleTop = !!M.mon && !M.mon.logger && !!M.mon.meter && isMain && blocks.length > 1 && blocks.every(b => b.mini);
   if (dongleTop) cur = yB0 - 18;
-  const miniLines = b => [[LB, "INVERTER " + String(b.no).padStart(2, "0") + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
+  const miniLines = b => [[LB, "INVERTER " + String(b.no).padStart(2, "0") + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"]].filter(l => l[1]);
   if (isMain) {
     const hT = Math.min(TS.spec, 2.6 * 0.8);
     const wMax = Math.max.apply(null, blocks.map(b => Math.max.apply(null, miniLines(b).map(l => pgTextW(l[1], hT))))) * 1.2;
