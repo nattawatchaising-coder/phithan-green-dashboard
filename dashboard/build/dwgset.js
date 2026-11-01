@@ -20,6 +20,8 @@ const DS_LAY = {
   earth: ["DS-EARTH", 3, 35],
   eq: ["DS-EQUIP", 7, 30],
   flow: ["DS-FLOW", 8, 13],
+  optIn: ["DS-OPT-LEAD", 3, 25],
+  ret: ["DS-DC-RETURN", 5, 35],
   cov: ["DS-COVER", 7, 50],
   cov2: ["DS-COVER-2", 7, 18],
   covT: ["DS-COVER-TEXT", 7, 25],
@@ -977,6 +979,142 @@ function dsChain(pen, T, from, to) {
     if (b) dsJump(pen, a[from], b[to], !T[i + 1]);
   }
 }
+function dsOptType(pen, o) {
+  const n = o.n,
+    per = o.per,
+    pw = o.pw,
+    ph = o.ph,
+    T = PG_TBL.txt;
+  const R = DL("dcp"),
+    G = DL("optIn"),
+    B = DL("ret"),
+    E = DL("eq");
+  const m = Math.ceil(n / 2),
+    gR = 2,
+    ow = pw * 0.5,
+    oh = pw * 0.2;
+  const xs = o.xs,
+    xP = xs + 4,
+    yA = o.yA,
+    yBb = yA - 2 * ph - gR,
+    xR0 = xP + m * pw;
+  const L = (lay, pts) => {
+    for (let i = 0; i < pts.length - 1; i++) pen.line(lay, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+  };
+  const pan = [];
+  for (let k = 1; k <= n; k++) {
+    const top = k <= m,
+      i = top ? k - 1 : 2 * m - k;
+    const x = xP + i * pw,
+      y = top ? yA - ph : yBb;
+    pen.rect(DL("mod"), x, y, pw, ph);
+    pen.text(DL("cell"), x + pw / 2, y + ph / 2, Math.min(pw * 0.42, ph * 0.28), String(k), {
+      align: 1,
+      valign: 2
+    });
+    const ym = y + ph / 2,
+      tL = [x + pw * 0.15, ym],
+      tR = [x + pw * 0.85, ym];
+    [tL, tR].forEach(t => pen.rect(DL("mod"), t[0] - 0.35, t[1] - 0.7, 0.7, 1.4));
+    pan[k] = {
+      x,
+      top,
+      tL,
+      tR,
+      edge: top ? yA : yBb,
+      s: top ? 1 : -1,
+      top2: y + ph
+    };
+  }
+  const lane = (p, fr) => p.edge - p.s * fr * ph;
+  const lead = (lay, t, ly, px, py) => L(lay, [t, [t[0], ly], [px, ly], [px, py]]);
+  const bx = [];
+  const box = (xc, p) => {
+    const yc = p.edge + p.s * 0.45 * oh,
+      b = {
+        xc,
+        yc,
+        s: p.s,
+        near: yc - p.s * oh / 2,
+        far: yc + p.s * oh / 2
+      };
+    pen.rect(E, xc - ow / 2, yc - oh / 2, ow, oh);
+    pen.text(T, xc, yc, oh * 0.55, (o.rsd ? "RSD-" : "OPT-") + (bx.length + 1), {
+      align: 1,
+      valign: 2
+    });
+    const lft = [xc - ow / 2, yc],
+      rgt = [xc + ow / 2, yc];
+    b.in = p.s > 0 ? lft : rgt;
+    b.out = p.s > 0 ? rgt : lft;
+    bx.push(b);
+    return b;
+  };
+  let cross = false;
+  for (let k = 1; k <= n; k += per) {
+    const a = pan[k],
+      c = per > 1 && k + 1 <= n ? pan[k + 1] : null;
+    if (!c) {
+      const b = box(a.x + pw / 2, a);
+      lead(G, a.tL, lane(a, 0.2), b.xc - ow * 0.25, b.near);
+      lead(R, a.tR, lane(a, 0.2), b.xc + ow * 0.25, b.near);
+    } else if (a.top === c.top) {
+      const A = a.x < c.x ? a : c,
+        Bp = a.x < c.x ? c : a,
+        b = box(Bp.x, A);
+      lead(G, A.tL, lane(A, 0.2), b.xc - ow * 0.375, b.near);
+      lead(R, A.tR, lane(A, 0.3), b.xc - ow * 0.125, b.near);
+      lead(G, Bp.tL, lane(Bp, 0.3), b.xc + ow * 0.125, b.near);
+      lead(R, Bp.tR, lane(Bp, 0.2), b.xc + ow * 0.375, b.near);
+    } else {
+      cross = true;
+      const Pt = a.top ? a : c,
+        Pb = a.top ? c : a,
+        b = box(Pt.x + pw / 2, Pt);
+      lead(G, Pt.tL, lane(Pt, 0.2), b.xc - ow * 0.25, b.near);
+      lead(R, Pt.tR, lane(Pt, 0.2), b.xc + ow * 0.25, b.near);
+      const xe1 = xR0 + 1.2,
+        xe2 = xR0 + 2.4,
+        yHiL = Pb.top2 - 0.15 * ph,
+        yLoL = Pb.top2 - 0.28 * ph;
+      L(G, [Pb.tL, [Pb.tL[0], yHiL], [xe2, yHiL], [xe2, b.far + 2.4], [b.xc - ow * 0.25, b.far + 2.4], [b.xc - ow * 0.25, b.far]]);
+      L(R, [Pb.tR, [Pb.tR[0], yLoL], [xe1, yLoL], [xe1, b.far + 1.2], [b.xc + ow * 0.25, b.far + 1.2], [b.xc + ow * 0.25, b.far]]);
+    }
+  }
+  const xc = xR0 + (cross ? 3.8 : 1.5),
+    xB = xc + 1.5;
+  for (let i = 0; i < bx.length - 1; i++) {
+    const a = bx[i],
+      b = bx[i + 1];
+    if (a.s === b.s) L(R, [a.out, b.in]);else L(R, [a.out, [xc, a.out[1]], [xc, b.in[1]], b.in]);
+  }
+  const f0 = bx[0],
+    lz = bx[bx.length - 1],
+    yBt = yA - 0.1 * ph;
+  L(R, [[xs, f0.in[1]], f0.in]);
+  if (lz.s < 0) {
+    const yBl = yBb + 0.1 * ph;
+    L(B, [lz.out, [lz.out[0] - 1.5, lz.out[1]], [lz.out[0] - 1.5, yBl], [xB, yBl], [xB, yBt], [xs, yBt]]);
+  } else L(B, [lz.out, [xB, lz.out[1]], [xB, yBt], [xs, yBt]]);
+  pen.text(T, xs - 1, f0.in[1] + 0.4, o.thL, "(+) " + o.cab, {
+    align: 2,
+    valign: 1
+  });
+  pen.text(T, xs - 1, yBt - 0.4, o.thL, "(-) " + o.cab, {
+    align: 2,
+    valign: 3
+  });
+  const yc = yBb - oh - 4.5,
+    cap = "TYPE-" + n + "PV";
+  pen.text(T, xP, yc, PG_TS.head, cap, {
+    valign: 1
+  });
+  pen.line(T, xP, yc - 1.2, xP + pgTextW(cap, PG_TS.head) + 1, yc - 1.2);
+  pen.text(T, xP, yc - 2.4, PG_TS.cell, (o.rsd ? "RAPID SHUTDOWN " : "OPTIMIZER ") + o.model + " = " + bx.length + " EA. (1 ตัว / " + per + " แผง)", {
+    valign: 3
+  });
+  return yc - 2.4 - PG_TS.cell;
+}
 function dsStrDetSheet(st, job, media) {
   media = media || {};
   const S = dsMm(st, job, media, "STRDET", null);
@@ -1011,7 +1149,8 @@ function dsStrDetSheet(st, job, media) {
   const lgx = sx + lw + 12;
   let ly = specTop - 2;
   pen.text(T, lgx, ly, PG_TS.body, "LEGEND");
-  [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"], [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]].forEach((r, i) => {
+  const OP = M && M.opt;
+  (OP ? [[DL("dcp"), "สาย DC (+) ไปตู้ DC / สายต่อระหว่างตัวคุมแผง"], [DL("ret"), "สาย DC (-) กลับไปตู้ DC (เดินขนานแนวสตริง)"], [DL("optIn"), "สายแผงเข้าตัวคุมแผง (สายของตัวคุม)"]] : [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"], [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]]).forEach((r, i) => {
     const y = ly - 5 - i * 4.6;
     pen.line(r[0], lgx, y, lgx + 14, y);
     pen.text(T, lgx + 17, y, PG_TS.cell, r[1], {
@@ -1025,6 +1164,43 @@ function dsStrDetSheet(st, job, media) {
     tMm: +ps.frame || 30,
     caption: "แผง " + (M ? M.panel.wp : st.wp || "") + " วัตต์"
   });
+  if (OP) {
+    const per = OP.per >= 2 ? 2 : 1;
+    const sizes = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a).slice(0, 2);
+    if (!sizes.length) sizes.push(n);
+    sizes.sort((a, b) => a - b);
+    const cab = "PV CABLE " + (M.pro && M.pro.dcCable || "PV1-F 1x4 Sq.mm.").replace(/\s*\(H1Z2Z2-K\)/i, "").replace(/\s*1\.5kV DC/i, ""),
+      thL = 1.9,
+      lw = pgTextW("(+) " + cab, thL) + 3;
+    const X0 = A.x0 + 6,
+      X1 = A.x1 - 36,
+      yHi = A.y1 - 12,
+      yLo = bandTop + 6,
+      Hf = (yHi - yLo) / sizes.length;
+    const mMax = Math.ceil(Math.max.apply(null, sizes) / 2);
+    const pw = Math.min(17, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95),
+      ph = pw * 1.8;
+    sizes.forEach((sz, i) => {
+      const m = Math.ceil(sz / 2),
+        W = lw + 4 + m * pw + 7,
+        hF = 2 * ph + 2 + 0.4 * pw + 3 + 12;
+      const yA = yHi - i * Hf - Math.max(0, (Hf - hF) / 2) - 0.14 * pw - 3;
+      dsOptType(pen, {
+        n: sz,
+        per,
+        rsd: OP.rsd,
+        model: OP.model,
+        xs: (X0 + X1) / 2 - W / 2 + lw,
+        yA,
+        pw,
+        ph,
+        cab,
+        thL
+      });
+    });
+    if (Object.keys(cnt).length > sizes.length) pen.text(T, sx, A.y0 + 6, PG_TS.cell, "สตริงขนาดอื่นในงานนี้ต่อแบบเดียวกัน — จำนวนแผงต่อสตริงจริงดูแผ่น STRING LAYOUT", {});
+    return S.doc.build();
+  }
   const X0 = A.x0 + 6,
     X1 = A.x1 - 36,
     gap = 3;
