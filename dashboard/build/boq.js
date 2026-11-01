@@ -6926,6 +6926,27 @@ function BOQEditor({
       value: "backupbox",
       label: "Backup Box"
     }]
+  })), window.BOQ.isHwInv(selInv.model) && React.createElement(Field, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E2A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E23"
+  }, React.createElement(Dropdown, {
+    value: b.monComm || "auto",
+    onChange: v => set("monComm", v),
+    options: window.BOQ.MON_COMM_OPTIONS
+  })), !window.BOQ.isHwInv(selInv.model) && React.createElement(Field, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E2A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E23"
+  }, React.createElement(Dropdown, {
+    value: b.monComm === "none" ? "none" : "auto",
+    onChange: v => set("monComm", v),
+    options: window.BOQ.MON_COMM_OPTIONS.filter(o => o.value === "auto" || o.value === "none").map(o => o.value === "auto" ? {
+      value: "auto",
+      label: "อัตโนมัติ (ตามคลัง)"
+    } : o)
+  })), React.createElement(Field, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C"
+  }, React.createElement(Dropdown, {
+    value: b.monMeter || "auto",
+    onChange: v => set("monMeter", v),
+    options: window.BOQ.MON_METER_OPTIONS
   })), React.createElement(Field, {
     label: "Optimizer / \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07"
   }, React.createElement(Dropdown, {

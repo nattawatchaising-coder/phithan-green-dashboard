@@ -371,6 +371,22 @@
 
   /* ── อุปกรณ์ Growatt งานบ้าน (ผู้ใช้ ต.ค. 2026): มิเตอร์ CT ตามเฟส + ShineWiFi-X 1 ตัว/งาน — ชื่อต้องตรงคลังทุกตัวอักษร ── */
   const GW = { meter1: "Growatt - SPM-CT-E", meter3: "Growatt - TPM-CT-E", wifi: "Growatt - ShineWiFi-X" };
+  /* ── Power Meter Janitza ที่เลือกได้ตอนถอด BOQ (ผู้ใช้ 2026-11-01): UMG96RM = ระบบแรงต่ำ (LV) · UMG511 = ระบบแรงกลาง (MV) — ชื่อต้องตรงคลังทุกตัวอักษร ── */
+  const JZ = { umg96rm: "Power Meter Janitza UMG 96RM", umg511: "Power Meter Janitza UMG 511" };
+  /* ตัวเลือกตอนถอด BOQ: ระบบสื่อสาร (b.monComm) · ระบบมิเตอร์ (b.monMeter) — "auto" = ถอดตามเดิม (ตามยี่ห้อ/จำนวนเครื่อง) */
+  const MON_COMM_OPTIONS = [
+    { value: "auto", label: "อัตโนมัติ (ตามจำนวนเครื่อง)" },
+    { value: "dongle", label: "Smart Dongle" },
+    { value: "logger", label: "SmartLogger 3000A" },
+    { value: "none", label: "ไม่ใช้" },
+  ];
+  const MON_METER_OPTIONS = [
+    { value: "auto", label: "อัตโนมัติ (ตามยี่ห้อ/จำนวนเครื่อง)" },
+    { value: "smart", label: "Smart Meter ตามเฟส" },
+    { value: "umg96rm", label: "Janitza UMG96RM · แรงต่ำ (LV)" },
+    { value: "umg511", label: "Janitza UMG511 · แรงกลาง (MV)" },
+    { value: "none", label: "ไม่ใช้" },
+  ];
   // ── ชื่อรุ่นอุปกรณ์ Huawei (ต้องตรงกับชื่อในคลังสินค้า เพื่อจับคู่ราคา) ──
   const HW = {
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
@@ -965,6 +981,16 @@
     if (m) out.push({ name: m.name, qty: 1, unit: "ชุด" });
     const c = (inv.comms || []).find((n) => !/logger|SEC\d|smartlogger/i.test(n));
     if (c) out.push({ name: c, qty: 1, unit: "ตัว" });
+    return out;
+  }
+  /* ยี่ห้ออื่นที่ไม่ใช่ Huawei: ชุดมิเตอร์/ตัวสื่อสารที่ถอดตามยี่ห้อ (list = [มิเตอร์?, ตัวสื่อสาร?]) แล้วทับด้วยตัวเลือกตอนถอด BOQ
+     monMeter umg96rm/umg511 = แทนมิเตอร์ด้วย Janitza · none = ไม่เอามิเตอร์ · monComm none = ไม่เอาตัวสื่อสาร (dongle/logger เป็นของ Huawei ใช้ auto) */
+  function monPick(list, b, inv) {
+    const mtrNames = [GW.meter1, GW.meter3].concat(((inv && inv.meters) || []).map((m) => m.name));
+    const isM = (x) => mtrNames.indexOf(x.name) !== -1;
+    const mtr = (b && b.monMeter) || "auto", comm = (b && b.monComm) || "auto";
+    let out = list.filter((x) => isM(x) ? (mtr === "auto" || mtr === "smart") : comm !== "none");
+    if (JZ[mtr]) out = [{ name: JZ[mtr], qty: 1, unit: "ตัว" }].concat(out);
     return out;
   }
   /* อุปกรณ์มอนิเตอร์ที่ BOQ จะถอดให้ตามรุ่นอินเวอร์เตอร์ (ชุดเดียวกับ calcBOQ) — SLD ใช้ตอนงานยังไม่มี BOQ (ผู้ใช้ 2026-11-01: ตัวส่งข้อมูล Huawei ไม่มีเลย)
@@ -2033,6 +2059,8 @@
       inv4Count: 1,
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
+      monComm: "auto",    // ระบบสื่อสาร: auto | dongle | logger | none (ผู้ใช้ 2026-11-01)
+      monMeter: "auto",   // ระบบมิเตอร์: auto | smart | umg96rm | umg511 | none
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
       optimizerModel: "",
       hwOptimizer: !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี"),
@@ -2284,21 +2312,24 @@
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
         if (!hw) {
           // Growatt งานบ้าน: มิเตอร์ CT วัดที่จุดต่อกริด + ShineWiFi-X 1 ตัว (งานโครงการยังให้เพิ่มเอง)
-          if (isGwInv(selInv.model) && !isProject) {
-            invItems.push({ name: ph === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
-            invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
-          }
+          if (isGwInv(selInv.model) && !isProject)
+            monPick([{ name: ph === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" }, { name: GW.wifi, qty: 1, unit: "ตัว" }], b).forEach((x) => invItems.push(x));
           // ยี่ห้ออื่น: มิเตอร์ + ตัวสื่อสารตามที่ผูกกับรุ่นในคลัง (ไม่ได้ผูก = ให้เพิ่มเองในใบ) · แบตใช้รุ่นกลางเดิม
-          else if (!isProject) accMonItems(selInv).forEach((x) => invItems.push(x));
+          else if (!isProject) monPick(accMonItems(selInv), b, selInv).forEach((x) => invItems.push(x));
+          else monPick([], b).forEach((x) => invItems.push(x));
           pushBatt(invItems);
         } else {
           /* Huawei ตัวส่งข้อมูลตามจำนวนเครื่อง (ผู้ใช้ 2026-11-01): ไม่เกิน hwDongleMax เครื่อง = Smart Dongle · เกิน = SmartLogger (มิเตอร์ RS485 เข้า Logger)
              งานบ้านมี Smart Meter ตามเฟส · งานโครงการที่ใช้ SmartLogger ไม่ถอดมิเตอร์ Huawei (ใช้ power meter ในตู้ AC) */
           /* ใช้ Smart Dongle (ไม่เกิน hwDongleMax เครื่อง) ต้องมีมิเตอร์ในตู้ AC ส่ง RS485 เข้า INV1 — งานโครงการก็ถอด (ผู้ใช้ 2026-11-01) */
-          if (!isProject || invTotal <= RULES.hwDongleMax) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
-          if (invTotal > RULES.hwDongleMax) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
+          /* ตอนถอด BOQ เลือกระบบสื่อสาร/มิเตอร์ทับได้ (ผู้ใช้ 2026-11-01) — auto = ตามจำนวนเครื่องแบบเดิม */
+          const comm = b.monComm || "auto", mtr = b.monMeter || "auto";
+          const useLogger = comm === "logger" || (comm === "auto" && invTotal > RULES.hwDongleMax);
+          if (mtr === "smart" || (mtr === "auto" && (!isProject || !useLogger))) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          else if (JZ[mtr]) invItems.push({ name: JZ[mtr], qty: 1, unit: "ตัว" });
+          if (useLogger) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
           // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
-          else if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+          else if (comm !== "none" && !/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         }
         /* โมดูล LUNA S1 (ในคลังชื่อ LUNA2000-7-E1) ต้องมี Power Module C1 — เลือกรุ่นนี้จากออกแบบระบบก็ยังถอด C1 ให้ */
         const lunaPick = battPick && (battPick === HW.lunaS1 || /LUNA2000-(S1|7-E1)/i.test(battPick));
@@ -2331,10 +2362,10 @@
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
         pushXs(invItems);
-        if (isGwInv(selInv.model) && !isProject) {   // Growatt ที่คลังยังไม่มีสเปค MPPT ก็ยังได้มิเตอร์ + WiFi
-          invItems.push({ name: selInv.phase === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
-          invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
-        } else if (!isProject && !isHwInv(selInv.model)) accMonItems(selInv).forEach((x) => invItems.push(x));
+        if (isGwInv(selInv.model) && !isProject)   // Growatt ที่คลังยังไม่มีสเปค MPPT ก็ยังได้มิเตอร์ + WiFi
+          monPick([{ name: selInv.phase === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" }, { name: GW.wifi, qty: 1, unit: "ตัว" }], b).forEach((x) => invItems.push(x));
+        else if (!isProject && !isHwInv(selInv.model)) monPick(accMonItems(selInv), b, selInv).forEach((x) => invItems.push(x));
+        else if (!isHwInv(selInv.model)) monPick([], b).forEach((x) => invItems.push(x));
         pushBatt(invItems);
       }
     } else {
@@ -3076,7 +3107,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults, MON_COMM_OPTIONS, MON_METER_OPTIONS };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

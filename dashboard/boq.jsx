@@ -3478,6 +3478,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                     { value: "backupbox", label: "Backup Box" },
                   ]} />
                 </Field>}
+                {/* ระบบสื่อสาร/มิเตอร์ที่ถอดลง BOQ (ผู้ใช้ 2026-11-01) — SLD วาดตามรายการที่ถอดได้ */}
+                {window.BOQ.isHwInv(selInv.model) && <Field label="ระบบสื่อสาร">
+                  <Dropdown value={b.monComm || "auto"} onChange={(v) => set("monComm", v)} options={window.BOQ.MON_COMM_OPTIONS} />
+                </Field>}
+                {!window.BOQ.isHwInv(selInv.model) && <Field label="ระบบสื่อสาร">
+                  <Dropdown value={b.monComm === "none" ? "none" : "auto"} onChange={(v) => set("monComm", v)} options={window.BOQ.MON_COMM_OPTIONS.filter((o) => o.value === "auto" || o.value === "none").map((o) => o.value === "auto" ? { value: "auto", label: "อัตโนมัติ (ตามคลัง)" } : o)} />
+                </Field>}
+                <Field label="ระบบมิเตอร์">
+                  <Dropdown value={b.monMeter || "auto"} onChange={(v) => set("monMeter", v)} options={window.BOQ.MON_METER_OPTIONS} />
+                </Field>
                 <Field label="Optimizer / ตัวคุมแผง">
                   <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
                     onChange={(v) => setB((p) => Object.assign({}, p, { optimizerModel: v, hwOptimizer: !!v }))} />

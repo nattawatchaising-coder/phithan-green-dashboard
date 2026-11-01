@@ -3893,7 +3893,7 @@ function pgSldPro(doc, sheet, M) {
           valign: 2
         });
       }
-      const mTx = meterNm.replace(/^smart *meter */i, ""),
+      const mTx = meterNm.replace(/^smart *meter */i, "").replace(/^power *meter *(janitza *)?/i, ""),
         mh = 4.4,
         myc = acMtrY,
         mw = pgTextW(mTx, TS.spec) + 4;

@@ -2732,7 +2732,7 @@ function pgSldPro(doc, sheet, M) {
       }
       /* มิเตอร์ขวาบนในตู้ AC เหนือหลอดไฟแสดงเฟส (ผู้ใช้วาดชี้ 2026-11-01) · ไฟเลี้ยงขึ้นจากจุดแยก SPD บนสายเมน
          3 เฟส = R, S, T, N · 1 เฟส = L, N · CT เข้าหัวมิเตอร์จากขวา · RS485 ออกซ้ายอ้อมเหนือดองเกิลลงหัว INV1 */
-      const mTx = meterNm.replace(/^smart *meter */i, ""), mh = 4.4, myc = acMtrY, mw = pgTextW(mTx, TS.spec) + 4;
+      const mTx = meterNm.replace(/^smart *meter */i, "").replace(/^power *meter *(janitza *)?/i, ""), mh = 4.4, myc = acMtrY, mw = pgTextW(mTx, TS.spec) + 4;
       const fx = acSpdX != null ? acSpdX : X.ac1 - 6, mx0 = fx + 3 - mw, mx1 = mx0 + mw, mTop = myc + mh / 2, mB = myc - mh / 2;
       pen.rect(S, mx0, mB, mw, mh);
       pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, { align: 1, valign: 2 });
