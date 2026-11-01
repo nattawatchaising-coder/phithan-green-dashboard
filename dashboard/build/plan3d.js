@@ -4403,6 +4403,10 @@ function p3SldMon(M, job, invModel) {
     }
   } else if (M.pro && BOQ.monDefaults && BOQ.findInverter) {
     BOQ.monDefaults(BOQ.findInverter(invModel), !M.pro.home, (M.units || []).length).forEach(it => names.push(it.name));
+    const cu0 = +(String((job && job.permit || {}).mainAT || (job && job.survey || {}).mainBreaker || "").match(/\d+/) || [0])[0];
+    if (BOQ.HW && BOQ.RULES && cu0 > BOQ.RULES.hwMtrCtA) names.forEach((n, i) => {
+      if (n === BOQ.HW.meter3) names[i] = BOQ.HW.meter3w;
+    });
   }
   const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
   const accM = (ivR && ivR.meters || []).map(m => m.name),
@@ -4417,6 +4421,12 @@ function p3SldMon(M, job, invModel) {
     logger: /logger/i.test(dev),
     meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM)
   };
+  if (/DTSU666-HW/i.test(M.mon.meter) && BOQ.RULES && BOQ.RULES.ctR) {
+    const cu = +(String((job && job.permit || {}).mainAT || (job && job.survey || {}).mainBreaker || "").match(/\d+/) || [0])[0];
+    const R = BOQ.RULES.ctR,
+      ct = cu > 0 ? R.find(x => x >= cu) || R[R.length - 1] : 0;
+    if (ct) M.mon.ct = ct + "/5A x3";
+  }
 }
 const P3_ROUTE_EN = {
   conduitAir: "IN CONDUIT",

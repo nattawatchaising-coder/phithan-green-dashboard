@@ -2833,6 +2833,9 @@ function p3SldMon(M, job, invModel) {
     /* ยังไม่มี BOQ: ใช้ชุดที่ BOQ จะถอดให้ตามรุ่นอินเวอร์เตอร์ — Huawei โครงการ = SmartLogger · บ้าน = Smart Meter + Dongle (ผู้ใช้ 2026-11-01: ตัวส่งข้อมูล Huawei ไม่มีเลย)
        ยี่ห้ออื่นงานบ้านใช้มิเตอร์ + ตัวสื่อสารที่ผูกกับรุ่นในคลัง (ผู้ใช้ 2026-10-31) */
     BOQ.monDefaults(BOQ.findInverter(invModel), !M.pro.home, (M.units || []).length).forEach((it) => names.push(it.name));
+    /* เมนลูกค้าเกิน CT ในชุด = DTSU666-HW + CT x/5A แบบเดียวกับที่ BOQ ถอด (ผู้ใช้ 2026-11-01) */
+    const cu0 = +((String(((job && job.permit) || {}).mainAT || ((job && job.survey) || {}).mainBreaker || "").match(/\d+/) || [0])[0]);
+    if (BOQ.HW && BOQ.RULES && cu0 > BOQ.RULES.hwMtrCtA) names.forEach((n, i) => { if (n === BOQ.HW.meter3) names[i] = BOQ.HW.meter3w; });
   }
   /* มิเตอร์/ตัวสื่อสารที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง — รู้จักทุกยี่ห้อ (GoodWe GMK · Eastron SDM · Sigen Sensor · CommMod …) ไม่ต้องพึ่งชื่อ */
   const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
@@ -2844,6 +2847,12 @@ function p3SldMon(M, job, invModel) {
   if (!dev && /SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(invModel || "") && (M.units || []).length <= ((BOQ.RULES && BOQ.RULES.hwDongleMax) || 3)) dev = "Smart Dongle (BUILT-IN)";
   if (!dev) return;
   M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM) };
+  /* DTSU666-HW ไม่มี CT ในชุด — CT x/5A ตามเมนลูกค้าชุดเดียวกับ BOQ (ผู้ใช้ 2026-11-01 "เลือก CT เองตาม Main") */
+  if (/DTSU666-HW/i.test(M.mon.meter) && BOQ.RULES && BOQ.RULES.ctR) {
+    const cu = +((String(((job && job.permit) || {}).mainAT || ((job && job.survey) || {}).mainBreaker || "").match(/\d+/) || [0])[0]);
+    const R = BOQ.RULES.ctR, ct = cu > 0 ? (R.find((x) => x >= cu) || R[R.length - 1]) : 0;
+    if (ct) M.mon.ct = ct + "/5A x3";
+  }
 }
 
 /* ══ แก้ค่าบนแบบเอง ══

@@ -3678,8 +3678,8 @@ function pgSldPro(doc, sheet, M) {
         it = tp.top,
         COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "";
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = mon.ct || mon.ct || pgMeterCt(mon.meter).ct ? "CT " + (mon.ct || mon.ct || pgMeterCt(mon.meter).ct) : "";
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const dw = Math.max(22, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
       const dBot = it + 8,
@@ -3793,8 +3793,8 @@ function pgSldPro(doc, sheet, M) {
         it = taps[0].top,
         COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "";
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = mon.ct || mon.ct || pgMeterCt(mon.meter).ct ? "CT " + (mon.ct || mon.ct || pgMeterCt(mon.meter).ct) : "";
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const lbl = mon.logger ? "RS485" : "PLUG-IN COM PORT";
       const dw = Math.max(26, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
@@ -3882,8 +3882,8 @@ function pgSldPro(doc, sheet, M) {
         t1 = taps[0],
         t2 = taps[1];
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = pgMeterCt(mon.meter).ct ? pgMeterCt(mon.meter).ct : "";
-      const meterNm = mon.meter.replace(/\s*\+\s*CT.*$/i, "");
+      const ctSpec = mon.ct || mon.ct || pgMeterCt(mon.meter).ct ? mon.ct || mon.ct || pgMeterCt(mon.meter).ct : "";
+      const meterNm = mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "");
       const xm = t1.vx + t1.sh * 0.62;
       const dw = Math.max(20, pgTextW(mon.dev, TS.spec) + 3),
         dh = 5,
@@ -3963,8 +3963,8 @@ function pgSldPro(doc, sheet, M) {
         vx = taps[taps.length - 1].vx,
         COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "";
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = mon.ct || mon.ct || pgMeterCt(mon.meter).ct ? "CT " + (mon.ct || mon.ct || pgMeterCt(mon.meter).ct) : "";
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const dw = Math.max(30, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
       const dx0 = X.iv1 + 8,
@@ -4355,7 +4355,7 @@ function pgCuDraw(pen, M) {
   const mtr = M.mon && M.mon.meter || M.monMeter || "";
   const ctSpec = pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : "",
     mtrCls = pgMeterCt(mtr).cls;
-  const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
+  const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
   pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), {
     align: 2,
     valign: 1

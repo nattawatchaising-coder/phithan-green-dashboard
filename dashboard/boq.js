@@ -46,6 +46,7 @@
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
       def: [{ v: 550, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 800, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 1000, p: "4P", a: [16, 20, 25, 32, 63] }] },   // SUNTREE SL7N-63 (ต.ค. 2026)
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Kwh", th: "แบต Huawei LUNA2000-S1 · ความจุต่อก้อน", unit: "kWh", def: 7, min: 1 },
+    { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "hwMtrCtA", th: "Huawei 3 เฟส · เมนลูกค้าเกินค่านี้ใช้ DTSU666-HW + CT x/5A ตามเมน (แทนชุด CT ในกล่อง)", unit: "A", def: 250, min: 1 },   // ผู้ใช้ 2026-11-01: CT ชุดเดิมไม่พอกับ Main
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "hwDongleMax", th: "Huawei · ใช้ Smart Dongle ได้ไม่เกิน (เกินนี้ใช้ SmartLogger · มิเตอร์ RS485 เข้า Logger)", unit: "เครื่อง", def: 3, min: 1 },   // ผู้ใช้ 2026-11-01
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Per", th: "แบต LUNA2000-S1 · ก้อนสูงสุดต่อ Power Module 1 ตัว", unit: "ก้อน", def: 3, min: 1 },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
@@ -392,7 +393,8 @@
   // ── ชื่อรุ่นอุปกรณ์ Huawei (ต้องตรงกับชื่อในคลังสินค้า เพื่อจับคู่ราคา) ──
   const HW = {
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
-    meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
+    meter3: "Smart Meter DTSU666-H + CT 250A/50mA (3 เฟส)",   // ตรงชื่อในคลัง (เดิม 100A/40mA ไม่มีในคลัง ราคาไม่ขึ้น)
+    meter3w: "Smart Meter DTSU666-HW NO CT (3 เฟส)",           // เมนใหญ่: มิเตอร์ไม่มี CT ในชุด เลือก CT x/5A ตามเมนลูกค้า
     dongle: "Smart Dongle-WLAN-FE",
     logger: "HUAWEI SMART LOGGER 3000A-GL",
     cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์4",
@@ -2042,7 +2044,8 @@
     /* การไฟฟ้า / ประเภทการขออนุญาต อ่านจากข้อมูลลูกค้าทุกครั้งที่เปิด ไม่ใช้ค่าที่ติดมากับใบ — แก้จังหวัดแล้วใบตามทันที */
     out.gridAuth = gridAuthOf(job);   // base ถูก Object.assign ทับด้วย saved แล้ว ต้องอ่านจากงานตรง ๆ
     out.permitType = blankBOQ(job).permitType;
-    out.mvSupply = blankBOQ(job).mvSupply;   // ระบบไฟเข้าอ่านจากใบสำรวจทุกครั้ง (ไม่ใช่ค่าที่ติดมากับใบ)
+    out.mvSupply = blankBOQ(job).mvSupply;
+    out.cuMainA = blankBOQ(job).cuMainA;   // เมนลูกค้าจากใบขออนุญาต/ใบสำรวจทุกครั้ง   // ระบบไฟเข้าอ่านจากใบสำรวจทุกครั้ง (ไม่ใช่ค่าที่ติดมากับใบ)
     return out;
   }
 
@@ -2070,6 +2073,7 @@
       hwBackup: "none",
       monComm: "auto",    // ระบบสื่อสาร: auto | dongle | logger | none (ผู้ใช้ 2026-11-01)
       mvSupply: !!(job.survey && job.survey.supply === "mv"),   // ใบสำรวจ: ลูกค้ารับไฟแรงกลาง → มิเตอร์ auto = UMG511
+      cuMainA: +((String(((job.permit || {}).mainAT) || (job.survey || {}).mainBreaker || "").match(/\d+/) || [0])[0]),   // เมนเดิมลูกค้า (A) — เลือก CT มิเตอร์
       monMeter: "auto",   // ระบบมิเตอร์: auto | smart | umg96rm | umg511 | none
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
       optimizerModel: "",
@@ -2336,7 +2340,15 @@
           const comm = b.monComm || "auto", mtr = meterOf(b);
           // งานแรงกลางหลายตู้ MDB ข้อมูลรวมที่ SmartLogger (แบบตัวอย่างผู้ใช้: COMMUNICATION PANEL SmartLogger 3000A)
           const useLogger = comm === "logger" || (comm === "auto" && (invTotal > RULES.hwDongleMax || mtr === "umg511"));
-          if (mtr === "smart" || (mtr === "auto" && (!isProject || !useLogger))) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          if (mtr === "smart" || (mtr === "auto" && (!isProject || !useLogger))) {
+            /* เมนลูกค้าใหญ่เกิน CT ในชุด (ผู้ใช้ 2026-11-01): DTSU666-HW + CT x/5A เฟสละ 1 ตัว อัตราส่วนแรกที่ ≥ เมนลูกค้า */
+            const cu = +b.cuMainA || 0;
+            if (ph === 3 && cu > RULES.hwMtrCtA) {
+              const ct = RULES.ctR.find((x) => x >= cu) || RULES.ctR[RULES.ctR.length - 1];
+              invItems.push({ name: HW.meter3w, qty: 1, unit: "ตัว" });
+              invItems.push({ name: "CT " + ct + "/5A", qty: 3, unit: "ตัว" });
+            } else invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          }
           else if (JZ[mtr]) invItems.push({ name: JZ[mtr], qty: 1, unit: "ตัว" });
           if (mtr === "umg511") invItems.push(Object.assign({}, MV_ROW));
           if (useLogger) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
@@ -3119,7 +3131,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults, MON_COMM_OPTIONS, MON_METER_OPTIONS, meterOf };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults, MON_COMM_OPTIONS, MON_METER_OPTIONS, meterOf, HW };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

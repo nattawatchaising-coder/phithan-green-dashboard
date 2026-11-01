@@ -2601,8 +2601,8 @@ function pgSldPro(doc, sheet, M) {
          [Smart Meter] ◄┄ CT MAIN · มิเตอร์ต่อ COM port อินเวอร์เตอร์ด้วยสาย RS485 ตรง ไม่ผ่านดองเกิล */
       const mon = M.mon, tp = taps[0], it = tp.top, COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = ((mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) ? "CT " + (mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) : "");
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const dw = Math.max(22, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
       const dBot = it + 8, yc = dBot + dh / 2, xd = (X.iv0 + X.iv1) / 2, dx0 = xd - dw / 2, xr = dx0 + dw;   // กลางอินเวอร์เตอร์ (ผู้ใช้ 2026-10-31);
       pen.rect(S, dx0, dBot, dw, dh);
@@ -2675,8 +2675,8 @@ function pgSldPro(doc, sheet, M) {
          ซ้าย → ข้างขวาอินเวอร์เตอร์ (PLUG-IN COM PORT / RS485) · ขวา INTERNET · สัญญาณ CT เข้าจากด้านล่าง */
       const mon = M.mon, it = taps[0].top, COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = ((mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) ? "CT " + (mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) : "");
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const lbl = mon.logger ? "RS485" : "PLUG-IN COM PORT";
       const dw = Math.max(26, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
       const dx0 = X.iv1 + Math.max(8, pgTextW(lbl, TS.tag) + 4), dTop = it - 4, dBot = dTop - dh, yc = dBot + dh / 2, xr = dx0 + dw;
@@ -2723,8 +2723,8 @@ function pgSldPro(doc, sheet, M) {
          มิเตอร์อยู่ในตู้ AC ระหว่างแถว INV1–INV2 ไฟเลี้ยงจากบัส · ส่ง RS485 เข้าก้น INV1 ตรง ไม่ผ่านดองเกิล · ไม่มีเส้นตัดกัน */
       const mon = M.mon, COM = PG_SLD.comm, t1 = taps[0], t2 = taps[1];
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (pgMeterCt(mon.meter).ct ? pgMeterCt(mon.meter).ct : "");
-      const meterNm = mon.meter.replace(/\s*\+\s*CT.*$/i, "");
+      const ctSpec = ((mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) ? (mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) : "");
+      const meterNm = mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "");
       const xm = t1.vx + t1.sh * 0.62;   // ดองเกิลลงหัว INV1 (มิเตอร์ลงข้างซ้ายของเส้นนี้)
       /* ดองเกิล */
       const dw = Math.max(20, pgTextW(mon.dev, TS.spec) + 3), dh = 5, dx0 = X.iv1 + 1.5, dBot = t1.dgBot, yc = dBot + dh / 2, xr = dx0 + dw;
@@ -2771,8 +2771,8 @@ function pgSldPro(doc, sheet, M) {
          ซ้าย: RS485 เลี้ยวขึ้นเข้าก้นอินเวอร์เตอร์ · ขวา: INTERNET */
       const mon = M.mon, ib = taps[taps.length - 1].bot, vx = taps[taps.length - 1].vx, COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
-      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const ctSpec = ((mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) ? "CT " + (mon.ct || (mon.ct || pgMeterCt(mon.meter).ct)) : "");
+      const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const dw = Math.max(30, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
       const dx0 = X.iv1 + 8, dTop = Math.min(ib - 2, acBot - 17), dBot = dTop - dh;
       pen.rect(S, dx0, dBot, dw, dh);
@@ -3033,7 +3033,7 @@ function pgCuDraw(pen, M) {
   /* ป้าย CT บอกว่าเป็น CT ของมิเตอร์โซลาร์รุ่นไหน (ผู้ใช้ 2026-10-31) — รุ่นจาก BOQ ของงาน */
   const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
   const ctSpec = (pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : ""), mtrCls = pgMeterCt(mtr).cls;
-  const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
+  const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
   pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), { align: 2, valign: 1 });   // จำนวน CT ตามเฟส (ผู้ใช้ 2026-10-31: 1 เฟส CTx1 · 3 เฟส CTx3)
   pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
   /* ขนาด CT + Class จากข้อมูลมิเตอร์ (pgMeterCt) */
