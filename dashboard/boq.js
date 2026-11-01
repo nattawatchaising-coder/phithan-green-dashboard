@@ -84,6 +84,7 @@
     { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 63, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
+    { sec: "acBoard", g: "งานโครงการ", key: "proCuFarM", th: "SLD: ระยะตู้ AC โซลาร์ → ตู้ MDB ลูกค้า (สำรวจ) เกินนี้ = ตั้งตู้ MDB SOLAR สำหรับ MCCB SOLAR ข้างตู้ MDB", unit: "m", def: 10, min: 0 },
     { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "zctAt", th: "ZCT · ขนาดเมนแต่ละขั้น (ไม่เกิน)", unit: "AT", type: "nums", def: [125, 250, 630] },
     { sec: "acBoard", g: "งานโครงการ", key: "zctD", th: "ZCT · ขนาดรูของแต่ละขั้น (ตัวสุดท้าย = เมนใหญ่กว่าขั้นสุดท้าย)", unit: "มม.", type: "nums", def: [60, 80, 120, 200] },
@@ -1547,6 +1548,12 @@
   function homeCuOf(job) {
     const sv = (job && job.survey) || {}, far = RULES_T.home.homeCuFarM != null ? RULES_T.home.homeCuFarM : 10;
     return sv.mdbRccb === "yes" ? "rccb" : (sv.mdbSpace === "full" || +sv.cableAc > far) ? "far" : "slot";
+  }
+  /* งานโครงการ: วิธีต่อเข้าตู้ MDB ลูกค้า (ผู้ใช้ 2026-11-01) — slot = MCCB SOLAR ใส่ช่องว่างในตู้ MDB ต่อเข้าบัสบาร์
+     far = ตู้เต็ม หรือตู้ AC โซลาร์ห่างตู้ MDB เกิน proCuFarM → ตั้งตู้ MDB SOLAR (MCCB SOLAR) ข้างตู้ ต่อเข้าบัสบาร์ */
+  function proCuOf(job) {
+    const sv = (job && job.survey) || {}, far = RULES.proCuFarM != null ? RULES.proCuFarM : 10;
+    return sv.mdbSpace === "full" || +sv.cableAc > far ? "far" : "slot";
   }
   function gridAuthOf(job) {
     const pv = String((job && job.province) || "").trim().toLowerCase();
@@ -3123,7 +3130,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, INV_SLOTS, invExtras, invExtraCap, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, WWU_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    optimizerQty, optimizerFits, isRsdOpt, optPerPanel, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, homeCuOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
+    optimizerQty, optimizerFits, isRsdOpt, optPerPanel, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, homeCuOf, proCuOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0, acbName0,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,

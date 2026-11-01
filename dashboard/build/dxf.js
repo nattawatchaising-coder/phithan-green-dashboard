@@ -4415,11 +4415,18 @@ function pgMdbDraw(pen, M) {
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
   const ctx = 0,
     clW = Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2;
-  const sw = (x, yT, len) => {
+  const sw = (x, yT, len, L) => {
     const d = 0.6;
-    pen.line(S, x - d, yT - d, x + d, yT + d);
-    pen.line(S, x - d, yT + d, x + d, yT - d);
-    pen.line(S, x, yT - len, x - 1.9, yT - 0.5);
+    L = L || S;
+    pen.line(L, x - d, yT - d, x + d, yT + d);
+    pen.line(L, x - d, yT + d, x + d, yT - d);
+    pen.line(L, x, yT - len, x - 1.9, yT - 0.5);
+  };
+  const swH = (xR, y, len, L) => {
+    const d = 0.6;
+    pen.line(L, xR - d, y - d, xR + d, y + d);
+    pen.line(L, xR - d, y + d, xR + d, y - d);
+    pen.line(L, xR - len, y, xR - 0.5, y + 1.9);
   };
   const lab2 = (x, y, a, b) => {
     pen.text(T, x + 1.2, y + 0.3, TS.tag, a, {
@@ -4432,15 +4439,24 @@ function pgMdbDraw(pen, M) {
   const mA = +(String(P.exMain || "").match(/\d+/) || [0])[0];
   const ctR = window.BOQ && window.BOQ.RULES && window.BOQ.RULES.ctR || [];
   const exCt = mA ? ctR.find(x => x >= mA) || ctR[ctR.length - 1] || mA : 0;
+  const cu = P.cu === "far" ? "far" : "slot",
+    sBrk = String(P.mainTxt || "").split(" + ")[0].trim();
+  const tW = (t, h) => pgTextW(t, h) * 1.2;
+  const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("MCCB SOLAR (NEW)", TS.tag));
+  const msW = cu === "far" ? Math.max(solW, tW("MDB SOLAR (NEW)", TS.spec)) + 4 : 0;
+  const msX0 = ctx + 1 + clW + 3,
+    c0 = cu === "far" ? msX0 + msW + 8 : msX0;
+  const xT = c0 + 5,
+    slotW = cu === "slot" ? 1.2 + solW + 3 : 0;
   const yB = 30,
-    c0 = ctx + 1 + clW + 3,
-    xF = [0, 1, 2].map(k => c0 + 6 + k * 18),
+    xF = [0, 1, 2].map(k => xT + slotW + (cu === "slot" ? 0 : 1) + k * 18),
     xMn = xF[1] + 9;
   const yBr = yB - 2.2,
     cuB = yB - 14,
     cuT = yB + 26;
-  pen.line(W, xF[0], yB, xF[2], yB);
-  pen.text(T, xF[0] + 1, yB + 0.6, TS.tag, "CU. BUSBAR P=100%, N=100%, G=50%", {
+  const xB0 = cu === "slot" ? xT : xF[0];
+  pen.line(W, xB0, yB, xF[2], yB);
+  pen.text(T, xB0 + 1, yB + 0.6, TS.tag, "CU. BUSBAR P=100%, N=100%, G=50%", {
     valign: 1
   });
   xF.forEach((x, i) => {
@@ -4554,7 +4570,7 @@ function pgMdbDraw(pen, M) {
   pen.text(T, xG + 5, cuB - 6.3, TS.tag, "GROUND (EXISTING)", {
     valign: 2
   });
-  const yF = yB;
+  const yF = cu === "slot" ? yBr - 9 : yB;
   pen.text(T, ctx + 1, yF + 0.8, TS.spec, cl[0], {
     valign: 1
   });
@@ -4566,10 +4582,43 @@ function pgMdbDraw(pen, M) {
     valign: 2
   });
   pen.solid(R, [ctx - 1.2, yF + 1.1], [ctx + 1.4, yF], [ctx - 1.2, yF - 1.1]);
-  pen.line(R, ctx + 1.4, yF, xF[0], yF);
-  pen.text(LB, xF[0] + 1, yB + 2.4, TS.tag, "TIE IN POSITION (SOLAR CELL)", {
-    valign: 1
-  });
+  if (cu === "slot") {
+    pen.dot(S, xT, yB, 0.4);
+    pen.line(R, xT, yB, xT, yBr - 1.6);
+    sw(xT, yBr - 1.6, 3.4, R);
+    pen.line(R, xT, yBr - 5, xT, yF);
+    pen.text(LB, xT + 1.2, yBr - 1.4, TS.tag, "TIE IN POSITION", {
+      valign: 2
+    });
+    pen.text(T, xT + 1.2, yBr - 3.1, TS.tag, sBrk, {
+      valign: 2
+    });
+    pen.text(T, xT + 1.2, yBr - 4.8, TS.tag, "MCCB SOLAR (NEW)", {
+      valign: 2
+    });
+    pen.line(R, ctx + 1.4, yF, xT, yF);
+  } else {
+    const xm = msX0 + msW / 2 + 2.2,
+      len = 4.4;
+    pen.rect(PG_SLD.box, msX0, yF - 6, msW, 12);
+    pen.text(LB, msX0, yF + 6.8, TS.spec, "MDB SOLAR (NEW)", {
+      valign: 1
+    });
+    pen.line(R, ctx + 1.4, yF, xm - len, yF);
+    swH(xm, yF, len, R);
+    pen.line(R, xm, yF, xF[0], yF);
+    pen.text(T, xm - len / 2, yF + 2.6, TS.tag, sBrk, {
+      align: 1,
+      valign: 1
+    });
+    pen.text(T, xm - len / 2, yF - 1.2, TS.tag, "MCCB SOLAR", {
+      align: 1,
+      valign: 3
+    });
+    pen.text(LB, xF[0] + 1, yB + 2.4, TS.tag, "TIE IN POSITION", {
+      valign: 1
+    });
+  }
   const yC = cuT + 5.5,
     rK = 2.6,
     yK = yC + 5 + rK,

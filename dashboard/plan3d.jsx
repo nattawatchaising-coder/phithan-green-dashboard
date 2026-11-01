@@ -2694,7 +2694,7 @@ function p3SldModel(st, job, design, only) {
       earthCu, exMain, phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
       /* งานบ้าน: วิธีต่อเข้าตู้ไฟบ้านลูกค้า จากใบสำรวจ (ผู้ใช้ 2026-10-31 ส่งแบบ 3 แบบ)
          rccb = เมนตู้บ้านเป็น RCCB → ติดตู้ MDB BOX ใหม่เหนือ RCCB (โซลาร์ต้องเข้าก่อน RCCB) · far = ตู้ AC โซลาร์ห่างเกิน homeCuFarM หรือตู้เต็ม → ติดตู้ MDB SOLAR ข้างตู้บ้าน ต่อเข้าบัส · slot = ใส่ MCB โซลาร์ในช่องว่างของตู้บ้าน */
-      cu: !home ? "" : BQ.homeCuOf ? BQ.homeCuOf(job) : "slot",
+      cu: !home ? (BQ.proCuOf ? BQ.proCuOf(job) : "slot") : BQ.homeCuOf ? BQ.homeCuOf(job) : "slot",   // งานโครงการ: slot/far (ผู้ใช้ 2026-11-01)
     };
     const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
     const sp = (a, u) => a.every((v) => v !== "" && v != null && v !== 0) ? a.join(" / ") + (u || "") : "";
