@@ -2420,7 +2420,10 @@ function pgSldPro(doc, sheet, M) {
       taps[0].dgBot = Math.max(taps[0].txtTop + 1.4, taps[0].lblTop + 0.2);   // กล่องดองเกิล: ป้าย PLUG-IN COM PORT สูงพ้นป้าย INV1
       acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 4, busHi + 6.5, taps[0].dgBot + 6.7) + 2.2;
     }
-    const acTop = dongleTop ? Math.max(acTop1, acMtrY + 3.8) : acTop1;   // มีมิเตอร์ในตู้: ขอบบนสูงขึ้นวางมิเตอร์เหนือป้ายเบรกเกอร์ (ผู้ใช้ 2026-10-31)
+    /* เครื่องเดียวบล็อกสูง (monSide) + มิเตอร์: มิเตอร์อยู่ในตู้ AC ขวาบนเหมือนแบบหลายเครื่อง (ผู้ใช้วาดชี้ 2026-11-01 "เคยบอกแล้ว") */
+    const sideMtr = monSide && !!M.mon.meter;
+    if (sideMtr) acMtrY = Math.max(P.pm ? yMain + 21 : yMain + 9, busHi + 6.5) + 2.2;
+    const acTop = dongleTop || sideMtr ? Math.max(acTop1, acMtrY + 3.8) : acTop1;   // มีมิเตอร์ในตู้: ขอบบนสูงขึ้นวางมิเตอร์เหนือป้ายเบรกเกอร์ (ผู้ใช้ 2026-10-31)
     /* เมนของตู้ */
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
@@ -2693,19 +2696,26 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, x, yFrom - 0.8 - TS.tag * 1.5, TS.tag, ctTxt[1], { align: 1, valign: 3 });
       };
       if (meterNm) {
-        /* มิเตอร์ใต้กล่อง: Logger = RS485 ขึ้นเข้า Logger · Dongle = RS485 เข้าข้างขวาอินเวอร์เตอร์ */
-        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = dx0, mTop = dBot - 6, mBot = mTop - mh, myc = mBot + mh / 2;
-        pen.rect(S, mx0, mBot, mw, mh);
-        pen.text(T, mx0 + mw / 2, myc, TS.spec, meterNm, { align: 1, valign: 2 });
+        /* มิเตอร์ในตู้ AC COMBINER BOX ขวาบน (ผู้ใช้วาดชี้ 2026-11-01 ชุดเดียวกับแบบหลายเครื่อง): ไฟเลี้ยงขึ้นจากจุดแยก SPD บนสายเมน
+           CT เข้าข้างขวามิเตอร์ ข้อความนอกตู้ · RS485 ออกซ้าย → Dongle: เข้าข้างขวาอินเวอร์เตอร์ · Logger: ขึ้นเข้าก้น Logger */
+        const mTx = meterNm.replace(/^smart *meter */i, "").replace(/^power *meter *(janitza *)?/i, ""), mh = 4.4, myc = acMtrY, mw = pgTextW(mTx, TS.spec) + 4;
+        const fx = acSpdX != null ? acSpdX : X.ac1 - 6, mx0 = fx + 3 - mw, mx1 = mx0 + mw, mB = myc - mh / 2;
+        pen.rect(S, mx0, mB, mw, mh);
+        pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, { align: 1, valign: 2 });
+        pen.line(W, fx, yMain, fx, mB);
+        pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", { valign: 3 });
         if (mon.logger) {
-          const ax = mx0 + mw / 2;
-          pen.line(COM, ax, mTop, ax, dBot - 1.6); arrow(ax, dBot - 1.6, 0, 1);
-          pen.text(T, ax + 0.8, (mTop + dBot) / 2, TS.tag, "RS485", { valign: 2 });
+          const ax = dx0 + dw / 2;
+          pen.line(COM, mx0, myc, ax, myc); pen.line(COM, ax, myc, ax, dBot - 1.6); arrow(ax, dBot - 1.6, 0, 1);
         } else {
           pen.line(COM, mx0, myc, X.iv1 + 1.6, myc); arrow(X.iv1 + 1.6, myc, -1, 0);
-          pen.text(T, (X.iv1 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
         }
-        sig(mx0 + mw / 2, mBot, mBot - 8);
+        pen.text(T, (X.ac0 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+        const xe = Math.max(mx1 + 10, X.ac1 + 6);
+        pen.line(PG_SLD.ctsig, xe, myc, mx1 + 1.6, myc);
+        arrow(mx1 + 1.6, myc, -1, 0);
+        pen.text(T, xe + 0.8, myc + 0.3, TS.tag, ctTxt[0], { valign: 1 });
+        pen.text(T, xe + 0.8, myc - 0.3, TS.tag, ctTxt[1], { valign: 3 });
       } else sig(dx0 + dw / 2, dBot, dBot - 8);    } else if (M.mon && !M.mon.logger && M.mon.meter && taps.length > 1 && taps[0].sh && taps[0].txtTop != null) {
       /* หลายเครื่อง + Smart Dongle (ผู้ใช้ 2026-11-01): ดองเกิลเสียบ INV1 (กล่องขวาบน INV1 เหนือป้ายสาย) · INV1 → INV2 → … ต่อกันด้วย RS485
          มิเตอร์อยู่ในตู้ AC ระหว่างแถว INV1–INV2 ไฟเลี้ยงจากบัส · ส่ง RS485 เข้าก้น INV1 ตรง ไม่ผ่านดองเกิล · ไม่มีเส้นตัดกัน */
