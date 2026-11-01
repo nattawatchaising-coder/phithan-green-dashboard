@@ -1361,6 +1361,7 @@ function pgDcString(pen, x, y, w, o) {
 const PG_SLD = {
   wire: "SLD-WIRE", sol: "SLD-SOLAR", sym: "SLD-SYMBOL", box: "SLD-ENCLOSURE",
   txt: "SLD-TEXT", lbl: "SLD-LABEL", comm: "SLD-COMM", tab: "SLD-TABLE", pe: "SLD-EARTH", ctsig: "SLD-CT-SIGNAL",
+  ex: "SLD-EXISTING",   // ของเดิมลูกค้า (ตู้ MDB) เส้นสีเทา (ผู้ใช้ 2026-11-01)
   swlink: "SLD-DCSW-LINK",   // เส้นประเชื่อมใบมีด DC SWITCH สีเทา ประถี่ (ผู้ใช้ 2026-10-30)
 };
 function pgSldLayers(doc) {
@@ -1377,6 +1378,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASHF", 15);   // สายสื่อสารประถี่แบบสาย CT (ผู้ใช้ 2026-10-31: เส้นปะ) — เดิมประยาว 6/3 เส้นสั้นดูเหมือนสายขาด
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
+  doc.layer(PG_SLD.ex, PG_ACI.grey, "CONTINUOUS", 25);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
@@ -3057,7 +3059,8 @@ function pgCuDraw(pen, M) {
    → CU. BUSBAR → F1 F2 F3 MCCB 3P xxxAT/xxxAF ลง LOAD นอกตู้ · บาร์ N G + ดิน · สายโซลาร์จากซ้ายเข้าปลายบัสที่ F1
    เหนือตู้: CT MAIN GRID ของมิเตอร์โซลาร์ → kWh METER → TO การไฟฟ้า (เหมือนแผ่นตู้บ้าน) */
 function pgMdbDraw(pen, M) {
-  const P = M.pro, W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl, PE = PG_SLD.pe;
+  /* ของเดิมลูกค้า (ตู้ · สาย · มิเตอร์การไฟฟ้า) เส้นสีเทา (ผู้ใช้ 2026-11-01 "ส่วนตู้ลูกค้าใช้สีเส้นเทา") · ของใหม่ CT MAIN GRID คงสีเดิม · สายโซลาร์แดง */
+  const P = M.pro, W = PG_SLD.ex, R = PG_SLD.sol, S = PG_SLD.ex, NS = PG_SLD.sym, T = PG_SLD.txt, LB = PG_SLD.lbl, PE = PG_SLD.ex;
   const TS = { head: 1.8, spec: 1.4, tag: 1.2 }, CT_R = 1.4, ph3 = M.phase === 3, np = ph3 ? 3 : 1;
   const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
@@ -3127,6 +3130,9 @@ function pgMdbDraw(pen, M) {
     pen.text(T, cx, barY + barH / 2 + 0.6, TS.spec, lab, { align: 1, valign: 1 });
   };
   bar(S, xN, "N"); bar(PE, xG, "G");
+  /* บอนด์ N-G: รูท้ายบาร์ N → รูแรกบาร์ G (ผู้ใช้วาดชี้ 2026-11-01 "บาร์กราวด์กับนิวตรอนต้องเชื่อมกัน") */
+  const yNG = barY - barH / 2 - 1.2;
+  pen.line(S, xN + 1.8, barY - 0.4, xN + 1.8, yNG); pen.line(S, xN + 1.8, yNG, xG - 1.8, yNG); pen.line(S, xG - 1.8, yNG, xG - 1.8, barY - 0.4);
   pen.line(PE, xG + 1.8, barY - 0.4, xG + 1.8, cuB - 5); pgSym.ground(pen, xG + 1.8, cuB - 5);
   pen.text(T, xG + 5, cuB - 6.3, TS.tag, "GROUND (EXISTING)", { valign: 2 });
   /* สายโซลาร์จากตู้ AC เข้าปลายบัสซ้าย (F1) */
@@ -3140,8 +3146,8 @@ function pgMdbDraw(pen, M) {
   /* เหนือตู้: CT MAIN GRID ของมิเตอร์โซลาร์ → kWh METER → TO การไฟฟ้า */
   const yC = cuT + 5.5, rK = 2.6, yK = yC + 5 + rK, yA = yK + rK + 3;
   pen.line(W, xMn, cuT, xMn, yK - rK); pen.line(W, xMn, yK + rK, xMn, yA);
-  [CT_R, -CT_R].forEach((dy) => pen.arc(S, xMn, yC + dy, CT_R, -90, 90));
-  [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(S, xMn - 1.6, yC + dy, xMn, yC + dy));
+  [CT_R, -CT_R].forEach((dy) => pen.arc(NS, xMn, yC + dy, CT_R, -90, 90));
+  [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(NS, xMn - 1.6, yC + dy, xMn, yC + dy));
   pen.circle(S, xMn, yK, rK);
   pen.text(T, xMn, yK, rK * 0.5, "kWh", { align: 1, valign: 2 });
   pen.text(LB, xMn + rK + 1.2, yK + 0.6, TS.tag, "kWh METER", { valign: 1 });
@@ -3156,7 +3162,7 @@ function pgMdbDraw(pen, M) {
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
   const CS = PG_SLD.ctsig, xE = ctx + 1 + clW + 3 - 6;
   pen.line(CS, xMn, yC, xE + 1.6, yC);
-  pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
+  pen.solid(NS, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
   pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
   pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });
 }
