@@ -2564,7 +2564,8 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
     /* แผ่นเครื่องเดียว: หัว AC COMBINER BOX ลงมาเหนือขอบบนตู้ (ผู้ใช้วาดชี้ 2026-11-01) · แบบมิเตอร์ในตู้ (monUp) มีข้อความสัญญาณ CT เหนือตู้ = คงที่เดิม */
-    else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
+    /* มีกล่องดองเกิล/Logger ข้างขวาบนอินเวอร์เตอร์ (monSide) → หัวอยู่เหนือแถวกล่อง ไม่ทับกล่อง/ป้าย INTERNET (ผู้ใช้ชี้ 2026-11-01 "ทำไมโดนทับ") */
+    else zoneHdr(null, acR, monUp ? hy : Math.min(hy, Math.max(acTop + 2.5, monSide && taps[0] ? taps[0].top - 4 + 2.2 : -1e9)));
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */

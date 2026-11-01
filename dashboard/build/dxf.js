@@ -3642,7 +3642,7 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, xN - 1, "G", true);
     const acR = xN + 9;
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
-    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);else zoneHdr(null, acR, monUp ? hy : Math.min(hy, Math.max(acTop + 2.5, monSide && taps[0] ? taps[0].top - 4 + 2.2 : -1e9)));
     const mdBot = yMain - 24;
     const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
