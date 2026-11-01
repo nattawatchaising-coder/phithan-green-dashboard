@@ -4293,6 +4293,7 @@ function p3SldModel(st, job, design, only) {
       ivKw: units.map(u => Math.round((+u.w || unitW) / 100) / 10),
       earthCu,
       exMain,
+      lvTrKva: +String(sv.lvTrKva || "").replace(/[^\d.]/g, "") || 0,
       phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
       cu: !home ? BQ.proCuOf ? BQ.proCuOf(job) : "slot" : BQ.homeCuOf ? BQ.homeCuOf(job) : "slot"
     };
@@ -4698,7 +4699,24 @@ function p3DwgRef(ix, k) {
 }
 function p3CuSheet(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job, media.design);
+  const tr = media.mvT;
+  const M = p3SldModel(st, job, media.design, tr ? [].concat(...tr.cabs.map(c => c.invs)) : null);
+  if (tr) {
+    M.mvUp = {
+      kv: media.mv.kv,
+      auth: media.mv.auth,
+      no: tr.no,
+      kva: tr.kva,
+      mdb: tr.mdb,
+      ties: tr.cabs.map(c => ({
+        name: c.name,
+        M: p3SldModel(st, job, media.design, c.invs)
+      }))
+    };
+    if (tr.mainAT) M.pro = Object.assign({}, M.pro, {
+      exMain: tr.mainAT + "AT"
+    });
+  }
   const doc = pgDoc({
     units: "mm",
     ltscale: 1
@@ -5366,6 +5384,17 @@ async function p3PrepSet(st, job, photos, design) {
       }));
     }
     const MS = p3SldModel(st, job, design);
+    const mvT = MV ? MV.tr.filter(t => t.cabs.length) : [];
+    if (MS.pro && !MS.pro.home && mvT.length && MS.mppt && MS.mode === "string" && typeof pgCuSheet === "function") mvT.forEach(t => list.push({
+      key: mvT.length > 1 ? "CU" + t.no : "CU",
+      gk: "SLD",
+      label: "ต่อเข้าตู้ " + t.mdb,
+      en: t.mdb + " CONNECTION",
+      fn: o => p3CuSheet(st, job, Object.assign({
+        mv: MV,
+        mvT: t
+      }, o))
+    }));
     if (MS.pro && (MS.pro.home || !MV) && MS.mppt && MS.mode === "string" && MS.mppt.rows.some(r => r.ins.length) && typeof pgCuSheet === "function") list.push({
       key: "CU",
       gk: "SLD",

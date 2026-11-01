@@ -179,6 +179,7 @@ function blankSurvey(job) {
     supply: "",
     mvKv: "",
     trafos: [],
+    lvTrKva: "",
     buildingType: "",
     roofType: job && job.roof || "",
     roofCondition: "",
@@ -2762,12 +2763,25 @@ function SurveyWizard({
     name: "plus",
     size: 14,
     color: "var(--text-2)"
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07")) : (fld("ขนาดเมนเบรกเกอร์", React.createElement("input", {
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07")) : React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      alignItems: "end"
+    }
+  }, fld("ขนาดเมนเบรกเกอร์", React.createElement("input", {
     value: f.mainBreaker,
     onChange: e => set("mainBreaker", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 100A, 3P",
     style: inputStyle
-  }), true)), React.createElement("div", {
+  }), true), fld("หม้อแปลงการไฟฟ้า (kVA)", React.createElement("input", {
+    inputMode: "numeric",
+    value: f.lvTrKva || "",
+    onChange: e => set("lvTrKva", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 250",
+    style: inputStyle
+  }))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

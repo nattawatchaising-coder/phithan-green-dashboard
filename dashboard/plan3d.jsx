@@ -2691,7 +2691,7 @@ function p3SldModel(st, job, design, only) {
       acSpd,
       spdBk, ivBrk, mainA, mainTxt, gf, lsig, pm, pmCt: p3Ct(mainA) + "/5A",
       ivKw: units.map((u) => Math.round((+u.w || unitW) / 100) / 10),
-      earthCu, exMain, phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
+      earthCu, exMain, lvTrKva: +String(sv.lvTrKva || "").replace(/[^\d.]/g, "") || 0, phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
       /* งานบ้าน: วิธีต่อเข้าตู้ไฟบ้านลูกค้า จากใบสำรวจ (ผู้ใช้ 2026-10-31 ส่งแบบ 3 แบบ)
          rccb = เมนตู้บ้านเป็น RCCB → ติดตู้ MDB BOX ใหม่เหนือ RCCB (โซลาร์ต้องเข้าก่อน RCCB) · far = ตู้ AC โซลาร์ห่างเกิน homeCuFarM หรือตู้เต็ม → ติดตู้ MDB SOLAR ข้างตู้บ้าน ต่อเข้าบัส · slot = ใส่ MCB โซลาร์ในช่องว่างของตู้บ้าน */
       cu: !home ? (BQ.proCuOf ? BQ.proCuOf(job) : "slot") : BQ.homeCuOf ? BQ.homeCuOf(job) : "slot",   // งานโครงการ: slot/far (ผู้ใช้ 2026-11-01)
@@ -3000,7 +3000,14 @@ function p3DwgRef(ix, k) {
 /* ── แผ่นต่อเข้าตู้ไฟบ้านลูกค้า (งานบ้าน · ผู้ใช้ 2026-10-31 แยกจาก SLD) — วาดใน dxf.jsx pgCuSheet ── */
 function p3CuSheet(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job, media.design);
+  /* เชื่อมแรงกลาง: แผ่นละหม้อแปลง (media.mvT) — ตู้ SMDB ที่ต่อเข้า MDB ของหม้อแปลงนี้ ตู้ละสาย/MCCB SOLAR (ผู้ใช้ 2026-11-01) */
+  const tr = media.mvT;
+  const M = p3SldModel(st, job, media.design, tr ? [].concat(...tr.cabs.map((c) => c.invs)) : null);
+  if (tr) {
+    M.mvUp = { kv: media.mv.kv, auth: media.mv.auth, no: tr.no, kva: tr.kva, mdb: tr.mdb,
+      ties: tr.cabs.map((c) => ({ name: c.name, M: p3SldModel(st, job, media.design, c.invs) })) };
+    if (tr.mainAT) M.pro = Object.assign({}, M.pro, { exMain: tr.mainAT + "AT" });
+  }
   const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "CU", scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
   pgCuSheet(doc, sheet, M);
@@ -3443,6 +3450,11 @@ async function p3PrepSet(st, job, photos, design) {
     /* งานบ้านที่ SLD แบบมาตรฐาน: ตู้ไฟบ้านลูกค้าแผ่นแยกต่อจาก SLD (ผู้ใช้ 2026-10-31) */
     const MS = p3SldModel(st, job, design);
     /* งานโครงการแรงต่ำ: แผ่นตู้ MDB ลูกค้าแบบเดียวกัน (ผู้ใช้ 2026-11-01 "ทำไมไม่มี MDB ของลูกค้า" → วาดกลับมา) · แรงกลางมีภาพรวม MDB ในแผ่น MV แล้ว */
+    /* เชื่อมแรงกลาง: แผ่นตู้ MDB ละหม้อแปลงที่มีโซลาร์ต่อเข้า วาดหม้อแปลง/ดรอปฟิวส์/มิเตอร์การไฟฟ้าเหนือตู้ (ผู้ใช้ 2026-11-01) */
+    const mvT = MV ? MV.tr.filter((t) => t.cabs.length) : [];
+    if (MS.pro && !MS.pro.home && mvT.length && MS.mppt && MS.mode === "string" && typeof pgCuSheet === "function")
+      mvT.forEach((t) => list.push({ key: mvT.length > 1 ? "CU" + t.no : "CU", gk: "SLD", label: "ต่อเข้าตู้ " + t.mdb, en: t.mdb + " CONNECTION",
+        fn: (o) => p3CuSheet(st, job, Object.assign({ mv: MV, mvT: t }, o)) }));
     if (MS.pro && (MS.pro.home || !MV) && MS.mppt && MS.mode === "string" && MS.mppt.rows.some((r) => r.ins.length) && typeof pgCuSheet === "function")
       list.push({ key: "CU", gk: "SLD", label: MS.pro.home ? "ต่อเข้าตู้ไฟบ้าน" : "ต่อเข้าตู้ MDB ลูกค้า", en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION", fn: (o) => p3CuSheet(st, job, o) });
     list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
