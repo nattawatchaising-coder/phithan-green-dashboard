@@ -3010,17 +3010,17 @@ function pgSldPro(doc, sheet, M) {
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     if (M.opt && M.opt.rsd && strY.length) {
-      const xC = (X.dc1 + X.iv0) / 2,
-        eRx = 0.6,
-        eRy = 1.5;
-      const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
-      strY.forEach(yy => {
-        for (let k = 0; k < 24; k++) {
-          const p = eP(yy, k),
-            q = eP(yy, k + 1);
-          pen.line(S, p[0], p[1], q[0], q[1]);
-        }
-      });
+      const xC = X.dc0 - 1.3,
+        eRx = 1.0,
+        yLt = strY[0] + 2.2,
+        yLb = strY[strY.length - 1] - 2.2;
+      const eCy = (yLt + yLb) / 2,
+        eRy = (yLt - yLb) / 2;
+      for (let k = 0; k < 48; k++) {
+        const t0 = Math.PI * k / 24,
+          t1 = Math.PI * (k + 1) / 24;
+        pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1));
+      }
       const sg = /\bSR\d+D\b/i.test(M.opt.model),
         txN = n => (sg ? "SUNGO SD-" : "SD-") + n;
       const nxt = invNos[invNos.indexOf(b.no) + 1];
@@ -3056,7 +3056,7 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);
+      pen.line(CS, xC, yLb, xC, tB - 2.4);
       pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
       pen.line(CS, c1, tB - 2.4, c1, tB);
       const txH = fitH("TO " + txN(88), TS.tag, W * 0.75);
@@ -3069,11 +3069,15 @@ function pgSldPro(doc, sheet, M) {
           valign: 2
         });
       }
-      const ex = bx0 + W * 0.1,
+      const ex = bx1 + 1.5,
         yBt = base + 3.6,
         bw = Math.min(8, W * 0.5),
         bh = 4,
-        bL = ex + 2;
+        bL = ex - 2 - bw,
+        yEo = (tB + tD) / 2;
+      pen.line(S, bx1, yEo, ex, yEo);
+      pen.line(S, ex, yEo, ex, yBt);
+      pen.line(S, ex, yBt, bL + bw, yBt);
       const oth = invNos.filter(k => k !== b.no);
       if (oth.length) {
         const runs = [];

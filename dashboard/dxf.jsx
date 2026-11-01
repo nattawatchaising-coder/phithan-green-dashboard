@@ -2125,9 +2125,10 @@ function pgSldPro(doc, sheet, M) {
        แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
     /* ทุกรุ่น RSD มีตัวส่ง — Sungrow SR20D-M ใช้ TRANSMITTER SUNGO SD-2 (ผู้ใช้ส่งแบบงานจริง 2026-11-01) · ชื่อจากคลัง (optRss) ก่อน */
     if (M.opt && M.opt.rsd && strY.length) {
-      const xC = (X.dc1 + X.iv0) / 2, eRx = 0.6, eRy = 1.5;
-      const eP = (yy, k) => [xC + eRx * Math.cos(Math.PI * k / 12), yy + eRy * Math.sin(Math.PI * k / 12)];
-      strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
+      /* แกนคล้องสายวงเดียวรอบสายสตริงทุกเส้น ก่อนเข้าตู้ DC (ระหว่างขีดคู่กับขอบตู้ · ผู้ใช้วาดชี้ 2026-11-01 "ปกติจะคล้องก่อนเข้าตู้ DC") */
+      const xC = X.dc0 - 1.3, eRx = 1.0, yLt = strY[0] + 2.2, yLb = strY[strY.length - 1] - 2.2;
+      const eCy = (yLt + yLb) / 2, eRy = (yLt - yLb) / 2;
+      for (let k = 0; k < 48; k++) { const t0 = Math.PI * k / 24, t1 = Math.PI * (k + 1) / 24; pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1)); }
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
          C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
       /* ตัวส่งมีเลขตามเครื่องเสมอ SD-1 SD-2 … ป้าย TO บอกชัดว่าไปตัวไหน (ผู้ใช้สั่ง 2026-11-01) — Sungrow ใช้ SUNGO SD-n ตามแบบงานจริง */
@@ -2144,7 +2145,7 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, c1, tB + 1.3, ch, "C1", { align: 1, valign: 2 });
       pen.text(T, c2, tB + 1.3, ch, "C2", { align: 1, valign: 2 });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);   // แกน → C1 · ห่างขอบกล่องพอ ไม่ชิด (ผู้ใช้ 2026-11-01)
+      pen.line(CS, xC, yLb, xC, tB - 2.4);   // แกน → C1 · ห่างขอบกล่องพอ ไม่ชิด (ผู้ใช้ 2026-11-01)
       pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
       pen.line(CS, c1, tB - 2.4, c1, tB);
       const txH = fitH("TO " + txN(88), TS.tag, W * 0.75);   // ป้าย TO ทุกจุดขนาดเดียวกัน
@@ -2156,7 +2157,11 @@ function pgSldPro(doc, sheet, M) {
       }
       /* ปุ่มฉุกเฉินตามแบบงานจริง (ผู้ใช้ส่งรูป 2026-11-01): สายจากตัวส่งลงแล้วเลี้ยวเข้าข้างซ้ายกล่องปุ่ม
          ในกล่อง = สัญลักษณ์ปุ่มกด (ขาซ้าย · หน้าสัมผัสเอียง · ขาขวา · ก้านขึ้นหัวเห็ด) · สายเดียวกันแตกกิ่งลูกศร TO ตัวส่งเครื่องอื่น */
-      const ex = bx0 + W * 0.1, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex + 2;
+      /* สายปุ่มฉุกเฉินออกข้างขวาตัวส่ง (ซ้ายมีสาย C1 จากแกนผ่าน ไม่ให้ตัดกัน) ลงแล้วเลี้ยวเข้าข้างขวากล่องปุ่ม */
+      const ex = bx1 + 1.5, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex - 2 - bw, yEo = (tB + tD) / 2;
+      pen.line(S, bx1, yEo, ex, yEo);
+      pen.line(S, ex, yEo, ex, yBt);
+      pen.line(S, ex, yBt, bL + bw, yBt);
       /* ตัวส่งเครื่องอื่นทั้งหมดรวมเป็นกิ่งเดียวบรรทัดเดียว (หลายเครื่องไม่ซ้อนขึ้นไปทับป้าย C2 · ผู้ใช้ถาม 2026-11-01)
          เลขเรียงติดกันเกิน 2 ตัวเขียนเป็นช่วง SD-2 ~ SD-5 · ไม่ติดกันคั่นด้วย , */
       const oth = invNos.filter((k) => k !== b.no);
