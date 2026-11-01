@@ -1891,7 +1891,7 @@ function pgSldPro(doc, sheet, M) {
   /* แผ่นภาพรวม: หัว INVERTER / AC COMBINER BOX ลงมาชิดขอบบนตู้ AC (ผู้ใช้ชี้ 2026-10-29) — วาดหลังรู้ acTop */
   const zoneHdr = (y, acR = X.ac1, yAc = y) => {   // acR = ขอบขวาตู้ AC จริง (ตู้หดได้ ป้ายอยู่กลางตู้)
     if (y != null) pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", { align: 1, valign: 1 });
-    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
+    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, M.smdb ? M.smdb.name : "AC COMBINER BOX", { align: 1, valign: 1 });   // แรงกลาง: ตู้ AC = SMDB-0n
   };
   if (!isMain) zoneHdr(hy, X.ac1, null);   // หัว AC COMBINER BOX วาดทีหลังเมื่อรู้ขอบบนตู้
 
@@ -2563,7 +2563,7 @@ function pgSldPro(doc, sheet, M) {
     const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
-    pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO MDB", { valign: 1 });
+    pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO " + ((M.smdb && M.smdb.mdb) || "MDB"), { valign: 1 });
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", { valign: 3 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
@@ -2819,7 +2819,7 @@ function pgSldPro(doc, sheet, M) {
   /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น · มุมซ้ายล่าง บรรทัดเดียวยาว (ผู้ใช้ย้าย) */
   /* ชื่อแผ่นย่อยเขียนเต็ม (INVERTER 01) ไม่ย่อ INV1 (ผู้ใช้ 2026-11-01) */
   const tInv = isDet ? pgInvNames(PT.nos).replace(/INV(\d+)/g, (m, d) => "INVERTER " + d.padStart(2, "0")) : "";
-  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
+  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, M.smdb ? "SINGLE LINE DIAGRAM FOR " + M.smdb.name : "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 /* ชื่อเครื่องแบบย่อช่วง: [1,2,3,5] → "INV1-INV3, INV5" */
 function pgInvNames(nos) {

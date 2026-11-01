@@ -2428,10 +2428,13 @@ const p3Brand = (model, fb) => {
 
 /* design = { strings: [{ id, n, inv (เริ่ม 0), addr }] } จากหน้าออกแบบระบบ — มีแล้วแบ่งแผงต่ออินเวอร์เตอร์ตามสตริงจริง
    ไม่มี = เฉลี่ยตามกำลังของแต่ละตัวแบบเดิม */
-function p3SldModel(st, job, design) {
+/* only = [เลขเครื่อง] วาดเฉพาะเครื่องในตู้ SMDB นั้น (งานแรงกลาง · ผู้ใช้ 2026-11-01) — ตัดสตริงเครื่องอื่นทิ้ง
+   กระแส/เบรกเกอร์เมน/จำนวนแผงคิดจากเครื่องในตู้ · เลขเครื่อง (INV3..) ยังเป็นเลขเดิมของทั้งงาน */
+function p3SldModel(st, job, design, only) {
   const sys = st.sys || {};
   const B = window.BOQ || {};
-  const nPanel = Math.max(1, p3CountAll(st));
+  if (only && design && design.strings) design = Object.assign({}, design, { strings: design.strings.filter((x) => only.indexOf((+x.inv || 0) + 1) >= 0) });
+  const nPanel = only && design && design.strings ? Math.max(1, design.strings.reduce((t, x) => t + (+x.n || 0), 0)) : Math.max(1, p3CountAll(st));
   const wp = +st.wp || 650;
   /* ตรงกับหน้าออกแบบระบบ (solarui): ไม่ได้ตั้ง = สตริงอินเวอร์เตอร์ */
   const micro = sys.mode === "micro";
@@ -2521,8 +2524,9 @@ function p3SldModel(st, job, design) {
   if (battOn) branches.push({ name: "BAT.", mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(unitA * 2.5) + "AT", solar: false });
 
   /* หลายรุ่น: กระแส/กำลังรวมทีละตัว (เดิมคูณรุ่นแรกทั้งระบบ ตัวเล็กตัวใหญ่ปนกันได้ค่าผิด) */
-  const totA = micro ? units.length * unitA : units.reduce((a, u) => a + aOfUnit(u), 0);
-  const acKw = Math.round((micro ? units.length * unitW : units.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
+  const uOn = only && !micro ? units.filter((u, i) => only.indexOf(i + 1) >= 0) : units;   // เครื่องที่อยู่ในแผ่นนี้
+  const totA = micro ? units.length * unitA : uOn.reduce((a, u) => a + aOfUnit(u), 0);
+  const acKw = Math.round((micro ? units.length * unitW : uOn.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
   const dcKw = Math.round(nPanel * wp / 10) / 100;
 
   /* ── สายและเครื่องป้องกัน ── */
@@ -2568,7 +2572,7 @@ function p3SldModel(st, job, design) {
     ctMain: "CTx2 " + p3Ct(Math.max(250, totA * 3)) + "A/40mA",
     batt: battOn && battKwh ? { brand: p3Brand((sys.batt && sys.batt.model) || (job && job.brand), "ATMOCE"), model: (sys.batt && sys.batt.model) || (battKwh ? battKwh + " kWh" : "-"), kwh: battKwh } : null,
     summary: [
-      (micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? units.length + " EA. x " + Math.round(unitW) + " W."
+      (micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? uOn.length + " EA. x " + Math.round(unitW) + " W."
         : inv.models.map((md) => md.count + " EA. x " + Math.round(md.w) + " W.").join(" + ")) + " = " + acKw.toFixed(2) + " kWp.",
       "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp.",
     ],
@@ -2592,7 +2596,7 @@ function p3SldModel(st, job, design) {
     ["NOMINAL OUTPUT POWER", Math.round(unitW), "W"],
     ["NOMINAL OUTPUT CURRENT", unitA.toFixed(2), "A"],
     row("MAX. OUTPUT CURRENT", sp.outA, "A"),
-    ["NUMBER OF UNIT", units.length, "EA"],
+    ["NUMBER OF UNIT", uOn.length, "EA"],
     row("MAX EFFICIENCY", sp.eff, "%"),
   ].filter(Boolean);
 
@@ -2768,11 +2772,11 @@ function p3SldModel(st, job, design) {
     if (M.batt) M.dataSheet.push([[["BRAND", "", String(M.batt.brand || "-").toUpperCase(), ""], ["MODEL", "", M.batt.model, ""], ["USABLE ENERGY", "", dv(+M.batt.kwh), "[kWh]"]], "BATTERY DATA"]);
 
     /* ตารางอุปกรณ์ — ทุกชิ้นที่วาดบนแบบต้องอยู่ที่นี่พร้อมสเปค */
-    const nInv = units.length;
+    const nInv = uOn.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
     (inv.models || [{ model: inv.model, w: unitKw * 1000, count: nInv }]).forEach((md) =>
-      S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
+      S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), only ? uOn.filter((u) => (u.model || inv.model) === md.model).length : md.count]));
     if (M.batt) S.push(["BATTERY", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model + " " + M.batt.kwh + " kWh", 1]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2]
@@ -2781,7 +2785,7 @@ function p3SldModel(st, job, design) {
     if (dcDev.k !== "fuse") S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
     /* เบรกเกอร์ต่อเครื่อง แยกแถวตามขนาด (หลายรุ่นได้คนละขนาด) */
-    if (nInv > 1) { const bc = {}; ivBrk.forEach((b) => { bc[b] = (bc[b] || 0) + 1; }); Object.keys(bc).forEach((b) => S.push(["AC BREAKER (INV.)", b, bc[b]])); }
+    if (nInv > 1) { const bc = {}; ivBrk.forEach((b, i) => { if (!only || only.indexOf(i + 1) >= 0) bc[b] = (bc[b] || 0) + 1; }); Object.keys(bc).forEach((b) => S.push(["AC BREAKER (INV.)", b, bc[b]])); }
     S.push(["AC SPD", M.pro.acSpd.join(" ").replace(/^AC SPD /, ""), 1]);
     if (spdBk) S.push(["SPD BACK-UP", spdBk + (/FUSE/.test(spdBk) ? " + FUSE BASE" : ""), 1]);
     S.push(["MAIN BREAKER", mainTxt + (lsig ? " LSIG" : gf ? " c/w SHUNT TRIP" : ""), 1]);
@@ -2805,10 +2809,11 @@ function p3SldModel(st, job, design) {
   ] : [];
 
   M.equip = [
-    { brand: inv.brand, model: inv.model, desc: (micro ? "MICRO INVERTER " : "INVERTER ") + Math.round(unitW) + " W. " + nPh + " PHASE.", no: units.length },
+    { brand: inv.brand, model: inv.model, desc: (micro ? "MICRO INVERTER " : "INVERTER ") + Math.round(unitW) + " W. " + nPh + " PHASE.", no: uOn.length },
     { brand: panel.brand, model: panel.model, desc: "PV MODULE " + wp + " Wp.", no: nPanel },
   ];
   if (M.batt) M.equip.push({ brand: M.batt.brand, model: M.batt.model, desc: "BATTERY " + M.batt.kwh + " kWh.", no: 1 });
+  M.only = only || null;   // แผ่น SMDB: สายเมนใช้แถวของตู้นั้น (p3SldFromBoq)
   p3SldFromBoq(M, (job && job.boq) || null, nPh);
   p3SldMon(M, job, inv.model);
   return p3SldApply(M, st.sldEdit);
@@ -2887,7 +2892,8 @@ function p3SldFromBoq(M, b, nPh) {
   };
   const route = (c) => raceOf(c) || P3_ROUTE_EN[(c && c.method) || def] || "";
   const invRows = b.cables.filter((c) => c && /INVERTER-MCB_SOLAR/i.test(c.name || ""));
-  const mainRow = b.cables.find((c) => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type);
+  const isMain = (c) => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type;
+  const mainRow = (M.only && b.cables.find((c) => isMain(c) && Array.isArray(c.invs) && c.invs.some((n) => M.only.indexOf(n) >= 0))) || b.cables.find(isMain);
   M.acRoute = route(invRows[0]);
   M.mainRoute = route(mainRow || invRows[0]);
   M.acCableOf = {}; M.acGndOf = {};
@@ -2959,9 +2965,12 @@ function p3SldFields(M) {
 /* media.part = { kind: "main" } แผ่นภาพรวม · { kind: "detail", gi } แผ่นย่อยของกลุ่มที่ gi (ดู p3SldSplit) */
 function p3Sld(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job, media.design), pt = media.part;
-  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : "SLD";
-  if (pt && typeof pgSldGroups === "function") {
+  const pt = media.part;
+  /* งานแรงกลาง: แผ่นละตู้ SMDB (ผู้ใช้ 2026-11-01 แบบตัวอย่าง SINGLE LINE DIAGRAM FOR SMDB-01) — pt.cab จาก p3MvModel */
+  const M = p3SldModel(st, job, media.design, pt && pt.kind === "smdb" ? pt.cab.invs : null);
+  if (pt && pt.kind === "smdb") M.smdb = { name: pt.cab.name, mdb: pt.cab.mdb, at: pt.cab.at };
+  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : pt && pt.kind === "smdb" ? "SLD" + pt.no : "SLD";
+  if (pt && pt.kind !== "smdb" && typeof pgSldGroups === "function") {
     const gs = pgSldGroups(M), ix = media.index || [];
     const dwg = (k) => { const r = ix.find((q) => q.key === k); return r ? "SEE DWG. " + r.key + " (" + r.no + "/" + ix.length + ")" : ""; };   // ไม่ต้องมี PG-รหัสงาน- นำหน้า (ผู้ใช้ขีดฆ่า 2026-11-01)
     if (pt.kind === "main") { const ref = {}; gs.forEach((g, i) => g.nos.forEach((no) => { ref[no] = dwg("SLD" + (i + 1)); })); M.part = { kind: "main", ref }; }
@@ -3409,10 +3418,14 @@ async function p3PrepSet(st, job, photos, design) {
     add("STRDET");
     /* SLD แผ่นเดียวพอ = แผ่นเดียว · ไม่พอ = ภาพรวม + แผ่นย่อยละกลุ่มเครื่องที่สตริงเหมือนกัน (ผู้ใช้ 2026-10-29) */
     /* งานแรงกลาง: แผ่นภาพรวมหม้อแปลง/MDB/SMDB ขึ้นก่อน SLD (ผู้ใช้ 2026-11-01) */
-    if (typeof pgMvSheet === "function" && p3MvModel(st, job, design))
-      list.push({ key: "MV", gk: "SLD", label: "SLD ภาพรวมแรงกลาง", en: "OVERALL SINGLE LINE DIAGRAM", fn: (o) => p3MvSheet(st, job, o) });
-    const sg = p3SldSplit(st, job, design);
-    if (!sg) list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
+    const MV = typeof pgMvSheet === "function" ? p3MvModel(st, job, design) : null;
+    if (MV) list.push({ key: "MV", gk: "SLD", label: "SLD ภาพรวมแรงกลาง", en: "OVERALL SINGLE LINE DIAGRAM", fn: (o) => p3MvSheet(st, job, o) });
+    /* แรงกลาง: SLD แผ่นละตู้ SMDB แทนการแบ่งตามกลุ่มเครื่อง (แผ่นไม่พอ = เครื่องที่เหลือวาด TYPICAL) */
+    const cabs = MV ? [].concat(...MV.tr.map((t) => t.cabs.map((c) => Object.assign({ mdb: t.mdb }, c)))) : [];
+    const sg = cabs.length ? null : p3SldSplit(st, job, design);
+    if (cabs.length) cabs.forEach((c, i) => list.push({ key: "SLD" + (i + 1), gk: "SLD", label: "SLD " + c.name, en: "SINGLE LINE DIAGRAM FOR " + c.name,
+      fn: (o) => p3Sld(st, job, Object.assign({ part: { kind: "smdb", no: i + 1, cab: c } }, o)) }));
+    else if (!sg) list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
     else {
       list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD) ภาพรวม", en: "SINGLE LINE DIAGRAM (OVERALL)", fn: (o) => p3Sld(st, job, Object.assign({ part: { kind: "main" } }, o)) });
       sg.forEach((g, i) => list.push({ key: "SLD" + (i + 1), gk: "SLD", label: "SLD " + pgInvNames(g.nos), en: "SINGLE LINE DIAGRAM (" + pgInvNames(g.nos) + ")",

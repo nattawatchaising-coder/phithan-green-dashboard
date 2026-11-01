@@ -2733,7 +2733,7 @@ function pgSldPro(doc, sheet, M) {
       align: 1,
       valign: 1
     });
-    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, "AC COMBINER BOX", {
+    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, M.smdb ? M.smdb.name : "AC COMBINER BOX", {
       align: 1,
       valign: 1
     });
@@ -3626,7 +3626,7 @@ function pgSldPro(doc, sheet, M) {
     const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
-    pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO MDB", {
+    pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO " + (M.smdb && M.smdb.mdb || "MDB"), {
       valign: 1
     });
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", {
@@ -4019,7 +4019,7 @@ function pgSldPro(doc, sheet, M) {
     ty -= grid(t[0], t[1], t[2] || [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
   });
   const tInv = isDet ? pgInvNames(PT.nos).replace(/INV(\d+)/g, (m, d) => "INVERTER " + d.padStart(2, "0")) : "";
-  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
+  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, M.smdb ? "SINGLE LINE DIAGRAM FOR " + M.smdb.name : "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + tInv + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 function pgInvNames(nos) {
   const out = [];

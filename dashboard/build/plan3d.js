@@ -3997,10 +3997,13 @@ const p3Brand = (model, fb) => {
   const w = String(model || "").trim().split(/[\s\-_]/)[0];
   return w ? w.toUpperCase() : fb || "-";
 };
-function p3SldModel(st, job, design) {
+function p3SldModel(st, job, design, only) {
   const sys = st.sys || {};
   const B = window.BOQ || {};
-  const nPanel = Math.max(1, p3CountAll(st));
+  if (only && design && design.strings) design = Object.assign({}, design, {
+    strings: design.strings.filter(x => only.indexOf((+x.inv || 0) + 1) >= 0)
+  });
+  const nPanel = only && design && design.strings ? Math.max(1, design.strings.reduce((t, x) => t + (+x.n || 0), 0)) : Math.max(1, p3CountAll(st));
   const wp = +st.wp || 650;
   const micro = sys.mode === "micro";
   const ivPh = micro ? 0 : +(((window.BOQ || {}).INVERTERS || []).find(x => x.model === sys.invModel) || {}).phase || 0;
@@ -4138,8 +4141,9 @@ function p3SldModel(st, job, design) {
     mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(unitA * 2.5) + "AT",
     solar: false
   });
-  const totA = micro ? units.length * unitA : units.reduce((a, u) => a + aOfUnit(u), 0);
-  const acKw = Math.round((micro ? units.length * unitW : units.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
+  const uOn = only && !micro ? units.filter((u, i) => only.indexOf(i + 1) >= 0) : units;
+  const totA = micro ? units.length * unitA : uOn.reduce((a, u) => a + aOfUnit(u), 0);
+  const acKw = Math.round((micro ? units.length * unitW : uOn.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
   const dcKw = Math.round(nPanel * wp / 10) / 100;
   const nCore = nPh === 3 ? 4 : 2;
   const cabAt = !(window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.cabByAt === 0);
@@ -4187,11 +4191,11 @@ function p3SldModel(st, job, design) {
       model: sys.batt && sys.batt.model || (battKwh ? battKwh + " kWh" : "-"),
       kwh: battKwh
     } : null,
-    summary: [(micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? units.length + " EA. x " + Math.round(unitW) + " W." : inv.models.map(md => md.count + " EA. x " + Math.round(md.w) + " W.").join(" + ")) + " = " + acKw.toFixed(2) + " kWp.", "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp."]
+    summary: [(micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? uOn.length + " EA. x " + Math.round(unitW) + " W." : inv.models.map(md => md.count + " EA. x " + Math.round(md.w) + " W.").join(" + ")) + " = " + acKw.toFixed(2) + " kWp.", "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp."]
   };
   const sp = inv.spec || {};
   const row = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
-  M.invData = [["BRAND", inv.brand], ["MODEL", inv.model], ["#", "INPUT PARAMETERS"], row("MAX. POWER OF COMPATIBLE PV", sp.wpMax || (micro ? Math.round(unitW * 1.3) : ""), "W"), row("MPPT VOLTAGE RANGE", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "", "VDC"), row("MAX. DC VOLTAGE", sp.maxVdc, "VDC"), row("START-UP INPUT VOLTAGE", sp.vStart, "VDC"), row("NUMBER OF INPUT", sp.inputs || sp.perInverter, ""), row("NUMBER OF MPPT", sp.mppt, ""), row("MAX. INPUT CURRENT", sp.maxInA, "A"), row("MAX. INPUT Isc", sp.maxIscA, "A"), ["#", "OUTPUT PARAMETERS"], ["NOMINAL VOLTAGE", micro ? inv.v || 230 : Vll, "VAC"], ["NOMINAL OUTPUT POWER", Math.round(unitW), "W"], ["NOMINAL OUTPUT CURRENT", unitA.toFixed(2), "A"], row("MAX. OUTPUT CURRENT", sp.outA, "A"), ["NUMBER OF UNIT", units.length, "EA"], row("MAX EFFICIENCY", sp.eff, "%")].filter(Boolean);
+  M.invData = [["BRAND", inv.brand], ["MODEL", inv.model], ["#", "INPUT PARAMETERS"], row("MAX. POWER OF COMPATIBLE PV", sp.wpMax || (micro ? Math.round(unitW * 1.3) : ""), "W"), row("MPPT VOLTAGE RANGE", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "", "VDC"), row("MAX. DC VOLTAGE", sp.maxVdc, "VDC"), row("START-UP INPUT VOLTAGE", sp.vStart, "VDC"), row("NUMBER OF INPUT", sp.inputs || sp.perInverter, ""), row("NUMBER OF MPPT", sp.mppt, ""), row("MAX. INPUT CURRENT", sp.maxInA, "A"), row("MAX. INPUT Isc", sp.maxIscA, "A"), ["#", "OUTPUT PARAMETERS"], ["NOMINAL VOLTAGE", micro ? inv.v || 230 : Vll, "VAC"], ["NOMINAL OUTPUT POWER", Math.round(unitW), "W"], ["NOMINAL OUTPUT CURRENT", unitA.toFixed(2), "A"], row("MAX. OUTPUT CURRENT", sp.outA, "A"), ["NUMBER OF UNIT", uOn.length, "EA"], row("MAX EFFICIENCY", sp.eff, "%")].filter(Boolean);
   if (M.strs && design) {
     const MR = p3MpptRows(design);
     M.mppt = MR;
@@ -4328,14 +4332,14 @@ function p3SldModel(st, job, design) {
     });
     M.dataSheet = [[pvDs, "PV MODULE DATA @ STC"]].concat(ivDs);
     if (M.batt) M.dataSheet.push([[["BRAND", "", String(M.batt.brand || "-").toUpperCase(), ""], ["MODEL", "", M.batt.model, ""], ["USABLE ENERGY", "", dv(+M.batt.kwh), "[kWh]"]], "BATTERY DATA"]);
-    const nInv = units.length;
+    const nInv = uOn.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
     (inv.models || [{
       model: inv.model,
       w: unitKw * 1000,
       count: nInv
-    }]).forEach(md => S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
+    }]).forEach(md => S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), only ? uOn.filter(u => (u.model || inv.model) === md.model).length : md.count]));
     if (M.batt) S.push(["BATTERY", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model + " " + M.batt.kwh + " kWh", 1]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2] : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
@@ -4343,8 +4347,8 @@ function p3SldModel(st, job, design) {
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
     if (nInv > 1) {
       const bc = {};
-      ivBrk.forEach(b => {
-        bc[b] = (bc[b] || 0) + 1;
+      ivBrk.forEach((b, i) => {
+        if (!only || only.indexOf(i + 1) >= 0) bc[b] = (bc[b] || 0) + 1;
       });
       Object.keys(bc).forEach(b => S.push(["AC BREAKER (INV.)", b, bc[b]]));
     }
@@ -4367,7 +4371,7 @@ function p3SldModel(st, job, design) {
     brand: inv.brand,
     model: inv.model,
     desc: (micro ? "MICRO INVERTER " : "INVERTER ") + Math.round(unitW) + " W. " + nPh + " PHASE.",
-    no: units.length
+    no: uOn.length
   }, {
     brand: panel.brand,
     model: panel.model,
@@ -4380,6 +4384,7 @@ function p3SldModel(st, job, design) {
     desc: "BATTERY " + M.batt.kwh + " kWh.",
     no: 1
   });
+  M.only = only || null;
   p3SldFromBoq(M, job && job.boq || null, nPh);
   p3SldMon(M, job, inv.model);
   return p3SldApply(M, st.sldEdit);
@@ -4473,7 +4478,8 @@ function p3SldFromBoq(M, b, nPh) {
   };
   const route = c => raceOf(c) || P3_ROUTE_EN[c && c.method || def] || "";
   const invRows = b.cables.filter(c => c && /INVERTER-MCB_SOLAR/i.test(c.name || ""));
-  const mainRow = b.cables.find(c => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type);
+  const isMain = c => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type;
+  const mainRow = M.only && b.cables.find(c => isMain(c) && Array.isArray(c.invs) && c.invs.some(n => M.only.indexOf(n) >= 0)) || b.cables.find(isMain);
   M.acRoute = route(invRows[0]);
   M.mainRoute = route(mainRow || invRows[0]);
   M.acCableOf = {};
@@ -4627,10 +4633,15 @@ function p3SldFields(M) {
 }
 function p3Sld(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job, media.design),
-    pt = media.part;
-  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : "SLD";
-  if (pt && typeof pgSldGroups === "function") {
+  const pt = media.part;
+  const M = p3SldModel(st, job, media.design, pt && pt.kind === "smdb" ? pt.cab.invs : null);
+  if (pt && pt.kind === "smdb") M.smdb = {
+    name: pt.cab.name,
+    mdb: pt.cab.mdb,
+    at: pt.cab.at
+  };
+  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : pt && pt.kind === "smdb" ? "SLD" + pt.no : "SLD";
+  if (pt && pt.kind !== "smdb" && typeof pgSldGroups === "function") {
     const gs = pgSldGroups(M),
       ix = media.index || [];
     const dwg = k => {
@@ -5292,15 +5303,31 @@ async function p3PrepSet(st, job, photos, design) {
       fn: o => p3StrLayout(st, job, o)
     });
     add("STRDET");
-    if (typeof pgMvSheet === "function" && p3MvModel(st, job, design)) list.push({
+    const MV = typeof pgMvSheet === "function" ? p3MvModel(st, job, design) : null;
+    if (MV) list.push({
       key: "MV",
       gk: "SLD",
       label: "SLD ภาพรวมแรงกลาง",
       en: "OVERALL SINGLE LINE DIAGRAM",
       fn: o => p3MvSheet(st, job, o)
     });
-    const sg = p3SldSplit(st, job, design);
-    if (!sg) list.push({
+    const cabs = MV ? [].concat(...MV.tr.map(t => t.cabs.map(c => Object.assign({
+      mdb: t.mdb
+    }, c)))) : [];
+    const sg = cabs.length ? null : p3SldSplit(st, job, design);
+    if (cabs.length) cabs.forEach((c, i) => list.push({
+      key: "SLD" + (i + 1),
+      gk: "SLD",
+      label: "SLD " + c.name,
+      en: "SINGLE LINE DIAGRAM FOR " + c.name,
+      fn: o => p3Sld(st, job, Object.assign({
+        part: {
+          kind: "smdb",
+          no: i + 1,
+          cab: c
+        }
+      }, o))
+    }));else if (!sg) list.push({
       key: "SLD",
       label: "แผนภาพไฟฟ้า (SLD)",
       fn: o => p3Sld(st, job, o)
