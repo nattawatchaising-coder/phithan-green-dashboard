@@ -2534,7 +2534,14 @@ function pgSldPro(doc, sheet, M) {
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
-    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    let tBot = Infinity;
+    if (!b.typical && byInv[b.no]) {
+      const ns = [];
+      byInv[b.no].forEach(r => r.ins.forEach(x => ns.push(x.n)));
+      const nR = 3 + ns.filter((n, i) => ns.indexOf(n) === i).length + (M.opt ? 1 : 0) + (+b.kw > 0 ? 1 : 0);
+      tBot = lastY - 4.5 - nR * (TS.spec + 1.6) - 2.5;
+    }
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0), tBot + 3) - 3;
     return {
       firstY,
       lastY,
@@ -3642,7 +3649,7 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, xN - 1, "G", true);
     const acR = xN + 9;
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
-    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);else zoneHdr(null, acR, monUp ? hy : Math.min(hy, Math.max(acTop + 2.5, monSide && taps[0] ? taps[0].top - 4 + 2.2 : -1e9)));
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
     const mdBot = yMain - 24;
     const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
@@ -3814,7 +3821,7 @@ function pgSldPro(doc, sheet, M) {
       const dw = Math.max(26, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
       const dx0 = X.iv1 + Math.max(8, pgTextW(lbl, TS.tag) + 4),
-        dTop = it - 4,
+        dTop = Math.min(it - 0.5, Math.max(it - 4, acTop + 2.5 + TS.zone + 1.2 + dh)),
         dBot = dTop - dh,
         yc = dBot + dh / 2,
         xr = dx0 + dw;

@@ -1758,7 +1758,14 @@ function pgSldPro(doc, sheet, M) {
     /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     /* RSD: กล่อง TRANSMITTER + ปุ่มฉุกเฉินอยู่นอกตู้ DC ใต้ตู้ (ผู้ใช้ 2026-11-01) สายดินลงต่ำให้ที่ */
-    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    /* ตารางสรุปเครื่อง (INVERTER 01) ใต้สตริงสุดท้าย — สายดินของบล็อกต้องลงต่ำพ้นก้นตาราง (ผู้ใช้ 2026-11-01 "โดนทับ") · จำนวนแถวตรงกับตอนวาดตาราง */
+    let tBot = Infinity;
+    if (!b.typical && byInv[b.no]) {
+      const ns = []; byInv[b.no].forEach((r) => r.ins.forEach((x) => ns.push(x.n)));
+      const nR = 3 + ns.filter((n, i) => ns.indexOf(n) === i).length + (M.opt ? 1 : 0) + (+b.kw > 0 ? 1 : 0);
+      tBot = lastY - 4.5 - nR * (TS.spec + 1.6) - 2.5;
+    }
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0), tBot + 3) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
   const blockH = (b) => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
@@ -2564,8 +2571,7 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
     /* แผ่นเครื่องเดียว: หัว AC COMBINER BOX ลงมาเหนือขอบบนตู้ (ผู้ใช้วาดชี้ 2026-11-01) · แบบมิเตอร์ในตู้ (monUp) มีข้อความสัญญาณ CT เหนือตู้ = คงที่เดิม */
-    /* มีกล่องดองเกิล/Logger ข้างขวาบนอินเวอร์เตอร์ (monSide) → หัวอยู่เหนือแถวกล่อง ไม่ทับกล่อง/ป้าย INTERNET (ผู้ใช้ชี้ 2026-11-01 "ทำไมโดนทับ") */
-    else zoneHdr(null, acR, monUp ? hy : Math.min(hy, Math.max(acTop + 2.5, monSide && taps[0] ? taps[0].top - 4 + 2.2 : -1e9)));
+    else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */
@@ -2690,7 +2696,8 @@ function pgSldPro(doc, sheet, M) {
       const meterNm = mon.meter ? mon.meter.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "") : "";
       const lbl = mon.logger ? "RS485" : "PLUG-IN COM PORT";
       const dw = Math.max(26, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
-      const dx0 = X.iv1 + Math.max(8, pgTextW(lbl, TS.tag) + 4), dTop = it - 4, dBot = dTop - dh, yc = dBot + dh / 2, xr = dx0 + dw;
+      const dx0 = X.iv1 + Math.max(8, pgTextW(lbl, TS.tag) + 4), dTop = Math.min(it - 0.5, Math.max(it - 4, acTop + 2.5 + TS.zone + 1.2 + dh)), dBot = dTop - dh,   // หัว AC COMBINER BOX อยู่ชิดขอบบนตู้ · กล่องดองเกิลยกขึ้นพ้นหัว (ผู้ใช้ชี้ 2026-11-01 "ย้าย")
+      yc = dBot + dh / 2, xr = dx0 + dw;
       pen.rect(S, dx0, dBot, dw, dh);
       pen.text(T, dx0 + dw / 2, yc, TS.spec, mon.dev, { align: 1, valign: 2 });
       pen.line(COM, dx0, yc, X.iv1 + 1.6, yc);
