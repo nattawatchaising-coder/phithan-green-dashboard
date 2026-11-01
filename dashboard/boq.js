@@ -372,7 +372,7 @@
   /* ── อุปกรณ์ Growatt งานบ้าน (ผู้ใช้ ต.ค. 2026): มิเตอร์ CT ตามเฟส + ShineWiFi-X 1 ตัว/งาน — ชื่อต้องตรงคลังทุกตัวอักษร ── */
   const GW = { meter1: "Growatt - SPM-CT-E", meter3: "Growatt - TPM-CT-E", wifi: "Growatt - ShineWiFi-X" };
   /* ── Power Meter Janitza ที่เลือกได้ตอนถอด BOQ (ผู้ใช้ 2026-11-01): UMG96RM = ระบบแรงต่ำ (LV) · UMG511 = ระบบแรงกลาง (MV) — ชื่อต้องตรงคลังทุกตัวอักษร ── */
-  const JZ = { umg96rm: "Power Meter Janitza UMG 96RM", umg511: "Power Meter Janitza UMG 511" };
+  const JZ = { umg96rm: "Power Meter Janitza UMG 96RM" };   // UMG511 ไม่ถอดตัวมิเตอร์ — ทีมภายนอกทำชุดวัดแรงกลางทั้งชุด (ผู้ใช้ 2026-11-01 "เอาออก")
   /* UMG511 = ระบบแรงสูง (MV · ลูกค้ามีหม้อแปลงหลายลูก/ตู้ Main หลายตู้) — ชุดวัดแรงกลางจ้างทีมภายนอก ไม่ถอดของ แค่ขึ้นแถวบอกใน BOQ (ผู้ใช้ 2026-11-01) */
   const MV_ROW = { name: "ระบบแรงสูง (MV) — ชุดวัดแรงกลางจ้างทีมภายนอก", qty: 1, unit: "งาน" };
   /* ตัวเลือกตอนถอด BOQ: ระบบสื่อสาร (b.monComm) · ระบบมิเตอร์ (b.monMeter) — "auto" = ถอดตามเดิม (ตามยี่ห้อ/จำนวนเครื่อง) */
@@ -992,7 +992,8 @@
     const isM = (x) => mtrNames.indexOf(x.name) !== -1;
     const mtr = (b && b.monMeter) || "auto", comm = (b && b.monComm) || "auto";
     let out = list.filter((x) => isM(x) ? (mtr === "auto" || mtr === "smart") : comm !== "none");
-    if (JZ[mtr]) out = [{ name: JZ[mtr], qty: 1, unit: "ตัว" }].concat(mtr === "umg511" ? [Object.assign({}, MV_ROW)] : [], out);
+    if (JZ[mtr]) out = [{ name: JZ[mtr], qty: 1, unit: "ตัว" }].concat(out);
+    if (mtr === "umg511") out = [Object.assign({}, MV_ROW)].concat(out);
     return out;
   }
   /* อุปกรณ์มอนิเตอร์ที่ BOQ จะถอดให้ตามรุ่นอินเวอร์เตอร์ (ชุดเดียวกับ calcBOQ) — SLD ใช้ตอนงานยังไม่มี BOQ (ผู้ใช้ 2026-11-01: ตัวส่งข้อมูล Huawei ไม่มีเลย)
