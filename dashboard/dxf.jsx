@@ -2122,7 +2122,7 @@ function pgSldPro(doc, sheet, M) {
       strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
       const bB = dBot + 6, bT = bB + 4.4, bx0 = X.dc0 + 1.5, bx1 = X.dc1 - 1.5, bm = (bB + bT) / 2;
       pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
-      const t1 = "RSS TRANSMITTER", t2 = "(" + M.opt.model + ")";
+      const t1 = "RSS TRANSMITTER", t2 = "(" + (M.opt.rss || M.opt.model) + ")";   // ชื่อตัวส่งจากคลัง ไม่มีใช้รุ่น RSD
       pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, { align: 1, valign: 1 });
       pen.text(T, (bx0 + bx1) / 2, bm - 0.25, fitH(t2, TS.tag, bx1 - bx0 - 1), t2, { align: 1, valign: 3 });
       const CS = PG_SLD.ctsig;

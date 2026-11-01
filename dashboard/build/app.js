@@ -710,7 +710,8 @@ function App() {
       perPanel: s.optPerPanel,
       minPerStr: s.optMinPerStr,
       maxPerStr: s.optMaxPerStr,
-      pairs: s.optPairs
+      pairs: s.optPairs,
+      rss: s.optRss
     })));
   }, [stock.items, stock.cats]);
   React.useEffect(() => {

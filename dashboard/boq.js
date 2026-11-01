@@ -2319,6 +2319,9 @@
           invItems.push({ name: optModel, qty: optQty, unit: "ตัว" });
           // ตัวคุมแผงยึดเข้ารางด้วย T-BOLT 1 ชุด/ตัวคุม — ไม่เผื่อ เพราะผูกกันแบบ 1:1
           invItems.push({ name: TBOLT_NAME, qty: optQty, unit: "ชุด" });
+          /* Rapid Shutdown: ตัวส่งสัญญาณ RSS 1 ตัวต่ออินเวอร์เตอร์ (แกนคล้องสายสตริงของเครื่องนั้น · ผู้ใช้สั่ง 2026-11-01) — ชื่อจากคลังตัวคุมแผง */
+          const optO = findOptimizer(optModel);
+          if (optO && optO.rss && optQty > 0) invItems.push({ name: optO.rss, qty: invCount + inv2Count, unit: "ตัว" });
         }
         /* งานบ้าน/งานโครงการ: ตู้และอุปกรณ์ในตู้ (เบรกเกอร์ · SPD · ฟิวส์ DC) คิดแบบเดียวกันในหมวดตู้ไฟ AC / DC — ไม่มีกลุ่ม COMBINER BOX แล้ว */
         combItems = [];
@@ -3021,6 +3024,8 @@
         /* ช่วงจำนวนตัวคุมต่อสตริงตามคู่มือของรุ่นนั้น — 0 = ยังไม่ระบุ ระบบจะไม่เอาไปตัดสิน */
         minPerStr: Math.max(0, Math.round(+p.minPerStr || 0)),
         maxPerStr: Math.max(0, Math.round(+p.maxPerStr || 0)),
+        /* Rapid Shutdown ที่ต้องมีตัวส่งสัญญาณ (Tigo RSS ฯลฯ) — ชื่อรายการตัวส่งในคลัง ว่าง = รุ่นนี้ไม่ต้องใช้ */
+        rss: String(p.rss || "").trim(),
         /* ตารางจับคู่กับอินเวอร์เตอร์ — คู่มือกำหนดความยาวสตริงไว้ต่อรุ่น ไม่ใช่ค่าเดียวทั้งยี่ห้อ */
         pairs: (Array.isArray(p.pairs) ? p.pairs : []).filter((r) => r && r.inv)
           .map((r) => ({ inv: String(r.inv), min: Math.max(0, Math.round(+r.min || 0)),

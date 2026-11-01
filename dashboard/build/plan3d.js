@@ -4163,10 +4163,12 @@ function p3SldModel(st, job, design) {
       const o = !micro && typeof scOptSpec === "function" ? scOptSpec(sys) : null;
       const md = o && o.model || !micro && sys.optModel || "";
       if (!md) return null;
+      const rss = o && o.rss || "";
       return {
         model: md,
         per: Math.max(1, o && o.perPanel || 1),
-        rsd: /TS4-A-F|TS4-A-2F|\bRSD\b|rapid|shutdown/i.test(md + " " + (o && o.name || ""))
+        rss,
+        rsd: !!rss || /TS4-A-F|TS4-A-2F|\bRSD\b|rapid|shutdown/i.test(md + " " + (o && o.name || ""))
       };
     })(),
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",

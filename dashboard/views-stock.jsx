@@ -1399,6 +1399,8 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 <Field label="แรงดันตอนสั่งปิด (V/ตัว)"><input type="number" style={inputStyle} value={f.optVoff != null ? f.optVoff : ""} onChange={(e) => set("optVoff", parseFloat(e.target.value) || 0)} placeholder="1" /></Field>
                 <Field label="ตัวคุมต่อสตริง ต่ำสุด"><input type="number" style={inputStyle} value={f.optMinPerStr != null ? f.optMinPerStr : ""} onChange={(e) => set("optMinPerStr", parseInt(e.target.value) || 0)} placeholder="จากคู่มือ" /></Field>
                 <Field label="ตัวคุมต่อสตริง สูงสุด"><input type="number" style={inputStyle} value={f.optMaxPerStr != null ? f.optMaxPerStr : ""} onChange={(e) => set("optMaxPerStr", parseInt(e.target.value) || 0)} placeholder="จากคู่มือ" /></Field>
+                {/* Rapid Shutdown ที่ต้องมีตัวส่งสัญญาณ (เช่น Tigo TS4-A-F + RSS Transmitter) — ชื่อต้องตรงชื่อรายการในคลังทุกตัวอักษร BOQ ถอด 1 ตัว/อินเวอร์เตอร์ · SLD วาดแกนคล้องสาย + กล่องตัวส่ง */}
+                <Field label="ตัวส่งสัญญาณ RSS (ชื่อในคลัง · ว่าง = ไม่มี)" span><input style={inputStyle} value={f.optRss || ""} onChange={(e) => set("optRss", e.target.value)} placeholder="เช่น Tigo RSS Transmitter" /></Field>
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 9, lineHeight: 1.7 }}>
                 แรงดันตอนสั่งปิด × จำนวนตัวในสตริง = แรงดันที่เหลือบนสายตอนกดหยุดฉุกเฉิน —

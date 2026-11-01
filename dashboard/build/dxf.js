@@ -3030,7 +3030,7 @@ function pgSldPro(doc, sheet, M) {
         bm = (bB + bT) / 2;
       pen.rect(S, bx0, bB, bx1 - bx0, bT - bB);
       const t1 = "RSS TRANSMITTER",
-        t2 = "(" + M.opt.model + ")";
+        t2 = "(" + (M.opt.rss || M.opt.model) + ")";
       pen.text(T, (bx0 + bx1) / 2, bm + 0.25, fitH(t1, TS.spec, bx1 - bx0 - 1), t1, {
         align: 1,
         valign: 1

@@ -3630,6 +3630,14 @@ function ItemModal({
     value: f.optMaxPerStr != null ? f.optMaxPerStr : "",
     onChange: e => set("optMaxPerStr", parseInt(e.target.value) || 0),
     placeholder: "\u0E08\u0E32\u0E01\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D"
+  })), React.createElement(Field, {
+    label: "\u0E15\u0E31\u0E27\u0E2A\u0E48\u0E07\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13 RSS (\u0E0A\u0E37\u0E48\u0E2D\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xB7 \u0E27\u0E48\u0E32\u0E07 = \u0E44\u0E21\u0E48\u0E21\u0E35)",
+    span: true
+  }, React.createElement("input", {
+    style: inputStyle,
+    value: f.optRss || "",
+    onChange: e => set("optRss", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 Tigo RSS Transmitter"
   }))), React.createElement("div", {
     style: {
       fontSize: 11,

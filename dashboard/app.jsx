@@ -561,7 +561,7 @@ function App() {
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter((s) => window.SF.isOptimizerCat(s.cat) && s.name)
       .map((s) => ({ model: s.name, group: (s.brand || "").trim() || subTh(s), w: s.optW, vInMax: s.optVinMax, mpptMin: s.optMpptMin, mpptMax: s.optMpptMax,
         iscMax: s.optIscMax, vOutMax: s.optVoutMax, iOutMax: s.optIoutMax, eff: s.optEff, vOff: s.optVoff, perPanel: s.optPerPanel,
-        minPerStr: s.optMinPerStr, maxPerStr: s.optMaxPerStr, pairs: s.optPairs })));
+        minPerStr: s.optMinPerStr, maxPerStr: s.optMaxPerStr, pairs: s.optPairs, rss: s.optRss })));
     /* ต้องผูกกับ stock.cats ด้วย — ถ้ารายชื่อหมวดย่อยมาถึงทีหลังรายการของ mainCatOf() จะยังแปลงคีย์ไม่ออก */
   }, [stock.items, stock.cats]);
 
