@@ -2644,7 +2644,7 @@ function pgSldPro(doc, sheet, M) {
         /* ไฟเลี้ยงจากบัสเมนในตู้ ขึ้นเข้าก้นมิเตอร์ */
         const xS = acMtrX != null && mx0 === acMtrX - mw / 2 ? acMtrX : mx0 + mw - 3;   // กล่องมิเตอร์อยู่กลางเส้นไฟเลี้ยง (ผู้ใช้วาดชี้ 2026-10-31)
         pen.dot(S, xS, yMain, 0.4);
-        pen.line(W, xS, yMain, xS, mBot);
+        pen.line(R, xS, yMain, xS, mBot);
         pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", { valign: 2 });
         /* RS485 ออกซ้ายมิเตอร์ → เข้าข้างขวาอินเวอร์เตอร์ (สูงกว่าหลังคา = เลี้ยวลงเข้าหลังคา) */
         const yr = Math.max(mBot + 1, Math.min(myc, it - 2));   // ใต้หลังคา (ผู้ใช้วาดชี้: เลี้ยวลงสั้น ๆ ทับป้ายไม่สวย)
@@ -2704,7 +2704,7 @@ function pgSldPro(doc, sheet, M) {
         const fx = acSpdX != null ? acSpdX : X.ac1 - 6, mx0 = fx + 3 - mw, mx1 = mx0 + mw, mB = myc - mh / 2;
         pen.rect(S, mx0, mB, mw, mh);
         pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, { align: 1, valign: 2 });
-        pen.line(W, fx, yMain, fx, mB);
+        pen.line(R, fx, yMain, fx, mB);   // ไฟเลี้ยงมิเตอร์ = สายไฟ AC สีแดง (ผู้ใช้ 2026-11-01)
         pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", { valign: 3 });
         if (mon.logger) {
           const ax = dx0 + dw / 2;
@@ -2751,7 +2751,7 @@ function pgSldPro(doc, sheet, M) {
       const fx = acSpdX != null ? acSpdX : X.ac1 - 6, mx0 = fx + 3 - mw, mx1 = mx0 + mw, mTop = myc + mh / 2, mB = myc - mh / 2;
       pen.rect(S, mx0, mB, mw, mh);
       pen.text(T, (mx0 + mx1) / 2, myc, TS.spec, mTx, { align: 1, valign: 2 });
-      pen.line(W, fx, yMain, fx, mB);
+      pen.line(R, fx, yMain, fx, mB);   // ไฟเลี้ยงมิเตอร์ = สายไฟ AC สีแดง (ผู้ใช้ 2026-11-01)
       pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", { valign: 3 });
       const x2 = t1.vx + t1.sh * 0.4;
       pen.line(COM, mx0, myc, x2, myc);

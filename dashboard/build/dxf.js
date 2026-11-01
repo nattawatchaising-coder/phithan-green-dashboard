@@ -3748,7 +3748,7 @@ function pgSldPro(doc, sheet, M) {
         });
         const xS = acMtrX != null && mx0 === acMtrX - mw / 2 ? acMtrX : mx0 + mw - 3;
         pen.dot(S, xS, yMain, 0.4);
-        pen.line(W, xS, yMain, xS, mBot);
+        pen.line(R, xS, yMain, xS, mBot);
         pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", {
           valign: 2
         });
@@ -3849,7 +3849,7 @@ function pgSldPro(doc, sheet, M) {
           align: 1,
           valign: 2
         });
-        pen.line(W, fx, yMain, fx, mB);
+        pen.line(R, fx, yMain, fx, mB);
         pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", {
           valign: 3
         });
@@ -3935,7 +3935,7 @@ function pgSldPro(doc, sheet, M) {
         align: 1,
         valign: 2
       });
-      pen.line(W, fx, yMain, fx, mB);
+      pen.line(R, fx, yMain, fx, mB);
       pen.text(T, fx + 0.8, mB - 1.2, TS.tag, M.phase === 3 ? "R, S, T, N" : "L, N", {
         valign: 3
       });
