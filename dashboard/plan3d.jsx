@@ -929,10 +929,13 @@ function p3Legend(pen, x, yTop, w, hh, rh, rows) {
     else {
       /* แผงแคบกว่ากล่องอื่น (ผู้ใช้ "ย่อขนาดแผง") */
       if (S.k === "panel") pen.rect(S.lay, bx + bw * 0.18, by - bh * 0.03, bw * 0.64, bh * 1.06);
-      else pen.rect(S.lay, bx, by, bw, bh);
-      if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, bx, by, bx + bw, by + bh);
-      if (S.mark === "invst") pen.line(S.lay, bx, by + bh, bx + bw, by);
-      if (S.mark === "xfmr") [-0.22, 0.22].forEach((t) => pen.circle(S.lay, bx + bw / 2 + t * bw, cy, bh * 0.36));
+      else {   /* กล่อง MDB/อินเวอร์เตอร์/หม้อแปลง ยาวเท่าแผง (ผู้ใช้) */
+        const qx = bx + bw * 0.18, qw = bw * 0.64;
+        pen.rect(S.lay, qx, by, qw, bh);
+        if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, qx, by, qx + qw, by + bh);
+        if (S.mark === "invst") pen.line(S.lay, qx, by + bh, qx + qw, by);
+        if (S.mark === "xfmr") [-0.22, 0.22].forEach((t) => pen.circle(S.lay, qx + qw / 2 + t * qw, cy, bh * 0.32));
+      }
     }
     const th = 2.2;
     if (r[2]) { pen.text(T, x + sw + 2, cy + th * 0.15, th, r[1], { valign: 1 }); pen.text(T, x + sw + 2, cy - th * 1.15, th, r[2], { valign: 1 }); }

@@ -1583,10 +1583,14 @@ function p3Legend(pen, x, yTop, w, hh, rh, rows) {
       const a = bh * 1.1;
       p3LadderSym((p, q) => pen.line(S.lay, p[0], p[1], q[0], q[1]), [[cx0(x, sw) - a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy + a / 2], [cx0(x, sw) - a / 2, cy + a / 2]]);
     } else {
-      if (S.k === "panel") pen.rect(S.lay, bx + bw * 0.18, by - bh * 0.03, bw * 0.64, bh * 1.06);else pen.rect(S.lay, bx, by, bw, bh);
-      if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, bx, by, bx + bw, by + bh);
-      if (S.mark === "invst") pen.line(S.lay, bx, by + bh, bx + bw, by);
-      if (S.mark === "xfmr") [-0.22, 0.22].forEach(t => pen.circle(S.lay, bx + bw / 2 + t * bw, cy, bh * 0.36));
+      if (S.k === "panel") pen.rect(S.lay, bx + bw * 0.18, by - bh * 0.03, bw * 0.64, bh * 1.06);else {
+        const qx = bx + bw * 0.18,
+          qw = bw * 0.64;
+        pen.rect(S.lay, qx, by, qw, bh);
+        if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, qx, by, qx + qw, by + bh);
+        if (S.mark === "invst") pen.line(S.lay, qx, by + bh, qx + qw, by);
+        if (S.mark === "xfmr") [-0.22, 0.22].forEach(t => pen.circle(S.lay, qx + qw / 2 + t * qw, cy, bh * 0.32));
+      }
     }
     const th = 2.2;
     if (r[2]) {
