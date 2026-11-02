@@ -1386,9 +1386,10 @@ function dsPx(pen, A, w, yT) {
         if (pts.length === 2 && !n[2] && !n[3]) o.dot(g ? Lg : L, pts[0][0], pts[0][1], 0.7 / q / s);else o.pl(g ? Lg : L, pts);
       });
       tx.forEach(t => {
-        const h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1))),
-          c = t[5] === 1,
+        const c = t[5] === 1,
           r = t[5] === 2;
+        let h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1)));
+        if (r && fr) h = Math.min(h, ((t[2] - fr.f[0]) / s - 4) * k / pgTextW(t[4], 1));
         o.tx(x0 + (c ? (t[0] + t[2]) / 2 : r ? t[2] : t[0]) / s, y0 + t[3] / s + (c ? 0 : /^DETAIL/.test(t[4]) ? dyC : dyA), t[4], h, c ? {
           align: 1
         } : r ? {

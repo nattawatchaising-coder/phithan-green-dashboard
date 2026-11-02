@@ -906,7 +906,10 @@ function dsPx(pen, A, w, yT) {
         else o.pl(g ? Lg : L, pts);
       });
       /* สูงตัวพิมพ์ใหญ่ ≈ 0.7 × h ของ pen.text · ไม่ให้กว้างเกินกรอบเดิม (ตัวหนังสือจริงกว้างกว่าลายเส้น จะทับเส้นชี้) */
-      tx.forEach((t) => { const h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1))), c = t[5] === 1, r = t[5] === 2;
+      tx.forEach((t) => { const c = t[5] === 1, r = t[5] === 2;
+        let h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1)));
+        /* ป้ายชิดขวาที่ขยายไปทางซ้าย ห้ามเลยขอบซ้ายกรอบ (GROUNDING SHEET เคยทับเส้นกรอบ) */
+        if (r && fr) h = Math.min(h, ((t[2] - fr.f[0]) / s - 4) * k / pgTextW(t[4], 1));
         o.tx(x0 + (c ? (t[0] + t[2]) / 2 : r ? t[2] : t[0]) / s, y0 + t[3] / s + (c ? 0 : /^DETAIL/.test(t[4]) ? dyC : dyA), t[4], h, c ? { align: 1 } : r ? { align: 2 } : null); });
     },
     cap: (xc, y, s, h) => { h = h || PG_TS.body; pen.text(T, X(xc), Y(y), h, s, { align: 1, valign: 1 }); const w2 = pgTextW(s, h); pen.line(T, X(xc) - w2 / 2, Y(y) - 1, X(xc) + w2 / 2, Y(y) - 1); },
