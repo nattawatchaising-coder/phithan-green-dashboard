@@ -1872,7 +1872,13 @@ function p3Dxf(st, job, media) {
       txt: "PV MODULE"
     });
   }
-  const placed = [];
+  const placed = [],
+    panBox = (foot.panels || []).map(pn => {
+      const P = pn.pts.map(q => RT(q[0], -q[1])),
+        X = P.map(q => q[0]),
+        Y = P.map(q => q[1]);
+      return [Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y)];
+    });
   callouts.map(c => {
     const p = RT(c.x, c.y);
     return {
@@ -1892,10 +1898,13 @@ function p3Dxf(st, job, media) {
       L = pgTextW(txt, 2.2) * k + 2 * k;
     let dy = 6,
       e;
-    for (let n = 0; n < 12; n++, dy += 4.5) {
+    for (let n = 0; n < 80; n++, dy += 4.5) {
       e = [p[0] + sx * 5 * k, p[1] + sy * dy * k];
       const x0 = Math.min(e[0], e[0] + sx * L),
-        x1 = Math.max(e[0], e[0] + sx * L);
+        x1 = Math.max(e[0], e[0] + sx * L),
+        y0 = e[1] - 0.8 * k,
+        y1 = e[1] + th + 1.2 * k;
+      if (n < 79 && panBox.some(b => b[0] < x1 && b[2] > x0 && b[1] < y1 && b[3] > y0)) continue;
       if (!placed.some(q => Math.abs(q.y - e[1]) < 4.5 * k && q.x0 < x1 && q.x1 > x0)) {
         placed.push({
           y: e[1],

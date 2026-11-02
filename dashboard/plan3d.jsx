@@ -1137,7 +1137,7 @@ function p3Dxf(st, job, media) {
     const pk = fpR.reduce((b, p) => (Math.hypot(p.rx - mx, (p.ry - my) * 4) < Math.hypot(b.rx - mx, (b.ry - my) * 4) ? p : b));
     callouts.unshift({ x: pk.x, y: pk.y, txt: "PV MODULE" });
   }
-  const placed = [];
+  const placed = [], panBox = (foot.panels || []).map((pn) => { const P = pn.pts.map((q) => RT(q[0], -q[1])), X = P.map((q) => q[0]), Y = P.map((q) => q[1]); return [Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y)]; });
   /* ลำดับวาง: ป้ายที่จุดอยู่ใกล้ปลายทางเส้นนอนก่อน (ได้เส้นนอนต่ำสุด) — ป้ายที่ถูกยกขึ้นอยู่ไกลกว่า เส้นเฉียงจึงไม่ตัดผ่านชื่อป้ายอื่น */
   callouts.map((c) => { const p = RT(c.x, c.y); return { c, p, sx: p[0] < V.cx ? -1 : 1, sy: p[1] < V.cy ? -1 : 1 }; })
     .sort((a, b) => (a.sx - b.sx) || (a.sy - b.sy) || (-a.sx * a.p[0]) - (-b.sx * b.p[0]))
@@ -1145,10 +1145,12 @@ function p3Dxf(st, job, media) {
     const txt = c.txt;
     const th = 2.2 * k, L = pgTextW(txt, 2.2) * k + 2 * k;
     /* เลื่อนเส้นนอนออกไปอีกทีละ 4.5 มม. จนไม่ชนป้ายที่วางแล้ว (อุปกรณ์อยู่ใกล้กัน) */
+    /* ชื่อ/เส้นนอนต้องไม่ทับแผง (ผู้ใช้ "ไม่อยากให้ตัวหนังสือทับแผง") — ลากเส้นเฉียงยาวลงไปจนพ้นแผงก่อน เส้นเฉียงพาดผ่านแผงได้ */
     let dy = 6, e;
-    for (let n = 0; n < 12; n++, dy += 4.5) {
+    for (let n = 0; n < 80; n++, dy += 4.5) {
       e = [p[0] + sx * 5 * k, p[1] + sy * dy * k];
-      const x0 = Math.min(e[0], e[0] + sx * L), x1 = Math.max(e[0], e[0] + sx * L);
+      const x0 = Math.min(e[0], e[0] + sx * L), x1 = Math.max(e[0], e[0] + sx * L), y0 = e[1] - 0.8 * k, y1 = e[1] + th + 1.2 * k;
+      if (n < 79 && panBox.some((b) => b[0] < x1 && b[2] > x0 && b[1] < y1 && b[3] > y0)) continue;
       if (!placed.some((q) => Math.abs(q.y - e[1]) < 4.5 * k && q.x0 < x1 && q.x1 > x0)) { placed.push({ y: e[1], x0, x1 }); break; }
     }
     /* เส้น/ชื่อสีดำ · จุดดำทึบ (ผู้ใช้) */
