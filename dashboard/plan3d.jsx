@@ -499,7 +499,7 @@ function p3MeasLen(m) {
 const P3_DXF_LAYERS = [
   ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
   /* เส้นหลายจุดของตัวแก้แบบ แยกชั้นละชนิด สี+ความหนาต่างกัน · ท่อน้ำเส้นทึบ (ผู้ใช้ไม่เอาเส้นประ) (ผู้ใช้ 2026-11-02: รางไฟ/ทางเดิน/ท่อน้ำ ต้องแยกกันออก) */
-  ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 140, 25], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
+  ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 130, 30], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
   ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
@@ -1079,25 +1079,7 @@ function p3Dxf(st, job, media) {
      เส้นลากผ่านกลางแผงตามลำดับที่ต่อจริง · วงกลมเลขสตริงที่ใบแรก · จุดทึบที่ใบสุดท้าย
      มีเส้นสตริงแล้วไม่ต้องใส่ป้าย PV PANEL-n ทีละใบ (ทับกันจนอ่านไม่ออก) */
   const SP = (media.design && media.design.paths) || [];
-  SP.forEach((q) => {
-    const pts = (q.pts || []).map((t) => [t[0], -t[1]]);
-    if (!pts.length) return;
-    const r = Math.min(pw * 0.42 || TH, TH * 1.1);
-    /* เส้นเริ่มที่ขอบวงกลมเลข ไม่ลากผ่านตัวเลข (ผู้ใช้: เลขโดนทับ) */
-    if (pts.length > 1) {
-      const d = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
-      const L = d > r ? [[pts[0][0] + (pts[1][0] - pts[0][0]) * r / d, pts[0][1] + (pts[1][1] - pts[0][1]) * r / d]].concat(pts.slice(1)) : pts.slice(1);
-      if (L.length > 1) doc.pline("PG-STRING", L, false);
-    }
-    /* พื้นขาวในวงกลม (แปดเหลี่ยมทึบ) — เส้นเซลล์แผงไม่ทับตัวเลข */
-    const v = [];
-    for (let i = 0; i < 8; i++) { const t = (i + 0.5) * Math.PI / 4; v.push([pts[0][0] + r * Math.cos(t), pts[0][1] + r * Math.sin(t)]); }
-    doc.layer("PG-STRING-BG", 255, "CONTINUOUS", 0);
-    doc.solid("PG-STRING-BG", v[0], v[1], v[2], v[3]); doc.solid("PG-STRING-BG", v[0], v[3], v[4], v[7]); doc.solid("PG-STRING-BG", v[7], v[4], v[5], v[6]);
-    doc.circle("PG-STRING", pts[0][0], pts[0][1], r);
-    doc.text("PG-STRING", pts[0][0], pts[0][1], r * 1.05, String(q.id), { align: 1, valign: 2 });
-    if (pts.length > 1) doc.circle("PG-STRING", pts[pts.length - 1][0], pts[pts.length - 1][1], r * 0.3);
-  });
+  /* ผังติดตั้งไม่วาดเส้น/เลขสตริงบนแผงแล้ว (ผู้ใช้ 2026-11-02 "ไม่ต้องมีเส้นๆ บนแผง") — ดูในแผ่นผังสตริงหน้างาน · SP ยังใช้กันป้าย PV PANEL-n */
   if (!SP.length && fp.length && lh / k >= 1.3 && pw / k >= labW) {
     fp.sort((a, b) => (a.cz - b.cz) || (a.cx - b.cx));
     fp.forEach((p, i) => doc.text("PG-NOTE", p.cx, -p.cz - lh / 2, lh, "PV PANEL-" + (i + 1), { align: 1, valign: 1 }));
@@ -1389,6 +1371,21 @@ function p3RoofPlan(st, k) {
     let DP; try { DP = p3DomePlan(roof); } catch (e) { return; }
     DP.pts.forEach((p, i) => edges.push([p, DP.pts[(i + 1) % 4]]));
     ridge.push(DP.crown);
+    /* ลายแผ่นหลังคาโค้ง: เส้นข้ามโค้ง (ตั้งฉากเส้นยอด) จากชายคาถึงชายคา ไม่วาดใต้แผง (ผู้ใช้ "ทำไมเส้นหลังคามันไม่มี") */
+    const M = MSP[typeof p3sRoofMat === "function" ? p3sRoofMat(roof) : "metal"] || MSP.metal, sp = Math.max(M[0] || M[1] || 0.25, minSp);
+    const a = DP.crown[0], b = DP.crown[1], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L < 0.05) return;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L, vx = -uy, vy = ux;
+    const vs = DP.pts.map((p) => (p[0] - a[0]) * vx + (p[1] - a[1]) * vy), v0 = Math.min(...vs) - 0.1, v1 = Math.max(...vs) + 0.1;
+    const xs = DP.pts.map((p) => p[0]), ys = DP.pts.map((p) => p[1]), bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    const PNd = PN.filter((p) => p.bb[0] <= bb[2] && p.bb[2] >= bb[0] && p.bb[1] <= bb[3] && p.bb[3] >= bb[1]);
+    const keep = (x, y) => inside(DP.pts, x, y) && !PNd.some((p) => inBB(p.bb, x, y) && inside(p.P, x, y));
+    const us = DP.pts.map((p) => (p[0] - a[0]) * ux + (p[1] - a[1]) * uy);
+    for (let t = Math.ceil(Math.min(...us) / sp) * sp; t < Math.max(...us); t += sp) {
+      const c = [a[0] + ux * t, a[1] + uy * t];
+      cut([c[0] + vx * v0, c[1] + vy * v0], [c[0] + vx * v1, c[1] + vy * v1], [DP.pts].concat(PNd.map((p) => p.P)), keep, tex);
+    }
+    hatch.push({ loops: [DP.pts].concat(PNd.map((p) => p.P)), ang: Math.atan2(vy, vx) / P3_DEG, sp });
   });
   return { edges, tex, ridge, hatch };
 }
