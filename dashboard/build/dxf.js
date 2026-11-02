@@ -1994,11 +1994,11 @@ function pgModuleDatasheet(pen, R, o) {
   dimH(bx, bx + wv, yt, yt + 6.6, String(W));
   dimV(yb, yt, bx, bx - 7, String(H));
   const nw = wv * 0.09,
-    nh = hv * 0.04,
-    nx = bx + wv * 0.3,
-    ny = yt - hv * 0.07 - nh;
+    nh = hv * 0.03,
+    nx = bx + wv / 2 - nw / 2,
+    ny = ym + 0.9;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
+  tag(nx + nw * 0.6, ny, nx + nw + 2.2, ym - 2.6, "Nameplate");
   const jb = cx => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach(t => jb(bx + wv * t));
   [[0.3, 0.22], [0.7, 0.78]].forEach(([a, b]) => {

@@ -1353,9 +1353,10 @@ function pgModuleDatasheet(pen, R, o) {
   dimV(yb, yt, bx, bx - 7, String(H));
   /* รูยึด/รูกราวด์/รูระบายน้ำ + ระยะ 1400/400 ไม่วาด (ผู้ใช้กากบาทออก 2026-11-02) */
   /* ป้ายชื่อ (Nameplate) */
-  const nw = wv * 0.09, nh = hv * 0.04, nx = bx + wv * 0.3, ny = yt - hv * 0.07 - nh;
+  /* กลางแผงเหนือกล่องต่อสายตัวกลาง · ป้ายชี้ลงขวาใต้แนวกล่อง (ผู้ใช้วาดชี้ 2026-11-02) */
+  const nw = wv * 0.09, nh = hv * 0.03, nx = bx + wv / 2 - nw / 2, ny = ym + 0.9;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
+  tag(nx + nw * 0.6, ny, nx + nw + 2.2, ym - 2.6, "Nameplate");
   /* กล่องต่อสาย 3 ตัวกลางแผง + สาย/หัวต่อซ้ายขวา */
   const jb = (cx) => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach((t) => jb(bx + wv * t));
