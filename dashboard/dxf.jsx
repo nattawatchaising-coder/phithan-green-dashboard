@@ -693,7 +693,7 @@ function pgSvg(opt) {
         '" width="' + n(w) + '" height="' + n(h) + '" style="width:100%;height:auto;display:block"' +
         ' preserveAspectRatio="xMidYMid meet">' +
         '<rect x="0" y="0" width="' + n(w) + '" height="' + n(h) + '" fill="#ffffff"/>' +
-        '<g stroke-linecap="round" stroke-linejoin="round">' + parts.join("") + "</g></svg>";
+        '<g stroke-linecap="square" stroke-linejoin="miter">' + parts.join("") + "</g></svg>";
     },
   };
   return api;

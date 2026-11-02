@@ -500,7 +500,7 @@ const P3_DXF_LAYERS = [
   ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
   /* เส้นหลายจุดของตัวแก้แบบ แยกชั้นละชนิด สี+ความหนาต่างกัน · ท่อน้ำเส้นทึบ (ผู้ใช้ไม่เอาเส้นประ) (ผู้ใช้ 2026-11-02: รางไฟ/ทางเดิน/ท่อน้ำ ต้องแยกกันออก) */
   ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 130, 30], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
-  ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-OBS-TAG", 7, 18],
+  ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 140, 25], ["PG-OBS-TAG", 7, 18],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
   ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25],
@@ -847,8 +847,9 @@ const P3_EQUIP_SYM = {
   },
   xfmr: (doc, Q) => { doc.pline("PG-OBS-XFMR", Q, true);
     const cx = (Q[0][0] + Q[2][0]) / 2, cy = (Q[0][1] + Q[2][1]) / 2, ux = (Q[1][0] - Q[0][0]) / 2, uy = (Q[1][1] - Q[0][1]) / 2;
-    const r = Math.min(Math.hypot(ux, uy), Math.hypot(Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]) / 2) * 0.42;
-    [-0.3, 0.3].forEach((t) => doc.circle("PG-OBS-XFMR", cx + ux * t * 2 * 0.55, cy + uy * t * 2 * 0.55, r)); },
+    const hw = Math.hypot(ux, uy) || 1, r = Math.min(hw * 2 * 0.85 / 3, Math.hypot(Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]) * 0.4);
+    // หม้อแปลง = วงกลม 2 วงซ้อนกัน (ผู้ใช้วาดชี้)
+    [-0.5, 0.5].forEach((t) => doc.circle("PG-OBS-XFMR", cx + ux / hw * t * r, cy + uy / hw * t * r, r)); },
 };
 /* บันไดลิง: ครึ่งวงกลม (กรง) ปิดด้วยเส้นตั้ง + ขาสองเส้นยื่นไปทางตึก ปลายเปิด (ผู้ใช้วาดชี้) ในกรอบ Q — ใช้ทั้งในผังและช่อง LEGEND (ผู้ใช้ส่งตัวอย่าง) */
 function p3LadderSym(line, Q) {
@@ -860,6 +861,8 @@ function p3LadderSym(line, Q) {
 function p3TapSym(doc, x, y, r) {
   doc.circle("PG-OBS-TAP", x, y, r);
   doc.line("PG-OBS-TAP", x - r * 0.7, y - r * 0.7, x + r * 0.7, y + r * 0.7); doc.line("PG-OBS-TAP", x - r * 0.7, y + r * 0.7, x + r * 0.7, y - r * 0.7);
+  // ลิ่มบน-ล่างระหว่างกากบาททึบ (ผู้ใช้วาดชี้) — เติมเป็นพัดสามเหลี่ยมจากจุดกลางถึงขอบวง
+  [0.25, 1.25].forEach((a0) => { for (let j = 0; j < 6; j++) { const q = (t) => [x + r * Math.cos(Math.PI * (a0 + t / 12)), y + r * Math.sin(Math.PI * (a0 + t / 12))]; doc.solid("PG-OBS-TAP", [x, y], q(j), q(j + 1)); } });
 }
 /* แถบทางเดินช่วง A→B กว้าง 2hw: ขอบ + เส้นทแยงไขว้ ±45° ทุกระยะ sp ตัดให้อยู่ในแถบ */
 function p3WalkBand(line, A, B, hw, sp) {
@@ -951,7 +954,7 @@ function p3Legend(pen, x, yTop, w, hh, rh, rows) {
         pen.rect(S.lay, qx, by, qw, bh);
         if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, qx, by, qx + qw, by + bh);
         if (S.mark === "invst") pen.line(S.lay, qx, by + bh, qx + qw, by);
-        if (S.mark === "xfmr") [-0.22, 0.22].forEach((t) => pen.circle(S.lay, qx + qw / 2 + t * qw, cy, bh * 0.32));
+        if (S.mark === "xfmr") { const r = Math.min(qw * 0.85 / 3, bh * 0.4); [-0.5, 0.5].forEach((t) => pen.circle(S.lay, qx + qw / 2 + t * r, cy, r)); }
       }
     }
     const th = 2.2;

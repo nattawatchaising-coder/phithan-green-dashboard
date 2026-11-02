@@ -9987,16 +9987,19 @@ function Plan3DStudio({
         stroke: c,
         strokeWidth: 1.2,
         style: NS
-      }), T === "xfmr" && [-0.18, 0.18].map((u, k) => React.createElement("circle", {
-        key: k,
-        cx: (+o.x || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).x,
-        cy: (+o.z || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).z,
-        r: Math.min(+o.w || 1, +o.d || 1) * 0.28,
-        fill: "none",
-        stroke: c,
-        strokeWidth: 1.2,
-        style: NS
-      })));
+      }), T === "xfmr" && [-0.5, 0.5].map((u, k) => {
+        const r = Math.min((+o.w || 1) * 0.85 / 3, (+o.d || 1) * 0.4);
+        return React.createElement("circle", {
+          key: k,
+          cx: (+o.x || 0) + p3sRot(u * r, 0, (+o.rot || 0) * P3_DEG).x,
+          cy: (+o.z || 0) + p3sRot(u * r, 0, (+o.rot || 0) * P3_DEG).z,
+          r: r,
+          fill: "none",
+          stroke: c,
+          strokeWidth: 1.2,
+          style: NS
+        });
+      }));
     }
     if (T === "ladder") return React.createElement("g", {
       key: o.id

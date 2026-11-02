@@ -4383,7 +4383,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       return <g key={o.id}><polygon points={ptsStr(R)} fill="rgba(255,255,255,.75)" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : c} strokeWidth={isSel ? 2.4 : 1.6} style={NS} />
         {T !== "xfmr" && <line x1={R[0].x} y1={R[0].z} x2={R[2].x} y2={R[2].z} stroke={c} strokeWidth={1.2} style={NS} />}
         {T === "invst" && <line x1={R[1].x} y1={R[1].z} x2={R[3].x} y2={R[3].z} stroke={c} strokeWidth={1.2} style={NS} />}
-        {T === "xfmr" && [-0.18, 0.18].map((u, k) => <circle key={k} cx={(+o.x || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).x} cy={(+o.z || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).z} r={Math.min(+o.w || 1, +o.d || 1) * 0.28} fill="none" stroke={c} strokeWidth={1.2} style={NS} />)}</g>; }
+        {T === "xfmr" && [-0.5, 0.5].map((u, k) => { const r = Math.min((+o.w || 1) * 0.85 / 3, (+o.d || 1) * 0.4); return <circle key={k} cx={(+o.x || 0) + p3sRot(u * r, 0, (+o.rot || 0) * P3_DEG).x} cy={(+o.z || 0) + p3sRot(u * r, 0, (+o.rot || 0) * P3_DEG).z} r={r} fill="none" stroke={c} strokeWidth={1.2} style={NS} />; })}</g>; }
     if (T === "ladder") return <g key={o.id}>
       <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill="rgba(239,68,68,.06)" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 3" style={NS} />
       <polygon points={ptsStr(p3sObsRect(o, 0))} fill="rgba(203,213,225,.75)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />

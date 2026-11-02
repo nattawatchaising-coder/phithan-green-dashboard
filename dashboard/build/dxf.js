@@ -1107,7 +1107,7 @@ function pgSvg(opt) {
         Y
       };
       const parts = body.map(b => b[2](F));
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n(w) + " " + n(h) + '" width="' + n(w) + '" height="' + n(h) + '" style="width:100%;height:auto;display:block"' + ' preserveAspectRatio="xMidYMid meet">' + '<rect x="0" y="0" width="' + n(w) + '" height="' + n(h) + '" fill="#ffffff"/>' + '<g stroke-linecap="round" stroke-linejoin="round">' + parts.join("") + "</g></svg>";
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n(w) + " " + n(h) + '" width="' + n(w) + '" height="' + n(h) + '" style="width:100%;height:auto;display:block"' + ' preserveAspectRatio="xMidYMid meet">' + '<rect x="0" y="0" width="' + n(w) + '" height="' + n(h) + '" fill="#ffffff"/>' + '<g stroke-linecap="square" stroke-linejoin="miter">' + parts.join("") + "</g></svg>";
     }
   };
   return api;
