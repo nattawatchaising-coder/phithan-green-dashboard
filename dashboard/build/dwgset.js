@@ -894,11 +894,15 @@ function dsWalkSheet(st, job, media) {
   const rows = [["NO.", "WIDTH", "LENGTH", "SHEET"]];
   let tot = 0,
     sh = 0;
+  const lw = p3PanelLw(P.k);
+  P.doc.layer("PG-OBS-WALKWAY", 40, "CONTINUOUS", lw);
+  P.doc.layer("PG-OBS-WALKWAY-H", 40, "CONTINUOUS", lw > 13 ? 9 : 5);
   obs.forEach((o, i) => {
     const pts = dsPath(o),
       L = dsLen(pts),
-      w = +o.d || 0.3;
-    P.doc.pline(DL("walk"), pts, false, Math.max(w, 0.6 * P.k));
+      w = +o.d || 0.3,
+      hw = Math.max(0.05, w / 2);
+    for (let j = 1; j < pts.length; j++) p3WalkBand((Ly, a, b) => P.doc.line(Ly, a[0], a[1], b[0], b[1]), pts[j - 1], pts[j], hw, Math.max(hw * 0.6, 0.7 * P.k));
     dsTag(P, pts, "W" + (i + 1));
     const n = Math.ceil(L / sl - 1e-9);
     tot += L;

@@ -572,9 +572,13 @@ function dsWalkSheet(st, job, media) {
   try { sl = B.walkLenOf ? +B.walkLenOf(job && job.boq) || 2.44 : 2.44; } catch (e) { sl = 2.44; }
   const rows = [["NO.", "WIDTH", "LENGTH", "SHEET"]];
   let tot = 0, sh = 0;
+  /* แถบลายตาข่ายไขว้เหลืองแบบผังติดตั้ง (ผู้ใช้ 2026-11-02 "ทำไมไม่เป็นแบบนี้") — แทนเส้นทึบหนา */
+  const lw = p3PanelLw(P.k);
+  P.doc.layer("PG-OBS-WALKWAY", 40, "CONTINUOUS", lw);
+  P.doc.layer("PG-OBS-WALKWAY-H", 40, "CONTINUOUS", lw > 13 ? 9 : 5);
   obs.forEach((o, i) => {
-    const pts = dsPath(o), L = dsLen(pts), w = +o.d || 0.3;
-    P.doc.pline(DL("walk"), pts, false, Math.max(w, 0.6 * P.k));
+    const pts = dsPath(o), L = dsLen(pts), w = +o.d || 0.3, hw = Math.max(0.05, w / 2);
+    for (let j = 1; j < pts.length; j++) p3WalkBand((Ly, a, b) => P.doc.line(Ly, a[0], a[1], b[0], b[1]), pts[j - 1], pts[j], hw, Math.max(hw * 0.6, 0.7 * P.k));
     dsTag(P, pts, "W" + (i + 1));
     const n = Math.ceil(L / sl - 1e-9);
     tot += L; sh += n;
