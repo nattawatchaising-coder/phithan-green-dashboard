@@ -1890,17 +1890,19 @@ function pgModuleDatasheet(pen, R, o) {
     Y0 = R[1],
     X1 = R[2],
     Y1 = R[3];
-  const ts = 1.6,
-    tl = 1.5;
+  const SR = !!o.secRight;
+  const ts = SR ? 1.9 : 1.6,
+    tl = SR ? 1.8 : 1.5,
+    tc = SR ? 2.8 : 2.4;
   pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", {
     valign: 1
   });
-  const yb = Y0 + 33,
+  const yb = Y0 + (SR ? 9 : 33),
     yt = Y1 - 14,
     hv = yt - yb,
     s = hv / H,
     wv = W * s;
-  const need = 12 + wv + 24 + wv + 8,
+  const need = 12 + wv + 24 + wv + 8 + (SR ? 40 : 0),
     ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
   const sx = ox + 1,
     fx = ox + 12,
@@ -1951,7 +1953,7 @@ function pgModuleDatasheet(pen, R, o) {
       valign: 3
     });
   };
-  const cap = (cx, y, txt) => pen.text(T, cx, y, 2.4, txt, {
+  const cap = (cx, y, txt) => pen.text(T, cx, y, tc, txt, {
     align: 1,
     valign: 1
   });
@@ -2034,10 +2036,9 @@ function pgModuleDatasheet(pen, R, o) {
     rot: 90
   });
   cap(bx + wv / 2, yb - 5.2, "Back View");
-  const sec = (cx, base, title) => {
-    const ss = 11 / F,
-      x0 = cx - base * ss / 2 - 2,
-      y0 = Y0 + 7;
+  const sec = (cx, y0, base, title) => {
+    const ss = (SR ? 14 : 11) / F,
+      x0 = cx - base * ss / 2 - 2;
     const P = (x, y) => [x0 + x * ss, y0 + y * ss];
     const hc = F - 9,
       yl0 = hc + 1.4,
@@ -2066,10 +2067,16 @@ function pgModuleDatasheet(pen, R, o) {
     tag(pF[0], pF[1], lx - 2, pF[1], "Frame");
     dimV(y0, y0 + F * ss, x0, x0 - 2.4, String(F));
     dimH(x0, x0 + base * ss, y0, y0 - 2.6, String(base));
-    cap(x0 + base * ss / 2, Y0 - 0.6, title);
+    cap(x0 + base * ss / 2, y0 - 7.6, title);
   };
-  sec(fx + wv / 2, 30, "A-A");
-  sec(bx + wv / 2, 25, "B-B");
+  if (SR) {
+    const cxs = bx + wv + 20;
+    sec(cxs, yb + hv * 0.58, 30, "A-A");
+    sec(cxs, yb + hv * 0.1, 25, "B-B");
+  } else {
+    sec(fx + wv / 2, Y0 + 7, 30, "A-A");
+    sec(bx + wv / 2, Y0 + 7, 25, "B-B");
+  }
   return {
     x0: ox,
     x1: bx + wv + 8

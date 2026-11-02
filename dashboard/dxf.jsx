@@ -1279,11 +1279,13 @@ function pgModuleDatasheet(pen, R, o) {
   const W = +o.wMm || 1134, H = +o.hMm || 2382, F = +o.tMm || 30;
   const rowsH = Math.max(4, Math.round((+o.cells || 144) / 12));   // แถวเซลล์ต่อครึ่งแผง (6 คอลัมน์ × 2 ครึ่ง)
   const X0 = R[0], Y0 = R[1], X1 = R[2], Y1 = R[3];
-  const ts = 1.6, tl = 1.5;   // ตัวเลขบอกขนาด · ป้ายชี้
+  /* o.secRight: รูปตัด A-A/B-B ซ้อนกันทางขวารูปหลัง รูปหน้า/หลังสูงเต็มกรอบ ตัวหนังสือใหญ่ขึ้น (ผู้ใช้ 2026-11-02 "ขยายให้ใหญ่หน่อย") */
+  const SR = !!o.secRight;
+  const ts = SR ? 1.9 : 1.6, tl = SR ? 1.8 : 1.5, tc = SR ? 2.8 : 2.4;   // ตัวเลขบอกขนาด · ป้ายชี้ · ชื่อรูป
   pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });
   /* ขนาดรูปหน้า/หลังตามพื้นที่ */
-  const yb = Y0 + 33, yt = Y1 - 14, hv = yt - yb, s = hv / H, wv = W * s;
-  const need = 12 + wv + 24 + wv + 8, ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
+  const yb = Y0 + (SR ? 9 : 33), yt = Y1 - 14, hv = yt - yb, s = hv / H, wv = W * s;
+  const need = 12 + wv + 24 + wv + 8 + (SR ? 40 : 0), ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
   const sx = ox + 1, fx = ox + 12, bx = fx + wv + 24;
   /* หัวลูกศร: ปลาย (x, y) ชี้ทิศ (dx, dy) */
   const arrow = (x, y, dx, dy) => {
@@ -1314,7 +1316,7 @@ function pgModuleDatasheet(pen, R, o) {
     pen.text(T, lx + 0.3, ly + 0.5, tl, l1, { valign: 1 });
     if (l2) pen.text(T, lx + 0.3, ly - 0.5, tl, l2, { valign: 3 });
   };
-  const cap = (cx, y, txt) => pen.text(T, cx, y, 2.4, txt, { align: 1, valign: 1 });
+  const cap = (cx, y, txt) => pen.text(T, cx, y, tc, txt, { align: 1, valign: 1 });
 
   /* ── ด้านข้าง (ความหนากรอบ) ── */
   const sw = Math.max(0.7, F * s);
@@ -1377,8 +1379,8 @@ function pgModuleDatasheet(pen, R, o) {
   cap(bx + wv / 2, yb - 5.2, "Back View");
 
   /* ── รูปตัดกรอบ A-A / B-B (โปรไฟล์อะลูมิเนียม + ลามิเนต + ซิลิโคน) ── */
-  const sec = (cx, base, title) => {
-    const ss = 11 / F, x0 = cx - base * ss / 2 - 2, y0 = Y0 + 7;
+  const sec = (cx, y0, base, title) => {
+    const ss = (SR ? 14 : 11) / F, x0 = cx - base * ss / 2 - 2;
     const P = (x, y) => [x0 + x * ss, y0 + y * ss];
     const hc = F - 9, yl0 = hc + 1.4, yl1 = yl0 + 3.4, yp = yl1 + 0.6, rr = (F - yp) / 2;
     const pl = (pts, closed) => pen.pline(L, pts.map((q) => P(q[0], q[1])), closed);
@@ -1404,10 +1406,16 @@ function pgModuleDatasheet(pen, R, o) {
     tag(pF[0], pF[1], lx - 2, pF[1], "Frame");
     dimV(y0, y0 + F * ss, x0, x0 - 2.4, String(F));
     dimH(x0, x0 + base * ss, y0, y0 - 2.6, String(base));
-    cap(x0 + base * ss / 2, Y0 - 0.6, title);
+    cap(x0 + base * ss / 2, y0 - 7.6, title);
   };
-  sec(fx + wv / 2, 30, "A-A");
-  sec(bx + wv / 2, 25, "B-B");
+  if (SR) {
+    const cxs = bx + wv + 20;
+    sec(cxs, yb + hv * 0.58, 30, "A-A");
+    sec(cxs, yb + hv * 0.1, 25, "B-B");
+  } else {
+    sec(fx + wv / 2, Y0 + 7, 30, "A-A");
+    sec(bx + wv / 2, Y0 + 7, 25, "B-B");
+  }
   return { x0: ox, x1: bx + wv + 8 };
 }
 

@@ -1171,25 +1171,25 @@ function dsStrDetSheet(st, job, media) {
   });
   const n = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || b - a)[0] || 10;
   const lx = A.x0 + 4,
-    sx = A.x0 + 104,
+    sx = A.x0 + 156,
     lw = 110,
     bandTop = A.y0 + 92;
   const pairs = [["PV MODULE", M ? M.panel.model + " " + M.panel.wp + " Wp" : "-"], ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"], ["DC CABLE", M && M.pro && M.pro.dcCable || "PV1-F 1x4 Sq.mm. 1.5kV DC"]];
   if (M && M.pro && M.pro.vocMax) pairs.push(["Voc @" + M.pro.tMin + "%%dC", M.pro.vocMax + " V (MAX " + M.pro.maxVdc + " V)"]);
-  const specTop = A.y0 + 22 + (pairs.length + 1) * 4.6;
+  const specTop = bandTop - 2;
   const used = pgSpecBlock(pen, sx, specTop, lw, "STRING DATA", pairs, {
     rh: 4.6,
     th: PG_TS.cell,
     kw: 0.3
   });
-  const lgx = sx + lw + 12,
+  const lgx = sx,
     lrh = 4.6,
     lth = PG_TS.cell,
     sw = 20;
   const OP = M && M.opt;
   const lgRows = OP ? [[DL("dcp"), "สาย DC (+) ไปตู้ DC / สายต่อระหว่างตัวคุมแผง"], [DL("ret"), "สาย DC (-) กลับไปตู้ DC (เดินขนานแนวสตริง)"], [DL("optIn"), "สายแผงเข้าตัวคุมแผง (สายของตัวคุม)"]] : [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"], [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]];
   const lgw = sw + 4 + Math.max.apply(null, lgRows.map(r => pgTextW(r[1], lth)));
-  let ly = specTop;
+  let ly = specTop - used - 6;
   pen.solid(PG_TBL.head, [lgx, ly - lrh], [lgx + lgw, ly - lrh], [lgx + lgw, ly], [lgx, ly]);
   pen.rect(PG_TBL.line, lgx, ly - lrh, lgw, lrh);
   pen.text(T, lgx + 2, ly - lrh + (lrh - lth * 1.15) / 2, lth * 1.15, "LEGEND");
@@ -1208,6 +1208,7 @@ function dsStrDetSheet(st, job, media) {
   S.doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
   S.doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
   pgModuleDatasheet(pen, [lx, A.y0 + 6, sx - 6, bandTop - 2], {
+    secRight: true,
     wMm: Math.round((+ps.width || 1.134) * 1000),
     hMm: Math.round((+ps.length || 2.382) * 1000),
     tMm: +ps.frame || 30,
