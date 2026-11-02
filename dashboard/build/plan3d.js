@@ -5437,11 +5437,6 @@ async function p3PrepSet(st, job, photos, design) {
       en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION",
       fn: o => p3CuSheet(st, job, o)
     });
-    list.push({
-      key: "DC",
-      label: "ต่อสาย DC",
-      fn: o => p3DcSheet(st, job, o)
-    });
     add("STRDET");
     add("GROUND");
     add("GROUND2");

@@ -3440,7 +3440,7 @@ async function p3PrepSet(st, job, photos, design) {
   const list = [plan];
   if (design) {
     /* ชุด SHOP DRAWING ตามแบบที่บริษัทใช้จริง (dwgset.jsx · ขั้นที่ 1 ต.ค. 2026): ปก → รายการประกอบแบบ → ผัง → ผังวางแผง
-       → ผังสตริง → SLD → ต่อสาย DC → รูปการเดินสายสตริง → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
+       → ผังสตริง → SLD → รูปการเดินสายสตริง → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
        แผ่นที่ไม่มีข้อมูลรองรับ (ไม่มีราง ฯลฯ) ไม่ขึ้น */
     const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
     const add = (k) => { if (X[k]) list.push(X[k]); };
@@ -3473,7 +3473,7 @@ async function p3PrepSet(st, job, photos, design) {
         fn: (o) => p3CuSheet(st, job, Object.assign({ mv: MV, mvT: t }, o)) }));
     if (MS.pro && (MS.pro.home || !MV) && MS.mppt && MS.mode === "string" && MS.mppt.rows.some((r) => r.ins.length) && typeof pgCuSheet === "function")
       list.push({ key: "CU", gk: "SLD", label: MS.pro.home ? "ต่อเข้าตู้ไฟบ้าน" : "ต่อเข้าตู้ MDB ลูกค้า", en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION", fn: (o) => p3CuSheet(st, job, o) });
-    list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
+    /* แผ่นต่อสาย DC (p3DcSheet) เอาออกจากชุด — ผู้ใช้ 2026-11-02 "หน้านี่ไม่เอาละ" · ฟังก์ชันยังเก็บไว้ */
     add("STRDET");   // รูปการเดินสายสตริงต่อจากแผ่นต่อสาย DC (ผู้ใช้ 2026-11-02 "ย้ายไปอยู่หน้า 11" — เดิมต่อจากผังสตริง)
     add("GROUND"); add("GROUND2"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
