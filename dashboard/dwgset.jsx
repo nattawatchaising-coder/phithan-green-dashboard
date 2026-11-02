@@ -1049,10 +1049,11 @@ function dsRoofMats(st) {
 }
 /* แผ่นรายละเอียดรางไฟ/ท่อไฟ — ลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (racevec.js) ผู้ใช้ 2026-11-02 "ซ้ายรางไฟ หลังคาครีบล็อก ขวาท่อไฟ หลังคาเมทัลชีท … แยกกัน สำหรับหลังคาแบบไหน"
    RTK = PERFORATED TRAY บนหลังคาคลิปล็อก · RTM = IMC CONDUIT บนหลังคาเมทัลชีท/แซนวิช — แสดงเฉพาะครึ่งที่งานมีหลังคาแบบนั้น
+   RTT = PERFORATED TRAY บนหลังคาเมทัลชีท (ผู้ใช้ส่ง PDF 2026-11-02 "อันนี้รางไฟ เมทัลชีท") — หลังคาเมทัลชีทที่งานมีรางไฟใช้ RTT แทนท่อ RTM
    มีครึ่งเดียว = ขยายพอดีพื้นที่วาด · มีทั้งคู่ = วางคู่กันแบบต้นฉบับ มีเส้นแบ่งกลาง */
 function dsRaceParts(st) {
   const m = dsRoofMats(st), V = window.DS_VEC || {};
-  return [m.indexOf("kliplok") >= 0 && V.RTK && "RTK", (m.indexOf("metal") >= 0 || m.indexOf("sandwich") >= 0) && V.RTM && "RTM"].filter(Boolean);
+  return [m.indexOf("kliplok") >= 0 && V.RTK && "RTK", (m.indexOf("metal") >= 0 || m.indexOf("sandwich") >= 0) && (dsObs(st, "tray").length && V.RTT ? "RTT" : V.RTM && "RTM")].filter(Boolean);
 }
 function dsRaceSheet(st, job, media) {
   media = media || {};
@@ -1062,14 +1063,12 @@ function dsRaceSheet(st, job, media) {
   const LY = { k: "DS-RCW", g: "DS-RCW-G", l: "DS-RCW-L", d: "DS-RCW-D", w: "DS-RCW-W" };
   const pen = S.pen, A = S.A, V = window.DS_VEC || {}, P = dsRaceParts(st).map((n) => V[n]);
   if (!P.length) return S.doc.build();
-  const W = P.reduce((a, v) => a + v.w, 0), H = Math.max.apply(null, P.map((v) => v.h));
-  const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / W, (A.y1 - A.y0 - 2 * m) / H);
-  let x = (A.x0 + A.x1 - W * sc) / 2;
-  const yT = (A.y0 + A.y1 + H * sc) / 2;
-  dsRaceParts(st).forEach((n, i) => {
-    if (i) pen.line(LY.k, x, yT, x, yT - H * sc);
-    dsVec(pen, n, x, yT, sc, LY);
-    x += V[n].w * sc;
+  /* แบ่งช่องกว้างเท่ากันตามจำนวนรูป · แต่ละรูปขยายพอดีช่องของตัวเอง จัดกลาง (ต้นฉบับคนละไฟล์ขนาดไม่เท่ากัน) */
+  const m = 3, sw = (A.x1 - A.x0) / P.length, hA = A.y1 - A.y0 - 2 * m;
+  P.forEach((v, i) => {
+    const x0 = A.x0 + i * sw, sc = Math.min((sw - 2 * m) / v.w, hA / v.h);
+    if (i) pen.line(LY.k, x0, A.y1 - m, x0, A.y0 + m);
+    dsVec(pen, dsRaceParts(st)[i], x0 + (sw - v.w * sc) / 2, (A.y0 + A.y1 + v.h * sc) / 2, sc, LY);
   });
   return S.doc.build();
 }
