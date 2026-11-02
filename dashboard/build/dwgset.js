@@ -1528,19 +1528,30 @@ const DS_ART_TX = {
 function dsHasMetal(st) {
   return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
 }
-function dsVec(pen, name, x0, yTop, sc, LY) {
+function dsVec(pen, name, x0, yTop, sc, LY, hide) {
   const a = (window.DS_VEC || {})[name];
   if (!a) return false;
-  const q = a.q || 1;
+  const q = a.q || 1,
+    H = hide || [];
   a.d.split(";").forEach(c => {
     const t = c[0],
       n = c.slice(1).split(",").map(Number),
-      p = [];
+      p = [],
+      b = [1e9, 1e9, -1e9, -1e9];
     for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
       x = i ? x + n[i] : n[i];
       y = i ? y + n[i + 1] : n[i + 1];
+      if (H.length) {
+        const u = x / q,
+          v = y / q;
+        b[0] = Math.min(b[0], u);
+        b[1] = Math.min(b[1], v);
+        b[2] = Math.max(b[2], u);
+        b[3] = Math.max(b[3], v);
+      }
       p.push([x0 + x / q * sc, yTop - y / q * sc]);
     }
+    if (H.some(h => b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
     const L = LY[t.toLowerCase()] || LY.k;
     if (t !== t.toLowerCase()) {
       for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
@@ -1550,6 +1561,7 @@ function dsVec(pen, name, x0, yTop, sc, LY) {
   });
   return true;
 }
+const DS_MOUNT_TX = [[102.3, 119.2, 127.5, 126.3, "L"], [302.1, 119.2, 327.3, 126.3, "L"], [52.7, 142.1, 70.8, 149.2, "E"], [103, 142.1, 126.7, 149.2, "M"], [158.9, 142.1, 177, 149.2, "E"], [252.5, 142.1, 270.5, 149.2, "E"], [302.7, 142.1, 326.5, 149.2, "M"], [358.7, 142.1, 376.8, 149.2, "E"], [413.9, 206.2, 421.1, 229.1, "W", 1], [413.9, 272.3, 421.1, 295.1, "W", 1], [96, 211.1, 136.8, 215.8, "PV", 0, 1], [294.6, 211.1, 335.4, 215.8, "PV", 0, 1], [96, 277.2, 136.8, 281.8, "PV", 0, 1], [294.6, 277.2, 335.4, 281.8, "PV", 0, 1], [107.8, 218.8, 125.2, 223.3, "WP", 0, 1], [306.3, 218.8, 323.8, 223.3, "WP", 0, 1], [107.8, 284.9, 125.2, 289.5, "WP", 0, 1], [306.3, 284.9, 323.8, 289.5, "WP", 0, 1], [106.1, 393.3, 132.2, 400.3, "L"], [301.9, 393.3, 328, 400.3, "L"], [56.8, 417.6, 74.8, 424.8, "E"], [106.9, 417.6, 130.8, 424.8, "M"], [163.1, 417.6, 181.1, 424.8, "E"], [252.5, 417.6, 270.6, 424.8, "E"], [302.8, 417.6, 326.7, 424.8, "M"], [358.8, 417.6, 376.9, 424.8, "E"], [103.8, 546.7, 127.2, 553.8, "W"], [169.9, 546.7, 193.2, 553.8, "W"], [235.9, 546.7, 259.2, 553.8, "W"], [302.1, 546.7, 325.3, 553.8, "W"]];
 function dsMountSheet(st, job, media) {
   media = media || {};
   const S = dsMm(st, job, media, "MOUNT", null);
@@ -1566,12 +1578,37 @@ function dsMountSheet(st, job, media) {
     sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
   const x0 = (A.x0 + A.x1 - v.w * sc) / 2,
     yT = (A.y0 + A.y1 + v.h * sc) / 2;
+  const ps = (window.BOQ && window.BOQ.PANELS || []).find(p => p.model === (st.sys || {}).panelModel) || {};
+  const L = Math.round((+ps.length || 0) * 1000),
+    W = Math.round((+ps.width || 0) * 1000),
+    wp = +st.wp || 0;
+  const E = L ? Math.round(L * 526 / 2382) : 0;
+  const val = {
+    L,
+    W,
+    E,
+    M: L - 2 * E,
+    PV: "PV MODULE",
+    WP: wp ? wp + "W" : ""
+  };
+  const TX = DS_MOUNT_TX.filter(t => val[t[4]]);
   dsVec(pen, "MOUNT", x0, yT, sc, {
     k: "DS-MNT",
     g: "DS-MNT-G",
     l: "DS-MNT-L",
     d: "DS-MNT-D",
     w: "DS-MNT-W"
+  }, TX);
+  TX.forEach(t => {
+    const r = t[5] === 1,
+      cx = x0 + (t[0] + t[2]) / 2 * sc,
+      cy = yT - (t[1] + t[3]) / 2 * sc,
+      cap = (r ? t[2] - t[0] : t[3] - t[1]) * sc;
+    pen.text(t[6] ? "DS-MNT-G" : PG_TBL.txt, cx, cy, cap / 0.72, String(val[t[4]]), {
+      align: 1,
+      valign: 2,
+      rot: r ? 90 : 0
+    });
   });
   return S.doc.build();
 }

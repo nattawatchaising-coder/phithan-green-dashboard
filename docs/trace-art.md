@@ -59,4 +59,7 @@
   - ได้ `window.DS_VEC[NAME] = { w, h, q, d }` ชนิดเส้น k ดำ g เทา l เทาอ่อน d เทาเข้ม w ขาว · ตัวใหญ่ = ระบายทึบ
   - วาดด้วย `dsVec(pen, NAME, x0, yTop, มม.ต่อpt, ชั้น)` ใน dwgset.jsx
   - รองรับ PDF หนึ่งหน้า ไม่ interlace font (ข้ามข้อความ/รูปภาพ — CAD ส่งตัวหนังสือเป็นเส้น)
-- ใช้อยู่: `dashboard/mountvec.js` MOUNT = ทั้งแผ่น TYPICAL MOUNTING STRUCTURE INSTALLATION DETAILS (ไฟล์ R0_SHOP DRAWING P_ONE PLASTEC หน้า 9 · ครอป 38.5,44,1019.8,809.1) — ตัวเลขขนาด/625W/คำสะกดตามต้นฉบับ
+- ใช้อยู่: `dashboard/mountvec.js` MOUNT = ทั้งแผ่น TYPICAL MOUNTING STRUCTURE INSTALLATION DETAILS (ไฟล์ R0_SHOP DRAWING P_ONE PLASTEC หน้า 9 · ครอป 38.5,44,1019.8,809.1) 
+  - **ค่าที่เปลี่ยนตามงาน** (ผู้ใช้ "เปลี่ยนตามแบบที่ใช้จริง"): `DS_MOUNT_TX` กรอบตัวหนังสือในภาพ (pt) → ซ่อนเส้นในกรอบ (`dsVec` hide) แล้วเขียนค่าจริง — ยาวแผง L (2382/2384) · กว้าง W (1134) · ระยะปลาย-ราง E = L×526/2382 · ระยะราง M = L−2E · ป้ายบนแผง "PV MODULE" + st.wp W (เทา) · หาค่าจาก BOQ.PANELS ตาม st.sys.panelModel ไม่พบ = คงต้นฉบับ
+  - หากรอบ: สคริปต์ node ไล่เส้นที่อยู่ในพื้นที่ แล้วดูกรอบตัวอักษร (ตัว 4 มีขีดเฉียงยื่นขวา ต้องเผื่อ)
+  - ข้อความอื่น/คำสะกดตามต้นฉบับ
