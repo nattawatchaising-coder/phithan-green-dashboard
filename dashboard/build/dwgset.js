@@ -1537,7 +1537,9 @@ const DS_ART_TX = {
 function dsHasMetal(st) {
   return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
 }
-function dsVec(pen, name, x0, yTop, sc, LY, hide) {
+const dsCutX = (C, x) => x <= C.x1 ? x : x >= C.x2 ? x - (C.x2 - C.x1) : C.x1;
+const dsCutIn = (C, b) => !!C && b[2] <= C.xmax && C.ys.some(r => b[1] >= r[0] && b[3] <= r[1]) && !(C.keep || []).some(k => b[0] >= k[0] && b[1] >= k[1] && b[2] <= k[2] && b[3] <= k[3]);
+function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
   const a = (window.DS_VEC || {})[name];
   if (!a) return false;
   const q = a.q || 1,
@@ -1545,22 +1547,23 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide) {
   a.d.split(";").forEach(c => {
     const t = c[0],
       n = c.slice(1).split(",").map(Number),
-      p = [],
+      u = [],
       b = [1e9, 1e9, -1e9, -1e9];
     for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
       x = i ? x + n[i] : n[i];
       y = i ? y + n[i + 1] : n[i + 1];
-      if (H.length) {
-        const u = x / q,
-          v = y / q;
-        b[0] = Math.min(b[0], u);
-        b[1] = Math.min(b[1], v);
-        b[2] = Math.max(b[2], u);
-        b[3] = Math.max(b[3], v);
-      }
-      p.push([x0 + x / q * sc, yTop - y / q * sc]);
+      const X = x / q,
+        Y = y / q;
+      b[0] = Math.min(b[0], X);
+      b[1] = Math.min(b[1], Y);
+      b[2] = Math.max(b[2], X);
+      b[3] = Math.max(b[3], Y);
+      u.push([X, Y]);
     }
     if (H.some(h => b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
+    const ct = dsCutIn(cut, b);
+    if (ct && b[0] >= cut.x1 && b[2] <= cut.x2) return;
+    const p = u.map(([X, Y]) => [x0 + (ct ? dsCutX(cut, X) : X) * sc, yTop - Y * sc]);
     const L = LY[t.toLowerCase()] || LY.k;
     if (t !== t.toLowerCase()) {
       for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
@@ -1601,16 +1604,26 @@ function dsMountSheet(st, job, media) {
     WP: wp ? wp + "W" : ""
   };
   const TX = DS_MOUNT_TX.filter(t => val[t[4]]);
+  const cut = dsObs(st, "walkway").length ? null : {
+    x1: 188,
+    x2: 240,
+    xmax: 450,
+    ys: [[100, 352], [380, 503]],
+    keep: [[158, 328, 218, 350]]
+  };
+  const hide = cut ? TX.concat([[185, 184, 231, 196], [186, 456, 290, 502]]) : TX;
   dsVec(pen, "MOUNT", x0, yT, sc, {
     k: "DS-MNT",
     g: "DS-MNT-G",
     l: "DS-MNT-L",
     d: "DS-MNT-D",
     w: "DS-MNT-W"
-  }, TX);
+  }, hide, cut);
   TX.forEach(t => {
+    const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]),
+      sx = x => ct ? dsCutX(cut, x) : x;
     const r = t[5] === 1,
-      cx = x0 + (t[0] + t[2]) / 2 * sc,
+      cx = x0 + (sx(t[0]) + sx(t[2])) / 2 * sc,
       cy = yT - (t[1] + t[3]) / 2 * sc,
       cap = (r ? t[2] - t[0] : t[3] - t[1]) * sc;
     pen.text(t[6] ? "DS-MNT-G" : PG_TBL.txt, cx, cy, cap / 0.72, String(val[t[4]]), {
