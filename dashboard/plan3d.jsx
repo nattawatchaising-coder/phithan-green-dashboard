@@ -500,7 +500,7 @@ const P3_DXF_LAYERS = [
   ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
   /* เส้นหลายจุดของตัวแก้แบบ แยกชั้นละชนิด สี+ความหนาต่างกัน · ท่อน้ำเส้นทึบ (ผู้ใช้ไม่เอาเส้นประ) (ผู้ใช้ 2026-11-02: รางไฟ/ทางเดิน/ท่อน้ำ ต้องแยกกันออก) */
   ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 130, 30], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
-  ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25],
+  ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-OBS-TAG", 7, 18],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
   ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25],
@@ -1096,7 +1096,7 @@ function p3Dxf(st, job, media) {
   const RT = p3RotPt(V.rot || 0);
   const placed = [];
   callouts.forEach((c) => {
-    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, lay = P3_EQUIP_TAG[c.t][0], txt = P3_EQUIP_TAG[c.t][1];
+    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, txt = P3_EQUIP_TAG[c.t][1];
     const th = 2.2 * k, L = pgTextW(txt, 2.2) * k + 2 * k;
     /* เลื่อนเส้นนอนออกไปอีกทีละ 4.5 มม. จนไม่ชนป้ายที่วางแล้ว (อุปกรณ์อยู่ใกล้กัน) */
     let dy = 6, e;
@@ -1105,10 +1105,11 @@ function p3Dxf(st, job, media) {
       const x0 = Math.min(e[0], e[0] + sx * L), x1 = Math.max(e[0], e[0] + sx * L);
       if (!placed.some((q) => Math.abs(q.y - e[1]) < 4.5 * k && q.x0 < x1 && q.x1 > x0)) { placed.push({ y: e[1], x0, x1 }); break; }
     }
-    docRaw.circle(lay, p[0], p[1], 0.45 * k);
-    docRaw.line(lay, p[0], p[1], e[0], e[1]);
-    docRaw.line(lay, e[0], e[1], e[0] + sx * L, e[1]);
-    docRaw.text(lay, sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, { align: sx < 0 ? 2 : 0 });
+    /* เส้น/ชื่อสีดำ · จุดดำทึบ (ผู้ใช้) */
+    for (let j = 0, r = 0.55 * k; j < 16; j++) { const q = (t) => [p[0] + r * Math.cos(Math.PI * t / 8), p[1] + r * Math.sin(Math.PI * t / 8)]; docRaw.solid("PG-OBS-TAG", p, q(j), q(j + 1)); }
+    docRaw.line("PG-OBS-TAG", p[0], p[1], e[0], e[1]);
+    docRaw.line("PG-OBS-TAG", e[0], e[1], e[0] + sx * L, e[1]);
+    docRaw.text("PG-OBS-TAG", sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, { align: sx < 0 ? 2 : 0 });
   });
 
   /* ── สัญลักษณ์ประจำแผ่น (วางเป็นตำแหน่งบนกระดาษ ไม่เลื่อนตามผัง) ── */

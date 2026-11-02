@@ -912,7 +912,7 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 130, 30], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13], ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 130, 30], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13], ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-OBS-TAG", 7, 18], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
 const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
@@ -1780,7 +1780,6 @@ function p3Dxf(st, job, media) {
     const p = RT(c.x, c.y),
       sx = p[0] < V.cx ? -1 : 1,
       sy = p[1] < V.cy ? -1 : 1,
-      lay = P3_EQUIP_TAG[c.t][0],
       txt = P3_EQUIP_TAG[c.t][1];
     const th = 2.2 * k,
       L = pgTextW(txt, 2.2) * k + 2 * k;
@@ -1799,10 +1798,13 @@ function p3Dxf(st, job, media) {
         break;
       }
     }
-    docRaw.circle(lay, p[0], p[1], 0.45 * k);
-    docRaw.line(lay, p[0], p[1], e[0], e[1]);
-    docRaw.line(lay, e[0], e[1], e[0] + sx * L, e[1]);
-    docRaw.text(lay, sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, {
+    for (let j = 0, r = 0.55 * k; j < 16; j++) {
+      const q = t => [p[0] + r * Math.cos(Math.PI * t / 8), p[1] + r * Math.sin(Math.PI * t / 8)];
+      docRaw.solid("PG-OBS-TAG", p, q(j), q(j + 1));
+    }
+    docRaw.line("PG-OBS-TAG", p[0], p[1], e[0], e[1]);
+    docRaw.line("PG-OBS-TAG", e[0], e[1], e[0] + sx * L, e[1]);
+    docRaw.text("PG-OBS-TAG", sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, {
       align: sx < 0 ? 2 : 0
     });
   });
