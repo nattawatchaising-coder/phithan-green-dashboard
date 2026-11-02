@@ -1280,7 +1280,6 @@ function pgModuleDatasheet(pen, R, o) {
   o = o || {};
   const K = o.lay || {}, L = K.line || PG_TBL.line, Tn = K.thin || PG_TBL.txt, D = K.dim || PG_TBL.txt, T = PG_TBL.txt;
   const W = +o.wMm || 1134, H = +o.hMm || 2382, F = +o.tMm || 30;
-  const rowsH = Math.max(4, Math.round((+o.cells || 144) / 12));   // แถวเซลล์ต่อครึ่งแผง (6 คอลัมน์ × 2 ครึ่ง)
   const X0 = R[0], Y0 = R[1], X1 = R[2], Y1 = R[3];
   /* o.secRight: รูปตัด A-A/B-B ซ้อนกันทางขวารูปหลัง รูปหน้า/หลังสูงเต็มกรอบ ตัวหนังสือใหญ่ขึ้น (ผู้ใช้ 2026-11-02 "ขยายให้ใหญ่หน่อย") */
   const SR = !!o.secRight;
@@ -1332,22 +1331,8 @@ function pgModuleDatasheet(pen, R, o) {
   dimH(sx, sx + sw, yt, yt + 3, String(F));
 
   /* ── Front View ── */
-  pen.rect(L, fx, yb, wv, hv);
-  const fi = Math.max(0.35, 12 * s);
-  pen.rect(L, fx + fi, yb + fi, wv - 2 * fi, hv - 2 * fi);
-  {
-    const g = 0.07, cw = (wv - 2 * fi - 0.4) / 6, gm = Math.max(0.45, 18 * s);
-    const half = (hv - 2 * fi - 0.4 - gm) / 2, ch = half / rowsH, nb = 7;
-    for (let k = 0; k < 2; k++) {
-      const yh = yb + fi + 0.2 + k * (half + gm);
-      for (let r = 0; r < rowsH; r++) for (let c = 0; c < 6; c++) {
-        const x0 = fx + fi + 0.2 + c * cw + g, y0 = yh + r * ch + g, w = cw - 2 * g, h = ch - 2 * g;
-        pen.rect(L, x0, y0, w, h);
-        for (let b = 1; b <= nb; b++) pen.line(Tn, x0 + w * b / (nb + 1), y0 + 0.05, x0 + w * b / (nb + 1), y0 + h - 0.05);
-      }
-    }
-    pen.line(L, fx + fi, yb + hv / 2, fx + wv - fi, yb + hv / 2);
-  }
+  /* หน้าแผงแบบเดียวกับแผงในรูปเดินสายสตริง (กรอบคู่ + เซลล์ 6 × 12) แทนเซลล์ละเอียด (ผู้ใช้ 2026-11-02 "เปลี่ยนรูปแผงเป็นแบบนี้") */
+  pgModFace(pen, L, Tn, fx, yb, wv, hv, 6, 12, false);
   dimH(fx, fx + wv, yt, yt + 3, String(W));
   dimV(yb, yt, fx, fx - 4, String(H));
   cap(fx + wv / 2, yb - 5.2, "Front View");

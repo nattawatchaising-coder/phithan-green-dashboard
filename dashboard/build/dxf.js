@@ -1888,7 +1888,6 @@ function pgModuleDatasheet(pen, R, o) {
   const W = +o.wMm || 1134,
     H = +o.hMm || 2382,
     F = +o.tMm || 30;
-  const rowsH = Math.max(4, Math.round((+o.cells || 144) / 12));
   const X0 = R[0],
     Y0 = R[1],
     X1 = R[2],
@@ -1968,29 +1967,7 @@ function pgModuleDatasheet(pen, R, o) {
   const sw = Math.max(0.7, F * s);
   pen.rect(L, sx, yb, sw, hv);
   dimH(sx, sx + sw, yt, yt + 3, String(F));
-  pen.rect(L, fx, yb, wv, hv);
-  const fi = Math.max(0.35, 12 * s);
-  pen.rect(L, fx + fi, yb + fi, wv - 2 * fi, hv - 2 * fi);
-  {
-    const g = 0.07,
-      cw = (wv - 2 * fi - 0.4) / 6,
-      gm = Math.max(0.45, 18 * s);
-    const half = (hv - 2 * fi - 0.4 - gm) / 2,
-      ch = half / rowsH,
-      nb = 7;
-    for (let k = 0; k < 2; k++) {
-      const yh = yb + fi + 0.2 + k * (half + gm);
-      for (let r = 0; r < rowsH; r++) for (let c = 0; c < 6; c++) {
-        const x0 = fx + fi + 0.2 + c * cw + g,
-          y0 = yh + r * ch + g,
-          w = cw - 2 * g,
-          h = ch - 2 * g;
-        pen.rect(L, x0, y0, w, h);
-        for (let b = 1; b <= nb; b++) pen.line(Tn, x0 + w * b / (nb + 1), y0 + 0.05, x0 + w * b / (nb + 1), y0 + h - 0.05);
-      }
-    }
-    pen.line(L, fx + fi, yb + hv / 2, fx + wv - fi, yb + hv / 2);
-  }
+  pgModFace(pen, L, Tn, fx, yb, wv, hv, 6, 12, false);
   dimH(fx, fx + wv, yt, yt + 3, String(W));
   dimV(yb, yt, fx, fx - 4, String(H));
   cap(fx + wv / 2, yb - 5.2, "Front View");

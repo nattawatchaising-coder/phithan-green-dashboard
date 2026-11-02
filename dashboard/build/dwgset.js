@@ -308,9 +308,11 @@ function dsRight(P, rows, cols, notes, align, o) {
   });
   P.tbUsed = used;
   if (mid) dsNoteBlock(pen, mid.x, AR.y0 + 4 + mid.h, mid.w, notes);else if (ST) {
-    const y = ty - used - 8;
-    if (nh) dsNoteBlock(pen, P.RX0, y, P.RW, notes);
-    P.stackBot = y - nh;
+    const y = ty - used - 8,
+      nw = P.RX1 - tx,
+      h2 = nh ? dsNoteH(notes, nw) : 0;
+    if (nh) dsNoteBlock(pen, tx, y, nw, notes);
+    P.stackBot = y - h2;
   } else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
@@ -756,6 +758,7 @@ function dsGroups(panels) {
     };
   });
 }
+const DS_MOD_H = 80;
 function dsPanelSheet(st, job, media) {
   media = media || {};
   const P = dsPlan(st, job, media, "PANEL", {
@@ -897,7 +900,8 @@ function dsPanelSheet(st, job, media) {
     const nh = dsNoteH(P.notes || [], P.RW),
       AR = P.AR;
     const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : P.stackBot != null ? P.stackBot - 6 : P.tbTop - P.tbUsed - 8;
-    const yB = AR.y0 + (P.noteMid || P.stackBot != null ? 1 : 4 + nh + 4);
+    let yB = AR.y0 + (P.noteMid || P.stackBot != null ? 1 : 4 + nh + 4);
+    if (P.stackBot != null) yB = Math.max(yB, yT - DS_MOD_H);
     const fx0 = P.titleTop && P.noteMid ? P.tbX + Math.max(P.tbW || 0, P.noteW || 0) + 10 : P.RX0;
     if (yT - yB >= 30) {
       doc.layer("DS-MOD", 7, "CONTINUOUS", 18);

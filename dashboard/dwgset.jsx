@@ -181,7 +181,8 @@ function dsRight(P, rows, cols, notes, align, o) {
   const used = pgGrid(pen, tx, ty, tw, cw, R, { rh: RH, th: PG_TS.body, headRow: 0, align });
   P.tbUsed = used;
   if (mid) dsNoteBlock(pen, mid.x, AR.y0 + 4 + mid.h, mid.w, notes);
-  else if (ST) { const y = ty - used - 8; if (nh) dsNoteBlock(pen, P.RX0, y, P.RW, notes); P.stackBot = y - nh; }
+  /* หมายเหตุชิดขวาใต้ตาราง ขอบซ้ายตรงกับตาราง (ผู้ใช้ลากลูกศร 2026-11-02) · ตัดบรรทัดตามความกว้างที่เหลือ */
+  else if (ST) { const y = ty - used - 8, nw = P.RX1 - tx, h2 = nh ? dsNoteH(notes, nw) : 0; if (nh) dsNoteBlock(pen, tx, y, nw, notes); P.stackBot = y - h2; }
   else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
@@ -457,6 +458,7 @@ function dsGroups(panels) {
       u: p0.u, v: p0.v };
   });
 }
+const DS_MOD_H = 80;
 function dsPanelSheet(st, job, media) {
   media = media || {};
   const P = dsPlan(st, job, media, "PANEL", { panels: "full", img: true });   // มีภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
@@ -541,7 +543,9 @@ function dsPanelSheet(st, job, media) {
     const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
     const nh = dsNoteH(P.notes || [], P.RW), AR = P.AR;
     const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : P.stackBot != null ? P.stackBot - 6 : P.tbTop - P.tbUsed - 8;
-    const yB = AR.y0 + (P.noteMid || P.stackBot != null ? 1 : 4 + nh + 4);
+    let yB = AR.y0 + (P.noteMid || P.stackBot != null ? 1 : 4 + nh + 4);
+    /* โหมดปกติ: รูปแผงสูงไม่เกิน DS_MOD_H มม. ชิดบนใต้หมายเหตุ (ผู้ใช้ "ขนาดใหญ่ไปอยู่ดี") */
+    if (P.stackBot != null) yB = Math.max(yB, yT - DS_MOD_H);
     /* ชื่อแผ่นขึ้นซ้ายบนแล้ว: รูปใช้ที่ขวาของตาราง/หมายเหตุถึงขอบคอลัมน์ขวา (ผู้ใช้ "ขอแผงใหญ่ขึ้น") */
     const fx0 = P.titleTop && P.noteMid ? P.tbX + Math.max(P.tbW || 0, P.noteW || 0) + 10 : P.RX0;
     if (yT - yB >= 30) {
