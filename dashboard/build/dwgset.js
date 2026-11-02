@@ -1662,6 +1662,32 @@ function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
   });
   return true;
 }
+function dsVecCopy(pen, name, x0, yTop, sc, LY, src, mv, hide) {
+  const a = (window.DS_VEC || {})[name];
+  if (!a) return;
+  const q = a.q || 1;
+  a.d.split(";").forEach(c => {
+    const t = c[0],
+      n = c.slice(1).split(",").map(Number),
+      u = [];
+    for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
+      x = i ? x + n[i] : n[i];
+      y = i ? y + n[i + 1] : n[i + 1];
+      u.push([x / q, y / q]);
+    }
+    if (!u.every(([X, Y]) => X >= src[0] && X <= src[2] && Y >= src[1] && Y <= src[3])) return;
+    if ((hide || []).some(h => u.every(([X, Y]) => X >= h[0] - 0.6 && X <= h[2] + 0.6 && Y >= h[1] - 0.6 && Y <= h[3] + 0.6))) return;
+    const L = LY[t.toLowerCase()] || LY.k;
+    mv.forEach(([dx, dy]) => {
+      const p = u.map(([X, Y]) => [x0 + (X + dx) * sc, yTop - (Y + dy) * sc]);
+      if (t !== t.toLowerCase()) {
+        for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
+        return;
+      }
+      for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+    });
+  });
+}
 const DS_GND_LY = {
   k: "DS-GND",
   g: "DS-GND-G",
@@ -2007,7 +2033,33 @@ function dsGroundDetSheet(st, job, media) {
       sc = Math.min((A.x1 - A.x0 - 2 * m) / gv.w, (A.y1 - A.y0 - 2 * m) / gv.h);
     const x0 = (A.x0 + A.x1 - gv.w * sc) / 2,
       yT = (A.y0 + A.y1 + gv.h * sc) / 2;
-    dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, [[548, -1, 560, 2]].concat(dsObs(st, "ladder").length ? [] : [[480.5, 344.3, 678.5, 553.3]]));
+    let home = false;
+    try {
+      home = !!((p3SldModel(st, job, media.design) || {}).pro || {}).home;
+    } catch (e) {
+      home = false;
+    }
+    const tray = dsObs(st, "tray").length > 0;
+    const ladder = dsObs(st, "ladder").length > 0;
+    const hide = [[548, -1, 560, 2]];
+    if (!ladder) hide.push([480.5, 344.3, 678.5, 553.3]);
+    if (!tray) hide.push([470, 95, 690, 280], [353.5, 192.3, 404, 197], [706.4, 653.1, 756.5, 657.8]);
+    const txt = home ? [[353.7, 184.6, 401, 190.6], [706.4, 645.4, 753.6, 651.2], [907.5, 325.8, 954.6, 331.8]] : [];
+    const yMid = 326,
+      mv = [];
+    const DA = [695, 40, 976, 190],
+      DB = [695, 190, 976, 380],
+      DC = [760, 380, 976, 653];
+    if (tray && !ladder) mv.push([[470, 90, 695, 285], 0, yMid - (99.4 + 271.7) / 2]);else if (!tray && ladder) mv.push([[480, 340, 690, 560], 0, yMid - (344.3 + 553.3) / 2]);else if (!tray && !ladder) {
+      const y0 = yMid - (126.6 + 25 + 128.4) / 2;
+      mv.push([DA, 580 - (741.7 + 917.2) / 2, y0 - 45.5], [DB, 580 - (729.7 + 954.1) / 2, y0 + 126.6 + 25 - 248.7], [DC, 0, yMid - (397.9 + 650.8) / 2]);
+    }
+    dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, hide.concat(txt, mv.map(m => m[0])));
+    mv.forEach(m => dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, m[0], [[m[1], m[2]]], txt));
+    if (home) {
+      const mB = mv.find(m => m[0] === DB) || [0, 0, 0];
+      dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, [353.7, 161.5, 398.7, 167.5], [[0, 23.1], [352.7, 483.9], [553.8 + mB[1], 164.3 + mB[2]]]);
+    }
     return S.doc.build();
   }
   const cols = [[85, 135], [137, 260], [262, 385]],
