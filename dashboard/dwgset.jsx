@@ -771,17 +771,25 @@ function dsStrDetSheet(st, job, media) {
   /* ข้อมูลสตริง + LEGEND ลงล่าง ชิดระดับฐานรูปแผงซ้าย (ผู้ใช้ย้ายลง) */
   const specTop = A.y0 + 22 + (pairs.length + 1) * 4.6;
   const used = pgSpecBlock(pen, sx, specTop, lw, "STRING DATA", pairs, { rh: 4.6, th: PG_TS.cell, kw: 0.3 });
-  const lgx = sx + lw + 12;
-  let ly = specTop - 2;
-  pen.text(T, lgx, ly, PG_TS.body, "LEGEND");
+  /* LEGEND เป็นตารางแบบเดียวกับ STRING DATA (ผู้ใช้ 2026-11-02 "ทำเป็นตาราง"): หัวพื้นเทา · ช่องซ้ายตัวอย่างเส้น · ช่องขวาคำอธิบาย */
+  const lgx = sx + lw + 12, lrh = 4.6, lth = PG_TS.cell, sw = 20;
   const OP = M && M.opt;
-  (OP ? [[DL("dcp"), "สาย DC (+) ไปตู้ DC / สายต่อระหว่างตัวคุมแผง"], [DL("ret"), "สาย DC (-) กลับไปตู้ DC (เดินขนานแนวสตริง)"],
+  const lgRows = (OP ? [[DL("dcp"), "สาย DC (+) ไปตู้ DC / สายต่อระหว่างตัวคุมแผง"], [DL("ret"), "สาย DC (-) กลับไปตู้ DC (เดินขนานแนวสตริง)"],
     [DL("optIn"), "สายแผงเข้าตัวคุมแผง (สายของตัวคุม)"]]
     : [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"],
-    [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]]).forEach((r, i) => {
-    const y = ly - 5 - i * 4.6;
-    pen.line(r[0], lgx, y, lgx + 14, y);
-    pen.text(T, lgx + 17, y, PG_TS.cell, r[1], { valign: 2 });
+    [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]]);
+  const lgw = sw + 4 + Math.max.apply(null, lgRows.map((r) => pgTextW(r[1], lth)));
+  let ly = specTop;
+  pen.solid(PG_TBL.head, [lgx, ly - lrh], [lgx + lgw, ly - lrh], [lgx + lgw, ly], [lgx, ly]);
+  pen.rect(PG_TBL.line, lgx, ly - lrh, lgw, lrh);
+  pen.text(T, lgx + 2, ly - lrh + (lrh - lth * 1.15) / 2, lth * 1.15, "LEGEND");
+  ly -= lrh;
+  lgRows.forEach((r) => {
+    pen.rect(PG_TBL.line, lgx, ly - lrh, lgw, lrh);
+    pen.line(PG_TBL.line, lgx + sw, ly, lgx + sw, ly - lrh);
+    pen.line(r[0], lgx + 3, ly - lrh / 2, lgx + sw - 3, ly - lrh / 2);
+    pen.text(T, lgx + sw + 2, ly - lrh / 2, lth, r[1], { valign: 2 });
+    ly -= lrh;
   });
   const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
   pgModuleDetail(pen, lx + 6, A.y0 + 20, 56, {
