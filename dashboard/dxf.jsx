@@ -1281,12 +1281,15 @@ function pgModuleDatasheet(pen, R, o) {
   const X0 = R[0], Y0 = R[1], X1 = R[2], Y1 = R[3];
   /* o.secRight: รูปตัด A-A/B-B ซ้อนกันทางขวารูปหลัง รูปหน้า/หลังสูงเต็มกรอบ ตัวหนังสือใหญ่ขึ้น (ผู้ใช้ 2026-11-02 "ขยายให้ใหญ่หน่อย") */
   const SR = !!o.secRight;
+  /* o.noSec: เฉพาะรูปข้าง/หน้า/หลัง ไม่มีรูปตัด + o.model เขียนรุ่นแผงใต้รูป (ผังวางแผง · ผู้ใช้ 2026-11-02) */
+  const NS = !!o.noSec;
   const ts = SR ? 1.9 : 1.6, tl = SR ? 1.8 : 1.5, tc = SR ? 2.8 : 2.4;   // ตัวเลขบอกขนาด · ป้ายชี้ · ชื่อรูป
-  pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });
+  pen.text(T, X0, Y1 - 2.8, NS ? 2.2 : 2.8, NS ? "DIMENSIONS MODULE(mm)" : "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });   // ผังวางแผงตัด "OF PV" (ผู้ใช้กากบาท 2026-11-02)
   /* ขนาดรูปหน้า/หลังตามพื้นที่ */
-  const yb = Y0 + (SR ? 9 : 33), yt = Y1 - 14, hv = yt - yb, s = hv / H, wv = W * s;
-  const need = 12 + wv + 24 + wv + 8 + (SR ? 40 : 0), ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
-  const sx = ox + 1, fx = ox + 12, bx = fx + wv + 24;
+  const yb = Y0 + (NS ? (o.model ? 13 : 8) : SR ? 9 : 33), yt = Y1 - (NS ? 9 : 14), hv = yt - yb, s = hv / H, wv = W * s;
+  const gB = NS ? 13 : 24;   // ช่องระหว่างรูปหน้า-หลัง · ผังวางแผงชิดกว่า (ผู้ใช้ "ขยับชิดกันหน่อย")
+  const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0), ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
+  const sx = ox + 1, fx = ox + 12, bx = fx + wv + gB;
   /* หัวลูกศร: ปลาย (x, y) ชี้ทิศ (dx, dy) */
   const arrow = (x, y, dx, dy) => {
     const a = 0.9, b = 0.28;
@@ -1375,6 +1378,11 @@ function pgModuleDatasheet(pen, R, o) {
     [[cx - tw / 2, bx + wv * 0.195], [cx + tw / 2, bx + wv * 0.805]].forEach(([x0, x1]) => { pen.line(D, x0, cy - 0.5, x1, ym + 0.3); pen.dot(D, x1, ym + 0.3, 0.18); });
   }
   /* เครื่องหมายตัด A (ขวา ด้านยาว) · B (ล่าง ด้านสั้น) */
+  if (NS) {
+    cap(bx + wv / 2, yb - 5.2, "Back View");
+    if (o.model) pen.text(T, (fx + bx + wv) / 2, yb - 10.4, tc, o.model, { align: 1, valign: 1 });
+    return { x0: ox, x1: bx + wv + 8 };
+  }
   const ya = yt - hv * 0.24, xr = bx + wv;
   pen.line(L, xr - 2.4, ya, xr - 1.2, ya); pen.line(L, xr - 2.4, ya, xr - 2.4, ya + 1.2);
   pen.line(L, xr + 1.2, ya, xr + 2.4, ya); pen.line(L, xr + 2.4, ya, xr + 2.4, ya + 1.2);

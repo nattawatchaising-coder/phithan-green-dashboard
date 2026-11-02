@@ -1892,22 +1892,24 @@ function pgModuleDatasheet(pen, R, o) {
     X1 = R[2],
     Y1 = R[3];
   const SR = !!o.secRight;
+  const NS = !!o.noSec;
   const ts = SR ? 1.9 : 1.6,
     tl = SR ? 1.8 : 1.5,
     tc = SR ? 2.8 : 2.4;
-  pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", {
+  pen.text(T, X0, Y1 - 2.8, NS ? 2.2 : 2.8, NS ? "DIMENSIONS MODULE(mm)" : "DIMENSIONS OF PV MODULE(mm)", {
     valign: 1
   });
-  const yb = Y0 + (SR ? 9 : 33),
-    yt = Y1 - 14,
+  const yb = Y0 + (NS ? o.model ? 13 : 8 : SR ? 9 : 33),
+    yt = Y1 - (NS ? 9 : 14),
     hv = yt - yb,
     s = hv / H,
     wv = W * s;
-  const need = 12 + wv + 24 + wv + 8 + (SR ? 40 : 0),
+  const gB = NS ? 13 : 24;
+  const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0),
     ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
   const sx = ox + 1,
     fx = ox + 12,
-    bx = fx + wv + 24;
+    bx = fx + wv + gB;
   const arrow = (x, y, dx, dy) => {
     const a = 0.9,
       b = 0.28;
@@ -2023,6 +2025,17 @@ function pgModuleDatasheet(pen, R, o) {
       pen.line(D, x0, cy - 0.5, x1, ym + 0.3);
       pen.dot(D, x1, ym + 0.3, 0.18);
     });
+  }
+  if (NS) {
+    cap(bx + wv / 2, yb - 5.2, "Back View");
+    if (o.model) pen.text(T, (fx + bx + wv) / 2, yb - 10.4, tc, o.model, {
+      align: 1,
+      valign: 1
+    });
+    return {
+      x0: ox,
+      x1: bx + wv + 8
+    };
   }
   const ya = yt - hv * 0.24,
     xr = bx + wv;

@@ -145,7 +145,9 @@ function dsPlanHead(P, title) {
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
 }
 /* ตาราง + หมายเหตุในคอลัมน์ขวา · ตารางยาวเกินที่ = ยุบแถวกลาง เหลือแถวท้าย (รวม) เสมอ */
-function dsRight(P, rows, cols, notes, align) {
+/* o.noteMid (โหมดกว้าง): หมายเหตุลงไปแทนที่ตารางกลางแถบล่าง ตารางขึ้นไปเหนือหมายเหตุ — คอลัมน์ขวาว่างไว้ใส่รูป (ผังวางแผง · ผู้ใช้วาดชี้ 2026-11-02) */
+function dsRight(P, rows, cols, notes, align, o) {
+  o = o || {};
   const pen = P.pen, AR = P.AR, RH = P3_TBL_RH;   // แถว/ตัวหนังสือขนาดเดียวกับตาราง MPPT ผังสตริง
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   /* โหมดกว้าง: ตารางย้ายลงแถบล่าง (เหนือหมายเหตุ) ไม่ทับผังกลางแผ่น */
@@ -158,14 +160,21 @@ function dsRight(P, rows, cols, notes, align) {
   const tw = Math.min(P.RW, cw.reduce((t, w) => t + w, 0));
   /* โหมดกว้าง: ตารางไปกลางแถบล่างระหว่างชื่อแผ่นกับหมายเหตุ ชิดล่าง (ผู้ใช้ย้าย) — ไม่พอที่ = ที่เดิมเหนือหมายเหตุ */
   let tx = P.RX0, ty = yTop;
+  let mid = null;
   if (P.V.wide) {
     const xL = AR.x0 + 4 + Math.max(P.titleW || 110, 50) + 8, xR = P.RX0 - 8;
     const hNeed = R.length * RH;
-    if (xR - xL >= tw && hNeed <= yTop - AR.y0 - 10) { tx = (xL + xR - tw) / 2; ty = AR.y0 + 4 + hNeed; }
+    if (o.noteMid && nh) {
+      const nw = xR - xL, nh2 = dsNoteH(notes, nw);
+      if (nw >= tw && hNeed + nh2 + 14 <= yTop - AR.y0) { mid = { x: xL, w: nw, h: nh2 }; tx = xL; ty = AR.y0 + 4 + nh2 + 8 + hNeed; }
+    }
+    if (!mid && xR - xL >= tw && hNeed <= yTop - AR.y0 - 10) { tx = (xL + xR - tw) / 2; ty = AR.y0 + 4 + hNeed; }
   }
-  P.tbX = tx; P.tbTop = ty;
+  P.tbX = tx; P.tbTop = ty; P.notes = notes; P.noteMid = !!mid;
   const used = pgGrid(pen, tx, ty, tw, cw, R, { rh: RH, th: PG_TS.body, headRow: 0, align });
-  if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
+  P.tbUsed = used;
+  if (mid) dsNoteBlock(pen, mid.x, AR.y0 + 4 + mid.h, mid.w, notes);
+  else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
 
@@ -501,10 +510,24 @@ function dsPanelSheet(st, job, media) {
   rows.push(["TOTAL", G.length, tot, (tot * wp / 1000).toFixed(2)]);
   const M0 = (() => { try { return p3SldModel(st, job, media.design); } catch (e) { return null; } })();
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], [
-    "ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง (กลุ่มที่ไม่เป็นสี่เหลี่ยมบอกจำนวนแผงอย่างเดียว)",
+    "ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง",   // วงเล็บท้ายเอาออก (ผู้ใช้ขีดฆ่า 2026-11-02)
     "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp",
-    "ตำแหน่งแผงอ้างอิงแบบ 3D — ตรวจระยะห่างขอบหลังคา/สิ่งกีดขวางที่หน้างานก่อนวางราง",
-  ], [0, 1, 1, 1]);
+    /* ข้อ "ตำแหน่งแผงอ้างอิงแบบ 3D …" เอาออก (ผู้ใช้ขีดฆ่า 2026-11-02) */
+  ], [0, 1, 1, 1], { noteMid: true });
+  /* รูปแผงหน้า/หลัง + รุ่นแผงใต้รูป ในที่ว่างเหนือหมายเหตุ (ผู้ใช้ 2026-11-02 "เอารูปแผงมาใส่ เขียนรุ่นแผงด้านใต้") */
+  {
+    const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
+    const nh = dsNoteH(P.notes || [], P.RW), AR = P.AR;
+    const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 4 : P.tbTop - P.tbUsed - 8, yB = AR.y0 + 4 + (P.noteMid ? 0 : nh + 4);
+    if (yT - yB >= 30) {
+      doc.layer("DS-MOD", 7, "CONTINUOUS", 18); doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5); doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+      pgModuleDatasheet(P.pen, [P.RX0, yB, P.RX0 + P.RW, yT], {
+        noSec: true, model: (M0 ? M0.panel.model : ps.model || "") + " " + wp + " Wp",
+        wMm: Math.round((+ps.width || 1.134) * 1000), hMm: Math.round((+ps.length || 2.382) * 1000), tMm: +ps.frame || 30,
+        cells: +ps.cells || 144, lay: { line: "DS-MOD", thin: "DS-MOD-T", dim: "DS-MOD-DIM" },
+      });
+    }
+  }
   /* ตัวใหญ่ใต้ตาราง แบบแผ่นจริง (TOTAL ... MODULE) */
   P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
   return doc.build();
