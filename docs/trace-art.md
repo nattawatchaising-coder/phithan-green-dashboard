@@ -51,8 +51,12 @@
 - `dashboard/groundart.js`: รายละเอียดต่อลงดิน (ดู `docs/solar-design.md`)
   - แผ่น GROUND: G1A–G1D (G1D เฉพาะงานที่มีรางไฟ)
   - แผ่น GROUND2: TRAY, G2A, G2B, G2C
-- `dashboard/mountart.js`: แผ่น MOUNT "TYPICAL MOUNTING STRUCTURE INSTALLATION DETAILS" (ผู้ใช้ส่ง 2026-11-02) — MPLAN MSECA MSECB MEND MGPL MGLUX MMID MJOIN MDETA
-  - กรอบข้อความผ่าน `dsPadTx` (ขยายกรอบกันเศษวงเล็บ/ตัวท้ายค้าง · ชื่อรูปตั้ง t[6]=1 เก็บเส้นใต้ชื่อ) · คำสะกดแก้ MODUILE→MODULE JIONER→JOINER
-  - วัตต์บนแผงในผัง (625W) แทนด้วย st.wp ของงาน
-  - MGPL เส้นดำบางจนออกเทา: แปลงด้วย `MGPL=รูป.png@170` (ตั้งเกณฑ์เส้นเทารายรูป)
-  - ลบเศษข้อความจากรูปข้างเคียงก่อนแปลง: ทาขาวเป็นกรอบด้วยสคริปต์ node (อ่าน PNG → เขียน PNG เทา) ไม่มี Python
+- แผ่น MOUNT (รายละเอียดติดตั้งเมทัลชีท) เคยลอกจากรูป (`mountart.js`) ผู้ใช้ว่า "เส้นไม่ตรง ไม่เหมือน 100%" → เปลี่ยนเป็นดึงเวกเตอร์จาก PDF (ดูหัวข้อถัดไป)
+
+## ดีกว่า: ผู้ใช้มี PDF ที่พิมพ์จาก CAD → ดึงเส้นเวกเตอร์ตรง (`tools/pdf-art.mjs`) (2026-11-02)
+- **ถ้าผู้ใช้ขอ "เหมือน 100%" ให้ขอไฟล์ PDF ก่อน** — ได้ทุกเส้นตรงต้นฉบับรวมตัวหนังสือ CAD (ลอกจากรูปเล็กจะเบี้ยวที่ชิ้นเล็ก)
+- `node tools/pdf-art.mjs dashboard/<ไฟล์>.js NAME=ไฟล์.pdf@x0,y0,x1,y1` (กรอบตัดหน่วย pt จากมุมซ้ายบน — ตัดกรอบแผ่น/ตารางชื่อแบบของเขาออก หาได้จากเส้นยาว > 400 pt)
+  - ได้ `window.DS_VEC[NAME] = { w, h, q, d }` ชนิดเส้น k ดำ g เทา l เทาอ่อน d เทาเข้ม w ขาว · ตัวใหญ่ = ระบายทึบ
+  - วาดด้วย `dsVec(pen, NAME, x0, yTop, มม.ต่อpt, ชั้น)` ใน dwgset.jsx
+  - รองรับ PDF หนึ่งหน้า ไม่ interlace font (ข้ามข้อความ/รูปภาพ — CAD ส่งตัวหนังสือเป็นเส้น)
+- ใช้อยู่: `dashboard/mountvec.js` MOUNT = ทั้งแผ่น TYPICAL MOUNTING STRUCTURE INSTALLATION DETAILS (ไฟล์ R0_SHOP DRAWING P_ONE PLASTEC หน้า 9 · ครอป 38.5,44,1019.8,809.1) — ตัวเลขขนาด/625W/คำสะกดตามต้นฉบับ
