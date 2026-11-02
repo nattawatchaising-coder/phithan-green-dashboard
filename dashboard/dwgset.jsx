@@ -279,7 +279,7 @@ function dsCover(st, job, media) {
   doc.plot({ x0: 0, y0: 0, w: PG_SHEET.W, h: PG_SHEET.H, k: 1 });
   const pen = pgPen(doc, 1, 0, 0);
   const I = p3SheetInfo(st, job, { sheet: "COVER", sheetNo: media.sheetNo });
-  const B = window.BRANDING || {};
+  const B = I.brand || window.BRANDING || {};
   const cx = PG_SHEET.W / 2, T = DL("covT");
   pen.rect(PG_LAY.thin, 5, 5, PG_SHEET.W - 10, PG_SHEET.H - 10);
   dsRRect(pen, DL("cov"), 14, 12, PG_SHEET.W - 28, PG_SHEET.H - 24, 7);
@@ -1087,9 +1087,10 @@ function dsMountSheet(st, job, media) {
   const val = { L, W, E, M: L - 2 * E, PV: "PV MODULE", WP: wp ? wp + "W" : "" };
   const TX = DS_MOUNT_TX.filter((t) => val[t[4]]);
   /* งานไม่มีทางเดิน: เอาทางเดินระหว่างแผงออก (ผัง + SECTION-A + ป้าย WALKWAY) แผงชุดขวาเลื่อนมาชิด (ผู้ใช้ 2026-11-02 "ที่ไหนไม่มีทางเดินเอาออก ขยับแผงมาชิดกัน")
-     แถบตัด x 188–240 pt: เหลือช่องระหว่างแผง ~10 pt ไม่ให้เส้นบอกขนาดสองชุดชนกัน · ช่วง y = ผังบน (100–352 · ป้าย RAIL R ซ้ายไม่แตะ) กับ SECTION-A (380–503 ไม่รวมชื่อรูป) · xmax กันรูปรายละเอียดทางขวา */
-  const cut = dsObs(st, "walkway").length ? null : { x1: 188, x2: 240, xmax: 450, ys: [[100, 352], [380, 503]], keep: [[158, 328, 218, 350]] };
-  const hide = cut ? TX.concat([[185, 184, 231, 196], [186, 456, 290, 502]]) : TX;
+     แถบตัด x 187.8–242.15 pt = 5 ลอนหลังคาพอดี (ลอนละ 10.87 · ตัดตรงรอยต่อลอน หลังคาต่อกันเนียน) เหลือช่องระหว่างแผง ~6 pt · ช่วง y = ผังบน (100–352 · ป้าย RAIL R ซ้ายไม่แตะ) กับ SECTION-A (380–503 ไม่รวมชื่อรูป) · xmax กันรูปรายละเอียดทางขวา
+     ซ่อนทางเดิน SECTION-A ทีละชิ้น (ตัวทางเดิน · หัวลูกศร · เส้นชี้ · ตัวหนังสือ) — กรอบใหญ่กรอบเดียวเคยกินลอนหลังคากับตัวยึดแผงขวาไปด้วย (ผู้ใช้ "หลังคามันหายไป") */
+  const cut = dsObs(st, "walkway").length ? null : { x1: 187.8, x2: 242.15, xmax: 450, ys: [[100, 352], [380, 503]], keep: [[158, 328, 221, 350]] };
+  const hide = cut ? TX.concat([[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]]) : TX;
   dsVec(pen, "MOUNT", x0, yT, sc, { k: "DS-MNT", g: "DS-MNT-G", l: "DS-MNT-L", d: "DS-MNT-D", w: "DS-MNT-W" }, hide, cut);
   TX.forEach((t) => {
     const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]), sx = (x) => (ct ? dsCutX(cut, x) : x);

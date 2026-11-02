@@ -357,7 +357,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
       {open && rect && ReactDOM.createPortal((
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200, touchAction: "none" }} />
-          <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
+          <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 1000,   /* เหนือหน้าต่างซ้อน (ชุดแบบ z 230) */
             background: "var(--bg)", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-pop)",
             maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
             {hasSearch && (

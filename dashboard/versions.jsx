@@ -490,20 +490,36 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
   const [z, setZ] = React.useState(1);
   const boxRef = React.useRef(null), anchor = React.useRef(null), drag = React.useRef(null);
   const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
+  /* บริษัทในหัวแบบ (แอดมินเลือก · ผู้ใช้ 2026-11-02 "เพิ่มฟังก์ชันเปลี่ยนบริษัทตรงนี้สำหรับแอดมิน") — dwgCompany/{งาน} · p3PrepSet อ่านเอง */
+  const admin = window.usePgAdmin ? window.usePgAdmin() : false;
+  const coId = (job && job.id) || jobId;
+  const [co, setCo] = React.useState("");
+  const [coRev, setCoRev] = React.useState(0);
+  const pickCo = (k) => {
+    if (k === (co || "flash")) return;
+    setCo(k); setPrep(null);
+    window.FBDB.ref("dwgCompany/" + coId).set(k).then(() => setCoRev((x) => x + 1), (e) => setErr((e && e.message) || "บันทึกบริษัทไม่สำเร็จ"));
+  };
+  React.useEffect(() => {
+    let live = true;
+    window.FBDB.ref("dwgCompany/" + coId).once("value").then((s) => { if (live) setCo(s.val() || "flash"); });
+    return () => { live = false; };
+  }, [coId]);
   React.useEffect(() => {
     let live = true;
     window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then((s) => {
       const st = s.val();
       if (!st) throw new Error("ไม่พบแบบ 3D");
-      return window.p3PrepSet(st, job, null, Object.assign({ paths: [] }, design));
+      return window.p3PrepSet(st, Object.assign({}, job, { id: coId }), null, Object.assign({ paths: [] }, design));
     }).then((p) => {
       if (!live) return;
       setPrep(p);
+      if (coRev) return;   // เปลี่ยนบริษัท = อยู่แผ่นเดิม
       const k = (p.sheets || []).findIndex((x) => x.key === "SLD");   // เปิดมาที่ SLD ก่อน (ปุ่มเดิมพาไป SLD)
       setI(k >= 0 ? k : 0);
     }).catch((e) => { if (live) setErr((e && e.message) || "เตรียมชุดแบบไม่สำเร็จ"); });
     return () => { live = false; };
-  }, [jobId, ver]);
+  }, [jobId, ver, coRev]);
   const sheets = (prep && prep.sheets) || [];
   const cur = sheets[i];
   const svg = React.useMemo(() => {
@@ -577,6 +593,12 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
             <span style={{ display: "block", fontWeight: 800, fontSize: 14, color: "var(--text-1)" }}>ชุดแบบ{cur ? " · " + cur.label : ""}</span>
             <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>แบบ 3D V{ver} · {verName}{sheets.length ? " · แผ่น " + (i + 1) + "/" + sheets.length : ""}{design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : ""}</span>
           </span>
+          {admin && co && window.BRAND_COS && (
+            <span title="บริษัทในหัวแบบของงานนี้ (เฉพาะแอดมิน)" style={{ width: 190 }}>
+              <Dropdown value={co} onChange={pickCo}
+                options={Object.keys(window.BRAND_COS).map((k) => ({ value: k, label: window.BRAND_COS[k].label, sub: window.BRAND_COS[k].sub }))} />
+            </span>
+          )}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <button type="button" style={zBtn} title="ย่อ" disabled={z <= 1} onClick={() => zNext(-1)}>−</button>
             <button type="button" onClick={() => zoomTo(1)} title="พอดีจอ" style={Object.assign({}, zBtn, { width: "auto", padding: "0 10px", fontSize: 12, fontVariantNumeric: "tabular-nums" })}>{Math.round(z * 100)}%</button>

@@ -177,5 +177,18 @@ function brandHeadHTML(opts) {
     BRANDING.tagline + "</span></span></div>";
 }
 
-Object.assign(window, { BRANDING, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, brandHeadHTML,
+/* ── บริษัทในหัวแบบชุดแบบ (แอดมินเลือกต่องาน · ผู้ใช้ 2026-11-02) ──
+   เก็บที่ dwgCompany/{งาน} = key · ไม่มี/flash = BRANDING · บริษัทอื่นทับเฉพาะฟิลด์ที่ใส่ (tel/email ว่าง = ไม่ขึ้นบรรทัดนั้น)
+   ใช้แค่ชุดแบบ (p3SheetInfo → I.brand / I.logo) — ใบเสนอราคา/บิลยังเป็น BRANDING */
+const BRAND_COS = {
+  flash: { label: "flash+solar", sub: "บริษัท แฟลชพลัสโซล่า จำกัด" },
+  cx: { label: "CX ENERTECH", sub: "บริษัท ซีเอ็กซ์ เอ็นเนอร์เทค จำกัด",
+    name: "CX ENERTECH", nameUpper: "CX ENERTECH", legal: "CX ENERTECH CO., LTD.", legalTH: "บริษัท ซีเอ็กซ์ เอ็นเนอร์เทค จำกัด",
+    addrTH: "429/20 หมู่บ้าน พรีเมี่ยมเพลส 9 ถนนสุคนธสวัสดิ์ แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร 10230",
+    taxId: "", email: "", tel: "", telNote: "", site: "www.cxenertech.com",
+    docMark: "dashboard/assets/cx-enertech-logo.jpg", logoFile: "CX-ENERTECH-LOGO.png" },
+};
+function brandCo(k) { return !k || k === "flash" || !BRAND_COS[k] ? BRANDING : Object.assign({}, BRANDING, BRAND_COS[k]); }
+
+Object.assign(window, { BRANDING, BRAND_COS, brandCo, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, brandHeadHTML,
   brandDocURL, BrandDoc, brandDocHTML });

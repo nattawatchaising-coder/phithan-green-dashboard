@@ -733,10 +733,32 @@ async function p3CropAll(st, imgs, files) {
    (p3PrepSet/p3ExportPlan ใส่ไว้ใน files ให้เอง) · ยังไม่เตรียม = p3Logo null → หัวแบบใช้ตราเวกเตอร์แทน */
 const P3_LOGO_FILE = "FLASHPLUSSOLAR-LOGO.png";
 let p3Logo = null;
-async function p3LogoPrep() {
+const p3LogoC = {};   // รูปโลโก้ที่ตัดขอบแล้ว แยกตาม url (บริษัทอื่นในหัวแบบ)
+async function p3LogoPrep(B) {
+  if (B && B.docMark && B !== window.BRANDING) {
+    const u = (() => { try { return new URL(B.docMark, location.href).href; } catch (e) { return B.docMark; } })();
+    if (!(u in p3LogoC)) { const sv = p3Logo; p3Logo = null; p3LogoC[u] = await p3LogoCut(u, B.logoFile || "COMPANY-LOGO.png"); p3Logo = sv; }
+    return p3LogoC[u];
+  }
   if (p3Logo) return p3Logo;
+  p3Logo = await p3LogoCut(typeof brandDocURL === "function" ? brandDocURL() : "dashboard/assets/flashplussolar-mark.png", P3_LOGO_FILE);
+  return p3Logo;
+}
+/* บริษัทในหัวแบบของงาน (dwgCompany/{id} · แอดมินเลือกในหน้าต่างชุดแบบ) → p3SheetInfo ใช้ brand/logo ชุดนี้ */
+const p3CoByJob = {};
+const p3CoKey = (job) => (job && (job.id || job.code)) || "";
+async function p3CoPrep(job) {
+  const id = p3CoKey(job);
+  let k = "";
+  try { if (id && window.FBDB) k = (await window.FBDB.ref("dwgCompany/" + id).once("value")).val() || ""; } catch (e) { k = ""; }
+  const B = typeof brandCo === "function" ? brandCo(k) : window.BRANDING;
+  const co = { key: k || "flash", brand: B, logo: await p3LogoPrep(B) };
+  if (id) p3CoByJob[id] = co;
+  return co;
+}
+async function p3LogoCut(url, file) {
+  let out = null;
   try {
-    const url = typeof brandDocURL === "function" ? brandDocURL() : "dashboard/assets/flashplussolar-mark.png";
     const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
     const W = im.naturalWidth, H = im.naturalHeight;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -745,17 +767,21 @@ async function p3LogoPrep() {
     let x0 = W, y0 = H, x1 = -1, y1 = -1;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
-      if (d[i + 3] > 20 && !(d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245)) {
+      if (d[i + 3] > 20 && !(d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235)) {
         if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
       }
     }
     if (x1 < 0) return null;
     const w = x1 - x0 + 1, h = y1 - y0 + 1, o = document.createElement("canvas");
     o.width = w; o.height = h;
-    o.getContext("2d").drawImage(c, x0, y0, w, h, 0, 0, w, h);
-    p3Logo = { file: P3_LOGO_FILE, href: o.toDataURL("image/png"), pxW: w, pxH: h };
-  } catch (e) { p3Logo = null; }
-  return p3Logo;
+    const og = o.getContext("2d"); og.drawImage(c, x0, y0, w, h, 0, 0, w, h);
+    /* พื้นขาว/เกือบขาว → โปร่ง (รูป JPG เช่นโลโก้ CX พื้นไม่ขาวสนิท ขึ้นเป็นกล่องเทาบนหัวแบบ) */
+    const od = og.getImageData(0, 0, w, h);
+    for (let i = 0; i < od.data.length; i += 4) { const m = Math.min(od.data[i], od.data[i + 1], od.data[i + 2]); if (m > 235) od.data[i + 3] = Math.min(od.data[i + 3], Math.round((255 - m) * 255 / 20)); }
+    og.putImageData(od, 0, 0);
+    out = { file, href: o.toDataURL("image/png"), pxW: w, pxH: h };
+  } catch (e) { out = null; }
+  return out;
 }
 
 /* องศา-ลิปดา-ฟิลิปดา · %%d คือรหัสของ "องศา" ในไฟล์ DXF */
@@ -785,7 +811,8 @@ function p3SheetInfo(st, job, o) {
     date: dd(d.getDate()) + "/" + dd(d.getMonth() + 1) + "/" + d.getFullYear(),
     sheetNo: o.sheetNo || "1/1",
     rev: "0",
-    logo: p3Logo,
+    logo: (p3CoByJob[p3CoKey(job)] || {}).logo || p3Logo,
+    brand: (p3CoByJob[p3CoKey(job)] || {}).brand || window.BRANDING,
   };
 }
 
@@ -3621,7 +3648,7 @@ async function p3ExportPlan(st, job) {
     files.push({ name: file, url: w.url });
   }
   const imgsC = await p3CropAll(st, imgs, files);
-  const logo = await p3LogoPrep();
+  const logo = (await p3CoPrep(job)).logo;
   if (logo) files.push({ name: logo.file, url: logo.href });
   p3SaveBlob(new Blob([p3Dxf(st, job, { imgs: imgsC })], { type: "application/dxf" }), base + "-PLAN.dxf");
   for (let i = 0; i < files.length; i++) {
@@ -3660,7 +3687,7 @@ async function p3PrepSet(st, job, photos, design) {
     files.push({ name: file, url: w.url });
   }
   const imgsC = await p3CropAll(st, imgs, files);
-  const logo = await p3LogoPrep();
+  const logo = (await p3CoPrep(job)).logo;
   if (logo) files.push({ name: logo.file, url: logo.href });
 
   const ph = [], src = (photos || []).slice(0, P3_PHOTO_MAX);

@@ -510,7 +510,7 @@ function Dropdown({
       bottom: rect.bottom != null ? rect.bottom : undefined,
       left: rect.left,
       width: rect.width,
-      zIndex: 201,
+      zIndex: 1000,
       background: "var(--bg)",
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-pop)",

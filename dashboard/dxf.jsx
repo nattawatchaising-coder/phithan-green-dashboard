@@ -949,7 +949,7 @@ function pgSheet(doc, o) {
   block(Y.own, I.owner || "-", 2);
 
   /* 5 · บล็อกบริษัท — ตราสี + ชื่อ flash+solar (บวกสีเขียว) + ชื่อจดทะเบียนไทย/อังกฤษ + ที่อยู่ ดึงจาก brand.jsx ที่เดียว */
-  const B = window.BRANDING || {};
+  const B = I.brand || window.BRANDING || {};
   /* โลโก้จริงของบริษัท (รูป PNG ตัดขอบแล้ว · I.logo จาก p3LogoPrep) — DXF อ้างไฟล์รูปวางโฟลเดอร์เดียวกัน
      ไม่มีรูป (เตรียมไม่ได้/เรียกจากที่อื่น) = ตราหกเหลี่ยมเวกเตอร์ + ชื่อ flash+solar แบบเดิม */
   const LG = I.logo;
@@ -961,7 +961,7 @@ function pgSheet(doc, o) {
     doc.image("PG-LOGO-IMG", { file: LG.file, href: LG.href, pxW: LG.pxW, pxH: LG.pxH, transp: true,
       x: pen.X(cx - lw / 2), y: pen.Y(Y.logo.top - 1.2 - lh), w: pen.S(lw), h: pen.S(lh) });
     ly = 1.2 + lh + 2.2 - 15.6;                          // กึ่งกลางชื่อบริษัทต่ำกว่าขอบล่างรูป 2.2 มม.
-  } else {
+  } else if (B === window.BRANDING) {
     pgLogoMark(pen, cx - 4.5, Y.logo.top - 10.2, 9);
     const wh = 2.6, wy = Y.logo.top - 12.6;
     pen.text(F.txt, cx - wh * 0.4, wy, wh, "flash", { align: 2, valign: 2, wf: 1 });
@@ -970,7 +970,10 @@ function pgSheet(doc, o) {
   }
   mid(Y.logo.top - ly - 15.6, fitH(B.legalTH || "", TW - 3, TS.name), B.legalTH || "", 2);
   mid(Y.logo.top - ly - 18.1, fitH(B.legal || "", TW - 3, TS.name), B.legal || "", 2);
-  pgWrap(B.addrTH || "", Math.floor((TW - 3) / (TS.det * CHW))).slice(0, 2).concat(["TEL : " + (B.tel || ""), "E-mail : " + (B.email || "")])
+  /* บรรทัดติดต่อ: ไม่มีเบอร์/อีเมล (บริษัทอื่น) = เว็บไซต์ · ที่อยู่ได้บรรทัดที่เหลือ รวมไม่เกิน 4 */
+  const ct = [B.tel && "TEL : " + B.tel, B.email && "E-mail : " + B.email].filter(Boolean);
+  if (!ct.length && B.site) ct.push(B.site);
+  pgWrap(B.addrTH || "", Math.floor((TW - 3) / (TS.det * CHW))).slice(0, 4 - ct.length).concat(ct)
     .forEach((ln, i) => mid(Y.logo.top - ly - 20.6 - i * 1.85, fitH(ln, TW - 3, TS.det), ln, 2));
 
   /* 6 · สถานะของแบบ — วงกลมหนา จุดแดงทึบคืออันที่ใช้อยู่ */
@@ -1050,7 +1053,7 @@ function pgSheet(doc, o) {
 
   /* หมายเหตุประจำแบบ — วางใต้กรอบแบบ ไม่ให้ไปทับแถบพิกัด */
   pen.text(F.txt, 20, 6.4, 2.2,
-    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASHPLUSSOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
+    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF " + (B.legal || "FLASHPLUSSOLAR CO., LTD.") + " AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
     + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", { valign: 1 });
 
   return {

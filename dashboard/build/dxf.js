@@ -1468,7 +1468,7 @@ function pgSheet(doc, o) {
   block(Y.proj, I.project || "-", 2);
   lab(Y.own.top, "OWNER :");
   block(Y.own, I.owner || "-", 2);
-  const B = window.BRANDING || {};
+  const B = I.brand || window.BRANDING || {};
   const LG = I.logo;
   let ly = 0;
   if (LG && LG.pxW && LG.pxH) {
@@ -1491,7 +1491,7 @@ function pgSheet(doc, o) {
       h: pen.S(lh)
     });
     ly = 1.2 + lh + 2.2 - 15.6;
-  } else {
+  } else if (B === window.BRANDING) {
     pgLogoMark(pen, cx - 4.5, Y.logo.top - 10.2, 9);
     const wh = 2.6,
       wy = Y.logo.top - 12.6;
@@ -1513,7 +1513,9 @@ function pgSheet(doc, o) {
   }
   mid(Y.logo.top - ly - 15.6, fitH(B.legalTH || "", TW - 3, TS.name), B.legalTH || "", 2);
   mid(Y.logo.top - ly - 18.1, fitH(B.legal || "", TW - 3, TS.name), B.legal || "", 2);
-  pgWrap(B.addrTH || "", Math.floor((TW - 3) / (TS.det * CHW))).slice(0, 2).concat(["TEL : " + (B.tel || ""), "E-mail : " + (B.email || "")]).forEach((ln, i) => mid(Y.logo.top - ly - 20.6 - i * 1.85, fitH(ln, TW - 3, TS.det), ln, 2));
+  const ct = [B.tel && "TEL : " + B.tel, B.email && "E-mail : " + B.email].filter(Boolean);
+  if (!ct.length && B.site) ct.push(B.site);
+  pgWrap(B.addrTH || "", Math.floor((TW - 3) / (TS.det * CHW))).slice(0, 4 - ct.length).concat(ct).forEach((ln, i) => mid(Y.logo.top - ly - 20.6 - i * 1.85, fitH(ln, TW - 3, TS.det), ln, 2));
   [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
     const y = Y.stat.top - 3.4 - i * 4.4;
     pen.circle(F.frame, tx0 + 4, y, 1.3);
@@ -1611,7 +1613,7 @@ function pgSheet(doc, o) {
       valign: 2
     });
   });
-  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASHPLUSSOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
+  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF " + (B.legal || "FLASHPLUSSOLAR CO., LTD.") + " AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
     valign: 1
   });
   return {

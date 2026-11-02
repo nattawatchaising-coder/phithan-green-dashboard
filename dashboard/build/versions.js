@@ -855,17 +855,39 @@ function DvDwgModal({
   const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : {
     onClick: onClose
   };
+  const admin = window.usePgAdmin ? window.usePgAdmin() : false;
+  const coId = job && job.id || jobId;
+  const [co, setCo] = React.useState("");
+  const [coRev, setCoRev] = React.useState(0);
+  const pickCo = k => {
+    if (k === (co || "flash")) return;
+    setCo(k);
+    setPrep(null);
+    window.FBDB.ref("dwgCompany/" + coId).set(k).then(() => setCoRev(x => x + 1), e => setErr(e && e.message || "บันทึกบริษัทไม่สำเร็จ"));
+  };
+  React.useEffect(() => {
+    let live = true;
+    window.FBDB.ref("dwgCompany/" + coId).once("value").then(s => {
+      if (live) setCo(s.val() || "flash");
+    });
+    return () => {
+      live = false;
+    };
+  }, [coId]);
   React.useEffect(() => {
     let live = true;
     window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then(s => {
       const st = s.val();
       if (!st) throw new Error("ไม่พบแบบ 3D");
-      return window.p3PrepSet(st, job, null, Object.assign({
+      return window.p3PrepSet(st, Object.assign({}, job, {
+        id: coId
+      }), null, Object.assign({
         paths: []
       }, design));
     }).then(p => {
       if (!live) return;
       setPrep(p);
+      if (coRev) return;
       const k = (p.sheets || []).findIndex(x => x.key === "SLD");
       setI(k >= 0 ? k : 0);
     }).catch(e => {
@@ -874,7 +896,7 @@ function DvDwgModal({
     return () => {
       live = false;
     };
-  }, [jobId, ver]);
+  }, [jobId, ver, coRev]);
   const sheets = prep && prep.sheets || [];
   const cur = sheets[i];
   const svg = React.useMemo(() => {
@@ -1037,7 +1059,20 @@ function DvDwgModal({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E41\u0E1A\u0E1A 3D V", ver, " \xB7 ", verName, sheets.length ? " · แผ่น " + (i + 1) + "/" + sheets.length : "", design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : "")), React.createElement("span", {
+  }, "\u0E41\u0E1A\u0E1A 3D V", ver, " \xB7 ", verName, sheets.length ? " · แผ่น " + (i + 1) + "/" + sheets.length : "", design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : "")), admin && co && window.BRAND_COS && React.createElement("span", {
+    title: "\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E43\u0E19\u0E2B\u0E31\u0E27\u0E41\u0E1A\u0E1A\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
+    style: {
+      width: 190
+    }
+  }, React.createElement(Dropdown, {
+    value: co,
+    onChange: pickCo,
+    options: Object.keys(window.BRAND_COS).map(k => ({
+      value: k,
+      label: window.BRAND_COS[k].label,
+      sub: window.BRAND_COS[k].sub
+    }))
+  })), React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",

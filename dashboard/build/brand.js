@@ -185,8 +185,35 @@ function brandHeadHTML(opts) {
   const px = o.size || 38;
   return '<div style="display:flex;align-items:center;gap:11px">' + '<span style="width:' + px + 'px;height:' + px + 'px;flex-shrink:0;display:block">' + BRAND_MARK_SVG + "</span>" + '<span><span style="display:block;white-space:nowrap;font-weight:700;font-size:' + Math.round(px * 0.55) + "px;letter-spacing:-.02em;color:" + BRANDING.ink + '">' + 'flash<span style="color:' + BRANDING.green + '">+</span>solar</span>' + '<span style="display:block;font-size:' + Math.max(7, Math.round(px * 0.21)) + "px;letter-spacing:.26em;color:" + BRANDING.muted + '">' + BRANDING.tagline + "</span></span></div>";
 }
+const BRAND_COS = {
+  flash: {
+    label: "flash+solar",
+    sub: "บริษัท แฟลชพลัสโซล่า จำกัด"
+  },
+  cx: {
+    label: "CX ENERTECH",
+    sub: "บริษัท ซีเอ็กซ์ เอ็นเนอร์เทค จำกัด",
+    name: "CX ENERTECH",
+    nameUpper: "CX ENERTECH",
+    legal: "CX ENERTECH CO., LTD.",
+    legalTH: "บริษัท ซีเอ็กซ์ เอ็นเนอร์เทค จำกัด",
+    addrTH: "429/20 หมู่บ้าน พรีเมี่ยมเพลส 9 ถนนสุคนธสวัสดิ์ แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร 10230",
+    taxId: "",
+    email: "",
+    tel: "",
+    telNote: "",
+    site: "www.cxenertech.com",
+    docMark: "dashboard/assets/cx-enertech-logo.jpg",
+    logoFile: "CX-ENERTECH-LOGO.png"
+  }
+};
+function brandCo(k) {
+  return !k || k === "flash" || !BRAND_COS[k] ? BRANDING : Object.assign({}, BRANDING, BRAND_COS[k]);
+}
 Object.assign(window, {
   BRANDING,
+  BRAND_COS,
+  brandCo,
   BRAND_MARK_SVG,
   BrandMark,
   BrandWord,

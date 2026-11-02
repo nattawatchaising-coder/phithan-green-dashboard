@@ -459,7 +459,7 @@ function dsCover(st, job, media) {
     sheet: "COVER",
     sheetNo: media.sheetNo
   });
-  const B = window.BRANDING || {};
+  const B = I.brand || window.BRANDING || {};
   const cx = PG_SHEET.W / 2,
     T = DL("covT");
   pen.rect(PG_LAY.thin, 5, 5, PG_SHEET.W - 10, PG_SHEET.H - 10);
@@ -1641,13 +1641,13 @@ function dsMountSheet(st, job, media) {
   };
   const TX = DS_MOUNT_TX.filter(t => val[t[4]]);
   const cut = dsObs(st, "walkway").length ? null : {
-    x1: 188,
-    x2: 240,
+    x1: 187.8,
+    x2: 242.15,
     xmax: 450,
     ys: [[100, 352], [380, 503]],
-    keep: [[158, 328, 218, 350]]
+    keep: [[158, 328, 221, 350]]
   };
-  const hide = cut ? TX.concat([[185, 184, 231, 196], [186, 456, 290, 502]]) : TX;
+  const hide = cut ? TX.concat([[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]]) : TX;
   dsVec(pen, "MOUNT", x0, yT, sc, {
     k: "DS-MNT",
     g: "DS-MNT-G",
