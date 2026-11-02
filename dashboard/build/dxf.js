@@ -1994,11 +1994,11 @@ function pgModuleDatasheet(pen, R, o) {
   dimH(bx, bx + wv, yt, yt + 6.6, String(W));
   dimV(yb, yt, bx, bx - 7, String(H));
   const nw = wv * 0.09,
-    nh = hv * 0.03,
-    nx = bx + wv / 2 - nw / 2,
-    ny = ym + 0.9;
+    nh = hv * 0.04,
+    nx = bx + wv * 0.3,
+    ny = yt - hv * 0.07 - nh;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw * 0.6, ny, nx + nw + 2.2, ym - 2.6, "Nameplate");
+  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
   const jb = cx => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach(t => jb(bx + wv * t));
   [[0.3, 0.22], [0.7, 0.78]].forEach(([a, b]) => {
@@ -2008,6 +2008,21 @@ function pgModuleDatasheet(pen, R, o) {
     pen.solid(L, [cx, ym - 0.3], [cx + dir * wv * 0.05, ym - 0.3], [cx + dir * wv * 0.05, ym + 0.3], [cx, ym + 0.3]);
     pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
   });
+  tag(bx + wv / 2, ym - 0.25, bx + wv / 2 + 0.8, ym - 4, "Junction Box");
+  {
+    const tw = pgTextW("Connector", tl) + 0.6,
+      cy = ym + 5,
+      cx = bx + wv / 2;
+    pen.text(T, cx, cy, tl, "Connector", {
+      align: 1,
+      valign: 1
+    });
+    pen.line(D, cx - tw / 2, cy - 0.5, cx + tw / 2, cy - 0.5);
+    [[cx - tw / 2, bx + wv * 0.195], [cx + tw / 2, bx + wv * 0.805]].forEach(([x0, x1]) => {
+      pen.line(D, x0, cy - 0.5, x1, ym + 0.3);
+      pen.dot(D, x1, ym + 0.3, 0.18);
+    });
+  }
   const ya = yt - hv * 0.24,
     xr = bx + wv;
   pen.line(L, xr - 2.4, ya, xr - 1.2, ya);

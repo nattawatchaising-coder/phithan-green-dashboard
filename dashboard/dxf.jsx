@@ -1353,10 +1353,9 @@ function pgModuleDatasheet(pen, R, o) {
   dimV(yb, yt, bx, bx - 7, String(H));
   /* รูยึด/รูกราวด์/รูระบายน้ำ + ระยะ 1400/400 ไม่วาด (ผู้ใช้กากบาทออก 2026-11-02) */
   /* ป้ายชื่อ (Nameplate) */
-  /* กลางแผงเหนือกล่องต่อสายตัวกลาง · ป้ายชี้ลงขวาใต้แนวกล่อง (ผู้ใช้วาดชี้ 2026-11-02) */
-  const nw = wv * 0.09, nh = hv * 0.03, nx = bx + wv / 2 - nw / 2, ny = ym + 0.9;
+  const nw = wv * 0.09, nh = hv * 0.04, nx = bx + wv * 0.3, ny = yt - hv * 0.07 - nh;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw * 0.6, ny, nx + nw + 2.2, ym - 2.6, "Nameplate");
+  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
   /* กล่องต่อสาย 3 ตัวกลางแผง + สาย/หัวต่อซ้ายขวา */
   const jb = (cx) => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach((t) => jb(bx + wv * t));
@@ -1366,6 +1365,14 @@ function pgModuleDatasheet(pen, R, o) {
     pen.solid(L, [cx, ym - 0.3], [cx + dir * wv * 0.05, ym - 0.3], [cx + dir * wv * 0.05, ym + 0.3], [cx, ym + 0.3]);
     pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
   });
+  /* ป้าย Junction Box (กล่องกลาง ชี้ลงขวา) · Connector (ป้ายเดียวเหนือแนวสาย เส้นชี้ลงหัวต่อซ้าย-ขวา) — ผู้ใช้วาดชี้ 2026-11-02 */
+  tag(bx + wv / 2, ym - 0.25, bx + wv / 2 + 0.8, ym - 4, "Junction Box");
+  {
+    const tw = pgTextW("Connector", tl) + 0.6, cy = ym + 5, cx = bx + wv / 2;
+    pen.text(T, cx, cy, tl, "Connector", { align: 1, valign: 1 });
+    pen.line(D, cx - tw / 2, cy - 0.5, cx + tw / 2, cy - 0.5);
+    [[cx - tw / 2, bx + wv * 0.195], [cx + tw / 2, bx + wv * 0.805]].forEach(([x0, x1]) => { pen.line(D, x0, cy - 0.5, x1, ym + 0.3); pen.dot(D, x1, ym + 0.3, 0.18); });
+  }
   /* เครื่องหมายตัด A (ขวา ด้านยาว) · B (ล่าง ด้านสั้น) */
   const ya = yt - hv * 0.24, xr = bx + wv;
   pen.line(L, xr - 2.4, ya, xr - 1.2, ya); pen.line(L, xr - 2.4, ya, xr - 2.4, ya + 1.2);
