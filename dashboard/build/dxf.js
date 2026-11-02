@@ -1666,7 +1666,7 @@ const PG_TBL = {
 function pgTableLayers(doc) {
   doc.layer(PG_TBL.line, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_TBL.txt, PG_ACI.white, "CONTINUOUS", 13);
-  doc.layer(PG_TBL.head, PG_ACI.ltgrey, "CONTINUOUS", 25);
+  doc.layer(PG_TBL.head, 254, "CONTINUOUS", 25);
   doc.layer("PG-DETAIL", PG_ACI.red, "CONTINUOUS", 30);
   doc.layer("PG-NORTH", PG_ACI.grey, "CONTINUOUS", 25);
   doc.layer("PG-PHOTO", PG_ACI.grey, "CONTINUOUS", 9);
