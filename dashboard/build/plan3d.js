@@ -1048,12 +1048,21 @@ function p3RotDoc(doc, deg) {
 }
 const P3_TBL_RH = 5.2;
 const P3_COMPASS_DY = 19;
-function p3PanelBlock(doc, name) {
+function p3PanelFrame(k, lx, ly) {
+  const m = 0.04;
+  return [Math.min(0.2, m / (lx || 1.134)), Math.min(0.1, m / (ly || 2.278))];
+}
+function p3PanelLw(k) {
+  k = +k || 0.1;
+  return k <= 0.11 ? 25 : k <= 0.15 ? 18 : k <= 0.2 ? 13 : k <= 0.3 ? 9 : 5;
+}
+function p3PanelBlock(doc, name, k, lx, ly) {
   if (!doc.block) return false;
+  const f = p3PanelFrame(k, lx, ly);
   if (name === "PV-PANEL-L") {
     doc.block(name, b => {
       b.rect("0", 0, 0, 1, 1);
-      b.rect("0", 0.035, 0.0175, 0.93, 0.965);
+      b.rect("0", f[0], f[1], 1 - 2 * f[0], 1 - 2 * f[1]);
     });
     return true;
   }
@@ -1063,13 +1072,13 @@ function p3PanelBlock(doc, name) {
       color: 253
     });
     b.rect("0", 0, 0, 1, 1);
-    b.rect("0", 0.035, 0.0175, 0.93, 0.965);
+    b.rect("0", f[0], f[1], 1 - 2 * f[0], 1 - 2 * f[1]);
   });
   return true;
 }
-function p3PanelIns(doc, layer, P, name) {
+function p3PanelIns(doc, layer, P, name, k) {
   name = name || "PV-PANEL";
-  if (!P || P.length < 4 || !p3PanelBlock(doc, name)) {
+  if (!P || P.length < 4 || !doc.block) {
     doc.pline(layer, P, true);
     return;
   }
@@ -1093,6 +1102,7 @@ function p3PanelIns(doc, layer, P, name) {
     doc.pline(layer, P, true);
     return;
   }
+  p3PanelBlock(doc, name, k, lx, ly);
   doc.insert(layer, name, o[0], o[1], lx, ly, Math.atan2(ex[1], ex[0]) / P3_DEG);
 }
 function p3PlanBox(st, imgs) {
@@ -1681,6 +1691,7 @@ function p3Dxf(st, job, media) {
   }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   pgTableLayers(doc);
   const px = V.px,
@@ -1739,7 +1750,7 @@ function p3Dxf(st, job, media) {
       panels: []
     };
   }
-  (foot.panels || []).forEach(p => p3PanelIns(doc, "PG-PANEL", p.pts.map(q => [q[0], -q[1]])));
+  (foot.panels || []).forEach(p => p3PanelIns(doc, "PG-PANEL", p.pts.map(q => [q[0], -q[1]]), null, k));
   const trayW = p3TrayWidths(st);
   trayW.forEach((mm, i) => {
     if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60);
@@ -2783,6 +2794,7 @@ function p3StrLayout(st, job, media) {
   }, media.svg);
   const gd = p3RotDoc(doc, rot);
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
   doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);
@@ -2833,8 +2845,8 @@ function p3StrLayout(st, job, media) {
       P = p.pts.map(q => [q[0], -q[1]]);
     if (s) {
       gd.solid(lay(s.id), P[0], P[1], P[2], P[3]);
-      p3PanelIns(gd, "PG-STR-EDGE", P, "PV-PANEL-L");
-    } else p3PanelIns(gd, "PG-PANEL", P);
+      p3PanelIns(gd, "PG-STR-EDGE", P, "PV-PANEL-L", k);
+    } else p3PanelIns(gd, "PG-PANEL", P, null, k);
   });
   const disc = (L, x, y, r) => {
     const v = [];

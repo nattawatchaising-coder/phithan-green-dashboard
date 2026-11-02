@@ -593,30 +593,43 @@ function p3RotDoc(doc, deg) {
 const P3_TBL_RH = 5.2;
 /* เข็มทิศชิดมุมขวาบนของพื้นที่วาด (ผู้ใช้: ไว้มุมนี้สวย ๆ — เดิมลงมา 40 มม.) · ห่างขอบพอให้ป้ายองศาไม่ชนกรอบ */
 const P3_COMPASS_DY = 19;   // ป้าย NORTH อยู่เหนือศูนย์กลาง ~14 มม. สูง 2.4 — 15 เดิมชนกรอบบน (ผู้ใช้ "อยู่ชิดไปหน่อย")
-function p3PanelBlock(doc, name) {
+/* ระยะกรอบใน 4 ซม.ตามจริง (สัดส่วนตามขนาดแผงแรก · บล็อกนิยามครั้งเดียวต่อแผ่น) */
+function p3PanelFrame(k, lx, ly) {
+  const m = 0.04;
+  return [Math.min(0.2, m / (lx || 1.134)), Math.min(0.1, m / (ly || 2.278))];
+}
+/* เส้นแผงบางลงตามมาตราส่วน (ผู้ใช้ 2026-11-02: งานโรงงานเส้นหนา ขอบคู่จมหาย) — แผงบนกระดาษเล็ก เส้น 0.25 เท่างานบ้านเลยกินช่องกรอบ 4 ซม.
+   ให้ช่องกรอบ:ความหนาเส้น ≈ งานบ้าน 1:100 · k = เมตรต่อ 1 มม.บนกระดาษ · ค่ามาตรฐาน DXF */
+function p3PanelLw(k) {
+  k = +k || 0.1;
+  return k <= 0.11 ? 25 : k <= 0.15 ? 18 : k <= 0.2 ? 13 : k <= 0.3 ? 9 : 5;
+}
+function p3PanelBlock(doc, name, k, lx, ly) {
   if (!doc.block) return false;
+  const f = p3PanelFrame(k, lx, ly);
   /* PV-PANEL-L = กรอบอย่างเดียว ใช้ทับพื้นสีสตริงในผังสตริง (ผู้ใช้: แผงหน้านี้อยากได้สี ๆ) */
   if (name === "PV-PANEL-L") {
-    doc.block(name, (b) => { b.rect("0", 0, 0, 1, 1); b.rect("0", 0.035, 0.0175, 0.93, 0.965); });
+    doc.block(name, (b) => { b.rect("0", 0, 0, 1, 1); b.rect("0", f[0], f[1], 1 - 2 * f[0], 1 - 2 * f[1]); });
     return true;
   }
   /* ผู้ใช้: block แผงเป็นกรอบคู่ไม่มีตาราง + HATCH เทาทึบด้านหลัง (ไม่เห็นลายหลังคาทะลุ) */
   doc.block("PV-PANEL", (b) => {
     if (b.hatch) b.hatch("0", [[[0, 0], [1, 0], [1, 1], [0, 1]]], { solid: true, color: 253 });
     b.rect("0", 0, 0, 1, 1);
-    b.rect("0", 0.035, 0.0175, 0.93, 0.965);   // กรอบในแบบรูปแผง (pgModFace) · บล็อกยืดตามแผง ≈ 1.13×2.28 ม. ระยะกรอบเท่ากันสองแกน
+    b.rect("0", f[0], f[1], 1 - 2 * f[0], 1 - 2 * f[1]);   // กรอบในแบบรูปแผง (pgModFace) · บล็อกยืดตามแผง ระยะกรอบเท่ากันสองแกน
   });
   return true;
 }
-function p3PanelIns(doc, layer, P, name) {
+function p3PanelIns(doc, layer, P, name, k) {
   name = name || "PV-PANEL";
-  if (!P || P.length < 4 || !p3PanelBlock(doc, name)) { doc.pline(layer, P, true); return; }
+  if (!P || P.length < 4 || !doc.block) { doc.pline(layer, P, true); return; }
   let o = P[0], ex = [P[1][0] - P[0][0], P[1][1] - P[0][1]], ey = [P[3][0] - P[0][0], P[3][1] - P[0][1]];
   if (Math.hypot(ex[0], ex[1]) > Math.hypot(ey[0], ey[1])) { const t = ex; ex = ey; ey = t; }
   let cr = ex[0] * ey[1] - ex[1] * ey[0];
   if (cr < 0) { o = [o[0] + ey[0], o[1] + ey[1]]; ey = [-ey[0], -ey[1]]; cr = -cr; }
   const lx = Math.hypot(ex[0], ex[1]), ly = Math.hypot(ey[0], ey[1]);
   if (lx < 1e-6 || ly < 1e-6 || Math.abs(ex[0] * ey[0] + ex[1] * ey[1]) / (lx * ly) > 0.02) { doc.pline(layer, P, true); return; }
+  p3PanelBlock(doc, name, k, lx, ly);
   doc.insert(layer, name, o[0], o[1], lx, ly, Math.atan2(ex[1], ex[0]) / P3_DEG);
 }
 
@@ -994,6 +1007,7 @@ function p3Dxf(st, job, media) {
   const docRaw = pgDoc({ units: "m", ltscale: k }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนให้อาคารตรงกระดาษ · กรอบ/หัวแบบใช้ docRaw
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));   // นิยามก่อนรายการกลาง = ใช้ค่านี้
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
@@ -1034,7 +1048,7 @@ function p3Dxf(st, job, media) {
   // แผงทีละแผง — รอยเท้าสี่มุมจริง (หลังคาเอียง/ชุดแผงหมุนแล้วไม่ใช่สี่เหลี่ยมมุมฉากเสมอ)
   let foot = { panels: [] };
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
-  (foot.panels || []).forEach((p) => p3PanelIns(doc, "PG-PANEL", p.pts.map((q) => [q[0], -q[1]])));
+  (foot.panels || []).forEach((p) => p3PanelIns(doc, "PG-PANEL", p.pts.map((q) => [q[0], -q[1]]), null, k));
 
   /* รางไฟแยกสีตามขนาด (ขนาดแรกใช้ชั้น PG-OBS-TRAY) */
   const trayW = p3TrayWidths(st);
@@ -1716,6 +1730,7 @@ function p3StrLayout(st, job, media) {
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   const gd = p3RotDoc(doc, rot);           // ตัวผังหมุนตามแนวอาคาร · กรอบ/หัวแบบใช้ doc ตรง
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));   // นิยามก่อนรายการกลาง = ใช้ค่านี้
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
   doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);      // ขอบแผง + เส้นเดินสาย (เข้ม)
@@ -1748,8 +1763,8 @@ function p3StrLayout(st, job, media) {
   /* แผง: ระบายสีสตริง + ขอบเข้ม · แผงที่ยังไม่อยู่สตริงไหน = กรอบเทาอย่างเดียว */
   fp.forEach((p) => {
     const s = sOf[p.uid], P = p.pts.map((q) => [q[0], -q[1]]);
-    if (s) { gd.solid(lay(s.id), P[0], P[1], P[2], P[3]); p3PanelIns(gd, "PG-STR-EDGE", P, "PV-PANEL-L"); }   // กรอบไม่มีพื้นเทา ไม่บังสีสตริง
-    else p3PanelIns(gd, "PG-PANEL", P);
+    if (s) { gd.solid(lay(s.id), P[0], P[1], P[2], P[3]); p3PanelIns(gd, "PG-STR-EDGE", P, "PV-PANEL-L", k); }   // กรอบไม่มีพื้นเทา ไม่บังสีสตริง
+    else p3PanelIns(gd, "PG-PANEL", P, null, k);
   });
   /* วงกลม/จุดทึบ — DXF ไม่มีวงกลมทึบ ใช้แปดเหลี่ยมจาก SOLID 3 ชิ้น */
   const disc = (L, x, y, r) => {
