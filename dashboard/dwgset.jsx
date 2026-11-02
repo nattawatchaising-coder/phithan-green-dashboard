@@ -33,13 +33,14 @@ const DS_SET_EN = {
   STRING: "STRING LAYOUT", STRDET: "PV STRING WIRING DETAIL", SLD: "SINGLE LINE DIAGRAM", CU: "CONSUMER UNIT CONNECTION", DC: "DC WIRING",
   GROUND: "GROUNDING DIAGRAM", GROUND2: "GROUNDING DETAIL", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
   SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST", MOUNT: "TYPICAL MOUNTING STRUCTURE",
+  RACE: "CABLE TRAY & CONDUIT DETAIL",
 };
 
 /* หมวดของแต่ละแผ่นในไฟล์รวม (pgCombine groups) — แผ่นหมวดเดียวกันอยู่แถว/กรอบเดียวกัน */
 const DS_SET_GROUP = {
   COVER: "COVER", NOTES: "COVER", PLAN: "LAYOUT", PANEL: "LAYOUT", STRING: "LAYOUT",
   STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL", GROUND2: "ELECTRICAL",
-  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
+  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", RACE: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
 };
 
 /* ── ช่วยเรื่องข้อความ/หมายเหตุ (มม.บนกระดาษ) ── */
@@ -1042,6 +1043,36 @@ const DS_ART_TX = {
 };
 /* แผ่นรายละเอียดติดตั้งบนหลังคาเมทัลชีท (MOUNT · ผู้ใช้ส่งแบบ 2026-11-02) — เส้นเวกเตอร์จาก PDF ต้นแบบของผู้ใช้ (dashboard/mountvec.js · tools/pdf-art.mjs)
    ตรงต้นฉบับทุกเส้นรวมตัวหนังสือ (ลอกจากรูปแล้วผู้ใช้ "เส้นไม่ตรง ไม่เหมือน 100%") · ไม่เอากรอบ/ตารางชื่อแบบของต้นฉบับ ใช้หัวแบบของเรา */
+/* วัสดุหลังคาที่มีแผงวาง (ไม่นับวางพื้น) */
+function dsRoofMats(st) {
+  return (st.roofs || []).filter((r) => !r.p3sGround && p3Panels(r).count > 0).map((r) => (typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal"));
+}
+/* แผ่นรายละเอียดรางไฟ/ท่อไฟ — ลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (racevec.js) ผู้ใช้ 2026-11-02 "ซ้ายรางไฟ หลังคาครีบล็อก ขวาท่อไฟ หลังคาเมทัลชีท … แยกกัน สำหรับหลังคาแบบไหน"
+   RTK = PERFORATED TRAY บนหลังคาคลิปล็อก · RTM = IMC CONDUIT บนหลังคาเมทัลชีท/แซนวิช — แสดงเฉพาะครึ่งที่งานมีหลังคาแบบนั้น
+   มีครึ่งเดียว = ขยายพอดีพื้นที่วาด · มีทั้งคู่ = วางคู่กันแบบต้นฉบับ มีเส้นแบ่งกลาง */
+function dsRaceParts(st) {
+  const m = dsRoofMats(st), V = window.DS_VEC || {};
+  return [m.indexOf("kliplok") >= 0 && V.RTK && "RTK", (m.indexOf("metal") >= 0 || m.indexOf("sandwich") >= 0) && V.RTM && "RTM"].filter(Boolean);
+}
+function dsRaceSheet(st, job, media) {
+  media = media || {};
+  const S = dsMm(st, job, media, "RACE", null);
+  S.doc.layer("DS-RCW", 7, "CONTINUOUS", 13); S.doc.layer("DS-RCW-G", 8, "CONTINUOUS", 9); S.doc.layer("DS-RCW-L", 254, "CONTINUOUS", 5);
+  S.doc.layer("DS-RCW-D", 8, "CONTINUOUS", 13); S.doc.layer("DS-RCW-W", 255, "CONTINUOUS", 9);
+  const LY = { k: "DS-RCW", g: "DS-RCW-G", l: "DS-RCW-L", d: "DS-RCW-D", w: "DS-RCW-W" };
+  const pen = S.pen, A = S.A, V = window.DS_VEC || {}, P = dsRaceParts(st).map((n) => V[n]);
+  if (!P.length) return S.doc.build();
+  const W = P.reduce((a, v) => a + v.w, 0), H = Math.max.apply(null, P.map((v) => v.h));
+  const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / W, (A.y1 - A.y0 - 2 * m) / H);
+  let x = (A.x0 + A.x1 - W * sc) / 2;
+  const yT = (A.y0 + A.y1 + H * sc) / 2;
+  dsRaceParts(st).forEach((n, i) => {
+    if (i) pen.line(LY.k, x, yT, x, yT - H * sc);
+    dsVec(pen, n, x, yT, sc, LY);
+    x += V[n].w * sc;
+  });
+  return S.doc.build();
+}
 function dsHasMetal(st) {
   return (st.roofs || []).some((r) => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
 }
@@ -1430,6 +1461,7 @@ function dsSheetDefs(st, job, design, imgs) {
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", (o) => dsMountSheet(st, job, o));   // ผู้ใช้ 2026-11-02 "เพิ่มหน้านี้ไปหน้า 9 สำหรับงานติดตั้งหลังคาเมทัลชีท"
+  if (dsRaceParts(st).length) add("RACE", "รายละเอียดรางไฟ/ท่อไฟ", (o) => dsRaceSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", (o) => dsGroundSheet(st, job, o));
   add("GROUND2", "รายละเอียดต่อลงดิน", (o) => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));

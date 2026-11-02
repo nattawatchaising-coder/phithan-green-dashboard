@@ -63,7 +63,8 @@ const DS_SET_EN = {
   SAFETY: "LADDER & GUARD RAIL",
   PHOTO: "SITE PHOTO",
   MAT: "MATERIAL LIST",
-  MOUNT: "TYPICAL MOUNTING STRUCTURE"
+  MOUNT: "TYPICAL MOUNTING STRUCTURE",
+  RACE: "CABLE TRAY & CONDUIT DETAIL"
 };
 const DS_SET_GROUP = {
   COVER: "COVER",
@@ -80,6 +81,7 @@ const DS_SET_GROUP = {
   WALK: "MECHANICAL",
   SAFETY: "MECHANICAL",
   MOUNT: "MECHANICAL",
+  RACE: "MECHANICAL",
   WATER: "WATER",
   PHOTO: "SITE",
   MAT: "SITE"
@@ -1587,6 +1589,47 @@ const DS_ART_TX = {
   G2B: [[268.5, 59, 453.5, 79.5, "1C-6 sq mm IEC01", 2], [53.5, 172, 226.5, 187, "COPPER C-CLAMP", 2], [810, 388, 1004.5, 408.5, "1C-16 sq mm IEC01"], [385, 553.5, 556, 585, "DETAIL B"]],
   G2C: [[373, 62, 427, 73, "NUT M8"], [379.5, 122, 437, 134, "WASHER"], [422, 223, 524, 235, "MIDDLE CLAMP"], [437, 406, 541.5, 417, "RAIL EARTHING"], [352.5, 568.5, 413, 580.5, "BOLT M8"], [151, 795, 280, 819, "DETAIL C"]]
 };
+function dsRoofMats(st) {
+  return (st.roofs || []).filter(r => !r.p3sGround && p3Panels(r).count > 0).map(r => typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal");
+}
+function dsRaceParts(st) {
+  const m = dsRoofMats(st),
+    V = window.DS_VEC || {};
+  return [m.indexOf("kliplok") >= 0 && V.RTK && "RTK", (m.indexOf("metal") >= 0 || m.indexOf("sandwich") >= 0) && V.RTM && "RTM"].filter(Boolean);
+}
+function dsRaceSheet(st, job, media) {
+  media = media || {};
+  const S = dsMm(st, job, media, "RACE", null);
+  S.doc.layer("DS-RCW", 7, "CONTINUOUS", 13);
+  S.doc.layer("DS-RCW-G", 8, "CONTINUOUS", 9);
+  S.doc.layer("DS-RCW-L", 254, "CONTINUOUS", 5);
+  S.doc.layer("DS-RCW-D", 8, "CONTINUOUS", 13);
+  S.doc.layer("DS-RCW-W", 255, "CONTINUOUS", 9);
+  const LY = {
+    k: "DS-RCW",
+    g: "DS-RCW-G",
+    l: "DS-RCW-L",
+    d: "DS-RCW-D",
+    w: "DS-RCW-W"
+  };
+  const pen = S.pen,
+    A = S.A,
+    V = window.DS_VEC || {},
+    P = dsRaceParts(st).map(n => V[n]);
+  if (!P.length) return S.doc.build();
+  const W = P.reduce((a, v) => a + v.w, 0),
+    H = Math.max.apply(null, P.map(v => v.h));
+  const m = 3,
+    sc = Math.min((A.x1 - A.x0 - 2 * m) / W, (A.y1 - A.y0 - 2 * m) / H);
+  let x = (A.x0 + A.x1 - W * sc) / 2;
+  const yT = (A.y0 + A.y1 + H * sc) / 2;
+  dsRaceParts(st).forEach((n, i) => {
+    if (i) pen.line(LY.k, x, yT, x, yT - H * sc);
+    dsVec(pen, n, x, yT, sc, LY);
+    x += V[n].w * sc;
+  });
+  return S.doc.build();
+}
 function dsHasMetal(st) {
   return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
 }
@@ -2160,6 +2203,7 @@ function dsSheetDefs(st, job, design, imgs) {
   if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro") add("STRDET", "รูปการเดินสายสตริง", o => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", o => dsMountSheet(st, job, o));
+  if (dsRaceParts(st).length) add("RACE", "รายละเอียดรางไฟ/ท่อไฟ", o => dsRaceSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", o => dsGroundSheet(st, job, o));
   add("GROUND2", "รายละเอียดต่อลงดิน", o => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
