@@ -451,13 +451,15 @@ function dsPanelSheet(st, job, media) {
     let ang = Math.atan2(-g.u.z, g.u.x) / P3_DEG;
     if (ang > 90) ang -= 180; if (ang <= -90) ang += 180;
     const wP = g.cols * 2 * Math.hypot(g.u.x, g.u.z) / k, hP = g.rows * 2 * Math.hypot(g.v.x, g.v.z) / k;   // มม.บนกระดาษ
-    const h = Math.min(2.6, wP * 0.85 / (s.length * 0.6), hP * 0.5, 2 * Math.hypot(g.v.x, g.v.z) / k * 0.55);
-    /* จำนวนแถวคู่ = จุดกลางกลุ่มตกบนรอยต่อแถวพอดี (เส้นขอบแผงขีดทับตัวหนังสือ) → เลื่อนไปกลางแถวแผง */
-    const sh = g.rows % 2 === 0 ? 1 : 0;
+    const h = Math.min(2.6, wP * 0.85 / (s.length * 0.6));
     if (h < 1.0) return;
-    /* พื้นขาวรองตัวเลข ไม่ให้เส้นแผงขีดทับ (ผู้ใช้ขอ) — สี่เหลี่ยมหมุนตามแนวกลุ่ม */
-    const tx = g.cx + g.v.x * sh, ty = -(g.cz + g.v.z * sh);
+    /* ตัวเลขอยู่ใต้กลุ่มแผง (นอกกลุ่ม · ผู้ใช้วาดลูกศรชี้ 2026-11-02) — เลื่อนจากกลางกลุ่มไปตามแกนแถว v ฝั่งที่ลงล่างบนกระดาษ
+       v = ครึ่งความสูงแผงหนึ่งแถว → ครึ่งกลุ่ม = rows × |v| */
+    const vl = Math.hypot(g.v.x, g.v.z) || 1, sg = -g.v.z > 0 ? -1 : 1;
     const hw = (s.length * 0.56 * h / 2 + 0.6) * k, hh = (h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
+    const off = g.rows * vl + hh + 0.8 * k;
+    /* พื้นขาวรองตัวเลข ไม่ให้ลายหลังคาขีดทับ (ผู้ใช้ขอ) — สี่เหลี่ยมหมุนตามแนวกลุ่ม */
+    const tx = g.cx + sg * g.v.x / vl * off, ty = -(g.cz + sg * g.v.z / vl * off);
     const c = (u, v) => [tx + u * ca - v * sa, ty + u * sa + v * ca];
     doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
     doc.text(DL("grp"), tx, ty, h * k, s, { align: 1, valign: 2, rot: ang });
