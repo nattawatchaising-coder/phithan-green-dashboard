@@ -836,7 +836,10 @@ const P3_EQUIP_SYM = {
   invst: (doc, Q) => { doc.pline("PG-OBS-INVST", Q, true); doc.line("PG-OBS-INVST", Q[0][0], Q[0][1], Q[2][0], Q[2][1]); doc.line("PG-OBS-INVST", Q[1][0], Q[1][1], Q[3][0], Q[3][1]); },
   /* ขาบันไดหันเข้าหาตึกเสมอ (ผู้ใช้) — ตึก = ทาง −n ของขอบหลังคาใกล้สุด (p3sLadderFit · n ชี้ออกนอกหลังคา)
      n ขึ้นกับทิศที่วาดขอบ ดูจาก rot อย่างเดียวไม่ได้ · v ของ Q = (−sin rot, cos rot) */
-  ladder: (doc, Q, o, st) => {
+  ladder: (doc, Q0, o, st, k) => {
+    /* ขนาดจริง 0.8 ม. เล็กเกินบนกระดาษ — ขยายรอบจุดกลางให้ด้านยาวอย่างน้อย 4.5 มม. (ผู้ใช้ "ขนาดบันไดเล็กไปหน่อย") */
+    const cx = (Q0[0][0] + Q0[2][0]) / 2, cy = (Q0[0][1] + Q0[2][1]) / 2, sd = Math.max(Math.hypot(Q0[1][0] - Q0[0][0], Q0[1][1] - Q0[0][1]), Math.hypot(Q0[3][0] - Q0[0][0], Q0[3][1] - Q0[0][1])) || 1;
+    const g = Math.max(1, 4.5 * (k || 0) / sd), Q = Q0.map((q) => [cx + (q[0] - cx) * g, cy + (q[1] - cy) * g]);
     let inV = -1;
     try { const f = typeof p3sLadderFit === "function" ? p3sLadderFit(st.roofs, +o.x || 0, +o.z || 0) : null, a = (+o.rot || 0) * P3_DEG;
       if (f) inV = (-f.n.x) * -Math.sin(a) + (-f.n.z) * Math.cos(a) > 0 ? 1 : -1; } catch (e) { inV = -1; }
@@ -1035,7 +1038,7 @@ function p3Dxf(st, job, media) {
     if (P3_EQUIP_SYM[o.p3sType]) {
       const a3 = (+o.rot || 0) * P3_DEG, c3 = Math.cos(a3), s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
-      P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
+      P3_EQUIP_SYM[o.p3sType](doc, Q, o, st, k);
       if (P3_EQUIP_TAG[o.p3sType]) callouts.push({ x, y: -z, txt: P3_EQUIP_TAG[o.p3sType] });
       return;
     }

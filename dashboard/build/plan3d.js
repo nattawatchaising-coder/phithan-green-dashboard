@@ -1413,7 +1413,12 @@ const P3_EQUIP_SYM = {
     doc.line("PG-OBS-INVST", Q[0][0], Q[0][1], Q[2][0], Q[2][1]);
     doc.line("PG-OBS-INVST", Q[1][0], Q[1][1], Q[3][0], Q[3][1]);
   },
-  ladder: (doc, Q, o, st) => {
+  ladder: (doc, Q0, o, st, k) => {
+    const cx = (Q0[0][0] + Q0[2][0]) / 2,
+      cy = (Q0[0][1] + Q0[2][1]) / 2,
+      sd = Math.max(Math.hypot(Q0[1][0] - Q0[0][0], Q0[1][1] - Q0[0][1]), Math.hypot(Q0[3][0] - Q0[0][0], Q0[3][1] - Q0[0][1])) || 1;
+    const g = Math.max(1, 4.5 * (k || 0) / sd),
+      Q = Q0.map(q => [cx + (q[0] - cx) * g, cy + (q[1] - cy) * g]);
     let inV = -1;
     try {
       const f = typeof p3sLadderFit === "function" ? p3sLadderFit(st.roofs, +o.x || 0, +o.z || 0) : null,
@@ -1731,7 +1736,7 @@ function p3Dxf(st, job, media) {
         c3 = Math.cos(a3),
         s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
-      P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
+      P3_EQUIP_SYM[o.p3sType](doc, Q, o, st, k);
       if (P3_EQUIP_TAG[o.p3sType]) callouts.push({
         x,
         y: -z,
