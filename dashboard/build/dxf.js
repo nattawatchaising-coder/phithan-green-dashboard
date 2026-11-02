@@ -1878,6 +1878,29 @@ function pgModuleDetail(pen, x, y, h, o) {
   }
   return bx + w - x;
 }
+function pgModCells(pen, L, Tn, x, y, w, h, s, rowsH) {
+  pen.rect(L, x, y, w, h);
+  const fi = Math.max(0.35, 12 * s);
+  pen.rect(L, x + fi, y + fi, w - 2 * fi, h - 2 * fi);
+  const g = 0.07,
+    cw = (w - 2 * fi - 0.4) / 6,
+    gm = Math.max(0.45, 18 * s);
+  const half = (h - 2 * fi - 0.4 - gm) / 2,
+    ch = half / rowsH,
+    nb = 7;
+  for (let k = 0; k < 2; k++) {
+    const yh = y + fi + 0.2 + k * (half + gm);
+    for (let r = 0; r < rowsH; r++) for (let c = 0; c < 6; c++) {
+      const x0 = x + fi + 0.2 + c * cw + g,
+        y0 = yh + r * ch + g,
+        cw2 = cw - 2 * g,
+        ch2 = ch - 2 * g;
+      pen.rect(L, x0, y0, cw2, ch2);
+      for (let b = 1; b <= nb; b++) pen.line(Tn, x0 + cw2 * b / (nb + 1), y0 + 0.05, x0 + cw2 * b / (nb + 1), y0 + ch2 - 0.05);
+    }
+  }
+  pen.line(L, x + fi, y + h / 2, x + w - fi, y + h / 2);
+}
 function pgModuleDatasheet(pen, R, o) {
   o = o || {};
   const K = o.lay || {},
@@ -1888,6 +1911,7 @@ function pgModuleDatasheet(pen, R, o) {
   const W = +o.wMm || 1134,
     H = +o.hMm || 2382,
     F = +o.tMm || 30;
+  const rowsH = Math.max(4, Math.round((+o.cells || 144) / 12));
   const X0 = R[0],
     Y0 = R[1],
     X1 = R[2],
@@ -1967,7 +1991,7 @@ function pgModuleDatasheet(pen, R, o) {
   const sw = Math.max(0.7, F * s);
   pen.rect(L, sx, yb, sw, hv);
   dimH(sx, sx + sw, yt, yt + 3, String(F));
-  pgModFace(pen, L, Tn, fx, yb, wv, hv, 6, 12, false);
+  pgModCells(pen, L, Tn, fx, yb, wv, hv, s, rowsH);
   dimH(fx, fx + wv, yt, yt + 3, String(W));
   dimV(yb, yt, fx, fx - 4, String(H));
   cap(fx + wv / 2, yb - 5.2, "Front View");
@@ -5530,6 +5554,7 @@ Object.assign(window, {
   pgCompass,
   pgModuleDetail,
   pgModFace,
+  pgModCells,
   pgTextW,
   pgPhotoFrame,
   pgDcString,

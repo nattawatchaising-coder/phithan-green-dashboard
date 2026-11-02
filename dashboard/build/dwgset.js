@@ -1081,7 +1081,7 @@ function dsShow(a, b, max) {
   return out;
 }
 function dsModule(pen, x, y, w, h, label, up, negR) {
-  pgModFace(pen, DL("mod"), DL("cell"), x, y, w, h, 6, 12, false);
+  pgModCells(pen, DL("mod"), DL("cell"), x, y, w, h, h / 2382, 12);
   const th = Math.min(PG_TS.cell, w / (label.length * 0.62));
   pen.text(PG_TBL.txt, x + w / 2, up ? y - 1.2 : y + h + 1.2, th, label, {
     align: 1,

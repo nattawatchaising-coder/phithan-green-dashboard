@@ -702,8 +702,8 @@ function dsShow(a, b, max) {
 }
 /* แผงหนึ่งใบแนวตั้ง (x, y = มุมล่างซ้าย) · up = ขั้วออกขอบบน · negR = ขั้วลบอยู่ขวา · คืนปลายขั้ว */
 function dsModule(pen, x, y, w, h, label, up, negR) {
-  /* หน้าแผงแบบเดียวกับรูปแผง (กรอบคู่ + เซลล์ 6 × 12) · ชื่อแผงอยู่นอกแผงฝั่งที่ไม่มีสาย ไม่ทับเซลล์ */
-  pgModFace(pen, DL("mod"), DL("cell"), x, y, w, h, 6, 12, false);
+  /* หน้าแผงแบบเดียวกับ Front View รูปแผง datasheet (ผู้ใช้ 2026-11-02) · ชื่อแผงอยู่นอกแผงฝั่งที่ไม่มีสาย ไม่ทับเซลล์ */
+  pgModCells(pen, DL("mod"), DL("cell"), x, y, w, h, h / 2382, 12);
   const th = Math.min(PG_TS.cell, w / (label.length * 0.62));
   pen.text(PG_TBL.txt, x + w / 2, up ? y - 1.2 : y + h + 1.2, th, label, { align: 1, valign: up ? 3 : 1 });
   const yl = up ? y + h : y, d = up ? 4 : -4;
