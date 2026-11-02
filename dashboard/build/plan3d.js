@@ -1442,7 +1442,7 @@ function p3LadderSym(line, Q) {
     arc.push(P(0.5 + 0.42 * Math.cos(t), 0.5 + 0.45 * Math.sin(t)));
   }
   for (let i = 1; i < arc.length; i++) line(arc[i - 1], arc[i]);
-  [[0.5, 0.05, 0.8, 0.05], [0.8, 0.05, 0.8, 0.95], [0.8, 0.95, 0.5, 0.95]].forEach(q => line(P(q[0], q[1]), P(q[2], q[3])));
+  [[0.5, 0.05, 0.5, 0.95], [0.5, 0.05, 0.88, 0.05], [0.5, 0.95, 0.88, 0.95]].forEach(q => line(P(q[0], q[1]), P(q[2], q[3])));
 }
 function p3TapSym(doc, x, y, r) {
   doc.circle("PG-OBS-TAP", x, y, r);
