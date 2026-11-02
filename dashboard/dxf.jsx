@@ -1284,7 +1284,7 @@ function pgModuleDatasheet(pen, R, o) {
   /* o.noSec: เฉพาะรูปข้าง/หน้า/หลัง ไม่มีรูปตัด + o.model เขียนรุ่นแผงใต้รูป (ผังวางแผง · ผู้ใช้ 2026-11-02) */
   const NS = !!o.noSec;
   const ts = SR ? 1.9 : 1.6, tl = SR ? 1.8 : 1.5, tc = SR ? 2.8 : 2.4;   // ตัวเลขบอกขนาด · ป้ายชี้ · ชื่อรูป
-  pen.text(T, X0, Y1 - 2.8, NS ? 2.2 : 2.8, NS ? "DIMENSIONS MODULE(mm)" : "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });   // ผังวางแผงตัด "OF PV" (ผู้ใช้กากบาท 2026-11-02)
+  if (!NS) pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });   // ผังวางแผงไม่มีหัวรูป (ผู้ใช้ขีดฆ่า 2026-11-02)
   /* ขนาดรูปหน้า/หลังตามพื้นที่ */
   const yb = Y0 + (NS ? (o.model ? 13 : 8) : SR ? 9 : 33), yt = Y1 - (NS ? 9 : 14), hv = yt - yb, s = hv / H, wv = W * s;
   const gB = NS ? 13 : 24;   // ช่องระหว่างรูปหน้า-หลัง · ผังวางแผงชิดกว่า (ผู้ใช้ "ขยับชิดกันหน่อย")

@@ -1896,7 +1896,7 @@ function pgModuleDatasheet(pen, R, o) {
   const ts = SR ? 1.9 : 1.6,
     tl = SR ? 1.8 : 1.5,
     tc = SR ? 2.8 : 2.4;
-  pen.text(T, X0, Y1 - 2.8, NS ? 2.2 : 2.8, NS ? "DIMENSIONS MODULE(mm)" : "DIMENSIONS OF PV MODULE(mm)", {
+  if (!NS) pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", {
     valign: 1
   });
   const yb = Y0 + (NS ? o.model ? 13 : 8 : SR ? 9 : 33),
