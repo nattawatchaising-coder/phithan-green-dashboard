@@ -771,24 +771,60 @@ function dsPanelSheet(st, job, media) {
     panels = P.foot.panels || [];
   const G = dsGroups(panels);
   G.forEach(g => {
-    const s = g.rect ? g.rows + "x" + g.cols + "=" + g.n : String(g.n);
-    let ang = Math.atan2(-g.u.z, g.u.x) / P3_DEG;
+    let s = g.n + " PANEL";
+    const nz = w => {
+      const l = Math.hypot(w.x, w.z) || 1;
+      return {
+        x: w.x / l,
+        z: w.z / l
+      };
+    };
+    const U = nz(g.u),
+      V = nz(g.v);
+    const cand = [U, {
+      x: -U.x,
+      z: -U.z
+    }, V, {
+      x: -V.x,
+      z: -V.z
+    }];
+    const d = cand.reduce((m, c) => c.z > m.z ? c : m),
+      dv = d === cand[2] || d === cand[3],
+      e = dv ? U : V;
+    const pr = w => {
+      let lo = 1e18,
+        hi = -1e18;
+      g.ids.forEach(i => {
+        const p = panels[i];
+        [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([su, sv]) => {
+          const t = (p.cx + su * p.u.x + sv * p.v.x) * w.x + (p.cz + su * p.u.z + sv * p.v.z) * w.z;
+          lo = Math.min(lo, t);
+          hi = Math.max(hi, t);
+        });
+      });
+      return [lo, hi];
+    };
+    const [, dHi] = pr(d),
+      [eLo, eHi] = pr(e);
+    let ang = Math.atan2(-e.z, e.x) / P3_DEG;
     if (ang > 90) ang -= 180;
     if (ang <= -90) ang += 180;
-    const wP = g.cols * 2 * Math.hypot(g.u.x, g.u.z) / k,
-      hP = g.rows * 2 * Math.hypot(g.v.x, g.v.z) / k;
-    const h = Math.min(2.6, wP * 0.85 / (s.length * 0.6));
+    const hOf = t => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
+    if (hOf(s) < 1.0) s = String(g.n);
+    const h = hOf(s);
     if (h < 1.0) return;
-    const vl = Math.hypot(g.v.x, g.v.z) || 1,
-      sg = -g.v.z > 0 ? -1 : 1;
     const hw = (s.length * 0.56 * h / 2 + 0.6) * k,
       hh = (h / 2 + 0.5) * k,
       ra = ang * P3_DEG,
       ca = Math.cos(ra),
       sa = Math.sin(ra);
-    const off = g.rows * vl + hh + 0.8 * k;
-    const tx = g.cx + sg * g.v.x / vl * off,
-      ty = -(g.cz + sg * g.v.z / vl * off);
+    const em = (eLo + eHi) / 2,
+      dm = dHi + hh + 0.8 * k;
+    const det = e.x * d.z - e.z * d.x || 1e-9,
+      wx = (em * d.z - dm * e.z) / det,
+      wz = (e.x * dm - d.x * em) / det;
+    const tx = wx,
+      ty = -wz;
     const c = (u, v) => [tx + u * ca - v * sa, ty + u * sa + v * ca];
     doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
     doc.text(DL("grp"), tx, ty, h * k, s, {
