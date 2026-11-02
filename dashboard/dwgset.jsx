@@ -88,6 +88,9 @@ function dsPlan(st, job, media, key, o) {
   const docRaw = pgDoc({ units: "m", ltscale: k }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนตามแนวอาคาร (p3PlanRot) · กรอบ/หัวแบบใช้ docRaw
   doc.layer("PG-BG", 8, "CONTINUOUS", 5);
+  /* เส้นแผงบางลงตามมาตราส่วน (p3PanelLw · ผู้ใช้ 2026-11-02 "แก้หน้าอื่นด้วย") — นิยามก่อน dsLayers = ใช้ค่านี้ */
+  doc.layer("DS-PANEL", 140, "CONTINUOUS", Math.min(13, p3PanelLw(k)));
+  doc.layer("DS-PANEL-B", 5, "CONTINUOUS", Math.min(18, p3PanelLw(k)));
   pgTableLayers(doc); dsLayers(doc);
   doc.layer("PG-STRING", 6, "CONTINUOUS", 25);
   const ox = V.cx - V.px * k, oy = V.cy - V.py * k;
@@ -123,7 +126,7 @@ function dsPlan(st, job, media, key, o) {
     foot.panels.forEach((p) => p3PanelIns(doc, L, p.pts.map((q) => [q[0], -q[1]]), null, k));   // BLOCK PV-PANEL
   }
   const AR = sheet.area, RX1 = AR.x1 - 2;
-  return { doc, pen: sheet.pen, sheet, AR, V, k, SC: V.SC, foot, RX0: RX1 - P3_PLAN_COL, RX1, RW: P3_PLAN_COL };
+  return { doc, docRaw, pen: sheet.pen, sheet, AR, V, k, SC: V.SC, foot, RX0: RX1 - P3_PLAN_COL, RX1, RW: P3_PLAN_COL };
 }
 /* หัวคอลัมน์ขวาของแผ่นผัง (ชื่อแผ่น + มาตราส่วน + เข็มทิศ) + มาตราส่วนเส้นมุมซ้ายล่าง — แบบเดียวกับผังติดตั้ง */
 function dsPlanHead(P, title) {
@@ -459,16 +462,36 @@ function dsPanelSheet(st, job, media) {
     doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
     doc.text(DL("grp"), tx, ty, h * k, s, { align: 1, valign: 2, rot: ang });
   });
-  /* ชื่อหลังคาเหนือขอบบนของหลังคานั้น */
+  /* ชื่อหลังคา: ป้ายใหญ่มีกรอบ + พื้นขาวกันตัวหนังสือจมลายหลังคา อยู่เหนือขอบบนสุดของอาคาร (ผู้ใช้วาดชี้ 2026-11-02)
+     วาดบน docRaw ตั้งตรงกระดาษ · พิกัดหลังคาหมุนตามผังก่อน (p3RotPt) จะได้ "บนสุด" ตามที่เห็นบนแผ่น */
+  const RR = p3RotPt(P.V.rot || 0), NH = 4;   // ความสูงตัวหนังสือ มม.บนกระดาษ
+  /* จุดขอบผังของหลังคา (หมุนตามผังแล้ว) — ผืนเรียบจาก p3RoofSurf · โดมไม่มีผืน ใช้ p3DomePlan แบบ p3PlanBox */
+  const roofPts = (r) => {
+    const out = [];
+    try { (p3RoofSurf(r) || []).forEach((fc) => (fc.pts || []).forEach((q) => out.push(RR(q.x, -q.z)))); } catch (e) { /* ข้าม */ }
+    if (!out.length && r.kind === "dome") try { p3DomePlan(r).pts.forEach((p) => out.push(RR(p[0], p[1]))); } catch (e) { /* ข้าม */ }
+    return out;
+  };
+  const roofTag = (roof, nm, mine) => {
+    let pts = roofPts(roof);
+    if (!pts.length) mine.forEach((p) => p.pts.forEach((q) => pts.push(RR(q[0], -q[1]))));
+    const xs = pts.map((q) => q[0]), xa = Math.min.apply(null, xs), xb = Math.max.apply(null, xs), cx = (xa + xb) / 2;
+    /* เหนือขอบบนสุดของอาคาร — หลังคาผืนอื่นที่ซ้อนแนวเดียวกัน (เช่นครึ่งบนของจั่ว) นับด้วย ป้ายจะไม่ตกกลางอาคาร (ผู้ใช้วาดลูกศรชี้) */
+    let y1 = Math.max.apply(null, pts.map((q) => q[1]));
+    (st.roofs || []).forEach((r2) => roofPts(r2).forEach((p) => { if (p[0] > xa && p[0] < xb) y1 = Math.max(y1, p[1]); }));
+    const w = (pgTextW(nm, NH) + 4) * k, h = (NH + 2.4) * k, yb = y1 + 2.5 * k;
+    const R = P.docRaw;
+    R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
+    R.rect(DL("tag"), cx - w / 2, yb, w, h);
+    R.text(DL("tag"), cx, yb + h / 2, NH * k, nm, { align: 1, valign: 2 });
+  };
   const wp = +st.wp || 650, rows = [["ROOF", "GROUP", "MODULE", "kWp"]];
   let tot = 0;
   (st.roofs || []).forEach((roof, i) => {
     const mine = panels.filter((p) => p.roofId === roof.id);
     if (!mine.length) return;
     const nm = ((roof.name || "").trim() || ("ROOFTOP " + (i + 1))).toUpperCase();
-    let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    mine.forEach((p) => p.pts.forEach((q) => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, -q[1]); }));
-    doc.text(DL("tag"), (x0 + x1) / 2, y1 + 2.2 * k, 2.4 * k, nm, { align: 1, valign: 1 });
+    roofTag(roof, nm, mine);
     tot += mine.length;
     rows.push([nm, G.filter((g) => g.roofId === roof.id).length, mine.length, (mine.length * wp / 1000).toFixed(2)]);
   });

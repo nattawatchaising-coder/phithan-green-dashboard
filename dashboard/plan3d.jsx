@@ -604,6 +604,13 @@ function p3PanelLw(k) {
   k = +k || 0.1;
   return k <= 0.11 ? 25 : k <= 0.15 ? 18 : k <= 0.2 ? 13 : k <= 0.3 ? 9 : 5;
 }
+/* ชั้นที่บางลงตามมาตราส่วน: แผง + ทางเดิน (ผู้ใช้ 2026-11-02 "ทางเดินก็ควรทำแบบเดียวกับแผง") */
+function p3ScaleLayers(doc, k) {
+  const w = p3PanelLw(k);
+  doc.layer("PG-PANEL", 5, "CONTINUOUS", w);
+  doc.layer("PG-OBS-WALKWAY", 40, "CONTINUOUS", w);
+  doc.layer("PG-OBS-WALKWAY-H", 40, "CONTINUOUS", w > 13 ? 9 : 5);
+}
 function p3PanelBlock(doc, name, k, lx, ly) {
   if (!doc.block) return false;
   const f = p3PanelFrame(k, lx, ly);
@@ -1007,7 +1014,7 @@ function p3Dxf(st, job, media) {
   const docRaw = pgDoc({ units: "m", ltscale: k }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนให้อาคารตรงกระดาษ · กรอบ/หัวแบบใช้ docRaw
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
-  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));   // นิยามก่อนรายการกลาง = ใช้ค่านี้
+  p3ScaleLayers(doc, k);   // นิยามก่อนรายการกลาง = ใช้ค่านี้
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
@@ -1730,10 +1737,10 @@ function p3StrLayout(st, job, media) {
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   const gd = p3RotDoc(doc, rot);           // ตัวผังหมุนตามแนวอาคาร · กรอบ/หัวแบบใช้ doc ตรง
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
-  doc.layer("PG-PANEL", 5, "CONTINUOUS", p3PanelLw(k));   // นิยามก่อนรายการกลาง = ใช้ค่านี้
+  p3ScaleLayers(doc, k);   // นิยามก่อนรายการกลาง = ใช้ค่านี้
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
-  doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);      // ขอบแผง + เส้นเดินสาย (เข้ม)
+  doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", Math.min(18, p3PanelLw(k)));   // บางลงตามมาตราส่วน (p3PanelLw)      // ขอบแผง + เส้นเดินสาย (เข้ม)
   doc.layer("PG-STR-HALO", 255, "CONTINUOUS", 70);      // เส้นขาวรองใต้เส้นเดินสาย + พื้นวงกลมเลข
   pgTableLayers(doc);
   const ox = (B.minX + B.maxX) / 2 - px * k, oy = (B.minY + B.maxY) / 2 - py * k;
