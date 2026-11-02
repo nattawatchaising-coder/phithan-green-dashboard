@@ -1068,6 +1068,32 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
   });
   return true;
 }
+/* วาด DS_VEC[name] ลงกรอบ bw×bh (มุมซ้ายบน bx, byTop · มม.) ย่อ s มม./pt — F = กรอบรูปในภาพ [x0, y0, x1, y1] pt (ไม่วาด วาดกรอบใหม่แทน)
+   ของในกรอบจัดกลางกรอบใหม่ · ชื่อรูปเหนือกรอบ (ล่างไม่เกิน F[1]) คงระยะจากขอบบน — กรอบ DETAIL ทุกรูปเท่ากัน (ผู้ใช้ "ปรับกรอบให้เท่ากันทั้ง 4") */
+function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
+  const a = (window.DS_VEC || {})[name]; if (!a) return false;
+  const q = a.q || 1, cx = bx + bw / 2 - (F[0] + F[2]) / 2 * s, dy = (bh - (F[3] - F[1]) * s) / 2;
+  const nf = (b) => Math.abs(b[0] - F[0]) < 0.8 && Math.abs(b[1] - F[1]) < 0.8 && Math.abs(b[2] - F[2]) < 0.8 && Math.abs(b[3] - F[3]) < 0.8;
+  pen.rect(Lf || LY.k, bx, byTop - bh, bw, bh);
+  a.d.split(";").forEach((c) => {
+    const t = c[0], n = c.slice(1).split(",").map(Number), u = [], b = [1e9, 1e9, -1e9, -1e9];
+    for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1];
+      const X = x / q, Y = y / q; b[0] = Math.min(b[0], X); b[1] = Math.min(b[1], Y); b[2] = Math.max(b[2], X); b[3] = Math.max(b[3], Y); u.push([X, Y]); }
+    if (nf(b)) return;
+    const d = b[3] <= F[1] + 0.3 ? 0 : dy;
+    const p = u.map(([X, Y]) => [cx + X * s, byTop - (Y - F[1]) * s - d]);
+    const L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) { for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]); return; }
+    for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+  });
+  return true;
+}
+/* ชั้นลายเส้นแผ่นต่อลงดินจาก PDF (แบบเดียวกับแผ่นเมทัลชีท) */
+const DS_GND_LY = { k: "DS-GND", g: "DS-GND-G", l: "DS-GND-L", d: "DS-GND-D", w: "DS-GND-W" };
+function dsGndLayers(doc) {
+  doc.layer("DS-GND", 7, "CONTINUOUS", 13); doc.layer("DS-GND-G", 8, "CONTINUOUS", 9); doc.layer("DS-GND-L", 254, "CONTINUOUS", 5);
+  doc.layer("DS-GND-D", 8, "CONTINUOUS", 13); doc.layer("DS-GND-W", 255, "CONTINUOUS", 9);
+}
 /* ตัวหนังสือในแบบต้นฉบับที่เปลี่ยนตามงาน: [x0, y0, x1, y1 (pt ในภาพตัด), ค่า, 1 = หมุนอ่านขึ้น, 1 = สีเทา]
    L ยาวแผง (2382 · รูปตัด A เขียน 2384) · W กว้าง 1134 · E ระยะปลายถึงราง 526 · M ระยะราง 1330 · PV/WP ป้ายบนแผงในผัง */
 const DS_MOUNT_TX = [
@@ -1241,7 +1267,19 @@ function dsGroundSheet(st, job, media) {
     D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]); D.tx(1122, 485, "IEC01 6 sq.mm.", H);
   }
 
-  /* ── DETAIL A–D: รูปต้นแบบของผู้ใช้ลอกเป็นเส้นทั้งกล่อง (หัวเรื่อง · กรอบ · ป้าย) — ย่อให้กรอบตรงตำแหน่งเดิม · D เฉพาะงานที่มีรางไฟ ── */
+  /* ── DETAIL A–D: ลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (dashboard/groundvec.js GV1A–D · ผู้ใช้ส่ง PDF 2026-11-02 "ถอดเส้นจากอันนี้")
+     กรอบเท่ากัน 274×131 ที่ตำแหน่งเดิม · ย่อทุกรูปอัตราเดียวกัน (ให้รูปที่ใหญ่สุดพอดีกรอบ) · D เฉพาะงานที่มีรางไฟ · งานบ้านไม่มี C ── */
+  dsGndLayers(S.doc);
+  const FW = 274, FH = 131, bT = 573.1, sV = Math.min(FW / 190.5, FH / 92) * D.k * 0.97;
+  const GF = { GV1A: [3.2, 15.1, 192.8, 83.9], GV1B: [3.8, 15.1, 193.4, 94.9], GV1C: [3.5, 15.1, 178.7, 106.1], GV1D: [3.7, 15.1, 178.9, 106.1] };
+  const det = (nm, x) => (window.DS_VEC || {})[nm] && dsVecFit(pen, nm, GF[nm], D.X(x), D.Y(bT), FW * D.k, FH * D.k, sV, DS_GND_LY, E);
+  const dD0 = home ? 687.5 - 976.5 : 0;
+  if (det("GV1A", 109.5)) {
+    det("GV1B", 398.5);
+    if (!home) det("GV1C", 687.5);
+    if (tray) det("GV1D", 976.5 + dD0);
+  } else {
+  /* ── (สำรองเมื่อไม่มี groundvec.js) DETAIL A–D: รูปต้นแบบของผู้ใช้ลอกเป็นเส้นทั้งกล่อง (หัวเรื่อง · กรอบ · ป้าย) — ย่อให้กรอบตรงตำแหน่งเดิม · D เฉพาะงานที่มีรางไฟ ── */
   const CL = DL("cell");
   const FW = 274, FH = 131;
   D.art("G1A", 104.03, 553.83, 3.443, E, CL, H, { f: [19, 66.5, 961.5, 407.5], x: 109.5, w: FW, h: FH });
@@ -1249,6 +1287,7 @@ function dsGroundSheet(st, job, media) {
   if (!home) D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, { f: [18, 86.5, 888.5, 538.5], x: 687.5, w: FW, h: FH });
   const dD = home ? 687.5 - 976.5 : 0;   // งานบ้านไม่มี DETAIL C → D เลื่อนมาแทนที่
   if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, { f: [9.5, 80.5, 880, 532.5], x: 976.5 + dD, w: FW, h: FH });
+  }
   D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
   D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
@@ -1264,6 +1303,16 @@ function dsGroundDetSheet(st, job, media) {
   const pen = S.pen, A = S.A, E = DL("eq"), T = PG_TBL.txt, W = DL("gw"), G16 = DL("gw16"), RL = DL("railD");
   const D = dsPx(pen, A, 1337, A.y1 - 16), H = PG_TS.cell;
   const lug = (x, y) => { D.ci(E, x, y, 7); D.dot(E, x, y, 4.5); };
+  /* ทั้งแผ่นเป็นลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (groundvec.js GV2 · ผู้ใช้ส่ง 2026-11-02 "ถอดเส้นจากอันนี้") ย่อพอดีพื้นที่วาด
+     ตัดกรอบแผ่น/ตารางชื่อแบบ/ชื่อแผ่นของต้นฉบับออก · GROUNDING FOR SERVICE LADDER เฉพาะงานที่มีบันได */
+  const gv = (window.DS_VEC || {}).GV2;
+  if (gv) {
+    dsGndLayers(S.doc);
+    const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / gv.w, (A.y1 - A.y0 - 2 * m) / gv.h);
+    const x0 = (A.x0 + A.x1 - gv.w * sc) / 2, yT = (A.y0 + A.y1 + gv.h * sc) / 2;
+    dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, [[548, -1, 560, 2]].concat(dsObs(st, "ladder").length ? [] : [[480.5, 344.3, 678.5, 553.3]]));   // [548…] = ขีดกึ่งกลางกรอบแผ่นต้นฉบับที่ติดขอบตัด
+    return S.doc.build();
+  }
 
   /* ── TOP VIEW ── */
   const cols = [[85, 135], [137, 260], [262, 385]], rows = [[95, 350], [355, 660]];

@@ -1626,6 +1626,56 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
   });
   return true;
 }
+function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
+  const a = (window.DS_VEC || {})[name];
+  if (!a) return false;
+  const q = a.q || 1,
+    cx = bx + bw / 2 - (F[0] + F[2]) / 2 * s,
+    dy = (bh - (F[3] - F[1]) * s) / 2;
+  const nf = b => Math.abs(b[0] - F[0]) < 0.8 && Math.abs(b[1] - F[1]) < 0.8 && Math.abs(b[2] - F[2]) < 0.8 && Math.abs(b[3] - F[3]) < 0.8;
+  pen.rect(Lf || LY.k, bx, byTop - bh, bw, bh);
+  a.d.split(";").forEach(c => {
+    const t = c[0],
+      n = c.slice(1).split(",").map(Number),
+      u = [],
+      b = [1e9, 1e9, -1e9, -1e9];
+    for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
+      x = i ? x + n[i] : n[i];
+      y = i ? y + n[i + 1] : n[i + 1];
+      const X = x / q,
+        Y = y / q;
+      b[0] = Math.min(b[0], X);
+      b[1] = Math.min(b[1], Y);
+      b[2] = Math.max(b[2], X);
+      b[3] = Math.max(b[3], Y);
+      u.push([X, Y]);
+    }
+    if (nf(b)) return;
+    const d = b[3] <= F[1] + 0.3 ? 0 : dy;
+    const p = u.map(([X, Y]) => [cx + X * s, byTop - (Y - F[1]) * s - d]);
+    const L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) {
+      for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
+      return;
+    }
+    for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+  });
+  return true;
+}
+const DS_GND_LY = {
+  k: "DS-GND",
+  g: "DS-GND-G",
+  l: "DS-GND-L",
+  d: "DS-GND-D",
+  w: "DS-GND-W"
+};
+function dsGndLayers(doc) {
+  doc.layer("DS-GND", 7, "CONTINUOUS", 13);
+  doc.layer("DS-GND-G", 8, "CONTINUOUS", 9);
+  doc.layer("DS-GND-L", 254, "CONTINUOUS", 5);
+  doc.layer("DS-GND-D", 8, "CONTINUOUS", 13);
+  doc.layer("DS-GND-W", 255, "CONTINUOUS", 9);
+}
 const DS_MOUNT_TX = [[102.3, 119.2, 127.5, 126.3, "L"], [302.1, 119.2, 327.3, 126.3, "L"], [52.7, 142.1, 70.8, 149.2, "E"], [103, 142.1, 126.7, 149.2, "M"], [158.9, 142.1, 177, 149.2, "E"], [252.5, 142.1, 270.5, 149.2, "E"], [302.7, 142.1, 326.5, 149.2, "M"], [358.7, 142.1, 376.8, 149.2, "E"], [413.9, 206.2, 421.1, 229.1, "W", 1], [413.9, 272.3, 421.1, 295.1, "W", 1], [96, 211.1, 136.8, 215.8, "PV", 0, 1], [294.6, 211.1, 335.4, 215.8, "PV", 0, 1], [96, 277.2, 136.8, 281.8, "PV", 0, 1], [294.6, 277.2, 335.4, 281.8, "PV", 0, 1], [107.8, 218.8, 125.2, 223.3, "WP", 0, 1], [306.3, 218.8, 323.8, 223.3, "WP", 0, 1], [107.8, 284.9, 125.2, 289.5, "WP", 0, 1], [306.3, 284.9, 323.8, 289.5, "WP", 0, 1], [106.1, 393.3, 132.2, 400.3, "L"], [301.9, 393.3, 328, 400.3, "L"], [56.8, 417.6, 74.8, 424.8, "E"], [106.9, 417.6, 130.8, 424.8, "M"], [163.1, 417.6, 181.1, 424.8, "E"], [252.5, 417.6, 270.6, 424.8, "E"], [302.8, 417.6, 326.7, 424.8, "M"], [358.8, 417.6, 376.9, 424.8, "E"], [103.8, 546.7, 127.2, 553.8, "W"], [169.9, 546.7, 193.2, 553.8, "W"], [235.9, 546.7, 259.2, 553.8, "W"], [302.1, 546.7, 325.3, 553.8, "W"]];
 function dsMountSheet(st, job, media) {
   media = media || {};
@@ -1883,34 +1933,53 @@ function dsGroundSheet(st, job, media) {
     D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]);
     D.tx(1122, 485, "IEC01 6 sq.mm.", H);
   }
-  const CL = DL("cell");
+  dsGndLayers(S.doc);
   const FW = 274,
-    FH = 131;
-  D.art("G1A", 104.03, 553.83, 3.443, E, CL, H, {
-    f: [19, 66.5, 961.5, 407.5],
-    x: 109.5,
-    w: FW,
-    h: FH
-  });
-  D.art("G1B", 399.0, 553.9, 3.46, E, CL, H, {
-    f: [19.5, 66.5, 961.5, 463],
-    x: 398.5,
-    w: FW,
-    h: FH
-  });
-  if (!home) D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, {
-    f: [18, 86.5, 888.5, 538.5],
-    x: 687.5,
-    w: FW,
-    h: FH
-  });
-  const dD = home ? 687.5 - 976.5 : 0;
-  if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, {
-    f: [9.5, 80.5, 880, 532.5],
-    x: 976.5 + dD,
-    w: FW,
-    h: FH
-  });
+    FH = 131,
+    bT = 573.1,
+    sV = Math.min(FW / 190.5, FH / 92) * D.k * 0.97;
+  const GF = {
+    GV1A: [3.2, 15.1, 192.8, 83.9],
+    GV1B: [3.8, 15.1, 193.4, 94.9],
+    GV1C: [3.5, 15.1, 178.7, 106.1],
+    GV1D: [3.7, 15.1, 178.9, 106.1]
+  };
+  const det = (nm, x) => (window.DS_VEC || {})[nm] && dsVecFit(pen, nm, GF[nm], D.X(x), D.Y(bT), FW * D.k, FH * D.k, sV, DS_GND_LY, E);
+  const dD0 = home ? 687.5 - 976.5 : 0;
+  if (det("GV1A", 109.5)) {
+    det("GV1B", 398.5);
+    if (!home) det("GV1C", 687.5);
+    if (tray) det("GV1D", 976.5 + dD0);
+  } else {
+    const CL = DL("cell");
+    const FW = 274,
+      FH = 131;
+    D.art("G1A", 104.03, 553.83, 3.443, E, CL, H, {
+      f: [19, 66.5, 961.5, 407.5],
+      x: 109.5,
+      w: FW,
+      h: FH
+    });
+    D.art("G1B", 399.0, 553.9, 3.46, E, CL, H, {
+      f: [19.5, 66.5, 961.5, 463],
+      x: 398.5,
+      w: FW,
+      h: FH
+    });
+    if (!home) D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, {
+      f: [18, 86.5, 888.5, 538.5],
+      x: 687.5,
+      w: FW,
+      h: FH
+    });
+    const dD = home ? 687.5 - 976.5 : 0;
+    if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, {
+      f: [9.5, 80.5, 880, 532.5],
+      x: 976.5 + dD,
+      w: FW,
+      h: FH
+    });
+  }
   D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
   D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
@@ -1931,6 +2000,16 @@ function dsGroundDetSheet(st, job, media) {
     D.ci(E, x, y, 7);
     D.dot(E, x, y, 4.5);
   };
+  const gv = (window.DS_VEC || {}).GV2;
+  if (gv) {
+    dsGndLayers(S.doc);
+    const m = 3,
+      sc = Math.min((A.x1 - A.x0 - 2 * m) / gv.w, (A.y1 - A.y0 - 2 * m) / gv.h);
+    const x0 = (A.x0 + A.x1 - gv.w * sc) / 2,
+      yT = (A.y0 + A.y1 + gv.h * sc) / 2;
+    dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, [[548, -1, 560, 2]].concat(dsObs(st, "ladder").length ? [] : [[480.5, 344.3, 678.5, 553.3]]));
+    return S.doc.build();
+  }
   const cols = [[85, 135], [137, 260], [262, 385]],
     rows = [[95, 350], [355, 660]];
   rows.forEach(r => cols.forEach((c, i) => {
