@@ -1054,7 +1054,14 @@ function p3Dxf(st, job, media) {
       if (o.p3sType === "pipe") (o.taps || []).forEach((t) => p3TapSym(doc, x + (+t.x || 0), -(z + (+t.z || 0)), 1.3 * k));
       /* ป้ายชี้ชนิดละหนึ่งป้าย (ผู้ใช้ "ตัวอื่นๆด้วย") — จุดบนเส้นเยื้องกันตามชนิด ป้ายของเส้นที่ขนานกันไม่ซ้อน */
       const LT = P3_LINE_TAG[o.p3sType];
-      if (LT && !tagged[o.p3sType]) { tagged[o.p3sType] = 1; const q = p3AlongPath(P, LT[1]); callouts.push({ x: q[0], y: q[1], txt: LT[0] }); }
+      if (LT && !tagged[o.p3sType]) {
+        tagged[o.p3sType] = 1;
+        /* จุดชี้ท่อน้ำไม่ทับก๊อก (ผู้ใช้ชี้) — เลื่อนถอยทีละ 4% จนห่างก๊อก > 2 ม. */
+        const TP = o.p3sType === "pipe" ? (o.taps || []).map((t) => [x + (+t.x || 0), -(z + (+t.z || 0))]) : [];
+        let fr = LT[1], q = p3AlongPath(P, fr);
+        for (let n = 0; n < 20 && TP.some((t) => Math.hypot(t[0] - q[0], t[1] - q[1]) < 2); n++) { fr = fr > 0.1 ? fr - 0.04 : fr + 0.5; q = p3AlongPath(P, fr); }
+        callouts.push({ x: q[0], y: q[1], txt: LT[0] });
+      }
       if (o.p3sType === "pipe" && !tagged.tap && (o.taps || []).length) { tagged.tap = 1; const t = o.taps[0]; callouts.push({ x: x + (+t.x || 0), y: -(z + (+t.z || 0)), txt: "WATER TAP" }); }
       return;
     }
@@ -1116,8 +1123,11 @@ function p3Dxf(st, job, media) {
     callouts.unshift({ x: pk.x, y: pk.y, txt: "PV MODULE" });
   }
   const placed = [];
-  callouts.forEach((c) => {
-    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, txt = c.txt;
+  /* ลำดับวาง: ป้ายที่จุดอยู่ใกล้ปลายทางเส้นนอนก่อน (ได้เส้นนอนต่ำสุด) — ป้ายที่ถูกยกขึ้นอยู่ไกลกว่า เส้นเฉียงจึงไม่ตัดผ่านชื่อป้ายอื่น */
+  callouts.map((c) => { const p = RT(c.x, c.y); return { c, p, sx: p[0] < V.cx ? -1 : 1, sy: p[1] < V.cy ? -1 : 1 }; })
+    .sort((a, b) => (a.sx - b.sx) || (a.sy - b.sy) || (-a.sx * a.p[0]) - (-b.sx * b.p[0]))
+    .forEach(({ c, p, sx, sy }) => {
+    const txt = c.txt;
     const th = 2.2 * k, L = pgTextW(txt, 2.2) * k + 2 * k;
     /* เลื่อนเส้นนอนออกไปอีกทีละ 4.5 มม. จนไม่ชนป้ายที่วางแล้ว (อุปกรณ์อยู่ใกล้กัน) */
     let dy = 6, e;

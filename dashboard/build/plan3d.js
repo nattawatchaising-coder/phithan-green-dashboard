@@ -1756,7 +1756,13 @@ function p3Dxf(st, job, media) {
       const LT = P3_LINE_TAG[o.p3sType];
       if (LT && !tagged[o.p3sType]) {
         tagged[o.p3sType] = 1;
-        const q = p3AlongPath(P, LT[1]);
+        const TP = o.p3sType === "pipe" ? (o.taps || []).map(t => [x + (+t.x || 0), -(z + (+t.z || 0))]) : [];
+        let fr = LT[1],
+          q = p3AlongPath(P, fr);
+        for (let n = 0; n < 20 && TP.some(t => Math.hypot(t[0] - q[0], t[1] - q[1]) < 2); n++) {
+          fr = fr > 0.1 ? fr - 0.04 : fr + 0.5;
+          q = p3AlongPath(P, fr);
+        }
         callouts.push({
           x: q[0],
           y: q[1],
@@ -1838,11 +1844,21 @@ function p3Dxf(st, job, media) {
     });
   }
   const placed = [];
-  callouts.forEach(c => {
-    const p = RT(c.x, c.y),
-      sx = p[0] < V.cx ? -1 : 1,
-      sy = p[1] < V.cy ? -1 : 1,
-      txt = c.txt;
+  callouts.map(c => {
+    const p = RT(c.x, c.y);
+    return {
+      c,
+      p,
+      sx: p[0] < V.cx ? -1 : 1,
+      sy: p[1] < V.cy ? -1 : 1
+    };
+  }).sort((a, b) => a.sx - b.sx || a.sy - b.sy || -a.sx * a.p[0] - -b.sx * b.p[0]).forEach(({
+    c,
+    p,
+    sx,
+    sy
+  }) => {
+    const txt = c.txt;
     const th = 2.2 * k,
       L = pgTextW(txt, 2.2) * k + 2 * k;
     let dy = 6,
