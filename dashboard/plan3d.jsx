@@ -872,7 +872,18 @@ function p3WalkBand(line, A, B, hw, sp) {
     }
   });
 }
-const P3_EQUIP_TAG = { mdb: ["PG-OBS-MDB", "MDB EXISTING"], invst: ["PG-OBS-INVST", "INVERTER STATION"], xfmr: ["PG-OBS-XFMR", "TRANSFORMER"] };
+/* ชื่อในป้ายชี้ของผังติดตั้ง (ตรงกับ LEGEND) — อุปกรณ์/บันไดชี้ทุกตัว · ของแนวยาวชี้ชนิดละหนึ่งป้าย */
+const P3_EQUIP_TAG = { mdb: "MDB EXISTING", invst: "INVERTER STATION", xfmr: "TRANSFORMER", ladder: "SERVICE LADDER" };
+const P3_LINE_TAG = { tray: ["CABLE TRAY", 0.94], walkway: ["SERVICE WALKWAY", 0.86], pipe: ["WATER PIPE (PPR)", 0.78], rail: ["GUARDRAIL", 0.5], sky: ["SKYLIGHT", 0.5] };
+/* จุดบนเส้น P ที่สัดส่วนความยาว f */
+function p3AlongPath(P, f) {
+  let tot = 0; for (let i = 1; i < P.length; i++) tot += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+  let d = tot * f;
+  for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+    if (d <= l || i === P.length - 1) { const t = l ? Math.min(1, d / l) : 0; return [P[i - 1][0] + (P[i][0] - P[i - 1][0]) * t, P[i - 1][1] + (P[i][1] - P[i - 1][1]) * t]; }
+    d -= l; }
+  return P[0];
+}
 const P3_TRAY_ACI = [30, 10, 3, 6, 200];
 function p3TrayWidths(st) {
   const a = (st.obstacles || []).filter((o) => o && o.p3sType === "tray").map((o) => Math.round((+o.d || 0.1) * 1000));
@@ -1013,7 +1024,7 @@ function p3Dxf(st, job, media) {
   /* รางไฟแยกสีตามขนาด (ขนาดแรกใช้ชั้น PG-OBS-TRAY) */
   const trayW = p3TrayWidths(st);
   trayW.forEach((mm, i) => { if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60); });
-  const callouts = [];   // ป้ายชี้อุปกรณ์ (วาดหลังสิ่งบดบังทั้งหมด)
+  const callouts = [], tagged = {};   // ป้ายชี้ (วาดหลังสิ่งบดบังทั้งหมด) · tagged = ชนิดแนวยาวที่มีป้ายแล้ว
   // สิ่งบดบัง — ต้นไม้เป็นวงกลม อย่างอื่นเป็นกรอบสี่เหลี่ยมหมุนตามที่ตั้งไว้
   (st.obstacles || []).forEach((o) => {
     const x = +o.x || 0, z = +o.z || 0, w = Math.max(0.1, +o.w || 1), d = Math.max(0.1, +o.d || 1);
@@ -1025,7 +1036,7 @@ function p3Dxf(st, job, media) {
       const a3 = (+o.rot || 0) * P3_DEG, c3 = Math.cos(a3), s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
       P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
-      if (P3_EQUIP_TAG[o.p3sType]) callouts.push({ x, y: -z, t: o.p3sType });
+      if (P3_EQUIP_TAG[o.p3sType]) callouts.push({ x, y: -z, txt: P3_EQUIP_TAG[o.p3sType] });
       return;
     }
     if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
@@ -1039,9 +1050,12 @@ function p3Dxf(st, job, media) {
       if (o.p3sType === "walkway") { const hw = Math.max(0.05, (+o.d || 0.3) / 2);
         for (let i = 1; i < P.length; i++) p3WalkBand((L, a, b) => doc.line(L, a[0], a[1], b[0], b[1]), P[i - 1], P[i], hw, Math.max(hw * 0.6, 0.7 * k)); }
       else doc.pline(o.p3sType === "tray" ? p3TrayLayer(trayW, o) : "PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
-      /* ก๊อกน้ำบนท่อ (o.taps สัมพัทธ์ x/z) — วงกลมกากบาท รัศมี 1.3 มม.บนกระดาษ (ผู้ใช้ 2026-11-02 "อยากได้ตำแหน่งก๊อกน้ำในแบบ") */
-      /* ก๊อกน้ำบนท่อ — ผังติดตั้งไม่แสดงวงรัศมี R15 (ผู้ใช้ "แค่หน้าผังติดตั้ง ยังไม่ต้องแสดงรัศมีก๊อก") */
+      /* ก๊อกน้ำบนท่อ (o.taps สัมพัทธ์ x/z) วงกลมกากบาท 1.3 มม. (ผู้ใช้ "อยากได้ตำแหน่งก๊อกน้ำ") · ผังติดตั้งไม่แสดงวงรัศมี R15 (ผู้ใช้สั่ง) */
       if (o.p3sType === "pipe") (o.taps || []).forEach((t) => p3TapSym(doc, x + (+t.x || 0), -(z + (+t.z || 0)), 1.3 * k));
+      /* ป้ายชี้ชนิดละหนึ่งป้าย (ผู้ใช้ "ตัวอื่นๆด้วย") — จุดบนเส้นเยื้องกันตามชนิด ป้ายของเส้นที่ขนานกันไม่ซ้อน */
+      const LT = P3_LINE_TAG[o.p3sType];
+      if (LT && !tagged[o.p3sType]) { tagged[o.p3sType] = 1; const q = p3AlongPath(P, LT[1]); callouts.push({ x: q[0], y: q[1], txt: LT[0] }); }
+      if (o.p3sType === "pipe" && !tagged.tap && (o.taps || []).length) { tagged.tap = 1; const t = o.taps[0]; callouts.push({ x: x + (+t.x || 0), y: -(z + (+t.z || 0)), txt: "WATER TAP" }); }
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG, ca = Math.cos(a2), sa = Math.sin(a2);
@@ -1094,9 +1108,16 @@ function p3Dxf(st, job, media) {
   /* ป้ายชี้อุปกรณ์ทุกตัว (ผู้ใช้วาดตัวอย่าง "ชี้บอกทั้งหมด"): จุดที่ตัวอุปกรณ์ → เส้นเฉียงออกนอกผัง → เส้นนอนมีชื่อเหนือเส้น
      วาดด้วย docRaw (ตั้งตรงกับกระดาษ) — แปลงตำแหน่งด้วยมุมหมุนผังเอง · ทิศเฉียงชี้ออกจากกลางผัง */
   const RT = p3RotPt(V.rot || 0);
+  /* PV MODULE: ชี้แผงที่อยู่ล่างสุดใกล้กลางกลุ่มแผงบนกระดาษ (ผู้ใช้วาดชี้) */
+  const fpR = (foot.panels || []).map((p) => { const c = RT(p.cx, -p.cz); return { x: p.cx, y: -p.cz, rx: c[0], ry: c[1] }; });
+  if (fpR.length) {
+    const xs = fpR.map((p) => p.rx), mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = Math.min(...fpR.map((p) => p.ry));
+    const pk = fpR.reduce((b, p) => (Math.hypot(p.rx - mx, (p.ry - my) * 4) < Math.hypot(b.rx - mx, (b.ry - my) * 4) ? p : b));
+    callouts.unshift({ x: pk.x, y: pk.y, txt: "PV MODULE" });
+  }
   const placed = [];
   callouts.forEach((c) => {
-    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, txt = P3_EQUIP_TAG[c.t][1];
+    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, txt = c.txt;
     const th = 2.2 * k, L = pgTextW(txt, 2.2) * k + 2 * k;
     /* เลื่อนเส้นนอนออกไปอีกทีละ 4.5 มม. จนไม่ชนป้ายที่วางแล้ว (อุปกรณ์อยู่ใกล้กัน) */
     let dy = 6, e;

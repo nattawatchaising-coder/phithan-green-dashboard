@@ -1471,10 +1471,32 @@ function p3WalkBand(line, A, B, hw, sp) {
   });
 }
 const P3_EQUIP_TAG = {
-  mdb: ["PG-OBS-MDB", "MDB EXISTING"],
-  invst: ["PG-OBS-INVST", "INVERTER STATION"],
-  xfmr: ["PG-OBS-XFMR", "TRANSFORMER"]
+  mdb: "MDB EXISTING",
+  invst: "INVERTER STATION",
+  xfmr: "TRANSFORMER",
+  ladder: "SERVICE LADDER"
 };
+const P3_LINE_TAG = {
+  tray: ["CABLE TRAY", 0.94],
+  walkway: ["SERVICE WALKWAY", 0.86],
+  pipe: ["WATER PIPE (PPR)", 0.78],
+  rail: ["GUARDRAIL", 0.5],
+  sky: ["SKYLIGHT", 0.5]
+};
+function p3AlongPath(P, f) {
+  let tot = 0;
+  for (let i = 1; i < P.length; i++) tot += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+  let d = tot * f;
+  for (let i = 1; i < P.length; i++) {
+    const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+    if (d <= l || i === P.length - 1) {
+      const t = l ? Math.min(1, d / l) : 0;
+      return [P[i - 1][0] + (P[i][0] - P[i - 1][0]) * t, P[i - 1][1] + (P[i][1] - P[i - 1][1]) * t];
+    }
+    d -= l;
+  }
+  return P[0];
+}
 const P3_TRAY_ACI = [30, 10, 3, 6, 200];
 function p3TrayWidths(st) {
   const a = (st.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => Math.round((+o.d || 0.1) * 1000));
@@ -1693,7 +1715,8 @@ function p3Dxf(st, job, media) {
   trayW.forEach((mm, i) => {
     if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60);
   });
-  const callouts = [];
+  const callouts = [],
+    tagged = {};
   (st.obstacles || []).forEach(o => {
     const x = +o.x || 0,
       z = +o.z || 0,
@@ -1712,7 +1735,7 @@ function p3Dxf(st, job, media) {
       if (P3_EQUIP_TAG[o.p3sType]) callouts.push({
         x,
         y: -z,
-        t: o.p3sType
+        txt: P3_EQUIP_TAG[o.p3sType]
       });
       return;
     }
@@ -1730,6 +1753,25 @@ function p3Dxf(st, job, media) {
         for (let i = 1; i < P.length; i++) p3WalkBand((L, a, b) => doc.line(L, a[0], a[1], b[0], b[1]), P[i - 1], P[i], hw, Math.max(hw * 0.6, 0.7 * k));
       } else doc.pline(o.p3sType === "tray" ? p3TrayLayer(trayW, o) : "PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
       if (o.p3sType === "pipe") (o.taps || []).forEach(t => p3TapSym(doc, x + (+t.x || 0), -(z + (+t.z || 0)), 1.3 * k));
+      const LT = P3_LINE_TAG[o.p3sType];
+      if (LT && !tagged[o.p3sType]) {
+        tagged[o.p3sType] = 1;
+        const q = p3AlongPath(P, LT[1]);
+        callouts.push({
+          x: q[0],
+          y: q[1],
+          txt: LT[0]
+        });
+      }
+      if (o.p3sType === "pipe" && !tagged.tap && (o.taps || []).length) {
+        tagged.tap = 1;
+        const t = o.taps[0];
+        callouts.push({
+          x: x + (+t.x || 0),
+          y: -(z + (+t.z || 0)),
+          txt: "WATER TAP"
+        });
+      }
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG,
@@ -1775,12 +1817,32 @@ function p3Dxf(st, job, media) {
     }));
   }
   const RT = p3RotPt(V.rot || 0);
+  const fpR = (foot.panels || []).map(p => {
+    const c = RT(p.cx, -p.cz);
+    return {
+      x: p.cx,
+      y: -p.cz,
+      rx: c[0],
+      ry: c[1]
+    };
+  });
+  if (fpR.length) {
+    const xs = fpR.map(p => p.rx),
+      mx = (Math.min(...xs) + Math.max(...xs)) / 2,
+      my = Math.min(...fpR.map(p => p.ry));
+    const pk = fpR.reduce((b, p) => Math.hypot(p.rx - mx, (p.ry - my) * 4) < Math.hypot(b.rx - mx, (b.ry - my) * 4) ? p : b);
+    callouts.unshift({
+      x: pk.x,
+      y: pk.y,
+      txt: "PV MODULE"
+    });
+  }
   const placed = [];
   callouts.forEach(c => {
     const p = RT(c.x, c.y),
       sx = p[0] < V.cx ? -1 : 1,
       sy = p[1] < V.cy ? -1 : 1,
-      txt = P3_EQUIP_TAG[c.t][1];
+      txt = c.txt;
     const th = 2.2 * k,
       L = pgTextW(txt, 2.2) * k + 2 * k;
     let dy = 6,
