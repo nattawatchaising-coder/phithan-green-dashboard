@@ -143,5 +143,6 @@ function trace(file, opt) {
 
 const [outFile, ...args] = process.argv.slice(2);
 const res = {};
-args.forEach((a) => { const [k, f] = a.split("="); const r = trace(f, {}); res[k] = { w: r.w, h: r.h, q: r.q, d: r.d }; console.log(k, r.w + "x" + r.h, "เส้น", r.n, "จุด", r.pts, "ขนาด", r.d.length); });
-fs.writeFileSync(outFile, "/* สร้างด้วย tools/trace-art.mjs — รูปลายเส้นรายละเอียดต่อลงดินตามแบบผู้ใช้ (ห้ามแก้มือ) */\nwindow.DS_ART = Object.assign(window.DS_ART || {}, " + JSON.stringify(res) + ");\n");
+/* NAME=รูป.png@160 = ตั้งเกณฑ์เส้นเทาของรูปนั้น (ค่าเฉลี่ยความสว่างตามเส้น > ค่านี้ = เทา · ปกติ 130) — รูปที่เส้นดำบางจนออกเทาทั้งรูปใช้ค่าสูงขึ้น */
+args.forEach((a) => { const [k, f0] = a.split("="), [f, gr] = f0.split("@"); const r = trace(f, gr ? { gray: +gr } : {}); res[k] = { w: r.w, h: r.h, q: r.q, d: r.d }; console.log(k, r.w + "x" + r.h, "เส้น", r.n, "จุด", r.pts, "ขนาด", r.d.length); });
+fs.writeFileSync(outFile, "/* สร้างด้วย tools/trace-art.mjs — รูปลายเส้นตามแบบผู้ใช้ (ห้ามแก้มือ) */\nwindow.DS_ART = Object.assign(window.DS_ART || {}, " + JSON.stringify(res) + ");\n");

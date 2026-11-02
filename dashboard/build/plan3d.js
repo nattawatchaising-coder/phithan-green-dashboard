@@ -5853,6 +5853,7 @@ async function p3PrepSet(st, job, photos, design) {
       fn: o => p3CuSheet(st, job, o)
     });
     add("STRDET");
+    add("MOUNT");
     add("GROUND");
     add("GROUND2");
     add("TRAY");

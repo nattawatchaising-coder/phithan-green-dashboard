@@ -3715,7 +3715,7 @@ async function p3PrepSet(st, job, photos, design) {
       list.push({ key: "CU", gk: "SLD", label: MS.pro.home ? "ต่อเข้าตู้ไฟบ้าน" : "ต่อเข้าตู้ MDB ลูกค้า", en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION", fn: (o) => p3CuSheet(st, job, o) });
     /* แผ่นต่อสาย DC (p3DcSheet) เอาออกจากชุด — ผู้ใช้ 2026-11-02 "หน้านี่ไม่เอาละ" · ฟังก์ชันยังเก็บไว้ */
     add("STRDET");   // รูปการเดินสายสตริงต่อจากแผ่นต่อสาย DC (ผู้ใช้ 2026-11-02 "ย้ายไปอยู่หน้า 11" — เดิมต่อจากผังสตริง)
-    add("GROUND"); add("GROUND2"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
+    add("MOUNT"); add("GROUND"); add("GROUND2"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
     /* แผ่นวัสดุหน้างาน (p3EquipSheet) เอาออกจากชุด — ผู้ใช้ 2026-11-02 กากบาททั้งแผ่น · ฟังก์ชันยังเก็บไว้ */
   }

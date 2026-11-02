@@ -32,14 +32,14 @@ const DS_SET_EN = {
   COVER: "COVER", NOTES: "GENERAL NOTES & LEGEND", PLAN: "OVERALL LAYOUT", PANEL: "PV MODULE LAYOUT",
   STRING: "STRING LAYOUT", STRDET: "PV STRING WIRING DETAIL", SLD: "SINGLE LINE DIAGRAM", CU: "CONSUMER UNIT CONNECTION", DC: "DC WIRING",
   GROUND: "GROUNDING DIAGRAM", GROUND2: "GROUNDING DETAIL", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
-  SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST",
+  SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST", MOUNT: "TYPICAL MOUNTING STRUCTURE",
 };
 
 /* หมวดของแต่ละแผ่นในไฟล์รวม (pgCombine groups) — แผ่นหมวดเดียวกันอยู่แถว/กรอบเดียวกัน */
 const DS_SET_GROUP = {
   COVER: "COVER", NOTES: "COVER", PLAN: "LAYOUT", PANEL: "LAYOUT", STRING: "LAYOUT",
   STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL", GROUND2: "ELECTRICAL",
-  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
+  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
 };
 
 /* ── ช่วยเรื่องข้อความ/หมายเหตุ (มม.บนกระดาษ) ── */
@@ -969,7 +969,8 @@ function dsPx(pen, A, w, yT) {
         onF = (p) => p.every(([x, y]) => ((e(x, F[0]) || e(x, F[2])) && y > F[1] - 2 && y < F[3] + 2) || ((e(y, F[1]) || e(y, F[3])) && x > F[0] - 2 && x < F[2] + 2));
         o.rc(L, fr.x, y0 + F[1] / s, fr.w, fr.h); }
       /* ตัวหนังสือในรูปเป็นลายเส้น — ซ่อนเส้นที่อยู่ในกรอบข้อความทั้งเส้น แล้วเขียนเป็นข้อความจริงแทน (ผู้ใช้ขอ) */
-      const tx = DS_ART_TX[name] || [], q = a.q || 1, inBox = (b) => tx.some((t) => b[0] >= t[0] - 1.5 && b[2] <= t[2] + 1.5 && b[1] >= t[1] - 1.5 && b[3] <= t[3] + 1.5 + (t[3] - t[1]) * 0.4); /* ล่างเผื่อหางตัว q */
+      const tx = DS_ART_TX[name] || [], q = a.q || 1, inBox = (b) => tx.some((t) => b[0] >= t[0] - 1.5 && b[2] <= t[2] + 1.5 && b[1] >= t[1] - 1.5 && b[3] <= t[3] + 1.5 + (t[3] - t[1]) * 0.4
+        && !(t[6] && b[3] - b[1] < 1.5 && b[2] - b[0] > (t[2] - t[0]) * 0.6));   /* t[6] = เก็บเส้นใต้ชื่อรูป (เส้นนอนยาว) */ /* ล่างเผื่อหางตัว q */
       a.d.split(";").forEach((c) => {
         const g = c[0] === "g", n = (g ? c.slice(1) : c).split(",").map(Number), pts = [], b = [1e9, 1e9, -1e9, -1e9], raw = [];
         for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1];
@@ -1007,6 +1008,57 @@ const DS_ART_TX = {
   G2C: [[373, 62, 427, 73, "NUT M8"], [379.5, 122, 437, 134, "WASHER"], [422, 223, 524, 235, "MIDDLE CLAMP"], [437, 406, 541.5, 417, "RAIL EARTHING"],
     [352.5, 568.5, 413, 580.5, "BOLT M8"], [151, 795, 280, 819, "DETAIL C"]],
 };
+/* แผ่นรายละเอียดติดตั้งบนหลังคาเมทัลชีท (MOUNT · ผู้ใช้ส่งแบบ 2026-11-02) — รูปลอกจาก dashboard/mountart.js
+   ชื่อรุ่นสะกดแก้จากต้นแบบ: MODUILE → MODULE · JIONER → JOINER */
+/* ขยายกรอบป้ายกันเศษตัวหนังสือค้าง (วงเล็บ/จุลภาคสูงหรือเลยขอบ) · ชื่อรูป t[6] = 1 เก็บเส้นใต้ชื่อไว้ */
+const dsPadTx = (o) => { Object.keys(o).forEach((k) => { o[k] = o[k].map((t) => /^(SECTION|DETAIL|")/.test(t[4]) ? [t[0], t[1], t[2], t[3], t[4], t[5], 1]
+  : t[5] === 2 ? [t[0] - 8, t[1] - 4, t[2] + 2, t[3] + 3, t[4], t[5]] : [t[0] - 2, t[1] - 4, t[2] + 18, t[3] + 3, t[4], t[5]]); }); return o; };
+Object.assign(DS_ART_TX, dsPadTx({
+  MPLAN: [[179, 208, 259.5, 217, "PV MODULE", 1], [574, 208, 646.5, 217, "PV MODULE", 1], [179, 339, 259.5, 348, "PV MODULE", 1], [574, 339, 646.5, 348, "PV MODULE", 1],
+    [202.5, 223, 237, 232, "625W", 1], [597.5, 223, 632, 232, "625W", 1], [203, 354, 237, 364, "625W", 1], [597.5, 354, 632, 364, "625W", 1],
+    [331, 461.5, 425, 473.5, "RAIL R (TYP.)"], [728, 461.5, 822, 473.5, "RAIL R (TYP.)"]],
+  MSECA: [[310.5, 164, 431, 181, "MOUNTING"], [1019.5, 164, 1140, 181, "MOUNTING"], [307.5, 221, 448.5, 237, "PV MODULE", 2], [1016.5, 221, 1157.5, 237, "PV MODULE", 2],
+    [786, 380, 973, 403, "WALKWAY (TYP.)"], [1086, 380, 1242, 401, "PURLIN (TYP.)"], [310, 409, 483, 427, "SEE DETAIL A", 2], [619, 436, 872, 469, "SECTION-A", 1]],
+  MSECB: [[287, 128, 503, 147, "END CLAMP (TYP.)"], [763, 128, 997, 148, "MID CLAMP (TYP.)"], [1198, 134, 1341, 152, "PV MODULE"], [826, 244, 1088, 265, "SPLICE FOR RAIL KIT"],
+    [333, 293, 490, 320, "@PURLIN", 1], [644.5, 293, 801, 320, "@PURLIN", 1], [955, 293, 1112, 320, "@PURLIN", 1], [382, 350, 540, 373, "PURLIN (TYP.)"], [603, 402, 852, 434, "SECTION-B", 1]],
+  MEND: [[245, 20, 396.5, 38, "END CLAMP", 2], [46.5, 68.5, 197, 87, "PV MODULE", 2], [293, 531, 497, 549, "RAIL MOUNTING", 2], [281.5, 591, 657, 617, "DETAIL END CLAMP", 1]],
+  MGPL: [[110, 43, 268.5, 62, "MID CLAMP", 2], [534, 52.5, 757.5, 72.5, "RAIL MOUNTING"], [448, 393.5, 717, 413.5, "GROUNDING PLATE"], [99.5, 594, 592, 622, "DETAIL GROUND PLATE", 1]],
+  MGLUX: [[465, 9, 590, 24, "END CLAMP"], [66.5, 65, 191.5, 79, "PV MODULE", 2], [560, 148, 725, 165, "GROUND LUX"], [60, 306, 250, 322, "6 Sq.mm IEC.01", 2],
+    [270, 521.5, 601.5, 543, "DETAIL GROUND LUX", 1]],
+  MMID: [[331, 95, 450, 110, "MID CLAMP"], [526, 142.5, 650.5, 157, "PV MODULE"], [103.5, 290, 228, 305, "PV MODULE", 2], [153.5, 466, 453, 487, "DETAIL MID CLAMP", 1]],
+  MJOIN: [[336, 47, 584.5, 65, "RAIL MOUNTING (TYP.)"], [480.5, 78, 797, 92, "SPLICE FOR STANDARD RAIL"], [621.5, 130, 716, 145, "BOLT M8,"], [621.5, 157, 842.5, 172, "SPRING WASHER M8"],
+    [87.5, 334.5, 483.5, 349, "CONNECTION POINT RAIL MOUNTING", 2], [277, 486, 734.5, 508, "DETAIL RAIL JOINER PLATE", 1]],
+  MDETA: [[129, 50.5, 221.5, 61.5, "PV MODULE", 2], [454.5, 46.5, 614, 61.5, "END CLAMP (TYPE)"], [139, 188, 253, 202.5, "RAIL R (TYP.)", 2], [58.5, 255, 166.5, 266, "METAL SHEET", 2],
+    [449, 261, 567, 275, "L-FEET (TYP.)"], [220, 472.5, 335.5, 487.5, "PURLIN (TYP.)", 2], [278, 537, 417, 559, "\"DETAIL-A\"", 1]],
+}));
+/* งานนี้มีแผงบนหลังคาเมทัลชีท (เมทัลชีท/บุฉนวน ไม่นับบนพื้นดิน) */
+function dsHasMetal(st) {
+  return (st.roofs || []).some((r) => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
+}
+function dsMountSheet(st, job, media) {
+  media = media || {};
+  const S = dsMm(st, job, media, "MOUNT", null);
+  const pen = S.pen, A = S.A, E = DL("eq"), CL = DL("cell");
+  const W = A.x1 - A.x0 - 4, D = dsPx(pen, A, W, A.y1), H = PG_TS.cell;   // หน่วย = มม. บนกระดาษ (k = 1) · y ลงล่างจากขอบบน
+  const HT = A.y1 - A.y0;
+  /* ค่าวัตต์บนแผงในผังตามแผงของงาน */
+  const wp = +st.wp || 0;
+  if (wp) DS_ART_TX.MPLAN.forEach((t) => { if (/W$/.test(t[4])) t[4] = wp + "W"; });
+  const fit = (name, x0, y0, w, h) => { const a = (window.DS_ART || {})[name]; if (!a) return 0;
+    const s = Math.max(a.w / w, a.h / h); D.art(name, x0 + (w - a.w / s) / 2, y0, s, E, CL, H); return a.h / s; };
+  /* ซ้าย: ผังแผง + SECTION A/B (แบบรูปตัวอย่างผู้ใช้) */
+  const LW = W * 0.47;
+  let y = 8;
+  y += fit("MPLAN", 2, y, LW - 4, HT * 0.36) + 6;
+  y += fit("MSECA", 2, y, LW - 4, HT * 0.2) + 4;
+  fit("MSECB", 2, y, LW - 4, HT * 0.2);
+  /* ขวา: รายละเอียดสองคอลัมน์ สามแถว */
+  const RX = LW + 8, CW = (W - RX - 4) / 2, RH = (HT - 30) / 3;
+  [["MEND", "MGPL"], ["MGLUX", "MMID"], ["MJOIN", "MDETA"]].forEach((row, r) =>
+    row.forEach((nm, c) => fit(nm, RX + c * (CW + 4), 6 + r * RH, CW, RH - 4)));
+  pgSheetTitle(pen, A.x1 - 6, A.y0 + 14, "TYPICAL MOUNTING STRUCTURE INSTALLATION DETAILS", PG_TS.title, 220, 2, "SCALE : NTS");
+  return S.doc.build();
+}
 /* บัสดิน (แท่งทองแดง + หัวน็อตเรียง) ในรูปต้นแบบ */
 function dsBus(D, L, x, y, w, n) {
   D.rc(L, x, y, w, 7);
@@ -1226,6 +1278,7 @@ function dsSheetDefs(st, job, design, imgs) {
   if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));   // ภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
+  if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", (o) => dsMountSheet(st, job, o));   // ผู้ใช้ 2026-11-02 "เพิ่มหน้านี้ไปหน้า 9 สำหรับงานติดตั้งหลังคาเมทัลชีท"
   add("GROUND", "ระบบต่อลงดิน", (o) => dsGroundSheet(st, job, o));
   add("GROUND2", "รายละเอียดต่อลงดิน", (o) => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
