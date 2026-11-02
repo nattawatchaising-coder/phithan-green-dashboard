@@ -3713,7 +3713,8 @@ async function p3PrepSet(st, job, photos, design) {
     const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
     const add = (k) => { if (X[k]) list.push(X[k]); };
     list.length = 0;
-    add("COVER"); add("NOTES"); list.push(plan); add("PANEL");
+    /* แผ่นรายการประกอบแบบ (NOTES) เอาออกจากชุดไว้ก่อน — ผู้ใช้ 2026-11-02 "เอาออกไปก่อนได้ไหม หน้านี้" · ฟังก์ชัน dsNotesSheet ยังเก็บไว้ */
+    add("COVER"); list.push(plan); add("PANEL");
     if ((design.paths || []).some((q) => q.uids && q.uids.length))
       list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
     /* SLD แผ่นเดียวพอ = แผ่นเดียว · ไม่พอ = ภาพรวม + แผ่นย่อยละกลุ่มเครื่องที่สตริงเหมือนกัน (ผู้ใช้ 2026-10-29) */

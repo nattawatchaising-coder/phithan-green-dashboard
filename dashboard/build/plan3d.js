@@ -5821,7 +5821,6 @@ async function p3PrepSet(st, job, photos, design) {
     };
     list.length = 0;
     add("COVER");
-    add("NOTES");
     list.push(plan);
     add("PANEL");
     if ((design.paths || []).some(q => q.uids && q.uids.length)) list.push({
