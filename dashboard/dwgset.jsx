@@ -89,8 +89,9 @@ function dsPlan(st, job, media, key, o) {
   const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนตามแนวอาคาร (p3PlanRot) · กรอบ/หัวแบบใช้ docRaw
   doc.layer("PG-BG", 8, "CONTINUOUS", 5);
   /* เส้นแผงบางลงตามมาตราส่วน (p3PanelLw · ผู้ใช้ 2026-11-02 "แก้หน้าอื่นด้วย") — นิยามก่อน dsLayers = ใช้ค่านี้ */
-  doc.layer("DS-PANEL", 140, "CONTINUOUS", Math.min(13, p3PanelLw(k)));
-  doc.layer("DS-PANEL-B", 5, "CONTINUOUS", Math.min(18, p3PanelLw(k)));
+  /* แผงทุกแผ่นผังหน้าตาเดียวกับผังติดตั้ง (PG-PANEL: น้ำเงิน ACI 5 เส้นตามมาตราส่วน) — เดิมแผ่นราง/ทางเดิน/บันได/ท่อน้ำเป็นแผงจางสีฟ้า (ผู้ใช้ 2026-11-02 "แผงแบบผังติดตั้ง") */
+  doc.layer("DS-PANEL", 5, "CONTINUOUS", p3PanelLw(k));
+  doc.layer("DS-PANEL-B", 5, "CONTINUOUS", p3PanelLw(k));
   pgTableLayers(doc); dsLayers(doc);
   doc.layer("PG-STRING", 6, "CONTINUOUS", 25);
   const ox = V.cx - V.px * k, oy = V.cy - V.py * k;

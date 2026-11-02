@@ -145,8 +145,8 @@ function dsPlan(st, job, media, key, o) {
   }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);
   doc.layer("PG-BG", 8, "CONTINUOUS", 5);
-  doc.layer("DS-PANEL", 140, "CONTINUOUS", Math.min(13, p3PanelLw(k)));
-  doc.layer("DS-PANEL-B", 5, "CONTINUOUS", Math.min(18, p3PanelLw(k)));
+  doc.layer("DS-PANEL", 5, "CONTINUOUS", p3PanelLw(k));
+  doc.layer("DS-PANEL-B", 5, "CONTINUOUS", p3PanelLw(k));
   pgTableLayers(doc);
   dsLayers(doc);
   doc.layer("PG-STRING", 6, "CONTINUOUS", 25);
