@@ -2583,12 +2583,13 @@ function pgSldPro(doc, sheet, M) {
     for (const t of TSL) if (t <= h + 1e-6 && need(t)) return t;
     return Math.max(0.9, Math.min(TS.tag, w / Math.max(1, String(s).length * 0.82)));
   };
-  const wrapT = (s, h, w) => {
+  const wrapT = (s, h, w, fit) => {
     const max = Math.max(4, Math.floor(w / (0.82 * h))),
       out = [];
+    const over = t => fit ? pgTextW(t, h) > w : t.length > max;
     let cur = "";
     String(s).split(" ").forEach(wd => {
-      if (cur && (cur + " " + wd).length > max) {
+      if (cur && over(cur + " " + wd)) {
         out.push(cur);
         cur = wd;
       } else cur = cur ? cur + " " + wd : wd;
@@ -2874,7 +2875,7 @@ function pgSldPro(doc, sheet, M) {
       const nC = cw.length,
         mg = cw.noLine && nC > 2 && (r[nC - 1] == null || r[nC - 1] === "");
       const rw = mg ? cw.slice(0, nC - 2).concat([cw[nC - 2] + cw[nC - 1]]) : cw;
-      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2, true));
       const nL = Math.max.apply(null, cells.map(c => c.length));
       const h = rh + (nL - 1) * lp;
       rect(RX0, cy - h, RW, h);

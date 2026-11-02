@@ -1799,11 +1799,13 @@ function pgSldPro(doc, sheet, M) {
     return Math.max(0.9, Math.min(TS.tag, w / Math.max(1, String(s).length * 0.82)));
   };
   /* ตัดคำตามช่องว่างให้แต่ละบรรทัดกว้างไม่เกิน w ที่ขนาด h */
-  const wrapT = (s, h, w) => {
+  /* fit = วัดด้วย pgTextW (ตาราง DATA SHEET · ผู้ใช้ 2026-11-02: ชื่อรุ่นแผงตัดบรรทัดทั้งที่ช่องพอ) · ไม่ส่ง = ประมาณ 0.82h ต่อตัวแบบเดิม */
+  const wrapT = (s, h, w, fit) => {
     const max = Math.max(4, Math.floor(w / (0.82 * h))), out = [];
+    const over = (t) => (fit ? pgTextW(t, h) > w : t.length > max);
     let cur = "";
     String(s).split(" ").forEach((wd) => {
-      if (cur && (cur + " " + wd).length > max) { out.push(cur); cur = wd; } else cur = cur ? cur + " " + wd : wd;
+      if (cur && over(cur + " " + wd)) { out.push(cur); cur = wd; } else cur = cur ? cur + " " + wd : wd;
     });
     if (cur) out.push(cur);
     return out;
@@ -1990,7 +1992,7 @@ function pgSldPro(doc, sheet, M) {
       /* DATA SHEET: แถวไม่มีหน่วย (BRAND/MODEL) รวมช่องค่ากับช่องหน่วย ไม่มีเส้นคั่น — พิมพ์ยาวได้ (ผู้ใช้ 2026-10-31) */
       const nC = cw.length, mg = cw.noLine && nC > 2 && (r[nC - 1] == null || r[nC - 1] === "");
       const rw = mg ? cw.slice(0, nC - 2).concat([cw[nC - 2] + cw[nC - 1]]) : cw;
-      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2, true));
       const nL = Math.max.apply(null, cells.map((c) => c.length));
       const h = rh + (nL - 1) * lp;
       rect(RX0, cy - h, RW, h);
