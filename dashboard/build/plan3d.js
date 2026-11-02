@@ -912,7 +912,7 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 4, 40], ["PG-OBS-PIPE", 140, 25, "PG-DASH"], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
 const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
@@ -1422,7 +1422,8 @@ function p3Dxf(st, job, media) {
     ltscale: k
   }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);
-  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   pgTableLayers(doc);
   const px = V.px,
     py = V.py;
@@ -1499,7 +1500,7 @@ function p3Dxf(st, job, media) {
           uz = Math.sin(a1);
         P = [[x - ux * L, -(z - uz * L)], [x + ux * L, -(z + uz * L)]];
       }
-      doc.pline("PG-OBSTACLE", P, false);
+      doc.pline("PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG,
@@ -2387,7 +2388,8 @@ function p3StrLayout(st, job, media) {
     ltscale: k
   }, media.svg);
   const gd = p3RotDoc(doc, rot);
-  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
   doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);
   doc.layer("PG-STR-HALO", 255, "CONTINUOUS", 70);

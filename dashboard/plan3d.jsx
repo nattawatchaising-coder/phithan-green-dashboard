@@ -498,6 +498,8 @@ function p3MeasLen(m) {
    .dwg เขียนเองไม่ได้ (ไบนารีปิด) ให้เปิดไฟล์นี้แล้ว Save As เอาใน AutoCAD */
 const P3_DXF_LAYERS = [
   ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
+  /* เส้นหลายจุดของตัวแก้แบบ แยกชั้นละชนิด สี+ความหนาต่างกัน · ท่อน้ำเส้นประ (ผู้ใช้ 2026-11-02: รางไฟ/ทางเดิน/ท่อน้ำ ต้องแยกกันออก) */
+  ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 4, 40], ["PG-OBS-PIPE", 140, 25, "PG-DASH"], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
   ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25],
@@ -850,7 +852,8 @@ function p3Dxf(st, job, media) {
 
   const docRaw = pgDoc({ units: "m", ltscale: k }, media.svg);
   const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนให้อาคารตรงกระดาษ · กรอบ/หัวแบบใช้ docRaw
-  P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
   /* วางกึ่งกลางผังในพื้นที่ที่เหลือ (ซ้ายของคอลัมน์ขวา) */
@@ -905,7 +908,7 @@ function p3Dxf(st, job, media) {
         const L = w / 2, a1 = (+o.rot || 0) * P3_DEG, ux = Math.cos(a1), uz = Math.sin(a1);
         P = [[x - ux * L, -(z - uz * L)], [x + ux * L, -(z + uz * L)]];
       }
-      doc.pline("PG-OBSTACLE", P, false);
+      doc.pline("PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG, ca = Math.cos(a2), sa = Math.sin(a2);
@@ -1501,7 +1504,8 @@ function p3StrLayout(st, job, media) {
   const k = SC / 1000;
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   const gd = p3RotDoc(doc, rot);           // ตัวผังหมุนตามแนวอาคาร · กรอบ/หัวแบบใช้ doc ตรง
-  P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
+  P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], L[3] || "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
   doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);      // ขอบแผง + เส้นเดินสาย (เข้ม)
   doc.layer("PG-STR-HALO", 255, "CONTINUOUS", 70);      // เส้นขาวรองใต้เส้นเดินสาย + พื้นวงกลมเลข
