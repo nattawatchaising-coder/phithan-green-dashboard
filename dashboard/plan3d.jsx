@@ -592,7 +592,7 @@ function p3RotDoc(doc, deg) {
    (ผู้ใช้: ตาราง 5.8 สูงไป ไม่สมส่วน ชอบแบบตารางสรุปโครงการ) */
 const P3_TBL_RH = 5.2;
 /* เข็มทิศชิดมุมขวาบนของพื้นที่วาด (ผู้ใช้: ไว้มุมนี้สวย ๆ — เดิมลงมา 40 มม.) · ห่างขอบพอให้ป้ายองศาไม่ชนกรอบ */
-const P3_COMPASS_DY = 15;
+const P3_COMPASS_DY = 19;   // ป้าย NORTH อยู่เหนือศูนย์กลาง ~14 มม. สูง 2.4 — 15 เดิมชนกรอบบน (ผู้ใช้ "อยู่ชิดไปหน่อย")
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   /* PV-PANEL-L = กรอบอย่างเดียว ใช้ทับพื้นสีสตริงในผังสตริง (ผู้ใช้: แผงหน้านี้อยากได้สี ๆ) */
@@ -872,6 +872,7 @@ function p3WalkBand(line, A, B, hw, sp) {
     }
   });
 }
+const P3_EQUIP_TAG = { mdb: ["PG-OBS-MDB", "MDB EXISTING"], invst: ["PG-OBS-INVST", "INVERTER STATION"], xfmr: ["PG-OBS-XFMR", "TRANSFORMER"] };
 const P3_TRAY_ACI = [30, 10, 3, 6, 200];
 function p3TrayWidths(st) {
   const a = (st.obstacles || []).filter((o) => o && o.p3sType === "tray").map((o) => Math.round((+o.d || 0.1) * 1000));
@@ -1012,6 +1013,7 @@ function p3Dxf(st, job, media) {
   /* รางไฟแยกสีตามขนาด (ขนาดแรกใช้ชั้น PG-OBS-TRAY) */
   const trayW = p3TrayWidths(st);
   trayW.forEach((mm, i) => { if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60); });
+  const callouts = [];   // ป้ายชี้อุปกรณ์ (วาดหลังสิ่งบดบังทั้งหมด)
   // สิ่งบดบัง — ต้นไม้เป็นวงกลม อย่างอื่นเป็นกรอบสี่เหลี่ยมหมุนตามที่ตั้งไว้
   (st.obstacles || []).forEach((o) => {
     const x = +o.x || 0, z = +o.z || 0, w = Math.max(0.1, +o.w || 1), d = Math.max(0.1, +o.d || 1);
@@ -1023,6 +1025,7 @@ function p3Dxf(st, job, media) {
       const a3 = (+o.rot || 0) * P3_DEG, c3 = Math.cos(a3), s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
       P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
+      if (P3_EQUIP_TAG[o.p3sType]) callouts.push({ x, y: -z, t: o.p3sType });
       return;
     }
     if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
@@ -1088,6 +1091,26 @@ function p3Dxf(st, job, media) {
     fp.forEach((p, i) => doc.text("PG-NOTE", p.cx, -p.cz - lh / 2, lh, "PV PANEL-" + (i + 1), { align: 1, valign: 1 }));
   }
 
+  /* ป้ายชี้อุปกรณ์ทุกตัว (ผู้ใช้วาดตัวอย่าง "ชี้บอกทั้งหมด"): จุดที่ตัวอุปกรณ์ → เส้นเฉียงออกนอกผัง → เส้นนอนมีชื่อเหนือเส้น
+     วาดด้วย docRaw (ตั้งตรงกับกระดาษ) — แปลงตำแหน่งด้วยมุมหมุนผังเอง · ทิศเฉียงชี้ออกจากกลางผัง */
+  const RT = p3RotPt(V.rot || 0);
+  const placed = [];
+  callouts.forEach((c) => {
+    const p = RT(c.x, c.y), sx = p[0] < V.cx ? -1 : 1, sy = p[1] < V.cy ? -1 : 1, lay = P3_EQUIP_TAG[c.t][0], txt = P3_EQUIP_TAG[c.t][1];
+    const th = 2.2 * k, L = pgTextW(txt, 2.2) * k + 2 * k;
+    /* เลื่อนเส้นนอนออกไปอีกทีละ 4.5 มม. จนไม่ชนป้ายที่วางแล้ว (อุปกรณ์อยู่ใกล้กัน) */
+    let dy = 6, e;
+    for (let n = 0; n < 12; n++, dy += 4.5) {
+      e = [p[0] + sx * 5 * k, p[1] + sy * dy * k];
+      const x0 = Math.min(e[0], e[0] + sx * L), x1 = Math.max(e[0], e[0] + sx * L);
+      if (!placed.some((q) => Math.abs(q.y - e[1]) < 4.5 * k && q.x0 < x1 && q.x1 > x0)) { placed.push({ y: e[1], x0, x1 }); break; }
+    }
+    docRaw.circle(lay, p[0], p[1], 0.45 * k);
+    docRaw.line(lay, p[0], p[1], e[0], e[1]);
+    docRaw.line(lay, e[0], e[1], e[0] + sx * L, e[1]);
+    docRaw.text(lay, sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, { align: sx < 0 ? 2 : 0 });
+  });
+
   /* ── สัญลักษณ์ประจำแผ่น (วางเป็นตำแหน่งบนกระดาษ ไม่เลื่อนตามผัง) ── */
   const AR = sheet.area;
 
@@ -1105,7 +1128,7 @@ function p3Dxf(st, job, media) {
   /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่างเหนือมาตราส่วนเส้น แบบแผ่นผังวางแผง (ผู้ใช้ย้าย) */
   if (V.wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "OVERALL LAYOUT", PG_TS.title, 170, 0, SC);
   else pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", PG_TS.title, RW - 30, 0, SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
+  pgCompass(pen, RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
 
   const SS = (media.design && media.design.strings) || [];
 
@@ -1713,7 +1736,7 @@ function p3StrLayout(st, job, media) {
   /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่างเหนือมาตราส่วนเส้น (ผู้ใช้ย้าย) */
   if (wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0, SC);
   else pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0, SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
+  pgCompass(pen, RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
 
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: P3_TBL_RH, th: PG_TS.body, align: TB.align, headRow: 1 });

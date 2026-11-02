@@ -131,7 +131,7 @@ function dsPlanHead(P, title) {
   /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่าง (เหนือมาตราส่วนเส้น) แถบบนเหลือแค่เข็มทิศ (ผู้ใช้ย้าย) */
   const tx = P.V.wide ? AR.x0 + 4 : P.RX0, ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
   pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 30, 0, P.SC);   // แบบคอลัมน์: เว้นที่ให้เข็มทิศมุมขวาบน
-  pgCompass(pen, P.RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, P.V.rot);
+  pgCompass(pen, P.RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, P.V.rot);
   P.titleW = pgTextW(title, PG_TS.title) + 8;
   const barM = P.SC / 1000 * 40, bx = AR.x0 + 4, by = AR.y0 + 4;
   pen.rect("PG-NORTH", bx, by, 40, 2.2);

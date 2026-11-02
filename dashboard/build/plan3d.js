@@ -1047,7 +1047,7 @@ function p3RotDoc(doc, deg) {
   };
 }
 const P3_TBL_RH = 5.2;
-const P3_COMPASS_DY = 15;
+const P3_COMPASS_DY = 19;
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   if (name === "PV-PANEL-L") {
@@ -1470,6 +1470,11 @@ function p3WalkBand(line, A, B, hw, sp) {
     }
   });
 }
+const P3_EQUIP_TAG = {
+  mdb: ["PG-OBS-MDB", "MDB EXISTING"],
+  invst: ["PG-OBS-INVST", "INVERTER STATION"],
+  xfmr: ["PG-OBS-XFMR", "TRANSFORMER"]
+};
 const P3_TRAY_ACI = [30, 10, 3, 6, 200];
 function p3TrayWidths(st) {
   const a = (st.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => Math.round((+o.d || 0.1) * 1000));
@@ -1688,6 +1693,7 @@ function p3Dxf(st, job, media) {
   trayW.forEach((mm, i) => {
     if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60);
   });
+  const callouts = [];
   (st.obstacles || []).forEach(o => {
     const x = +o.x || 0,
       z = +o.z || 0,
@@ -1703,6 +1709,11 @@ function p3Dxf(st, job, media) {
         s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
       P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
+      if (P3_EQUIP_TAG[o.p3sType]) callouts.push({
+        x,
+        y: -z,
+        t: o.p3sType
+      });
       return;
     }
     if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
@@ -1763,6 +1774,38 @@ function p3Dxf(st, job, media) {
       valign: 1
     }));
   }
+  const RT = p3RotPt(V.rot || 0);
+  const placed = [];
+  callouts.forEach(c => {
+    const p = RT(c.x, c.y),
+      sx = p[0] < V.cx ? -1 : 1,
+      sy = p[1] < V.cy ? -1 : 1,
+      lay = P3_EQUIP_TAG[c.t][0],
+      txt = P3_EQUIP_TAG[c.t][1];
+    const th = 2.2 * k,
+      L = pgTextW(txt, 2.2) * k + 2 * k;
+    let dy = 6,
+      e;
+    for (let n = 0; n < 12; n++, dy += 4.5) {
+      e = [p[0] + sx * 5 * k, p[1] + sy * dy * k];
+      const x0 = Math.min(e[0], e[0] + sx * L),
+        x1 = Math.max(e[0], e[0] + sx * L);
+      if (!placed.some(q => Math.abs(q.y - e[1]) < 4.5 * k && q.x0 < x1 && q.x1 > x0)) {
+        placed.push({
+          y: e[1],
+          x0,
+          x1
+        });
+        break;
+      }
+    }
+    docRaw.circle(lay, p[0], p[1], 0.45 * k);
+    docRaw.line(lay, p[0], p[1], e[0], e[1]);
+    docRaw.line(lay, e[0], e[1], e[0] + sx * L, e[1]);
+    docRaw.text(lay, sx < 0 ? e[0] - k : e[0] + k, e[1] + 0.6 * k, th, txt, {
+      align: sx < 0 ? 2 : 0
+    });
+  });
   const AR = sheet.area;
   const barM = SC / 1000 * 40,
     bx = AR.x0 + 4,
@@ -1779,7 +1822,7 @@ function p3Dxf(st, job, media) {
     RX0 = RX1 - P3_COL,
     RW = P3_COL;
   if (V.wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "OVERALL LAYOUT", PG_TS.title, 170, 0, SC);else pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", PG_TS.title, RW - 30, 0, SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
+  pgCompass(pen, RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
   const SS = media.design && media.design.strings || [];
   let M = null;
   try {
@@ -2729,7 +2772,7 @@ function p3StrLayout(st, job, media) {
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - COL;
   if (wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0, SC);else pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0, SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
+  pgCompass(pen, RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
     rh: P3_TBL_RH,
     th: PG_TS.body,
