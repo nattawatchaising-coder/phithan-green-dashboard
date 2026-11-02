@@ -2930,7 +2930,8 @@ function p3SldModel(st, job, design, only) {
       : home && !lps ? ""
       : lps && mainA <= R.nhT12 ? "" : "AC FUSE NH00 gG " + (lps ? R.nhT12 : R.nhT2) + "A";
     /* สายดินอุปกรณ์ตามขนาดเครื่องป้องกันเมน (แนวตาราง วสท.) · SPD Type II ต้องไม่ต่ำกว่า 6 mm² */
-    const earthCu = mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
+    /* งานบ้าน = 6 mm² ทุกเส้น (ผู้ใช้ 2026-11-02 "งานบ้านให้เป็นเบอร์ 6 หมดเลย" · ตามสเปคขั้ว PE อินเวอร์เตอร์บ้าน + ระบบดินบ้าน) */
+    const earthCu = home ? 6 : mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
     const pmt = (job && job.permit) || {}, sv = (job && job.survey) || {};
     const exMain = pmt.mainAT ? pmt.mainAT + "AT" : (sv.mainBreaker || "");
     const ivBrk = units.map((u) => { const a = p3At(aOfUnit(u) * 1.25);

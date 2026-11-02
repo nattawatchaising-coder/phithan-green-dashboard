@@ -1662,7 +1662,7 @@ function dsGroundSheet(st, job, media) {
   const eCu = P.earthCu || 10,
     CU = [6, 10, 16, 25, 35, 50, 70, 95];
   const invCu = Math.max(Math.min(10, eCu), Math.min(eCu, CU.find(c => c >= eCu / 2) || eCu)),
-    roofCu = 16;
+    roofCu = home ? 6 : 16;
   const tray = dsObs(st, "tray").length > 0,
     walk = dsObs(st, "walkway").length > 0;
   const D = dsPx(pen, A, 1366, A.y1 - 16),
@@ -1681,7 +1681,7 @@ function dsGroundSheet(st, job, media) {
     align: 1
   });
   const mdbN = home ? "CONSUMER UNIT EXISTING" : "MDB EXISTING",
-    solN = home ? "AC BOX (SOLAR)" : "SOLAR MDB";
+    solN = home ? "DC/AC BOX (SOLAR)" : "SOLAR MDB";
   D.rc(E, 45, 220, 125, 220);
   D.tx(45, 213, mdbN, H);
   dsBus(D, E, 48, 313, 112, 14);
@@ -1700,14 +1700,14 @@ function dsGroundSheet(st, job, media) {
     align: 1,
     valign: 3
   });
-  D.tx(248, 344, home ? "AC BOX" : "SOLAR MDB", H, {
+  D.tx(248, 344, home ? "DC/AC BOX" : "SOLAR MDB", H, {
     align: 1,
     valign: 3
   });
   D.ln(E, 160, 317, 192, 317);
   sl(178, 317);
   D.lead(80, 292, "IEC01 " + eCu + "sq.mm.", H, [[178, 292], [178, 311]]);
-  D.ln(E, 305, 317, 600, 317);
+  D.ln(E, 305, 317, home ? 670 : 600, 317);
   sl(448, 317);
   D.lead(338, 370, "IEC01 " + eCu + " sq.mm.", H, [[448, 370], [448, 323]]);
   const nDraw = Math.min(2, nInv),
@@ -1734,7 +1734,7 @@ function dsGroundSheet(st, job, media) {
   }
   D.lead(312, 138, "IEC01 " + invCu + " sq.mm.", H, [[420, 143]]);
   const dcNm = i => (fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
-  for (let i = 0; i < nDraw; i++) {
+  for (let i = 0; i < (home ? 0 : nDraw); i++) {
     const x = 370 + i * 93,
       y = 210;
     D.rc(E, x, y, 70, 30);
@@ -1749,8 +1749,8 @@ function dsGroundSheet(st, job, media) {
     D.pl(E, [[gx, y + 30], [gx, ly], [bx, ly], [bx, 313]]);
     slV(bx, 300);
   }
-  D.lead(500, 292, "IEC01 6 sq.mm.", H, [[620, 292]]);
   if (!home) {
+    D.lead(500, 292, "IEC01 6 sq.mm.", H, [[620, 292]]);
     const x = 610,
       y = 80;
     D.tx(x + 12, 75, "INV RACK", H);
@@ -1766,17 +1766,19 @@ function dsGroundSheet(st, job, media) {
     D.pl(E, [[x + 7, y + 66], [x + 7, y + 74], [655, y + 74], [655, 313]]);
     slV(655, 300);
   }
-  dsBus(D, E, 600, 313, 70, 8);
-  D.tx(635, 333, "GROUND BUS", H, {
-    align: 1,
-    valign: 3
-  });
-  D.tx(635, 344, "INVERTER STATION", H, {
-    align: 1,
-    valign: 3
-  });
-  D.pl(T, [[670, 313], [674, 285], [686, 285]]);
-  D.tx(690, 288, "DETAIL C", H);
+  if (!home) {
+    dsBus(D, E, 600, 313, 70, 8);
+    D.tx(635, 333, "GROUND BUS", H, {
+      align: 1,
+      valign: 3
+    });
+    D.tx(635, 344, "INVERTER STATION", H, {
+      align: 1,
+      valign: 3
+    });
+    D.pl(T, [[670, 313], [674, 285], [686, 285]]);
+    D.tx(690, 288, "DETAIL C", H);
+  }
   const tY1 = tray ? 458 : walk ? 410 : 330;
   D.pl(E, [[670, 317], [690, 317], [690, 340], [920, 340]]);
   sl(845, 340);
@@ -1843,15 +1845,16 @@ function dsGroundSheet(st, job, media) {
     w: FW,
     h: FH
   });
-  D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, {
+  if (!home) D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, {
     f: [18, 86.5, 888.5, 538.5],
     x: 687.5,
     w: FW,
     h: FH
   });
-  if (tray) D.art("G1D", 971.15, 549.87, 3.459, E, CL, H, {
+  const dD = home ? 687.5 - 976.5 : 0;
+  if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, {
     f: [9.5, 80.5, 880, 532.5],
-    x: 976.5,
+    x: 976.5 + dD,
     w: FW,
     h: FH
   });

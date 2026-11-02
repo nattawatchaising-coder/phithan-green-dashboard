@@ -3600,7 +3600,7 @@ function pgSldPro(doc, sheet, M) {
     const withKv = s => /kV|\/750V/.test(s) ? s : s + " 0.6/1kV";
     const invG = brk => {
       const at = +(/(\d+)AT/.exec(String(brk || "")) || /(\d+)A\b/.exec(String(brk || "")) || [])[1] || 0;
-      const cu = at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
+      const cu = P.home ? 6 : at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
       return "G-" + cu + " Sq.mm. IEC01(THW)";
     };
     const oneX = X.ac0 - 3;

@@ -4700,7 +4700,7 @@ function p3SldModel(st, job, design, only) {
     const lsig = mainA >= 1000;
     const pm = !home;
     const spdBk = !R ? mainA > 125 && !home ? "AC FUSE NH00 gG 63A" : "" : home && !lps ? "" : lps && mainA <= R.nhT12 ? "" : "AC FUSE NH00 gG " + (lps ? R.nhT12 : R.nhT2) + "A";
-    const earthCu = mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
+    const earthCu = home ? 6 : mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
     const pmt = job && job.permit || {},
       sv = job && job.survey || {};
     const exMain = pmt.mainAT ? pmt.mainAT + "AT" : sv.mainBreaker || "";
