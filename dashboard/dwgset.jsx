@@ -148,6 +148,8 @@ function dsPlanHead(P, title, o) {
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
 }
 /* ตาราง + หมายเหตุในคอลัมน์ขวา · ตารางยาวเกินที่ = ยุบแถวกลาง เหลือแถวท้าย (รวม) เสมอ */
+/* o.stack (โหมดปกติ · ผังวางแผง): ตารางชิดขวาใต้เข็มทิศ → หมายเหตุต่อใต้ตาราง → ที่เหลือล่างคอลัมน์ว่างไว้ใส่รูป (ผู้ใช้ตีกรอบ 2026-11-02) · P.stackBot = ขอบล่างหมายเหตุ
+   o.wHead: ความกว้างบรรทัดหัวเหนือตาราง (TOTAL …) ให้ชิดขวาพร้อมตาราง */
 /* o.noteMid (โหมดกว้าง): หมายเหตุลงไปแทนที่ตารางกลางแถบล่าง ตารางขึ้นไปเหนือหมายเหตุ — คอลัมน์ขวาว่างไว้ใส่รูป (ผังวางแผง · ผู้ใช้วาดชี้ 2026-11-02) */
 function dsRight(P, rows, cols, notes, align, o) {
   o = o || {};
@@ -173,10 +175,13 @@ function dsRight(P, rows, cols, notes, align, o) {
     }
     if (!mid && xR - xL >= tw && hNeed <= yTop - AR.y0 - 10) { tx = (xL + xR - tw) / 2; ty = AR.y0 + 4 + hNeed; }
   }
+  const ST = !P.V.wide && !!o.stack;
+  if (ST) tx = P.RX1 - Math.max(tw, o.wHead || 0);
   P.tbX = tx; P.tbTop = ty; P.notes = notes; P.noteMid = !!mid; P.tbW = tw; P.noteW = mid ? mid.w : 0;
   const used = pgGrid(pen, tx, ty, tw, cw, R, { rh: RH, th: PG_TS.body, headRow: 0, align });
   P.tbUsed = used;
   if (mid) dsNoteBlock(pen, mid.x, AR.y0 + 4 + mid.h, mid.w, notes);
+  else if (ST) { const y = ty - used - 8; if (nh) dsNoteBlock(pen, P.RX0, y, P.RW, notes); P.stackBot = y - nh; }
   else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
@@ -512,16 +517,18 @@ function dsPanelSheet(st, job, media) {
   });
   rows.push(["TOTAL", G.length, tot, (tot * wp / 1000).toFixed(2)]);
   const M0 = (() => { try { return p3SldModel(st, job, media.design); } catch (e) { return null; } })();
+  const totS = "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)";
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], [
     "ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง",   // วงเล็บท้ายเอาออก (ผู้ใช้ขีดฆ่า 2026-11-02)
     "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp",
     /* ข้อ "ตำแหน่งแผงอ้างอิงแบบ 3D …" เอาออก (ผู้ใช้ขีดฆ่า 2026-11-02) */
-  ], [0, 1, 1, 1], { noteMid: true });
+  ], [0, 1, 1, 1], { noteMid: true, stack: true, wHead: pgTextW(totS, PG_TS.head) });
   /* รูปแผงหน้า/หลัง + รุ่นแผงใต้รูป ในที่ว่างเหนือหมายเหตุ (ผู้ใช้ 2026-11-02 "เอารูปแผงมาใส่ เขียนรุ่นแผงด้านใต้") */
   {
     const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
     const nh = dsNoteH(P.notes || [], P.RW), AR = P.AR;
-    const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : P.tbTop - P.tbUsed - 8, yB = AR.y0 + (P.noteMid ? 1 : 4 + nh + 4);
+    const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : P.stackBot != null ? P.stackBot - 6 : P.tbTop - P.tbUsed - 8;
+    const yB = AR.y0 + (P.noteMid || P.stackBot != null ? 1 : 4 + nh + 4);
     /* ชื่อแผ่นขึ้นซ้ายบนแล้ว: รูปใช้ที่ขวาของตาราง/หมายเหตุถึงขอบคอลัมน์ขวา (ผู้ใช้ "ขอแผงใหญ่ขึ้น") */
     const fx0 = P.titleTop && P.noteMid ? P.tbX + Math.max(P.tbW || 0, P.noteW || 0) + 10 : P.RX0;
     if (yT - yB >= 30) {
@@ -534,7 +541,7 @@ function dsPanelSheet(st, job, media) {
     }
   }
   /* ตัวใหญ่ใต้ตาราง แบบแผ่นจริง (TOTAL ... MODULE) */
-  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
+  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, totS);
   return doc.build();
 }
 
