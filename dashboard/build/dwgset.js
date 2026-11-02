@@ -1157,7 +1157,7 @@ function dsStrDetSheet(st, job, media) {
   const pen = S.pen,
     A = S.A,
     T = PG_TBL.txt;
-  pgSheetTitle(pen, A.x1 - 6, A.y1 - 11, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 11, "DETAIL PV MODULE STRING", PG_TS.title, 170, 0, null);
   let M = null;
   try {
     M = p3SldModel(st, job, media.design);

@@ -756,8 +756,8 @@ function dsStrDetSheet(st, job, media) {
   const S = dsMm(st, job, media, "STRDET", null);
   const pen = S.pen, A = S.A, T = PG_TBL.txt;
   /* ชื่อแผ่นอยู่มุมขวาล่าง (ผู้ใช้ย้าย) ด้านบนทั้งแผ่นให้รูปที่ 1/2 */
-  /* ชื่อแผ่นมุมขวาบน (ผู้ใช้ย้าย 2026-11-02) — มุมขวาล่างให้ตาราง STRING DATA / LEGEND · รูปด้านบนเริ่มต่ำลงให้ที่ (yHi) */
-  pgSheetTitle(pen, A.x1 - 6, A.y1 - 11, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
+  /* ชื่อแผ่นมุมซ้ายบน (ผู้ใช้ย้าย 2026-11-02 ขวาบน → ซ้ายบน) — มุมขวาล่างให้ตาราง STRING DATA / LEGEND · รูปด้านบนเริ่มต่ำลงให้ที่ (yHi) */
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 11, "DETAIL PV MODULE STRING", PG_TS.title, 170, 0, null);
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
   const SS = (media.design && media.design.strings) || [];
