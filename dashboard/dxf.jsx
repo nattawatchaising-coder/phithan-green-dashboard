@@ -2027,7 +2027,7 @@ function pgSldPro(doc, sheet, M) {
         ["AC BREAKER", b.brk + " x" + PT.nos.length]], "INVERTER GROUP DATA"]];
     }
     /* ตาราง DATA SHEET 4 ช่อง (ผู้ใช้ส่งแนวทาง 2026-10-31) แทน SYSTEM DATA */
-    if (M.dataSheet) { const cw = [RW * 0.43, RW * 0.11, RW * 0.33, RW * 0.13]; cw.noLine = [1]; return M.dataSheet.map((q) => [q[0], q[1], cw]); }
+    if (M.dataSheet) { const cw = [RW * 0.32, RW * 0.1, RW * 0.44, RW * 0.14]; cw.noLine = [1]; /* ช่องหัวข้อแคบลง (ผู้ใช้ 2026-11-02) */ return M.dataSheet.map((q) => [q[0], q[1], cw]); }
     if (!M.pvData) return [];
     let skip = false;
     return [[M.pvData.filter((r) => { if (r[0] === "#") skip = r[1] === "PV ARRAY"; return !skip; }), "SYSTEM DATA"]];

@@ -2914,7 +2914,7 @@ function pgSldPro(doc, sheet, M) {
       return [[[["INVERTER", pgInvNames(PT.nos)], ["QUANTITY", PT.nos.length + " SET"], ["MODEL", b.model], ["AC OUTPUT", b.kw + " kW " + P.phTxt + " / SET"], ["MPPT / STRING", byInv[no].length + " MPPT / " + ns.length + " STRINGS / SET"], ["STRING SIZE", nU.map(n => n + " PV x " + ns.filter(q => q === n).length).join(" , ")], ["PV / SET", nPv + " x " + wp + "Wp = " + Math.round(nPv * wp / 10) / 100 + " kWp"], ["PV (GROUP)", nPv * PT.nos.length + " PCS = " + Math.round(nPv * PT.nos.length * wp / 10) / 100 + " kWp"], ["AC BREAKER", b.brk + " x" + PT.nos.length]], "INVERTER GROUP DATA"]];
     }
     if (M.dataSheet) {
-      const cw = [RW * 0.43, RW * 0.11, RW * 0.33, RW * 0.13];
+      const cw = [RW * 0.32, RW * 0.1, RW * 0.44, RW * 0.14];
       cw.noLine = [1];
       return M.dataSheet.map(q => [q[0], q[1], cw]);
     }
