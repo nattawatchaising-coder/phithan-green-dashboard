@@ -1286,8 +1286,10 @@ function pgModuleDatasheet(pen, R, o) {
   const ts = SR ? 1.9 : 1.6, tl = SR ? 1.8 : 1.5, tc = SR ? 2.8 : 2.4;   // ตัวเลขบอกขนาด · ป้ายชี้ · ชื่อรูป
   if (!NS) pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", { valign: 1 });   // ผังวางแผงไม่มีหัวรูป (ผู้ใช้ขีดฆ่า 2026-11-02)
   /* ขนาดรูปหน้า/หลังตามพื้นที่ */
-  const yb = Y0 + (NS ? (o.model ? 12 : 7) : SR ? 9 : 33), yt = Y1 - (NS ? 8.6 : 14), hv = yt - yb, s = hv / H, wv = W * s;
   const gB = NS ? 13 : 24;   // ช่องระหว่างรูปหน้า-หลัง · ผังวางแผงชิดกว่า (ผู้ใช้ "ขยับชิดกันหน่อย")
+  /* ย่อตามกว้างด้วย — คอลัมน์ขวาแคบ (ผังวางแผงโหมดปกติ) รูปหลังเคยล้นทับกรอบชื่อแบบ (ผู้ใช้ตีกรอบแดง 2026-11-02) · เหลือที่สูงจัดกลางแนวตั้ง */
+  const yb0 = Y0 + (NS ? (o.model ? 12 : 7) : SR ? 9 : 33), yt0 = Y1 - (NS ? 8.6 : 14), ex = 12 + gB + 8 + (SR ? 40 : 0) + (NS ? 8 : 0);
+  const s = Math.min((yt0 - yb0) / H, Math.max(0, X1 - X0 - ex) / (2 * W)), hv = H * s, wv = W * s, yb = yb0 + (yt0 - yb0 - hv) / 2, yt = yb + hv;
   const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0), ox = NS ? Math.max(X0, X1 - need - 8) : X0 + Math.max(0, (X1 - X0 - need) / 2);   // ผังวางแผง: ชิดขวา (ผู้ใช้ลากชี้ 2026-11-02) · เผื่อป้าย Junction Box ทางขวา
   const sx = ox + 1, fx = ox + 12, bx = fx + wv + gB;
   /* หัวลูกศร: ปลาย (x, y) ชี้ทิศ (dx, dy) */
