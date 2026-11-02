@@ -1216,8 +1216,11 @@ function dsGroundSheet(st, job, media) {
   const slV = (x, y) => D.ln(T, x - 6, y + 4, x + 6, y - 4);
 
   /* กรอบตาราง: หัว INVERTER STATION | ROOFTOP · แถว DETAIL */
+  /* แถว DETAIL ยืดลงจนเหลือที่ REMARK พอดีขอบล่างพื้นที่วาด (ผู้ใช้ 2026-11-02 "จัดหน้ากระดาษหน่อย") — เดิมล่างว่างเกือบ 1/4 แผ่น */
+  const useV = !!(window.DS_VEC || {}).GV1A;
+  const fB = useV ? Math.max(735, Math.floor((D.Y(0) - A.y0) / D.k - 78)) : 735;
   D.ln(E, 0, 66, 1366, 66); D.ln(E, 0, 520, 1366, 520); D.ln(E, 718, 66, 718, 520);
-  D.rc(E, 0, 42, 1366, 693);
+  D.rc(E, 0, 42, 1366, fB - 42);
   D.tx(359, 58, "INVERTER STATION", HB, { align: 1 }); D.tx(1042, 58, "ROOFTOP", HB, { align: 1 });
 
   /* ── INVERTER STATION ── */
@@ -1316,16 +1319,17 @@ function dsGroundSheet(st, job, media) {
   }
 
   /* ── DETAIL A–D: ลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (dashboard/groundvec.js GV1A–D · ผู้ใช้ส่ง PDF 2026-11-02 "ถอดเส้นจากอันนี้")
-     กรอบเท่ากัน 274×131 ที่ตำแหน่งเดิม · ย่อทุกรูปอัตราเดียวกัน (ให้รูปที่ใหญ่สุดพอดีกรอบ) · D เฉพาะงานที่มีรางไฟ · งานบ้านไม่มี C ── */
+     กรอบเท่ากันทุกรูป ย่ออัตราเดียวกัน · D เฉพาะงานที่มีรางไฟ · งานบ้านไม่มี C
+     จัดตามจำนวนรูป: เรียงกลางแผ่น กว้างได้ถึง 420 · สูงตามแถว DETAIL ที่ยืดแล้ว · ชื่อรูป + กรอบจัดกลางแนวตั้งในแถว ── */
   dsGndLayers(S.doc);
-  const FW = 274, FH = 131, bT = 573.1, sV = Math.min(FW / 190.5, FH / 92) * D.k * 0.97;
   const GF = { GV1A: [3.2, 15.1, 192.8, 83.9], GV1B: [3.8, 15.1, 193.4, 94.9], GV1C: [3.5, 15.1, 178.7, 106.1], GV1D: [3.7, 15.1, 178.9, 106.1] };
-  const det = (nm, x) => (window.DS_VEC || {})[nm] && dsVecFit(pen, nm, GF[nm], D.X(x), D.Y(bT), FW * D.k, FH * D.k, sV, DS_GND_LY, E);
-  const dD0 = home ? 687.5 - 976.5 : 0;
-  if (det("GV1A", 109.5)) {
-    det("GV1B", 398.5);
-    if (!home) det("GV1C", 687.5);
-    if (tray) det("GV1D", 976.5 + dD0);
+  if (useV) {
+    const L = ["GV1A", "GV1B"].concat(home ? [] : ["GV1C"], tray ? ["GV1D"] : []), n = L.length;
+    const g = n >= 4 ? 15 : 40, FW = Math.min(420, (1141 - (n - 1) * g) / n), rowH = fB - 520;
+    const r = Math.min(FW * 0.97 / 190.5, (rowH - 42) / (92 / 0.97 + 15.1));   // pt ของภาพ → หน่วยรูป (ชื่อรูปสูง 15.1 pt อยู่เหนือกรอบ)
+    const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
+    const bT = 520 + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4, x0 = (1366 - n * FW - (n - 1) * g) / 2;
+    L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
   } else {
   /* ── (สำรองเมื่อไม่มี groundvec.js) DETAIL A–D: รูปต้นแบบของผู้ใช้ลอกเป็นเส้นทั้งกล่อง (หัวเรื่อง · กรอบ · ป้าย) — ย่อให้กรอบตรงตำแหน่งเดิม · D เฉพาะงานที่มีรางไฟ ── */
   const CL = DL("cell");
@@ -1336,9 +1340,9 @@ function dsGroundSheet(st, job, media) {
   const dD = home ? 687.5 - 976.5 : 0;   // งานบ้านไม่มี DETAIL C → D เลื่อนมาแทนที่
   if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, { f: [9.5, 80.5, 880, 532.5], x: 976.5 + dD, w: FW, h: FH });
   }
-  D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
+  D.tx(15, fB + 50, "*REMARK:  ADD GROUND ROD", HB);
   /* บรรทัดสองเริ่มตรง "ADD" ของบรรทัดแรก (ผู้ใช้ชี้ 2026-11-02) */
-  D.tx(63.5, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
+  D.tx(63.5, fB + 65, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
 }
 

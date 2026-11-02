@@ -1842,10 +1842,12 @@ function dsGroundSheet(st, job, media) {
     HB = PG_TS.body;
   const sl = (x, y) => D.ln(T, x - 4, y + 6, x + 4, y - 6);
   const slV = (x, y) => D.ln(T, x - 6, y + 4, x + 6, y - 4);
+  const useV = !!(window.DS_VEC || {}).GV1A;
+  const fB = useV ? Math.max(735, Math.floor((D.Y(0) - A.y0) / D.k - 78)) : 735;
   D.ln(E, 0, 66, 1366, 66);
   D.ln(E, 0, 520, 1366, 520);
   D.ln(E, 718, 66, 718, 520);
-  D.rc(E, 0, 42, 1366, 693);
+  D.rc(E, 0, 42, 1366, fB - 42);
   D.tx(359, 58, "INVERTER STATION", HB, {
     align: 1
   });
@@ -2003,22 +2005,23 @@ function dsGroundSheet(st, job, media) {
     D.tx(1122, 485, "IEC01 6 sq.mm.", H);
   }
   dsGndLayers(S.doc);
-  const FW = 274,
-    FH = 131,
-    bT = 573.1,
-    sV = Math.min(FW / 190.5, FH / 92) * D.k * 0.97;
   const GF = {
     GV1A: [3.2, 15.1, 192.8, 83.9],
     GV1B: [3.8, 15.1, 193.4, 94.9],
     GV1C: [3.5, 15.1, 178.7, 106.1],
     GV1D: [3.7, 15.1, 178.9, 106.1]
   };
-  const det = (nm, x) => (window.DS_VEC || {})[nm] && dsVecFit(pen, nm, GF[nm], D.X(x), D.Y(bT), FW * D.k, FH * D.k, sV, DS_GND_LY, E);
-  const dD0 = home ? 687.5 - 976.5 : 0;
-  if (det("GV1A", 109.5)) {
-    det("GV1B", 398.5);
-    if (!home) det("GV1C", 687.5);
-    if (tray) det("GV1D", 976.5 + dD0);
+  if (useV) {
+    const L = ["GV1A", "GV1B"].concat(home ? [] : ["GV1C"], tray ? ["GV1D"] : []),
+      n = L.length;
+    const g = n >= 4 ? 15 : 40,
+      FW = Math.min(420, (1141 - (n - 1) * g) / n),
+      rowH = fB - 520;
+    const r = Math.min(FW * 0.97 / 190.5, (rowH - 42) / (92 / 0.97 + 15.1));
+    const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
+    const bT = 520 + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4,
+      x0 = (1366 - n * FW - (n - 1) * g) / 2;
+    L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
   } else {
     const CL = DL("cell");
     const FW = 274,
@@ -2049,8 +2052,8 @@ function dsGroundSheet(st, job, media) {
       h: FH
     });
   }
-  D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
-  D.tx(63.5, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
+  D.tx(15, fB + 50, "*REMARK:  ADD GROUND ROD", HB);
+  D.tx(63.5, fB + 65, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
 }
 function dsGroundDetSheet(st, job, media) {
