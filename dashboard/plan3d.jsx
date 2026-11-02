@@ -500,6 +500,7 @@ const P3_DXF_LAYERS = [
   ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
   /* เส้นหลายจุดของตัวแก้แบบ แยกชั้นละชนิด สี+ความหนาต่างกัน · ท่อน้ำเส้นประ (ผู้ใช้ 2026-11-02: รางไฟ/ทางเดิน/ท่อน้ำ ต้องแยกกันออก) */
   ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 4, 40], ["PG-OBS-PIPE", 140, 25, "PG-DASH"], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13],
+  ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-OBS-TAPR", 140, 13, "PG-DASH"],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
   ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25],
@@ -829,6 +830,88 @@ function p3AreaRows(st, M, nStr, paths) {
   return rows;
 }
 
+/* ── ผังติดตั้ง: สัญลักษณ์อุปกรณ์บนพื้น / รางไฟตามขนาด / ตาราง LEGEND (ผู้ใช้ 2026-11-02) ── */
+const P3_EQUIP_SYM = {
+  mdb: (doc, Q) => { doc.pline("PG-OBS-MDB", Q, true); doc.line("PG-OBS-MDB", Q[3][0], Q[3][1], Q[1][0], Q[1][1]); },
+  invst: (doc, Q) => { doc.pline("PG-OBS-INVST", Q, true); doc.line("PG-OBS-INVST", Q[0][0], Q[0][1], Q[2][0], Q[2][1]); doc.line("PG-OBS-INVST", Q[1][0], Q[1][1], Q[3][0], Q[3][1]); },
+  ladder: (doc, Q) => p3LadderSym((a, b) => doc.line("PG-OBS-LADDER", a[0], a[1], b[0], b[1]), Q),
+  xfmr: (doc, Q) => { doc.pline("PG-OBS-XFMR", Q, true);
+    const cx = (Q[0][0] + Q[2][0]) / 2, cy = (Q[0][1] + Q[2][1]) / 2, ux = (Q[1][0] - Q[0][0]) / 2, uy = (Q[1][1] - Q[0][1]) / 2;
+    const r = Math.min(Math.hypot(ux, uy), Math.hypot(Q[3][0] - Q[0][0], Q[3][1] - Q[0][1]) / 2) * 0.42;
+    [-0.3, 0.3].forEach((t) => doc.circle("PG-OBS-XFMR", cx + ux * t * 2 * 0.55, cy + uy * t * 2 * 0.55, r)); },
+};
+/* บันไดลิง: ครึ่งวงกลม (กรง) + "[" (ราวบันได) ในกรอบ Q — ใช้ทั้งในผังและช่อง LEGEND (ผู้ใช้ส่งตัวอย่าง) */
+function p3LadderSym(line, Q) {
+  const P = (u, v) => [Q[0][0] + (Q[1][0] - Q[0][0]) * u + (Q[3][0] - Q[0][0]) * v, Q[0][1] + (Q[1][1] - Q[0][1]) * u + (Q[3][1] - Q[0][1]) * v];
+  const arc = []; for (let i = 0; i <= 12; i++) { const t = Math.PI / 2 + Math.PI * i / 12; arc.push(P(0.5 + 0.42 * Math.cos(t), 0.5 + 0.45 * Math.sin(t))); }
+  for (let i = 1; i < arc.length; i++) line(arc[i - 1], arc[i]);
+  [[0.62, 0.12, 0.5, 0.12], [0.5, 0.12, 0.5, 0.88], [0.5, 0.88, 0.62, 0.88]].forEach((q) => line(P(q[0], q[1]), P(q[2], q[3])));
+}
+const P3_TAP_R = 15;   // รัศมีสายฉีดล้างแผงจากก๊อก (ม.)
+function p3TapSym(doc, x, y, r) {
+  doc.circle("PG-OBS-TAP", x, y, r);
+  doc.line("PG-OBS-TAP", x - r * 0.7, y - r * 0.7, x + r * 0.7, y + r * 0.7); doc.line("PG-OBS-TAP", x - r * 0.7, y + r * 0.7, x + r * 0.7, y - r * 0.7);
+}
+const P3_TRAY_ACI = [30, 10, 3, 6, 200];
+function p3TrayWidths(st) {
+  const a = (st.obstacles || []).filter((o) => o && o.p3sType === "tray").map((o) => Math.round((+o.d || 0.1) * 1000));
+  return a.filter((v, i) => a.indexOf(v) === i).sort((p, q) => p - q);
+}
+function p3TrayLayer(ws, o) { const mm = Math.round((+o.d || 0.1) * 1000); return ws.indexOf(mm) > 0 ? "PG-OBS-TRAY-" + mm : "PG-OBS-TRAY"; }
+/* แถว LEGEND: [สัญลักษณ์, บรรทัด 1, บรรทัด 2] · สัญลักษณ์ = { k: "box"|"line", lay, mark } */
+function p3LegendRows(st, trayW) {
+  const ob = (t) => (st.obstacles || []).filter((o) => o && o.p3sType === t), rows = [];
+  rows.push([{ k: "panel", lay: "PG-PANEL" }, "PV MODULE " + (+st.wp || 650) + " W."]);
+  if (ob("mdb").length) rows.push([{ k: "box", lay: "PG-OBS-MDB", mark: "mdb" }, "MDB EXISTING"]);
+  if (ob("invst").length) rows.push([{ k: "box", lay: "PG-OBS-INVST", mark: "invst" }, "INVERTER STATION"]);
+  if (ob("xfmr").length) rows.push([{ k: "box", lay: "PG-OBS-XFMR", mark: "xfmr" }, "TRANSFORMER"]);
+  const tr = ob("tray"), kind = tr.length && tr.every((o) => (+o.d || 0.1) >= 0.15) ? "perf" : "way";
+  trayW.forEach((mm, i) => {
+    let nm = "";
+    try { nm = typeof dsTrayName === "function" ? dsTrayName(mm, kind) : ""; } catch (e) { nm = ""; }
+    rows.push([{ k: "line", lay: i ? "PG-OBS-TRAY-" + mm : "PG-OBS-TRAY" }, kind === "perf" ? "PERFORATED TRAY" : "CABLE TRAY", nm || mm + " mm."]);
+  });
+  const wk = ob("walkway");
+  if (wk.length) rows.push([{ k: "line", lay: "PG-OBS-WALKWAY" }, "SERVICE WALKWAY", wk.map((o) => Math.round((+o.d || 0.3) * 1000)).filter((v, i, a) => a.indexOf(v) === i).join(" / ") + " mm. WIDTH"]);
+  const pp = ob("pipe");
+  if (pp.length) {
+    const PPR = typeof DS_PPR !== "undefined" ? DS_PPR : {};
+    rows.push([{ k: "line", lay: "PG-OBS-PIPE" }, "WATER PIPE (PPR)", pp.map((o) => Math.round((+o.d || 0.025) * 1000)).filter((v, i, a) => a.indexOf(v) === i)
+      .map((mm) => mm + " mm." + (PPR[mm] ? " (" + PPR[mm] + ")" : "")).join(" / ")]);
+  }
+  const nTap = pp.reduce((n, o) => n + (o.taps || []).length, 0);
+  if (nTap) rows.push([{ k: "box", lay: "PG-OBS-TAP", mark: "tap" }, "WATER TAP (" + nTap + " PCS.)", "R" + P3_TAP_R + " m. CLEANING RADIUS"]);
+  if (ob("ladder").length) rows.push([{ k: "box", lay: "PG-OBS-LADDER", mark: "ladder" }, "SERVICE LADDER"]);
+  if (ob("rail").length) rows.push([{ k: "line", lay: "PG-OBS-RAIL" }, "GUARDRAIL"]);
+  if (ob("sky").length) rows.push([{ k: "line", lay: "PG-OBS-SKY" }, "SKYLIGHT"]);
+  return rows;
+}
+const cx0 = (x, sw) => x + sw / 2;
+function p3Legend(pen, x, yTop, w, hh, rh, rows) {
+  const L = PG_TBL.line, T = PG_TBL.txt, sw = Math.min(26, w * 0.32), yb = yTop - hh - rh * rows.length;
+  pen.rect(L, x, yb, w, hh + rh * rows.length);
+  pen.line(L, x, yTop - hh, x + w, yTop - hh);
+  pen.text(T, x + w / 2, yTop - hh / 2, 3.0, "LEGEND", { align: 1, valign: 2 });
+  pen.line(L, x + sw, yTop - hh, x + sw, yb);
+  rows.forEach((r, i) => {
+    const y1 = yTop - hh - rh * i, y0 = y1 - rh, cy = (y0 + y1) / 2, S = r[0];
+    if (i) pen.line(L, x, y1, x + w, y1);
+    const bw = Math.min(sw - 8, 13), bh = Math.min(rh - 2, 4.4), bx = x + (sw - bw) / 2, by = cy - bh / 2;
+    if (S.k === "line") pen.line(S.lay, x + 4, cy, x + sw - 4, cy);
+    else if (S.mark === "tap") p3TapSym(pen, cx0(x, sw), cy, Math.min(2, rh * 0.32));
+    else if (S.mark === "ladder") { const a = bh * 1.1; p3LadderSym((p, q) => pen.line(S.lay, p[0], p[1], q[0], q[1]), [[cx0(x, sw) - a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy + a / 2], [cx0(x, sw) - a / 2, cy + a / 2]]); }
+    else {
+      pen.rect(S.lay, bx, by, bw, bh);
+      if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, bx, by, bx + bw, by + bh);
+      if (S.mark === "invst") pen.line(S.lay, bx, by + bh, bx + bw, by);
+      if (S.mark === "xfmr") [-0.22, 0.22].forEach((t) => pen.circle(S.lay, bx + bw / 2 + t * bw, cy, bh * 0.36));
+    }
+    const th = 2.2;
+    if (r[2]) { pen.text(T, x + sw + 2, cy + th * 0.15, th, r[1], { valign: 1 }); pen.text(T, x + sw + 2, cy - th * 1.15, th, r[2], { valign: 1 }); }
+    else pen.text(T, x + sw + 2, cy, th, r[1], { valign: 2 });
+  });
+}
+
 /* ── แผ่นที่ 1 · ผังติดตั้ง ──
    media.imgs = [{ kind:"map"|"photo", file, pxW, pxH }] ที่โหลดขนาดจริงมาแล้ว (ดู p3ExportDxf) */
 function p3Dxf(st, job, media) {
@@ -895,12 +978,22 @@ function p3Dxf(st, job, media) {
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
   (foot.panels || []).forEach((p) => p3PanelIns(doc, "PG-PANEL", p.pts.map((q) => [q[0], -q[1]])));
 
+  /* รางไฟแยกสีตามขนาด (ขนาดแรกใช้ชั้น PG-OBS-TRAY) */
+  const trayW = p3TrayWidths(st);
+  trayW.forEach((mm, i) => { if (i) doc.layer("PG-OBS-TRAY-" + mm, P3_TRAY_ACI[i % P3_TRAY_ACI.length], "CONTINUOUS", 60); });
   // สิ่งบดบัง — ต้นไม้เป็นวงกลม อย่างอื่นเป็นกรอบสี่เหลี่ยมหมุนตามที่ตั้งไว้
   (st.obstacles || []).forEach((o) => {
     const x = +o.x || 0, z = +o.z || 0, w = Math.max(0.1, +o.w || 1), d = Math.max(0.1, +o.d || 1);
     if (o.kind === "tree") { doc.circle("PG-OBSTACLE", x, -z, Math.max(w, d) / 2); return; }
     /* ราว/ทางเดิน/ท่อ/รางไฟ/ช่องแสงของตัวแก้แบบใหม่เป็นเส้นหลายจุด (pts สัมพัทธ์ x/z · w = ความยาวรวม)
        วาดเป็นกล่องตาม w จะได้แท่งยาวหลายร้อยเมตรพาดทั้งผัง — วาดตามเส้นจริงแทน */
+    /* ตู้ MDB เดิม / จุดอินเวอร์เตอร์ / หม้อแปลง (ขั้นสิ่งบดบังของตัวแก้แบบ) — สัญลักษณ์ตาม LEGEND */
+    if (P3_EQUIP_SYM[o.p3sType]) {
+      const a3 = (+o.rot || 0) * P3_DEG, c3 = Math.cos(a3), s3 = Math.sin(a3);
+      const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
+      P3_EQUIP_SYM[o.p3sType](doc, Q);
+      return;
+    }
     if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
       let P;
       if (Array.isArray(o.pts) && o.pts.length >= 2) P = o.pts.map((q) => [x + (+q.x || 0), -(z + (+q.z || 0))]);
@@ -908,7 +1001,14 @@ function p3Dxf(st, job, media) {
         const L = w / 2, a1 = (+o.rot || 0) * P3_DEG, ux = Math.cos(a1), uz = Math.sin(a1);
         P = [[x - ux * L, -(z - uz * L)], [x + ux * L, -(z + uz * L)]];
       }
-      doc.pline("PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
+      doc.pline(o.p3sType === "tray" ? p3TrayLayer(trayW, o) : "PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
+      /* ก๊อกน้ำบนท่อ (o.taps สัมพัทธ์ x/z) — วงกลมกากบาท รัศมี 1.3 มม.บนกระดาษ (ผู้ใช้ 2026-11-02 "อยากได้ตำแหน่งก๊อกน้ำในแบบ") */
+      /* วงรัศมีสายฉีดล้างแผง R15 ม. รอบก๊อก เส้นประบาง + ป้าย "R15" ที่ขอบขวาบน (ผู้ใช้ "บอกรัศมี R15") */
+      if (o.p3sType === "pipe") (o.taps || []).forEach((t) => { const tx = x + (+t.x || 0), ty = -(z + (+t.z || 0));
+        p3TapSym(doc, tx, ty, 1.3 * k);
+        doc.circle("PG-OBS-TAPR", tx, ty, P3_TAP_R);
+        doc.line("PG-OBS-TAPR", tx, ty, tx + P3_TAP_R * 0.7071, ty + P3_TAP_R * 0.7071);
+        doc.text("PG-OBS-TAPR", tx + P3_TAP_R * 0.36, ty + P3_TAP_R * 0.36 + TH * 0.4, TH, "R" + P3_TAP_R, { align: 1 }); });
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG, ca = Math.cos(a2), sa = Math.sin(a2);
@@ -987,12 +1087,6 @@ function p3Dxf(st, job, media) {
   [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), { align: 1, valign: 1 }));
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
 
-  /* คำอธิบายเส้น รางไฟ/ทางเดิน/ท่อน้ำ ฯลฯ — เฉพาะชนิดที่มีในแบบ วางขวาของมาตราส่วนเส้น ไล่ขึ้น (ผู้ใช้ 2026-11-02 "ใส่ด้วย") */
-  const LEG = [["tray", "CABLE TRAY"], ["walkway", "WALKWAY"], ["pipe", "WATER PIPE"], ["rail", "GUARDRAIL"], ["sky", "SKYLIGHT"]]
-    .filter((q) => (st.obstacles || []).some((o) => o && o.p3sType === q[0]));
-  LEG.forEach((q, i) => { const lx = bx + 62, ly = by + 1.1 + i * 4.2, lay = "PG-OBS-" + q[0].toUpperCase();
-    pen.line(lay, lx, ly, lx + 14, ly); pen.text("PG-NOTE", lx + 17, ly, 2.2, q[1], { valign: 2 }); });
-
   /* ── คอลัมน์ขวา: หัวเรื่อง + มาตราส่วน + เข็มทิศ → ตารางระยะสาย ── */
   const RX1 = AR.x1 - 2, RX0 = RX1 - P3_COL, RW = P3_COL;
 
@@ -1026,6 +1120,17 @@ function p3Dxf(st, job, media) {
     pgGrid(pen, RX0, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
       [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab),
       { rh: RH, th: 2.2, align: [0, 2, 0], headRow: 1 });
+  }
+
+  /* ── ตาราง LEGEND (ผู้ใช้ 2026-11-02 ส่งตัวอย่าง) — เฉพาะของที่มีในผัง ·
+     โหมดกว้าง: แถบล่างซ้ายของตารางสรุปโครงการ · ปกติ: คอลัมน์ขวาเหนือตาราง */
+  const LG = p3LegendRows(st, trayW);
+  if (LG.length) {
+    const hh = 6, avail = V.wide ? P3_WIDE_B - 8 : 999, rh = Math.max(4.6, Math.min(7, (avail - hh) / LG.length));
+    const LW = V.wide ? 74 : RW, LH = hh + rh * LG.length;
+    const cabH = cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B) ? (cab.length + 2) * RH + 4 : 0;
+    const lx = V.wide ? RX0 - 4 - LW : RX0, ly = V.wide ? AR.y0 + 3 + LH : botY + cabH + LH;
+    if (!V.wide || LH <= P3_WIDE_B - 4) p3Legend(pen, lx, ly, LW, hh, rh, LG);
   }
 
   /* ที่มาของมาตราส่วน — ต่อท้าย METRES บรรทัดเดียวกับเส้นมาตราส่วน (เดิมอยู่เหนือเส้น ทับบรรทัด SCALE กับตัวเลข — ผู้ใช้วงให้) */

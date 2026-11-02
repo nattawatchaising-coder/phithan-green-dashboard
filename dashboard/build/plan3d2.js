@@ -402,7 +402,12 @@ function p3sFillPatch(r, orient) {
     noPanel: null
   };
 }
-const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 6, 1, 0.15], ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.3, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4], ["pipe", "ท่อน้ำ PPR", 6, 0.025, 0.05], ["tray", "รางไฟ", 6, 0.1, 0.05], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 6, 1, 0.15], ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.3, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4], ["pipe", "ท่อน้ำ PPR", 6, 0.025, 0.05], ["tray", "รางไฟ", 6, 0.1, 0.05], ["mdb", "ตู้ MDB เดิม", 1.2, 0.6, 2], ["invst", "จุดอินเวอร์เตอร์", 3, 1.5, 2.2], ["xfmr", "หม้อแปลง", 2, 1.6, 2.2], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const P3S_EQUIP = {
+  mdb: 1,
+  invst: 1,
+  xfmr: 1
+};
 const P3S_ZONE_C = ["#f59e0b", "#0ea5e9", "#a855f7", "#ef4444", "#10b981", "#ec4899"];
 const P3S_OBS_LINE = {
   rail: 1,
@@ -4920,6 +4925,29 @@ function p3sBuild3D(THREE, grp, st, tex) {
       put(new THREE.CylinderGeometry(pipeR * 1.08, pipeR * 1.08, 0.06, 22), metal, pipeH * 0.55);
       put(new THREE.CylinderGeometry(r * 0.96, r * 0.96, capH * 0.28, 26), metal, pipeH + capH * 0.14);
       put(new THREE.CylinderGeometry(r * 0.32, r * 0.96, capH * 0.72, 26), metal, pipeH + capH * 0.28 + capH * 0.36);
+    } else if (P3S_EQUIP[T]) {
+      const W = Math.max(+o.w || 1, 0.3),
+        D = Math.max(+o.d || 1, 0.3),
+        M = (c, r) => new THREE.MeshStandardMaterial({
+          color: c,
+          roughness: r == null ? 0.6 : r
+        });
+      put(new THREE.BoxGeometry(W + 0.2, 0.12, D + 0.2), M(0xb8b2a6, 0.95), 0.06);
+      if (T === "invst") {
+        const n = Math.max(1, Math.min(4, Math.floor(W / 0.8))),
+          bw = Math.min(0.62, W / n - 0.12);
+        for (let i = 0; i < n; i++) {
+          const m = put(new THREE.BoxGeometry(bw, Math.min(0.85, h * 0.45), 0.26), M(0xe5e7eb, 0.4), 0.12 + h * 0.3);
+          m.position.x = -W / 2 + (i + 0.5) * W / n;
+        }
+        put(new THREE.BoxGeometry(W, 0.06, D), M(0x94a3b8, 0.5), h);
+      } else {
+        put(new THREE.BoxGeometry(W, h - 0.12, D), M(T === "xfmr" ? 0x5b7a62 : 0xcbd5e1, 0.5), 0.12 + (h - 0.12) / 2);
+        if (T === "xfmr") [-1, 0, 1].forEach(k => {
+          const m = put(new THREE.CylinderGeometry(0.05, 0.07, 0.35, 10), M(0x8b5a2b, 0.4), h + 0.17);
+          m.position.x = k * W * 0.25;
+        });
+      }
     } else if (o.kind === "tree") {
       let sd = 0;
       String(o.id || "t").split("").forEach(ch => {
@@ -5654,6 +5682,9 @@ const P3S_OBS_TIP = {
   rail: "ราวกันตกเสาทุก ≤ 2 ม. · คลิกทีละจุดต่อเป็นเส้น (ดูดเข้าขอบหลังคา)",
   walkway: "ทางเดินตะแกรง FRP สีเหลือง · คลิกทีละจุดต่อเป็นเส้น · แผงเว้น 5 ซม.",
   ladder: "บันไดลิงมีกรง ขึ้นจากพื้นถึงหลังคา · แตะที่ขอบหลังคา ติดผนังด้านนอกเอง",
+  mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบแดงขีดทแยง",
+  invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบกากบาท",
+  xfmr: "หม้อแปลงไฟฟ้า · แตะ = วาง · ลาก = ขนาดจริง",
   bldg: "อาคารข้างเคียงที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ขนาดจริง",
   tree: "ต้นไม้ที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ทรงพุ่มจริง"
 };
@@ -5795,12 +5826,16 @@ function p3sObsPreview(T) {
       tg = [0, 3, 0];
       dist = 19;
     }
+    if (P3S_EQUIP[T]) {
+      tg = [0, 1.1, 0];
+      dist = 7;
+    }
     if (T === "tree") {
       tg = [0, 2.6, 0];
       dist = 11;
     }
     p3sBuild3D(THREE, grp, {
-      roofs: T === "bldg" || T === "tree" ? [] : [roof],
+      roofs: T === "bldg" || T === "tree" || P3S_EQUIP[T] ? [] : [roof],
       obstacles: [o],
       buildH: 0,
       groundW: 40
@@ -9951,6 +9986,44 @@ function Plan3DStudio({
         key: o.id
       }, parts);
     }
+    if (P3S_EQUIP[T]) {
+      const R = p3sObsRect(o, 0),
+        c = T === "mdb" ? "#dc2626" : T === "invst" ? "#a16207" : "#15803d";
+      return React.createElement("g", {
+        key: o.id
+      }, React.createElement("polygon", {
+        points: ptsStr(R),
+        fill: "rgba(255,255,255,.75)",
+        stroke: isSel ? "#16a34a" : isHov ? "#0ea5e9" : c,
+        strokeWidth: isSel ? 2.4 : 1.6,
+        style: NS
+      }), T !== "xfmr" && React.createElement("line", {
+        x1: R[0].x,
+        y1: R[0].z,
+        x2: R[2].x,
+        y2: R[2].z,
+        stroke: c,
+        strokeWidth: 1.2,
+        style: NS
+      }), T === "invst" && React.createElement("line", {
+        x1: R[1].x,
+        y1: R[1].z,
+        x2: R[3].x,
+        y2: R[3].z,
+        stroke: c,
+        strokeWidth: 1.2,
+        style: NS
+      }), T === "xfmr" && [-0.18, 0.18].map((u, k) => React.createElement("circle", {
+        key: k,
+        cx: (+o.x || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).x,
+        cy: (+o.z || 0) + p3sRot(u * Math.min(+o.w || 1, 2), 0, (+o.rot || 0) * P3_DEG).z,
+        r: Math.min(+o.w || 1, +o.d || 1) * 0.28,
+        fill: "none",
+        stroke: c,
+        strokeWidth: 1.2,
+        style: NS
+      })));
+    }
     if (T === "ladder") return React.createElement("g", {
       key: o.id
     }, React.createElement("polygon", {
@@ -12885,7 +12958,37 @@ function Plan3DStudio({
         flexWrap: "wrap",
         gap: 6
       }
-    }, P3S_OBS.map(([k, lb]) => React.createElement("button", {
+    }, P3S_OBS.filter(q => !P3S_EQUIP[q[0]]).map(([k, lb]) => React.createElement("button", {
+      key: k,
+      className: "p3s-btn" + (obsType === k && tool === "obs" ? " pri" : ""),
+      style: {
+        flex: "1 1 30%",
+        padding: "0 6px",
+        fontSize: 12.5
+      },
+      onMouseEnter: e => {
+        if (!coarse) setObsHov({
+          k,
+          r: e.currentTarget.getBoundingClientRect()
+        });
+      },
+      onMouseLeave: () => setObsHov(null),
+      onClick: () => {
+        setObsType(k);
+        setTool("obs");
+        setSel(null);
+        setObsPts(null);
+        setObsMsg(null);
+      }
+    }, lb)), React.createElement("div", {
+      style: {
+        flex: "1 1 100%",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        marginTop: 6
+      }
+    }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E44\u0E1F\u0E1F\u0E49\u0E32 \xB7 \u0E23\u0E30\u0E1A\u0E38\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E25\u0E07\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), P3S_OBS.filter(q => P3S_EQUIP[q[0]]).map(([k, lb]) => React.createElement("button", {
       key: k,
       className: "p3s-btn" + (obsType === k && tool === "obs" ? " pri" : ""),
       style: {
