@@ -1347,9 +1347,22 @@ function dsPx(pen, A, w, yT) {
       };
       return q;
     },
-    art: (name, x0, y0, s, L, Lg, minH) => {
+    art: (name, x0, y0, s, L, Lg, minH, fr) => {
       const a = (window.DS_ART || {})[name];
       if (!a) return;
+      let dyA = 0,
+        dyC = 0,
+        onF = null;
+      if (fr) {
+        const F = fr.f,
+          ex = fr.h - (F[3] - F[1]) / s;
+        x0 = fr.x + fr.w / 2 - (F[0] + F[2]) / 2 / s;
+        dyA = ex / 2;
+        dyC = ex;
+        const e = (v, w) => Math.abs(v - w) < 2;
+        onF = p => p.every(([x, y]) => (e(x, F[0]) || e(x, F[2])) && y > F[1] - 2 && y < F[3] + 2 || (e(y, F[1]) || e(y, F[3])) && x > F[0] - 2 && x < F[2] + 2);
+        o.rc(L, fr.x, y0 + F[1] / s, fr.w, fr.h);
+      }
       const tx = DS_ART_TX[name] || [],
         q = a.q || 1,
         inBox = b => tx.some(t => b[0] >= t[0] - 1.5 && b[2] <= t[2] + 1.5 && b[1] >= t[1] - 1.5 && b[3] <= t[3] + 1.5 + (t[3] - t[1]) * 0.4);
@@ -1357,7 +1370,8 @@ function dsPx(pen, A, w, yT) {
         const g = c[0] === "g",
           n = (g ? c.slice(1) : c).split(",").map(Number),
           pts = [],
-          b = [1e9, 1e9, -1e9, -1e9];
+          b = [1e9, 1e9, -1e9, -1e9],
+          raw = [];
         for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
           x = i ? x + n[i] : n[i];
           y = i ? y + n[i + 1] : n[i + 1];
@@ -1365,16 +1379,17 @@ function dsPx(pen, A, w, yT) {
           b[1] = Math.min(b[1], y / q);
           b[2] = Math.max(b[2], x / q);
           b[3] = Math.max(b[3], y / q);
-          pts.push([x0 + x / q / s, y0 + y / q / s]);
+          pts.push([x0 + x / q / s, y0 + dyA + y / q / s]);
+          raw.push([x / q, y / q]);
         }
-        if (tx.length && inBox(b)) return;
+        if (tx.length && inBox(b) || onF && onF(raw)) return;
         if (pts.length === 2 && !n[2] && !n[3]) o.dot(g ? Lg : L, pts[0][0], pts[0][1], 0.7 / q / s);else o.pl(g ? Lg : L, pts);
       });
       tx.forEach(t => {
         const h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1))),
           c = t[5] === 1,
           r = t[5] === 2;
-        o.tx(x0 + (c ? (t[0] + t[2]) / 2 : r ? t[2] : t[0]) / s, y0 + t[3] / s, t[4], h, c ? {
+        o.tx(x0 + (c ? (t[0] + t[2]) / 2 : r ? t[2] : t[0]) / s, y0 + t[3] / s + (c ? 0 : /^DETAIL/.test(t[4]) ? dyC : dyA), t[4], h, c ? {
           align: 1
         } : r ? {
           align: 2
@@ -1394,10 +1409,10 @@ function dsPx(pen, A, w, yT) {
   return o;
 }
 const DS_ART_TX = {
-  G1A: [[275, 23.5, 864, 48.5, "GROUNDING FOR PV MODULE AND RIAL", 1], [776, 163, 915.5, 184, "PV MODULE"], [753.5, 201.5, 914, 222, "INTER CLAMP"], [596.5, 262, 644.5, 282.5, "RAIL"], [43, 302, 271.5, 322.5, "GROUNDING SHEET"], [387.5, 376, 505, 397, "DETAIL A"]],
-  G1B: [[248.5, 23, 899, 48, "BONDING FOR RAIL TO GROUNDING SYSTEM", 1], [164.5, 175, 362, 196, "GROUNDING LUG"], [169, 320, 372, 341, "IEC01-6 sq mm."], [595.5, 320, 644.5, 341, "RAIL"], [417.5, 431, 535, 451, "DETAIL B"]],
-  G1C: [[288, 43, 879.5, 68, "GROUND STATION INSTALLATION DETAIL", 1], [42.5, 211.5, 316.5, 232, "GROUND STATION FOR"], [42.5, 247.5, 268.5, 268, "INVERTER STATION"], [43, 283, 226, 304, "300x25x5 mm"], [726.5, 309, 880.5, 330, "COPPER LUG"], [110, 351, 239, 371, "INSULATOR"], [110.5, 384, 310, 404.5, "GROUNDING BAR"], [435.5, 496, 582, 523, "DETAIL C"]],
-  G1D: [[253, 37, 677, 62, "PERFORRATE TRAY BONDING", 1], [58, 157, 391, 186, "6 sq mm ,IEC-01 ,GREEN"], [543, 157, 711, 178, "SPLICE PLATE"], [369.5, 490, 518, 517, "DETAIL D"]],
+  G1A: [[19, 23.5, 961.5, 48.5, "GROUNDING FOR PV MODULE AND RIAL", 1], [776, 163, 915.5, 184, "PV MODULE"], [753.5, 201.5, 914, 222, "INTER CLAMP"], [596.5, 262, 644.5, 282.5, "RAIL"], [43, 302, 271.5, 322.5, "GROUNDING SHEET", 2], [387.5, 376, 505, 397, "DETAIL A"]],
+  G1B: [[19.5, 23, 961.5, 48, "BONDING FOR RAIL TO GROUNDING SYSTEM", 1], [164.5, 175, 362, 196, "GROUNDING LUG", 2], [169, 320, 372, 341, "IEC01-6 sq mm.", 2], [595.5, 320, 644.5, 341, "RAIL"], [417.5, 431, 535, 451, "DETAIL B"]],
+  G1C: [[18, 43, 888.5, 68, "GROUND STATION INSTALLATION DETAIL", 1], [42.5, 211.5, 316.5, 232, "GROUND STATION FOR", 2], [42.5, 247.5, 268.5, 268, "INVERTER STATION", 2], [43, 283, 226, 304, "300x25x5 mm", 2], [726.5, 309, 880.5, 330, "COPPER LUG"], [110, 351, 239, 371, "INSULATOR", 2], [110.5, 384, 310, 404.5, "GROUNDING BAR", 2], [435.5, 496, 582, 523, "DETAIL C"]],
+  G1D: [[9.5, 37, 880, 62, "PERFORRATE TRAY BONDING", 1], [58, 157, 391, 186, "6 sq mm ,IEC-01 ,GREEN", 2], [543, 157, 711, 178, "SPLICE PLATE"], [369.5, 490, 518, 517, "DETAIL D"]],
   TRAY: [[738, 426.5, 915.5, 442.5, "PERFORATED TRAY"], [539, 494, 726, 511, "1C-6 sq mm IEC01"], [45, 660, 743, 694, "GROUNDING FOR PERFORATED TRAY"]],
   G2A: [[325, 61.5, 520, 81, "1C-16 sq mm IEC01"], [640, 166.5, 711, 182, "NUT M8"], [690.5, 232.5, 811.5, 248.5, "GROUND LUG"], [648.5, 471, 729, 487, "BOLT M8"], [370, 548, 545, 579, "DETAIL A"]],
   G2B: [[268.5, 59, 453.5, 79.5, "1C-6 sq mm IEC01", 2], [53.5, 172, 226.5, 187, "COPPER C-CLAMP", 2], [810, 388, 1004.5, 408.5, "1C-16 sq mm IEC01"], [385, 553.5, 556, 585, "DETAIL B"]],
@@ -1598,10 +1613,32 @@ function dsGroundSheet(st, job, media) {
     D.tx(1122, 485, "IEC01 6 sq.mm.", H);
   }
   const CL = DL("cell");
-  D.art("G1A", 104.03, 553.83, 3.443, E, CL);
-  D.art("G1B", 399.0, 553.9, 3.46, E, CL);
-  D.art("G1C", 694.35, 548.16, 3.462, E, CL);
-  if (tray) D.art("G1D", 971.15, 549.87, 3.459, E, CL);
+  const FW = 274,
+    FH = 131;
+  D.art("G1A", 104.03, 553.83, 3.443, E, CL, H, {
+    f: [19, 66.5, 961.5, 407.5],
+    x: 109.5,
+    w: FW,
+    h: FH
+  });
+  D.art("G1B", 399.0, 553.9, 3.46, E, CL, H, {
+    f: [19.5, 66.5, 961.5, 463],
+    x: 398.5,
+    w: FW,
+    h: FH
+  });
+  D.art("G1C", 694.35, 548.16, 3.462, E, CL, H, {
+    f: [18, 86.5, 888.5, 538.5],
+    x: 687.5,
+    w: FW,
+    h: FH
+  });
+  if (tray) D.art("G1D", 971.15, 549.87, 3.459, E, CL, H, {
+    f: [9.5, 80.5, 880, 532.5],
+    x: 976.5,
+    w: FW,
+    h: FH
+  });
   D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
   D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
