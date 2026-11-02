@@ -756,7 +756,8 @@ function dsStrDetSheet(st, job, media) {
   const S = dsMm(st, job, media, "STRDET", null);
   const pen = S.pen, A = S.A, T = PG_TBL.txt;
   /* ชื่อแผ่นอยู่มุมขวาล่าง (ผู้ใช้ย้าย) ด้านบนทั้งแผ่นให้รูปที่ 1/2 */
-  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
+  /* ชื่อแผ่นมุมขวาบน (ผู้ใช้ย้าย 2026-11-02) — มุมขวาล่างให้ตาราง STRING DATA / LEGEND · รูปด้านบนเริ่มต่ำลงให้ที่ (yHi) */
+  pgSheetTitle(pen, A.x1 - 6, A.y1 - 11, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
   const SS = (media.design && media.design.strings) || [];
@@ -767,23 +768,24 @@ function dsStrDetSheet(st, job, media) {
   /* แถบล่าง: รูปแผง (ซ้าย) · ข้อมูลสตริง + คำอธิบายเส้น (ถัดไปทางขวา) — ผู้ใช้ย้ายลงมาจากมุมซ้ายบน
      ด้านบนทั้งแผ่นให้รูปที่ 1/2 อยู่กลาง */
   /* รูปแผง datasheet กว้างขึ้น (ผู้ใช้ "ขยายให้ใหญ่หน่อย") → ตาราง STRING DATA / LEGEND เลื่อนขวา ซ้อนกันบน-ล่าง */
-  const lx = A.x0 + 4, sx = A.x0 + 156, lw = 110, bandTop = A.y0 + 92;
+  const lx = A.x0 + 4, sx = A.x0 + 152, lw = 110, bandTop = A.y0 + 92;
   const pairs = [["PV MODULE", M ? M.panel.model + " " + M.panel.wp + " Wp" : "-"],
     ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"],
     ["DC CABLE", (M && M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm. 1.5kV DC"]];
   if (M && M.pro && M.pro.vocMax) pairs.push(["Voc @" + M.pro.tMin + "%%dC", M.pro.vocMax + " V (MAX " + M.pro.maxVdc + " V)"]);
   /* ข้อมูลสตริง + LEGEND ลงล่าง ชิดระดับฐานรูปแผงซ้าย (ผู้ใช้ย้ายลง) */
-  const specTop = bandTop - 2;
+  /* STRING DATA กับ LEGEND วางคู่กันชิดล่าง (ผู้ใช้วาดชี้ 2026-11-02 — เดิมซ้อนบน-ล่าง ชื่อแผ่นอยู่มุมนี้) */
+  const specTop = A.y0 + 8 + (pairs.length + 1) * 4.6;
   const used = pgSpecBlock(pen, sx, specTop, lw, "STRING DATA", pairs, { rh: 4.6, th: PG_TS.cell, kw: 0.3 });
   /* LEGEND เป็นตารางแบบเดียวกับ STRING DATA (ผู้ใช้ 2026-11-02 "ทำเป็นตาราง"): หัวพื้นเทา · ช่องซ้ายตัวอย่างเส้น · ช่องขวาคำอธิบาย */
-  const lgx = sx, lrh = 4.6, lth = PG_TS.cell, sw = 20;
+  const lgx = sx + lw + 6, lrh = 4.6, lth = PG_TS.cell, sw = 20;
   const OP = M && M.opt;
   const lgRows = (OP ? [[DL("dcp"), "สาย DC (+) ไปตู้ DC / สายต่อระหว่างตัวคุมแผง"], [DL("ret"), "สาย DC (-) กลับไปตู้ DC (เดินขนานแนวสตริง)"],
     [DL("optIn"), "สายแผงเข้าตัวคุมแผง (สายของตัวคุม)"]]
     : [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"],
     [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]]);
   const lgw = sw + 4 + Math.max.apply(null, lgRows.map((r) => pgTextW(r[1], lth)));
-  let ly = specTop - used - 6;
+  let ly = A.y0 + 8 + (lgRows.length + 1) * lrh;
   pen.solid(PG_TBL.head, [lgx, ly - lrh], [lgx + lgw, ly - lrh], [lgx + lgw, ly], [lgx, ly]);
   pen.rect(PG_TBL.line, lgx, ly - lrh, lgw, lrh);
   pen.text(T, lgx + 2, ly - lrh + (lrh - lth * 1.15) / 2, lth * 1.15, "LEGEND");
@@ -812,7 +814,7 @@ function dsStrDetSheet(st, job, media) {
     if (!sizes.length) sizes.push(n);
     sizes.sort((a, b) => a - b);
     const cab = "PV CABLE " + ((M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm.").replace(/\s*\(H1Z2Z2-K\)/i, "").replace(/\s*1\.5kV DC/i, ""), thL = 2.5, lw = pgTextW("(+) " + cab, thL) + 3;
-    const X0 = A.x0 + 6, X1 = A.x1 - 36, yHi = A.y1 - 12, yLo = bandTop + 6, Hf = (yHi - yLo) / sizes.length;
+    const X0 = A.x0 + 6, X1 = A.x1 - 36, yHi = A.y1 - 19, yLo = bandTop + 6, Hf = (yHi - yLo) / sizes.length;
     const mMax = Math.ceil(Math.max.apply(null, sizes) / 2);
     /* รูปใหญ่เต็มที่ที่ว่าง (ผู้ใช้ 2026-11-02 "ใหญ่หน่อย" เดิมเพดาน 17) */
     const pw = Math.min(30, (X1 - X0 - lw - 14) / mMax, (Hf - 16) / 3.95), ph = pw * 1.8;
@@ -843,7 +845,7 @@ function dsStrDetSheet(st, job, media) {
   /* แผงรูปที่ 1 กับรูปที่ 2 ขนาดเท่ากัน (เดิมคิดแยก รูปที่ 1 แผงเล็กกว่า — ผู้ใช้ว่าบนล่างไม่เท่ากัน) */
   const m = Math.ceil(n / 2);
   const lt = dsShow(1, m, 12), lb = dsShow(m + 1, n, 12), gapR = 12;
-  const yHi = A.y1 - 14, yLo = bandTop + 6 + 11;          // ขอบบนแถวแรก · ขอบล่างคำบรรยายรูปที่ 2
+  const yHi = A.y1 - 19, yLo = bandTop + 6 + 11;          // ขอบบนแถวแรก · ขอบล่างคำบรรยายรูปที่ 2
   const phMax = (yHi - yLo - 32 - gapR) / 3;
   const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
   const ph1 = Math.min(40, pw1 * 2.05);
