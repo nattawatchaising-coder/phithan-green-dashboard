@@ -892,8 +892,10 @@ function dsStrDetSheet(st, job, media) {
   /* บน: รูปที่ 1 แถวเดียว · รูปที่ 2 สองแถว — เต็มกว้างแผ่น จัดกลางทั้งแนวนอน/แนวตั้งเหนือแถบล่าง (ผู้ใช้: ย้ายอยู่กลางๆ จัดสวยๆ) */
   const X0 = A.x0 + 6, X1 = A.x1 - 36, gap = 3;
   let XR = X1;                                   // ขอบขวาของแถวแผง (คำนวณใหม่หลังรู้ขนาดแผง ให้แถวอยู่กลาง)
+  /* รูปที่ 1/2 ทั้งชุดเลื่อนขวา DX ลงล่าง DY มม. จากกึ่งกลาง (ผู้ใช้ตีกรอบ 2026-11-02 "มันต้องอยู่ประมาณนี้") · แถวกว้างเต็มที่ = เลื่อนได้เท่าที่เหลือ */
+  const DX = 30, DY = 9;
+  let xc = (X0 + X1) / 2;
   const cap = (y, s) => {
-    const xc = (X0 + X1) / 2;
     pen.text(T, xc, y, PG_TS.head, s, { align: 1, valign: 1 });
     const w = pgTextW(s, PG_TS.head) + 3;
     pen.line(T, xc - w / 2, y - 1.2, xc + w / 2, y - 1.2);
@@ -912,9 +914,10 @@ function dsStrDetSheet(st, job, media) {
   const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
   const ph1 = Math.min(40, pw1 * 2.05);
   const nMax = Math.max(l1.length, lt.length), rowW = nMax * pw1 + (nMax - 1) * gap;
-  XR = (X0 + X1) / 2 + rowW / 2;
+  xc += Math.max(0, Math.min(DX, (X1 - X0 - rowW) / 2));
+  XR = xc + rowW / 2;
   const off = Math.max(0, (yHi - yLo - (ph1 * 3 + 32 + gapR)) / 2);
-  const y1 = yHi - off - ph1;
+  const y1 = yHi - Math.min(2 * off, off + DY) - ph1;
   const R1 = dsRow(pen, l1, XR, -1, y1, pw1, ph1, gap, false, false);
   dsChain(pen, R1, "n", "p");
   toBox(R1[0].p, "To DC Box (+)", DL("dcp"));
@@ -925,7 +928,7 @@ function dsStrDetSheet(st, job, media) {
 
   /* รูปที่ 2 — แถวบน 1..m (ขวา→ซ้าย) แถวล่าง m+1..n (ซ้าย→ขวา) · จัดกลางแผ่นของตัวเอง (ผู้ใช้: เดิมชิดขวาตามรูปที่ 1) */
   const pw2 = pw1, ph2 = ph1, top0 = y1 - 32;
-  XR = (X0 + X1) / 2 + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
+  XR = xc + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
   const yT = top0 - ph2, yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, XR, -1, yT, pw2, ph2, gap, false, false);
   const xL = XR - lt.length * pw2 - (lt.length - 1) * gap;

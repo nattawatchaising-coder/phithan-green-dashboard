@@ -1378,8 +1378,10 @@ function dsStrDetSheet(st, job, media) {
     X1 = A.x1 - 36,
     gap = 3;
   let XR = X1;
+  const DX = 30,
+    DY = 9;
+  let xc = (X0 + X1) / 2;
   const cap = (y, s) => {
-    const xc = (X0 + X1) / 2;
     pen.text(T, xc, y, PG_TS.head, s, {
       align: 1,
       valign: 1
@@ -1405,9 +1407,10 @@ function dsStrDetSheet(st, job, media) {
   const ph1 = Math.min(40, pw1 * 2.05);
   const nMax = Math.max(l1.length, lt.length),
     rowW = nMax * pw1 + (nMax - 1) * gap;
-  XR = (X0 + X1) / 2 + rowW / 2;
+  xc += Math.max(0, Math.min(DX, (X1 - X0 - rowW) / 2));
+  XR = xc + rowW / 2;
   const off = Math.max(0, (yHi - yLo - (ph1 * 3 + 32 + gapR)) / 2);
-  const y1 = yHi - off - ph1;
+  const y1 = yHi - Math.min(2 * off, off + DY) - ph1;
   const R1 = dsRow(pen, l1, XR, -1, y1, pw1, ph1, gap, false, false);
   dsChain(pen, R1, "n", "p");
   toBox(R1[0].p, "To DC Box (+)", DL("dcp"));
@@ -1418,7 +1421,7 @@ function dsStrDetSheet(st, job, media) {
   const pw2 = pw1,
     ph2 = ph1,
     top0 = y1 - 32;
-  XR = (X0 + X1) / 2 + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
+  XR = xc + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
   const yT = top0 - ph2,
     yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, XR, -1, yT, pw2, ph2, gap, false, false);
