@@ -987,6 +987,12 @@ function p3Dxf(st, job, media) {
   [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), { align: 1, valign: 1 }));
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
 
+  /* คำอธิบายเส้น รางไฟ/ทางเดิน/ท่อน้ำ ฯลฯ — เฉพาะชนิดที่มีในแบบ วางขวาของมาตราส่วนเส้น ไล่ขึ้น (ผู้ใช้ 2026-11-02 "ใส่ด้วย") */
+  const LEG = [["tray", "CABLE TRAY"], ["walkway", "WALKWAY"], ["pipe", "WATER PIPE"], ["rail", "GUARDRAIL"], ["sky", "SKYLIGHT"]]
+    .filter((q) => (st.obstacles || []).some((o) => o && o.p3sType === q[0]));
+  LEG.forEach((q, i) => { const lx = bx + 62, ly = by + 1.1 + i * 4.2, lay = "PG-OBS-" + q[0].toUpperCase();
+    pen.line(lay, lx, ly, lx + 14, ly); pen.text("PG-NOTE", lx + 17, ly, 2.2, q[1], { valign: 2 }); });
+
   /* ── คอลัมน์ขวา: หัวเรื่อง + มาตราส่วน + เข็มทิศ → ตารางระยะสาย ── */
   const RX1 = AR.x1 - 2, RX0 = RX1 - P3_COL, RW = P3_COL;
 

@@ -1582,6 +1582,16 @@ function p3Dxf(st, job, media) {
     valign: 1
   }));
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
+  const LEG = [["tray", "CABLE TRAY"], ["walkway", "WALKWAY"], ["pipe", "WATER PIPE"], ["rail", "GUARDRAIL"], ["sky", "SKYLIGHT"]].filter(q => (st.obstacles || []).some(o => o && o.p3sType === q[0]));
+  LEG.forEach((q, i) => {
+    const lx = bx + 62,
+      ly = by + 1.1 + i * 4.2,
+      lay = "PG-OBS-" + q[0].toUpperCase();
+    pen.line(lay, lx, ly, lx + 14, ly);
+    pen.text("PG-NOTE", lx + 17, ly, 2.2, q[1], {
+      valign: 2
+    });
+  });
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - P3_COL,
     RW = P3_COL;
