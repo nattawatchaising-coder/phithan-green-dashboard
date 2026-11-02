@@ -887,18 +887,43 @@ function dsPx(pen, A, w, yT) {
     },
     /* รูปลายเส้นที่ลอกอัตโนมัติจากรูปต้นแบบ (dashboard/groundart.js · tools/trace-art.mjs) วางที่มุม x0,y0 ย่อ s เท่า · เส้นเทาลงชั้น Lg */
     art: (name, x0, y0, s, L, Lg) => {
-      const a = (window.DS_ART || {})[name]; if (!a) return; s *= a.q || 1;
+      const a = (window.DS_ART || {})[name]; if (!a) return;
+      /* ตัวหนังสือในรูปเป็นลายเส้น — ซ่อนเส้นที่อยู่ในกรอบข้อความทั้งเส้น แล้วเขียนเป็นข้อความจริงแทน (ผู้ใช้ขอ) */
+      const tx = DS_ART_TX[name] || [], q = a.q || 1, inBox = (b) => tx.some((t) => b[0] >= t[0] - 1.5 && b[2] <= t[2] + 1.5 && b[1] >= t[1] - 1.5 && b[3] <= t[3] + 1.5 + (t[3] - t[1]) * 0.4); /* ล่างเผื่อหางตัว q */
       a.d.split(";").forEach((c) => {
-        const g = c[0] === "g", n = (g ? c.slice(1) : c).split(",").map(Number), pts = [];
-        for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1]; pts.push([x0 + x / s, y0 + y / s]); }
-        if (pts.length === 2 && !n[2] && !n[3]) o.dot(g ? Lg : L, pts[0][0], pts[0][1], 0.7 / s);
+        const g = c[0] === "g", n = (g ? c.slice(1) : c).split(",").map(Number), pts = [], b = [1e9, 1e9, -1e9, -1e9];
+        for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1];
+          b[0] = Math.min(b[0], x / q); b[1] = Math.min(b[1], y / q); b[2] = Math.max(b[2], x / q); b[3] = Math.max(b[3], y / q); pts.push([x0 + x / q / s, y0 + y / q / s]); }
+        if (tx.length && inBox(b)) return;
+        if (pts.length === 2 && !n[2] && !n[3]) o.dot(g ? Lg : L, pts[0][0], pts[0][1], 0.7 / q / s);
         else o.pl(g ? Lg : L, pts);
       });
+      /* สูงตัวพิมพ์ใหญ่ ≈ 0.7 × h ของ pen.text · ไม่ให้กว้างเกินกรอบเดิม (ตัวหนังสือจริงกว้างกว่าลายเส้น จะทับเส้นชี้) */
+      tx.forEach((t) => { const h = Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1)), c = t[5] === 1;
+        o.tx(x0 + (c ? (t[0] + t[2]) / 2 : t[0]) / s, y0 + t[3] / s, t[4], h, c ? { align: 1 } : null); });
     },
     cap: (xc, y, s, h) => { h = h || PG_TS.body; pen.text(T, X(xc), Y(y), h, s, { align: 1, valign: 1 }); const w2 = pgTextW(s, h); pen.line(T, X(xc) - w2 / 2, Y(y) - 1, X(xc) + w2 / 2, Y(y) - 1); },
   };
   return o;
 }
+/* ข้อความของรูปลายเส้น DS_ART (พิกัดพิกเซลของรูป): [ซ้าย, บน, ขวา, ล่าง (เส้นฐาน), ข้อความ, 1 = กึ่งกลาง]
+   เส้นที่อยู่ในกรอบทั้งเส้นถูกซ่อน แล้ววาดข้อความจริงแทน — กรอบหาจากหน้าดูตัวอย่าง (docs/trace-art.md) · คำสะกดตามรูปต้นแบบ */
+const DS_ART_TX = {
+  G1A: [[275, 23.5, 864, 48.5, "GROUNDING FOR PV MODULE AND RIAL", 1], [776, 163, 915.5, 184, "PV MODULE"], [753.5, 201.5, 914, 222, "INTER CLAMP"],
+    [596.5, 262, 644.5, 282.5, "RAIL"], [43, 302, 271.5, 322.5, "GROUNDING SHEET"], [387.5, 376, 505, 397, "DETAIL A"]],
+  G1B: [[248.5, 23, 899, 48, "BONDING FOR RAIL TO GROUNDING SYSTEM", 1], [164.5, 175, 362, 196, "GROUNDING LUG"], [169, 320, 372, 341, "IEC01-6 sq mm."],
+    [595.5, 320, 644.5, 341, "RAIL"], [417.5, 431, 535, 451, "DETAIL B"]],
+  G1C: [[288, 43, 879.5, 68, "GROUND STATION INSTALLATION DETAIL", 1], [42.5, 211.5, 316.5, 232, "GROUND STATION FOR"], [42.5, 247.5, 268.5, 268, "INVERTER STATION"],
+    [43, 283, 226, 304, "300x25x5 mm"], [726.5, 309, 880.5, 330, "COPPER LUG"], [110, 351, 239, 371, "INSULATOR"], [110.5, 384, 310, 404.5, "GROUNDING BAR"],
+    [435.5, 496, 582, 523, "DETAIL C"]],
+  G1D: [[253, 37, 677, 62, "PERFORRATE TRAY BONDING", 1], [58, 157, 391, 186, "6 sq mm ,IEC-01 ,GREEN"], [543, 157, 711, 178, "SPLICE PLATE"], [369.5, 490, 518, 517, "DETAIL D"]],
+  TRAY: [[738, 426.5, 915.5, 442.5, "PERFORATED TRAY"], [539, 494, 726, 511, "1C-6 sq mm IEC01"], [45, 660, 743, 694, "GROUNDING FOR PERFORATED TRAY"]],
+  G2A: [[325, 61.5, 520, 81, "1C-16 sq mm IEC01"], [640, 166.5, 711, 182, "NUT M8"], [690.5, 232.5, 811.5, 248.5, "GROUND LUG"], [648.5, 471, 729, 487, "BOLT M8"],
+    [370, 548, 545, 579, "DETAIL A"]],
+  G2B: [[268.5, 59, 453.5, 79.5, "1C-6 sq mm IEC01"], [53.5, 172, 226.5, 187, "COPPER C-CLAMP"], [810, 388, 1004.5, 408.5, "1C-16 sq mm IEC01"], [385, 553.5, 556, 585, "DETAIL B"]],
+  G2C: [[373, 62, 427, 73, "NUT M8"], [379.5, 122, 437, 134, "WASHER"], [422, 223, 524, 235, "MIDDLE CLAMP"], [437, 406, 541.5, 417, "RAIL EARTHING"],
+    [352.5, 568.5, 413, 580.5, "BOLT M8"], [151, 795, 280, 819, "DETAIL C"]],
+};
 /* บัสดิน (แท่งทองแดง + หัวน็อตเรียง) ในรูปต้นแบบ */
 function dsBus(D, L, x, y, w, n) {
   D.rc(L, x, y, w, 7);
