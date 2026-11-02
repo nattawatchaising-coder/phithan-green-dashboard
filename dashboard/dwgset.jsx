@@ -768,7 +768,7 @@ function dsStrDetSheet(st, job, media) {
   /* แถบล่าง: รูปแผง (ซ้าย) · ข้อมูลสตริง + คำอธิบายเส้น (ถัดไปทางขวา) — ผู้ใช้ย้ายลงมาจากมุมซ้ายบน
      ด้านบนทั้งแผ่นให้รูปที่ 1/2 อยู่กลาง */
   /* รูปแผง datasheet กว้างขึ้น (ผู้ใช้ "ขยายให้ใหญ่หน่อย") → ตาราง STRING DATA / LEGEND เลื่อนขวา ซ้อนกันบน-ล่าง */
-  const lx = A.x0 + 4, sx = A.x0 + 152, lw = 110, bandTop = A.y0 + 92;
+  const lx = A.x0 + 14, sx = A.x0 + 152, lw = 110, bandTop = A.y0 + 92;
   const pairs = [["PV MODULE", M ? M.panel.model + " " + M.panel.wp + " Wp" : "-"],
     ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"],
     ["DC CABLE", (M && M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm. 1.5kV DC"]];

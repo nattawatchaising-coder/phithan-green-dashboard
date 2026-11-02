@@ -3717,7 +3717,7 @@ async function p3PrepSet(st, job, photos, design) {
     add("STRDET");   // รูปการเดินสายสตริงต่อจากแผ่นต่อสาย DC (ผู้ใช้ 2026-11-02 "ย้ายไปอยู่หน้า 11" — เดิมต่อจากผังสตริง)
     add("GROUND"); add("GROUND2"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
-    list.push({ key: "MAT", label: "วัสดุหน้างาน", fn: (o) => p3EquipSheet(st, job, o) });
+    /* แผ่นวัสดุหน้างาน (p3EquipSheet) เอาออกจากชุด — ผู้ใช้ 2026-11-02 กากบาททั้งแผ่น · ฟังก์ชันยังเก็บไว้ */
   }
   const SET_EN = Object.assign({ PLAN: "OVERALL LAYOUT", STRING: "STRING LAYOUT", SLD: "SINGLE LINE DIAGRAM", PHOTO: "SITE PHOTO", DC: "DC WIRING", MAT: "MATERIAL LIST" },
     typeof DS_SET_EN !== "undefined" ? DS_SET_EN : {});

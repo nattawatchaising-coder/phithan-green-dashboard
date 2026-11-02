@@ -5866,11 +5866,6 @@ async function p3PrepSet(st, job, photos, design) {
         photos: ph
       }, o))
     });
-    list.push({
-      key: "MAT",
-      label: "วัสดุหน้างาน",
-      fn: o => p3EquipSheet(st, job, o)
-    });
   }
   const SET_EN = Object.assign({
     PLAN: "OVERALL LAYOUT",

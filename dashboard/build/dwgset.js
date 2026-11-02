@@ -1170,7 +1170,7 @@ function dsStrDetSheet(st, job, media) {
     cnt[s.n] = (cnt[s.n] || 0) + 1;
   });
   const n = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || b - a)[0] || 10;
-  const lx = A.x0 + 4,
+  const lx = A.x0 + 14,
     sx = A.x0 + 152,
     lw = 110,
     bandTop = A.y0 + 92;
