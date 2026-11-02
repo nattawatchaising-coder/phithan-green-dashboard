@@ -1204,11 +1204,19 @@ function dsStrDetSheet(st, job, media) {
     ly -= lrh;
   });
   const ps = (window.BOQ && window.BOQ.PANELS || []).find(p => p.model === (st.sys || {}).panelModel) || {};
-  pgModuleDetail(pen, lx + 6, A.y0 + 20, 56, {
+  S.doc.layer("DS-MOD", 7, "CONTINUOUS", 18);
+  S.doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
+  S.doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+  pgModuleDatasheet(pen, [lx, A.y0 + 6, sx - 6, bandTop - 2], {
     wMm: Math.round((+ps.width || 1.134) * 1000),
     hMm: Math.round((+ps.length || 2.382) * 1000),
     tMm: +ps.frame || 30,
-    caption: "แผง " + (M ? M.panel.wp : st.wp || "") + " วัตต์"
+    cells: +ps.cells || 144,
+    lay: {
+      line: "DS-MOD",
+      thin: "DS-MOD-T",
+      dim: "DS-MOD-DIM"
+    }
   });
   if (OP) {
     const per = OP.per >= 2 ? 2 : 1;

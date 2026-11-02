@@ -1966,17 +1966,24 @@ function p3Dxf(st, job, media) {
     M = null;
   }
   let botY = AR.y0 + 3;
+  const LG = p3LegendRows(st, trayW, job);
+  const lgHH = 6,
+    lgRH = Math.max(4.6, Math.min(7, ((V.wide ? P3_WIDE_B - 8 : 999) - lgHH) / Math.max(1, LG.length)));
+  const LW = V.wide ? 56 : Math.min(RW, 70),
+    LH = lgHH + lgRH * LG.length;
+  const lgSwap = V.wide && LG.length > 0 && LH <= P3_WIDE_B - 4;
+  const TX = lgSwap ? RX0 - 4 - LW : RX0;
   if (M) {
     const area = p3AreaRows(st, M, SS.length, media.design && media.design.paths),
       spec = p3PlanSpec(st, job, M, SS);
     const areaH = area.length * RH,
       specH = spec.length * RH;
-    pgGrid(pen, RX0, botY + areaH, RW, [1.6, 1, 1.25, 1, 1, 1, 1], area, {
+    pgGrid(pen, TX, botY + areaH, RW, [1.6, 1, 1.25, 1, 1, 1, 1], area, {
       rh: RH,
       th: PG_TS.cell,
       headRow: 0
     });
-    pgSpecBlock(pen, RX0, botY + areaH + specH, RW, spec[0][0] + "   :   " + spec[0][1], spec.slice(1), {
+    pgSpecBlock(pen, TX, botY + areaH + specH, RW, spec[0][0] + "   :   " + spec[0][1], spec.slice(1), {
       rh: RH,
       th: PG_TS.cell,
       kw: 0.3
@@ -1985,24 +1992,18 @@ function p3Dxf(st, job, media) {
   }
   const cab = p3CableRows(st);
   if (cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B)) {
-    pgGrid(pen, RX0, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
+    pgGrid(pen, TX, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
       rh: RH,
       th: 2.2,
       align: [0, 2, 0],
       headRow: 1
     });
   }
-  const LG = p3LegendRows(st, trayW, job);
   if (LG.length) {
-    const hh = 6,
-      avail = V.wide ? P3_WIDE_B - 8 : 999,
-      rh = Math.max(4.6, Math.min(7, (avail - hh) / LG.length));
-    const LW = V.wide ? 56 : Math.min(RW, 70),
-      LH = hh + rh * LG.length;
     const cabH = cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B) ? (cab.length + 2) * RH + 4 : 0;
-    const lx = V.wide ? RX0 - 4 - LW : RX0,
+    const lx = V.wide ? RX0 + RW - LW : RX0,
       ly = V.wide ? AR.y0 + 3 + LH : botY + cabH + LH;
-    if (!V.wide || LH <= P3_WIDE_B - 4) p3Legend(pen, lx, ly, LW, hh, rh, LG);
+    if (!V.wide || lgSwap) p3Legend(pen, lx, ly, LW, lgHH, lgRH, LG);
   }
   pen.text("PG-NOTE", AR.x0 + 4 + 60, AR.y0 + 4.4, 2.2, st.baseMap ? "SCALE TAKEN FROM SATELLITE IMAGERY" : "SCALE NOT TAKEN FROM MAP - VERIFY ON SITE");
   return doc.build();

@@ -1875,6 +1875,206 @@ function pgModuleDetail(pen, x, y, h, o) {
   }
   return bx + w - x;
 }
+function pgModuleDatasheet(pen, R, o) {
+  o = o || {};
+  const K = o.lay || {},
+    L = K.line || PG_TBL.line,
+    Tn = K.thin || PG_TBL.txt,
+    D = K.dim || PG_TBL.txt,
+    T = PG_TBL.txt;
+  const W = +o.wMm || 1134,
+    H = +o.hMm || 2382,
+    F = +o.tMm || 30;
+  const rowsH = Math.max(4, Math.round((+o.cells || 144) / 12));
+  const X0 = R[0],
+    Y0 = R[1],
+    X1 = R[2],
+    Y1 = R[3];
+  const ts = 1.6,
+    tl = 1.5;
+  pen.text(T, X0, Y1 - 2.8, 2.8, "DIMENSIONS OF PV MODULE(mm)", {
+    valign: 1
+  });
+  const yb = Y0 + 33,
+    yt = Y1 - 14,
+    hv = yt - yb,
+    s = hv / H,
+    wv = W * s;
+  const need = 12 + wv + 24 + wv + 8,
+    ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
+  const sx = ox + 1,
+    fx = ox + 12,
+    bx = fx + wv + 24;
+  const arrow = (x, y, dx, dy) => {
+    const a = 0.9,
+      b = 0.28;
+    pen.solid(D, [x, y], [x - dx * a - dy * b, y - dy * a + dx * b], [x - dx * a + dy * b, y - dy * a - dx * b]);
+  };
+  const dimH = (x0, x1, yObj, y, txt) => {
+    const sg = y > yObj ? 1 : -1;
+    [x0, x1].forEach(x => pen.line(D, x, yObj + sg * 0.6, x, y + sg * 0.8));
+    if (x1 - x0 < 3) {
+      pen.line(D, x0 - 2, y, x1 + 2, y);
+      arrow(x0, y, 1, 0);
+      arrow(x1, y, -1, 0);
+    } else {
+      pen.line(D, x0, y, x1, y);
+      arrow(x0, y, -1, 0);
+      arrow(x1, y, 1, 0);
+    }
+    pen.text(T, (x0 + x1) / 2, sg > 0 ? y + 0.6 : y - 0.6, ts, txt, {
+      align: 1,
+      valign: sg > 0 ? 1 : 3
+    });
+  };
+  const dimV = (y0, y1, xObj, x, txt) => {
+    const sg = x > xObj ? 1 : -1;
+    [y0, y1].forEach(y => pen.line(D, xObj + sg * 0.6, y, x + sg * 0.8, y));
+    pen.line(D, x, y0, x, y1);
+    arrow(x, y0, 0, -1);
+    arrow(x, y1, 0, 1);
+    pen.text(T, x - 0.6, (y0 + y1) / 2, ts, txt, {
+      align: 1,
+      valign: 1,
+      rot: 90
+    });
+  };
+  const tag = (px, py, lx, ly, l1, l2) => {
+    const w = Math.max(pgTextW(l1, tl), l2 ? pgTextW(l2, tl) : 0) + 0.6;
+    pen.dot(D, px, py, 0.18);
+    pen.line(D, px, py, lx, ly);
+    pen.line(D, lx, ly, lx + w, ly);
+    pen.text(T, lx + 0.3, ly + 0.5, tl, l1, {
+      valign: 1
+    });
+    if (l2) pen.text(T, lx + 0.3, ly - 0.5, tl, l2, {
+      valign: 3
+    });
+  };
+  const cap = (cx, y, txt) => pen.text(T, cx, y, 2.4, txt, {
+    align: 1,
+    valign: 1
+  });
+  const sw = Math.max(0.7, F * s);
+  pen.rect(L, sx, yb, sw, hv);
+  dimH(sx, sx + sw, yt, yt + 3, String(F));
+  pen.rect(L, fx, yb, wv, hv);
+  const fi = Math.max(0.35, 12 * s);
+  pen.rect(L, fx + fi, yb + fi, wv - 2 * fi, hv - 2 * fi);
+  {
+    const g = 0.07,
+      cw = (wv - 2 * fi - 0.4) / 6,
+      gm = Math.max(0.45, 18 * s);
+    const half = (hv - 2 * fi - 0.4 - gm) / 2,
+      ch = half / rowsH,
+      nb = 7;
+    for (let k = 0; k < 2; k++) {
+      const yh = yb + fi + 0.2 + k * (half + gm);
+      for (let r = 0; r < rowsH; r++) for (let c = 0; c < 6; c++) {
+        const x0 = fx + fi + 0.2 + c * cw + g,
+          y0 = yh + r * ch + g,
+          w = cw - 2 * g,
+          h = ch - 2 * g;
+        pen.rect(L, x0, y0, w, h);
+        for (let b = 1; b <= nb; b++) pen.line(Tn, x0 + w * b / (nb + 1), y0 + 0.05, x0 + w * b / (nb + 1), y0 + h - 0.05);
+      }
+    }
+    pen.line(L, fx + fi, yb + hv / 2, fx + wv - fi, yb + hv / 2);
+  }
+  dimH(fx, fx + wv, yt, yt + 3, String(W));
+  dimV(yb, yt, fx, fx - 4, String(H));
+  cap(fx + wv / 2, yb - 5.2, "Front View");
+  pen.rect(L, bx, yb, wv, hv);
+  const fl = Math.max(0.45, 21 * s),
+    ym = yb + hv / 2;
+  pen.rect(L, bx + fl, yb + fl, wv - 2 * fl, hv - 2 * fl);
+  dimH(bx + fl, bx + wv - fl, yt, yt + 3, String(W - 42));
+  dimH(bx, bx + wv, yt, yt + 6.6, String(W));
+  dimV(yb, yt, bx, bx - 7, String(H));
+  const nw = wv * 0.09,
+    nh = hv * 0.04,
+    nx = bx + wv * 0.3,
+    ny = yt - hv * 0.07 - nh;
+  pen.rect(L, nx, ny, nw, nh);
+  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
+  const jb = cx => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
+  [0.3, 0.5, 0.7].forEach(t => jb(bx + wv * t));
+  [[0.3, 0.22], [0.7, 0.78]].forEach(([a, b]) => {
+    pen.line(L, bx + wv * a, ym, bx + wv * b, ym);
+    const cx = bx + wv * b,
+      dir = b < 0.5 ? -1 : 1;
+    pen.solid(L, [cx, ym - 0.3], [cx + dir * wv * 0.05, ym - 0.3], [cx + dir * wv * 0.05, ym + 0.3], [cx, ym + 0.3]);
+    pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
+  });
+  const ya = yt - hv * 0.24,
+    xr = bx + wv;
+  pen.line(L, xr - 2.4, ya, xr - 1.2, ya);
+  pen.line(L, xr - 2.4, ya, xr - 2.4, ya + 1.2);
+  pen.line(L, xr + 1.2, ya, xr + 2.4, ya);
+  pen.line(L, xr + 2.4, ya, xr + 2.4, ya + 1.2);
+  pen.text(T, xr - 3.0, ya, ts, "A", {
+    align: 2,
+    valign: 1
+  });
+  pen.text(T, xr + 3.0, ya, ts, "A", {
+    valign: 1
+  });
+  const xb2 = xr - 2.6;
+  pen.line(L, xb2, yb + 1.2, xb2, yb + 2.4);
+  pen.line(L, xb2, yb + 2.4, xb2 - 1.2, yb + 2.4);
+  pen.line(L, xb2, yb - 1.2, xb2, yb - 2.4);
+  pen.line(L, xb2, yb - 2.4, xb2 - 1.2, yb - 2.4);
+  pen.text(T, xb2 + 0.6, yb + 2.6, ts, "B", {
+    valign: 1,
+    rot: 90
+  });
+  pen.text(T, xb2 + 0.6, yb - 3.4, ts, "B", {
+    align: 2,
+    valign: 1,
+    rot: 90
+  });
+  cap(bx + wv / 2, yb - 5.2, "Back View");
+  const sec = (cx, base, title) => {
+    const ss = 11 / F,
+      x0 = cx - base * ss / 2 - 2,
+      y0 = Y0 + 7;
+    const P = (x, y) => [x0 + x * ss, y0 + y * ss];
+    const hc = F - 9,
+      yl0 = hc + 1.4,
+      yl1 = yl0 + 3.4,
+      yp = yl1 + 0.6,
+      rr = (F - yp) / 2;
+    const pl = (pts, closed) => pen.pline(L, pts.map(q => P(q[0], q[1])), closed);
+    pl([[0, 0], [base, 0], [base, 1.6], [8, 1.6], [8, hc], [11, hc], [11, yl0], [1.6, yl0], [1.6, yp], [8.5, yp]]);
+    const c = P(8.5, yp + rr);
+    pen.arc(L, c[0], c[1], rr * ss, -90, 90);
+    pl([[8.5, F], [0, F], [0, 0]]);
+    pl([[1.6, 3.2], [6.4, 3.2], [6.4, hc - 1.6], [1.6, hc - 1.6]], true);
+    const xe = base + 6;
+    pl([[xe, yl1], [1.8, yl1], [1.8, yl0], [xe, yl0]]);
+    const m0 = P(1.8, yl0 + 1.1),
+      m1 = P(xe, yl0 + 1.1);
+    pen.line(Tn, m0[0], m0[1], m1[0], m1[1]);
+    pl([[xe, yl1 + 0.6], [xe + 0.8, yl1 - 1.0], [xe - 0.8, yl0 + 1.0], [xe, yl0 - 0.6]]);
+    pen.solid(L, P(6.5, yl1), P(10.2, yl1), P(10.2, yp + 0.4), P(8.5, yp));
+    const pS = P(10, yp + 0.2),
+      pLm = P(base + 2, yl1 - 0.8),
+      pF = P(8, hc * 0.35);
+    const lx = P(xe + 1.5, 0)[0];
+    tag(pS[0], pS[1], pS[0] + 1.4, P(0, F + 6)[1], "Silicon Sealant");
+    tag(pLm[0], pLm[1], lx, P(0, F + 1.4)[1], "Laminate");
+    tag(pF[0], pF[1], lx - 2, pF[1], "Frame");
+    dimV(y0, y0 + F * ss, x0, x0 - 2.4, String(F));
+    dimH(x0, x0 + base * ss, y0, y0 - 2.6, String(base));
+    cap(x0 + base * ss / 2, Y0 - 0.6, title);
+  };
+  sec(fx + wv / 2, 30, "A-A");
+  sec(bx + wv / 2, 25, "B-B");
+  return {
+    x0: ox,
+    x1: bx + wv + 8
+  };
+}
 function pgPhotoFrame(doc, pen, x, y, w, h, o) {
   o = o || {};
   const L = PG_TBL.line,
