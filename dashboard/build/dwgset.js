@@ -229,17 +229,20 @@ function dsPlan(st, job, media, key, o) {
     RW: P3_PLAN_COL
   };
 }
-function dsPlanHead(P, title) {
+function dsPlanHead(P, title, o) {
+  o = o || {};
   const pen = P.pen,
-    AR = P.AR;
+    AR = P.AR,
+    top = !!(o.top && P.V.wide);
+  P.titleTop = top;
   const tx = P.V.wide ? AR.x0 + 4 : P.RX0,
-    ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
+    ty = top ? AR.y1 - 12 : P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
   pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 30, 0, P.SC);
   pgCompass(pen, P.RX1 - 14, AR.y1 - P3_COMPASS_DY, 6.5, null, P.V.rot);
   P.titleW = pgTextW(title, PG_TS.title) + 8;
   const barM = P.SC / 1000 * 40,
     bx = AR.x0 + 4,
-    by = AR.y0 + 4;
+    by = top ? ty - 14 : AR.y0 + 4;
   pen.rect("PG-NORTH", bx, by, 40, 2.2);
   pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
   pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
@@ -266,11 +269,11 @@ function dsRight(P, rows, cols, notes, align, o) {
     ty = yTop;
   let mid = null;
   if (P.V.wide) {
-    const xL = AR.x0 + 4 + Math.max(P.titleW || 110, 50) + 8,
+    const xL = P.titleTop ? AR.x0 + 4 : AR.x0 + 4 + Math.max(P.titleW || 110, 50) + 8,
       xR = P.RX0 - 8;
     const hNeed = R.length * RH;
     if (o.noteMid && nh) {
-      const nw = xR - xL,
+      const nw = Math.min(xR - xL, P.titleTop ? 150 : 999),
         nh2 = dsNoteH(notes, nw);
       if (nw >= tw && hNeed + nh2 + 14 <= yTop - AR.y0) {
         mid = {
@@ -291,6 +294,8 @@ function dsRight(P, rows, cols, notes, align, o) {
   P.tbTop = ty;
   P.notes = notes;
   P.noteMid = !!mid;
+  P.tbW = tw;
+  P.noteW = mid ? mid.w : 0;
   const used = pgGrid(pen, tx, ty, tw, cw, R, {
     rh: RH,
     th: PG_TS.body,
@@ -750,7 +755,9 @@ function dsPanelSheet(st, job, media) {
     img: true
   });
   P.doc.layer("PG-GRP-BG", 255, "CONTINUOUS", 0);
-  dsPlanHead(P, "PV MODULE LAYOUT");
+  dsPlanHead(P, "PV MODULE LAYOUT", {
+    top: true
+  });
   const k = P.k,
     doc = P.doc,
     panels = P.foot.panels || [];
@@ -842,13 +849,14 @@ function dsPanelSheet(st, job, media) {
     const ps = (window.BOQ && window.BOQ.PANELS || []).find(p => p.model === (st.sys || {}).panelModel) || {};
     const nh = dsNoteH(P.notes || [], P.RW),
       AR = P.AR;
-    const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 4 : P.tbTop - P.tbUsed - 8,
-      yB = AR.y0 + 4 + (P.noteMid ? 0 : nh + 4);
+    const yT = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : P.tbTop - P.tbUsed - 8,
+      yB = AR.y0 + (P.noteMid ? 1 : 4 + nh + 4);
+    const fx0 = P.titleTop && P.noteMid ? P.tbX + Math.max(P.tbW || 0, P.noteW || 0) + 10 : P.RX0;
     if (yT - yB >= 30) {
       doc.layer("DS-MOD", 7, "CONTINUOUS", 18);
       doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
       doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
-      pgModuleDatasheet(P.pen, [P.RX0, yB, P.RX0 + P.RW, yT], {
+      pgModuleDatasheet(P.pen, [fx0, yB, P.RX0 + P.RW, yT], {
         noSec: true,
         model: (M0 ? M0.panel.model : ps.model || "") + " " + wp + " Wp",
         wMm: Math.round((+ps.width || 1.134) * 1000),
