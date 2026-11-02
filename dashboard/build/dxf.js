@@ -921,6 +921,7 @@ const PG_ACI_HEX = {
   112: "#22B36A",
   142: "#147A8C",
   255: "#ffffff",
+  254: "#d4d4d4",
   160: "#2563EB",
   190: "#7C3AED",
   10: "#DC2626",
@@ -2254,6 +2255,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.exd, PG_ACI.grey, "PG-DASHB", 25);
   doc.layer(PG_SLD.bnd, PG_ACI.grey, "PG-DASHDOT", 25);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
+  doc.layer("PG-SLD-HEAD", 254, "CONTINUOUS", 25);
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
 function pgWireY(pen, layer, x, yA, yB, brk) {
@@ -2857,16 +2859,21 @@ function pgSldPro(doc, sheet, M) {
     const txt = (l, x, y, h, t, o) => {
       if (!dry) pen.text(l, x, y, h, t, o);
     };
+    const fill = (x, y, w, h) => {
+      if (!dry) pen.solid("PG-SLD-HEAD", [x, y], [x + w, y], [x + w, y + h], [x, y + h]);
+    };
+    fill(RX0, cy - rh - 0.6, RW, rh + 0.6);
     rect(RX0, cy - rh - 0.6, RW, rh + 0.6);
-    txt(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, {
+    txt(T, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, {
       valign: 2
     });
     cy -= rh + 0.6;
     const lp = th + 0.7;
     rows.forEach(r => {
       if (r[0] === "#") {
+        fill(RX0, cy - rh, RW, rh);
         rect(RX0, cy - rh, RW, rh);
-        txt(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], {
+        txt(T, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], {
           valign: 2
         });
         cy -= rh;

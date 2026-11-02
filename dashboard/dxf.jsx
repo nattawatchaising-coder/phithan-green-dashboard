@@ -549,7 +549,7 @@ const PG_ACI_HEX = {
   1: "#e02020", 2: "#c8a800", 3: "#1f9d3a", 4: "#0f9aa8", 5: "#2255cc", 6: "#a83fb0",
   7: "#111111", 8: "#7a7a7a", 9: "#a8a8a8", 30: "#d97706", 140: "#2b7bbd", 200: "#8b5cf6", 40: "#e0b000", 42: "#9a8400", 130: "#1fa9e8",   // ทางเดินเหลือง · จุดอินเวอร์เตอร์ (LEGEND ผังติดตั้ง)
   /* สีตราบริษัทบนหัวแบบ (PG_LOGO_ACI) — ตัวอย่างบนจอใช้สีแบรนด์จริง */
-  154: "#0A4D68", 144: "#0E6478", 134: "#148080", 124: "#1B9B75", 112: "#22B36A", 142: "#147A8C", 255: "#ffffff",
+  154: "#0A4D68", 144: "#0E6478", 134: "#148080", 124: "#1B9B75", 112: "#22B36A", 142: "#147A8C", 255: "#ffffff", 254: "#d4d4d4",
   /* สีสตริงในผังสตริง (P3_STR_ACI) — ตัวอย่างบนจอใช้สีเดียวกับผังจัดสตริงในหน้าออกแบบระบบ (SU_SCOLOR) */
   160: "#2563EB", 190: "#7C3AED", 10: "#DC2626", 230: "#DB2777", 72: "#65A30D", 20: "#EA580C", 180: "#4F46E5", 250: "#0F172A",
 };
@@ -1544,6 +1544,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.exd, PG_ACI.grey, "PG-DASHB", 25);
   doc.layer(PG_SLD.bnd, PG_ACI.grey, "PG-DASHDOT", 25);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
+  doc.layer("PG-SLD-HEAD", 254, "CONTINUOUS", 25);   // พื้นเทาอ่อนหัวตาราง DATA SHEET (ตัวดำอ่านชัด)
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
 
@@ -1978,15 +1979,19 @@ function pgSldPro(doc, sheet, M) {
     let cy = ty;
     const rect = (x, y, w, h) => { if (!dry) pen.rect(L, x, y, w, h); };
     const txt = (l, x, y, h, t, o) => { if (!dry) pen.text(l, x, y, h, t, o); };
+    /* หัวตาราง/หัวกลุ่ม = พื้นเทา ตัวดำ (ผู้ใช้ 2026-11-02) */
+    const fill = (x, y, w, h) => { if (!dry) pen.solid("PG-SLD-HEAD", [x, y], [x + w, y], [x + w, y + h], [x, y + h]); };
+    fill(RX0, cy - rh - 0.6, RW, rh + 0.6);
     rect(RX0, cy - rh - 0.6, RW, rh + 0.6);
-    txt(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, { valign: 2 });
+    txt(T, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, { valign: 2 });
     cy -= rh + 0.6;
     /* ข้อความในตารางขนาดเดียวกันทุกช่อง — ยาวเกินช่องตัดบรรทัดแล้วแถวสูงขึ้น (ไม่ย่อตัว) */
     const lp = th + 0.7;
     rows.forEach((r) => {
       if (r[0] === "#") {
+        fill(RX0, cy - rh, RW, rh);
         rect(RX0, cy - rh, RW, rh);
-        txt(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], { valign: 2 });
+        txt(T, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], { valign: 2 });
         cy -= rh; return;
       }
       /* DATA SHEET: แถวไม่มีหน่วย (BRAND/MODEL) รวมช่องค่ากับช่องหน่วย ไม่มีเส้นคั่น — พิมพ์ยาวได้ (ผู้ใช้ 2026-10-31) */
