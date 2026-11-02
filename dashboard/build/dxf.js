@@ -1993,12 +1993,12 @@ function pgModuleDatasheet(pen, R, o) {
   dimH(bx + fl, bx + wv - fl, yt, yt + 3, String(W - 42));
   dimH(bx, bx + wv, yt, yt + 6.6, String(W));
   dimV(yb, yt, bx, bx - 7, String(H));
-  const nw = wv * 0.09,
-    nh = hv * 0.04,
-    nx = bx + wv * 0.3,
-    ny = yt - hv * 0.07 - nh;
+  const nw = wv * 0.15,
+    nh = Math.max(0.9, hv * 0.018),
+    nx = bx + wv * 0.42 - nw / 2,
+    ny = ym - 1.4 - nh;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
+  tag(nx + nw * 0.4, ny, bx + wv / 2 + 0.8, ym - 8.4, "Nameplate");
   const jb = cx => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach(t => jb(bx + wv * t));
   [[0.3, 0.22], [0.7, 0.78]].forEach(([a, b]) => {
@@ -2006,7 +2006,7 @@ function pgModuleDatasheet(pen, R, o) {
     const cx = bx + wv * b,
       dir = b < 0.5 ? -1 : 1;
     pen.solid(L, [cx, ym - 0.3], [cx + dir * wv * 0.05, ym - 0.3], [cx + dir * wv * 0.05, ym + 0.3], [cx, ym + 0.3]);
-    pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
+    if (dir > 0) pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
   });
   tag(bx + wv / 2, ym - 0.25, bx + wv / 2 + 0.8, ym - 4, "Junction Box");
   {

@@ -1353,9 +1353,10 @@ function pgModuleDatasheet(pen, R, o) {
   dimV(yb, yt, bx, bx - 7, String(H));
   /* รูยึด/รูกราวด์/รูระบายน้ำ + ระยะ 1400/400 ไม่วาด (ผู้ใช้กากบาทออก 2026-11-02) */
   /* ป้ายชื่อ (Nameplate) */
-  const nw = wv * 0.09, nh = hv * 0.04, nx = bx + wv * 0.3, ny = yt - hv * 0.07 - nh;
+  /* Nameplate ใต้แนวกล่องต่อสาย ป้ายชี้ลงใต้ป้าย Junction Box (ผู้ใช้วาดชี้ 2026-11-02) */
+  const nw = wv * 0.15, nh = Math.max(0.9, hv * 0.018), nx = bx + wv * 0.42 - nw / 2, ny = ym - 1.4 - nh;
   pen.rect(L, nx, ny, nw, nh);
-  tag(nx + nw, ny + nh * 0.3, nx + nw + 1.6, ny - 0.4, "Nameplate");
+  tag(nx + nw * 0.4, ny, bx + wv / 2 + 0.8, ym - 8.4, "Nameplate");
   /* กล่องต่อสาย 3 ตัวกลางแผง + สาย/หัวต่อซ้ายขวา */
   const jb = (cx) => pen.solid(L, [cx - wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym - 0.25], [cx + wv * 0.035, ym + 0.25], [cx - wv * 0.035, ym + 0.25]);
   [0.3, 0.5, 0.7].forEach((t) => jb(bx + wv * t));
@@ -1363,7 +1364,7 @@ function pgModuleDatasheet(pen, R, o) {
     pen.line(L, bx + wv * a, ym, bx + wv * b, ym);
     const cx = bx + wv * b, dir = b < 0.5 ? -1 : 1;
     pen.solid(L, [cx, ym - 0.3], [cx + dir * wv * 0.05, ym - 0.3], [cx + dir * wv * 0.05, ym + 0.3], [cx, ym + 0.3]);
-    pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);
+    if (dir > 0) pen.line(L, cx + dir * wv * 0.05, ym, cx + dir * wv * 0.075, ym);   // ขาเสียบเฉพาะหัวขวา — หัวซ้ายไม่มีปลายแหลม (ผู้ใช้กากบาท 2026-11-02)
   });
   /* ป้าย Junction Box (กล่องกลาง ชี้ลงขวา) · Connector (ป้ายเดียวเหนือแนวสาย เส้นชี้ลงหัวต่อซ้าย-ขวา) — ผู้ใช้วาดชี้ 2026-11-02 */
   tag(bx + wv / 2, ym - 0.25, bx + wv / 2 + 0.8, ym - 4, "Junction Box");
