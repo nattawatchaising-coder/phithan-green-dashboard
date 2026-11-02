@@ -842,7 +842,14 @@ const P3_EQUIP_SYM = {
     const g = Math.max(1, 4.5 * (k || 0) / sd), Q = Q0.map((q) => [cx + (q[0] - cx) * g, cy + (q[1] - cy) * g]);
     let inV = -1;
     try { const f = typeof p3sLadderFit === "function" ? p3sLadderFit(st.roofs, +o.x || 0, +o.z || 0) : null, a = (+o.rot || 0) * P3_DEG;
-      if (f) inV = (-f.n.x) * -Math.sin(a) + (-f.n.z) * Math.cos(a) > 0 ? 1 : -1; } catch (e) { inV = -1; }
+      if (f) inV = (-f.n.x) * -Math.sin(a) + (-f.n.z) * Math.cos(a) > 0 ? 1 : -1;
+      /* ปลายขาต้องชนขอบหลังคาพอดี (ผู้ใช้ "ต้องชนแค่ขอบหลังคา") — ขยายแล้วขาเลยเข้าไป: เลื่อนทั้งสัญลักษณ์ตามแนวขา ให้ปลายขา (u=0.88) อยู่บนขอบ */
+      const R = inV < 0 ? [Q[3], Q[0], Q[1], Q[2]] : [Q[0], Q[3], Q[2], Q[1]], ex = R[1][0] - R[0][0], ey = R[1][1] - R[0][1], eL = Math.hypot(ex, ey);
+      const sc = Math.hypot(Q0[3][0] - Q0[0][0], Q0[3][1] - Q0[0][1]) / (+o.d || 0);
+      if (f && eL > 1e-9 && isFinite(sc) && sc > 0) {
+        const dist = ((f.q.x - (+o.x || 0)) * -f.n.x + (f.q.z - (+o.z || 0)) * -f.n.z) * sc, sh = dist - 0.38 * eL;
+        Q.forEach((q) => { q[0] += ex / eL * sh; q[1] += ey / eL * sh; });
+      } } catch (e) { inV = -1; }
     p3LadderSym((a, b) => doc.line("PG-OBS-LADDER", a[0], a[1], b[0], b[1]), inV < 0 ? [Q[3], Q[0], Q[1], Q[2]] : [Q[0], Q[3], Q[2], Q[1]]);
   },
   xfmr: (doc, Q) => { doc.pline("PG-OBS-XFMR", Q, true);

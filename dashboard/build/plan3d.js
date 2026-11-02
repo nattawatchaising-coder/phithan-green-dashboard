@@ -1424,6 +1424,19 @@ const P3_EQUIP_SYM = {
       const f = typeof p3sLadderFit === "function" ? p3sLadderFit(st.roofs, +o.x || 0, +o.z || 0) : null,
         a = (+o.rot || 0) * P3_DEG;
       if (f) inV = -f.n.x * -Math.sin(a) + -f.n.z * Math.cos(a) > 0 ? 1 : -1;
+      const R = inV < 0 ? [Q[3], Q[0], Q[1], Q[2]] : [Q[0], Q[3], Q[2], Q[1]],
+        ex = R[1][0] - R[0][0],
+        ey = R[1][1] - R[0][1],
+        eL = Math.hypot(ex, ey);
+      const sc = Math.hypot(Q0[3][0] - Q0[0][0], Q0[3][1] - Q0[0][1]) / (+o.d || 0);
+      if (f && eL > 1e-9 && isFinite(sc) && sc > 0) {
+        const dist = ((f.q.x - (+o.x || 0)) * -f.n.x + (f.q.z - (+o.z || 0)) * -f.n.z) * sc,
+          sh = dist - 0.38 * eL;
+        Q.forEach(q => {
+          q[0] += ex / eL * sh;
+          q[1] += ey / eL * sh;
+        });
+      }
     } catch (e) {
       inV = -1;
     }
