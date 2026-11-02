@@ -293,7 +293,18 @@ function dsRight(P, rows, cols, notes, align, o) {
     }
   }
   const ST = !P.V.wide && !!o.stack;
-  if (ST) tx = P.RX1 - Math.max(tw, o.wHead || 0);
+  let sN = null;
+  if (ST) {
+    tx = P.RX1 - Math.max(tw, o.wHead || 0);
+    if (nh) {
+      const vw = 4.5 + Math.max(...notes.map(t => pgTextW(t, PG_TS.cell))) + 1;
+      sN = {
+        x: Math.max(P.RX0, Math.min(tx, P.RX1 - vw)),
+        h: dsNoteH(notes, 1e4)
+      };
+    }
+    ty = Math.min(yTop, AR.y0 + 1 + (o.below || 0) + 6 + (sN ? sN.h + 8 : 0) + R.length * RH);
+  }
   P.tbX = tx;
   P.tbTop = ty;
   P.notes = notes;
@@ -308,11 +319,9 @@ function dsRight(P, rows, cols, notes, align, o) {
   });
   P.tbUsed = used;
   if (mid) dsNoteBlock(pen, mid.x, AR.y0 + 4 + mid.h, mid.w, notes);else if (ST) {
-    const y = ty - used - 8,
-      nw = P.RX1 - tx,
-      h2 = nh ? dsNoteH(notes, nw) : 0;
-    if (nh) dsNoteBlock(pen, tx, y, nw, notes);
-    P.stackBot = y - h2;
+    const y = ty - used - 8;
+    if (sN) dsNoteBlock(pen, sN.x, y, 1e4, notes);
+    P.stackBot = sN ? y - sN.h : ty - used;
   } else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
@@ -893,6 +902,7 @@ function dsPanelSheet(st, job, media) {
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], ["ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง", "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp"], [0, 1, 1, 1], {
     noteMid: true,
     stack: true,
+    below: DS_MOD_H,
     wHead: pgTextW(totS, PG_TS.head)
   });
   {
@@ -922,7 +932,7 @@ function dsPanelSheet(st, job, media) {
       });
     }
   }
-  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, totS);
+  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.tbTop + 6, PG_TS.head, totS);
   return doc.build();
 }
 function dsObs(st, t) {
