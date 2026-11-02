@@ -1197,7 +1197,8 @@ function p3Dxf(st, job, media) {
   const LG = p3LegendRows(st, trayW, job);
   if (LG.length) {
     const hh = 6, avail = V.wide ? P3_WIDE_B - 8 : 999, rh = Math.max(4.6, Math.min(7, (avail - hh) / LG.length));
-    const LW = V.wide ? 74 : RW, LH = hh + rh * LG.length;
+    const LW = V.wide ? 56 : Math.min(RW, 70),   // ผู้ใช้ "ตารางมันยาวไป" (เดิม 74 / RW)
+      LH = hh + rh * LG.length;
     const cabH = cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B) ? (cab.length + 2) * RH + 4 : 0;
     const lx = V.wide ? RX0 - 4 - LW : RX0, ly = V.wide ? AR.y0 + 3 + LH : botY + cabH + LH;
     if (!V.wide || LH <= P3_WIDE_B - 4) p3Legend(pen, lx, ly, LW, hh, rh, LG);
