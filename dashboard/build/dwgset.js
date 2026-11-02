@@ -1347,7 +1347,7 @@ function dsPx(pen, A, w, yT) {
       };
       return q;
     },
-    art: (name, x0, y0, s, L, Lg) => {
+    art: (name, x0, y0, s, L, Lg, minH) => {
       const a = (window.DS_ART || {})[name];
       if (!a) return;
       const tx = DS_ART_TX[name] || [],
@@ -1371,10 +1371,13 @@ function dsPx(pen, A, w, yT) {
         if (pts.length === 2 && !n[2] && !n[3]) o.dot(g ? Lg : L, pts[0][0], pts[0][1], 0.7 / q / s);else o.pl(g ? Lg : L, pts);
       });
       tx.forEach(t => {
-        const h = Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1)),
-          c = t[5] === 1;
-        o.tx(x0 + (c ? (t[0] + t[2]) / 2 : t[0]) / s, y0 + t[3] / s, t[4], h, c ? {
+        const h = Math.max(minH || 0, Math.min((t[3] - t[1]) / s * k / 0.7, (t[2] - t[0]) / s * k / pgTextW(t[4], 1))),
+          c = t[5] === 1,
+          r = t[5] === 2;
+        o.tx(x0 + (c ? (t[0] + t[2]) / 2 : r ? t[2] : t[0]) / s, y0 + t[3] / s, t[4], h, c ? {
           align: 1
+        } : r ? {
+          align: 2
         } : null);
       });
     },
@@ -1397,7 +1400,7 @@ const DS_ART_TX = {
   G1D: [[253, 37, 677, 62, "PERFORRATE TRAY BONDING", 1], [58, 157, 391, 186, "6 sq mm ,IEC-01 ,GREEN"], [543, 157, 711, 178, "SPLICE PLATE"], [369.5, 490, 518, 517, "DETAIL D"]],
   TRAY: [[738, 426.5, 915.5, 442.5, "PERFORATED TRAY"], [539, 494, 726, 511, "1C-6 sq mm IEC01"], [45, 660, 743, 694, "GROUNDING FOR PERFORATED TRAY"]],
   G2A: [[325, 61.5, 520, 81, "1C-16 sq mm IEC01"], [640, 166.5, 711, 182, "NUT M8"], [690.5, 232.5, 811.5, 248.5, "GROUND LUG"], [648.5, 471, 729, 487, "BOLT M8"], [370, 548, 545, 579, "DETAIL A"]],
-  G2B: [[268.5, 59, 453.5, 79.5, "1C-6 sq mm IEC01"], [53.5, 172, 226.5, 187, "COPPER C-CLAMP"], [810, 388, 1004.5, 408.5, "1C-16 sq mm IEC01"], [385, 553.5, 556, 585, "DETAIL B"]],
+  G2B: [[268.5, 59, 453.5, 79.5, "1C-6 sq mm IEC01", 2], [53.5, 172, 226.5, 187, "COPPER C-CLAMP", 2], [810, 388, 1004.5, 408.5, "1C-16 sq mm IEC01"], [385, 553.5, 556, 585, "DETAIL B"]],
   G2C: [[373, 62, 427, 73, "NUT M8"], [379.5, 122, 437, 134, "WASHER"], [422, 223, 524, 235, "MIDDLE CLAMP"], [437, 406, 541.5, 417, "RAIL EARTHING"], [352.5, 568.5, 413, 580.5, "BOLT M8"], [151, 795, 280, 819, "DETAIL C"]]
 };
 function dsBus(D, L, x, y, w, n) {
@@ -1688,10 +1691,10 @@ function dsGroundDetSheet(st, job, media) {
   D.tx(1100, 802, "IN PERFORATED TRAY", H);
   D.cap(560, 885, "SECTION A");
   const CL = DL("cell");
-  D.art("TRAY", 640, 75, 2.925, E, CL);
-  D.art("G2A", 1005, 140, 3.13, E, CL);
-  D.art("G2B", 980, 445, 3.216, E, CL);
-  D.art("G2C", 630, 400, 2.29, E, CL);
+  D.art("TRAY", 640, 75, 2.925, E, CL, H);
+  D.art("G2A", 1005, 140, 3.13, E, CL, H);
+  D.art("G2B", 980, 445, 3.216, E, CL, H);
+  D.art("G2C", 630, 400, 2.29, E, CL, H);
   return S.doc.build();
 }
 function dsSheetDefs(st, job, design, imgs) {
