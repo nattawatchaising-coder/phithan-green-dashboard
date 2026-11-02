@@ -929,6 +929,8 @@ function p3LegendRows(st, trayW, job) {
 const cx0 = (x, sw) => x + sw / 2;
 function p3Legend(pen, x, yTop, w, hh, rh, rows) {
   const L = PG_TBL.line, T = PG_TBL.txt, sw = Math.min(26, w * 0.32), yb = yTop - hh - rh * rows.length;
+  /* หัวพื้นเทาแบบหัวตาราง PROJECT (ผู้ใช้) */
+  pen.solid(PG_TBL.head, [x, yTop - hh], [x + w, yTop - hh], [x + w, yTop], [x, yTop]);
   pen.rect(L, x, yb, w, hh + rh * rows.length);
   pen.line(L, x, yTop - hh, x + w, yTop - hh);
   pen.text(T, x + w / 2, yTop - hh / 2, 3.0, "LEGEND", { align: 1, valign: 2 });

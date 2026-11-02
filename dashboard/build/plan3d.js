@@ -1594,6 +1594,7 @@ function p3Legend(pen, x, yTop, w, hh, rh, rows) {
     T = PG_TBL.txt,
     sw = Math.min(26, w * 0.32),
     yb = yTop - hh - rh * rows.length;
+  pen.solid(PG_TBL.head, [x, yTop - hh], [x + w, yTop - hh], [x + w, yTop], [x, yTop]);
   pen.rect(L, x, yb, w, hh + rh * rows.length);
   pen.line(L, x, yTop - hh, x + w, yTop - hh);
   pen.text(T, x + w / 2, yTop - hh / 2, 3.0, "LEGEND", {
