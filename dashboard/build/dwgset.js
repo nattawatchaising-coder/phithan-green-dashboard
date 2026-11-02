@@ -2007,7 +2007,7 @@ function dsGroundSheet(st, job, media) {
     });
   }
   D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
-  D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
+  D.tx(63.5, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
 }
 function dsGroundDetSheet(st, job, media) {

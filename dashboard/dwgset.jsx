@@ -1306,7 +1306,8 @@ function dsGroundSheet(st, job, media) {
   if (tray) D.art("G1D", 971.15 + dD, 549.87, 3.459, E, CL, H, { f: [9.5, 80.5, 880, 532.5], x: 976.5 + dD, w: FW, h: FH });
   }
   D.tx(15, 785, "*REMARK:  ADD GROUND ROD", HB);
-  D.tx(84, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
+  /* บรรทัดสองเริ่มตรง "ADD" ของบรรทัดแรก (ผู้ใช้ชี้ 2026-11-02) */
+  D.tx(63.5, 800, "IF EXISTING GROUND SYSTEM MORE THAN 5 OHM.", HB);
   return S.doc.build();
 }
 
