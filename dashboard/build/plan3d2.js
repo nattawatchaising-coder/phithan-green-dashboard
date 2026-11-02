@@ -4433,6 +4433,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       onRoof = P3S_ON_ROOF[T] != null,
       ox = +o.x || 0,
       oz = +o.z || 0;
+    if (P3S_EQUIP[T]) return;
     const by = onRoof ? topY(ox, oz) || 0 : 0;
     if (T === "sky") {
       const P = p3sObsPath(o),
@@ -4925,29 +4926,6 @@ function p3sBuild3D(THREE, grp, st, tex) {
       put(new THREE.CylinderGeometry(pipeR * 1.08, pipeR * 1.08, 0.06, 22), metal, pipeH * 0.55);
       put(new THREE.CylinderGeometry(r * 0.96, r * 0.96, capH * 0.28, 26), metal, pipeH + capH * 0.14);
       put(new THREE.CylinderGeometry(r * 0.32, r * 0.96, capH * 0.72, 26), metal, pipeH + capH * 0.28 + capH * 0.36);
-    } else if (P3S_EQUIP[T]) {
-      const W = Math.max(+o.w || 1, 0.3),
-        D = Math.max(+o.d || 1, 0.3),
-        M = (c, r) => new THREE.MeshStandardMaterial({
-          color: c,
-          roughness: r == null ? 0.6 : r
-        });
-      put(new THREE.BoxGeometry(W + 0.2, 0.12, D + 0.2), M(0xb8b2a6, 0.95), 0.06);
-      if (T === "invst") {
-        const n = Math.max(1, Math.min(4, Math.floor(W / 0.8))),
-          bw = Math.min(0.62, W / n - 0.12);
-        for (let i = 0; i < n; i++) {
-          const m = put(new THREE.BoxGeometry(bw, Math.min(0.85, h * 0.45), 0.26), M(0xe5e7eb, 0.4), 0.12 + h * 0.3);
-          m.position.x = -W / 2 + (i + 0.5) * W / n;
-        }
-        put(new THREE.BoxGeometry(W, 0.06, D), M(0x94a3b8, 0.5), h);
-      } else {
-        put(new THREE.BoxGeometry(W, h - 0.12, D), M(T === "xfmr" ? 0x5b7a62 : 0xcbd5e1, 0.5), 0.12 + (h - 0.12) / 2);
-        if (T === "xfmr") [-1, 0, 1].forEach(k => {
-          const m = put(new THREE.CylinderGeometry(0.05, 0.07, 0.35, 10), M(0x8b5a2b, 0.4), h + 0.17);
-          m.position.x = k * W * 0.25;
-        });
-      }
     } else if (o.kind === "tree") {
       let sd = 0;
       String(o.id || "t").split("").forEach(ch => {
@@ -5682,9 +5660,9 @@ const P3S_OBS_TIP = {
   rail: "ราวกันตกเสาทุก ≤ 2 ม. · คลิกทีละจุดต่อเป็นเส้น (ดูดเข้าขอบหลังคา)",
   walkway: "ทางเดินตะแกรง FRP สีเหลือง · คลิกทีละจุดต่อเป็นเส้น · แผงเว้น 5 ซม.",
   ladder: "บันไดลิงมีกรง ขึ้นจากพื้นถึงหลังคา · แตะที่ขอบหลังคา ติดผนังด้านนอกเอง",
-  mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบแดงขีดทแยง",
-  invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบกากบาท",
-  xfmr: "หม้อแปลงไฟฟ้า · แตะ = วาง · ลาก = ขนาดจริง",
+  mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
+  invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
+  xfmr: "หม้อแปลงไฟฟ้า — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
   bldg: "อาคารข้างเคียงที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ขนาดจริง",
   tree: "ต้นไม้ที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ทรงพุ่มจริง"
 };
@@ -5826,16 +5804,12 @@ function p3sObsPreview(T) {
       tg = [0, 3, 0];
       dist = 19;
     }
-    if (P3S_EQUIP[T]) {
-      tg = [0, 1.1, 0];
-      dist = 7;
-    }
     if (T === "tree") {
       tg = [0, 2.6, 0];
       dist = 11;
     }
     p3sBuild3D(THREE, grp, {
-      roofs: T === "bldg" || T === "tree" || P3S_EQUIP[T] ? [] : [roof],
+      roofs: T === "bldg" || T === "tree" ? [] : [roof],
       obstacles: [o],
       buildH: 0,
       groundW: 40
@@ -12996,13 +12970,7 @@ function Plan3DStudio({
         padding: "0 6px",
         fontSize: 12.5
       },
-      onMouseEnter: e => {
-        if (!coarse) setObsHov({
-          k,
-          r: e.currentTarget.getBoundingClientRect()
-        });
-      },
-      onMouseLeave: () => setObsHov(null),
+      title: (P3S_OBS_TIP[k] || "").split(" · ")[0],
       onClick: () => {
         setObsType(k);
         setTool("obs");

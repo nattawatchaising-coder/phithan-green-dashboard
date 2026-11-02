@@ -603,6 +603,7 @@ function ivGeom(st) {
        ราวกันตก = ราวบน 1.1 ม. + ราวกลาง (ไม่ใช่กำแพงทึบ) · ลูกหมุน/ปล่องควัน ตั้งบนผิวหลังคา */
     const T = o.p3sType;
     if (T === "walkway" || T === "pipe" || T === "tray" || T === "sky" || T === "ladder") return;
+    if (T === "mdb" || T === "invst" || T === "xfmr") return;   // อุปกรณ์ไฟฟ้า: แค่ระบุตำแหน่งลงแบบ ไม่นับเงา (ไม่มีใน 3D)
     if (T === "rail") {
       const P = Array.isArray(o.pts) && o.pts.length >= 2 ? o.pts.map((q) => ({ x: x + scNum(q.x), z: z + scNum(q.z) }))
         : (() => { const L = scNum(o.w, 1) / 2, a = scNum(o.rot) * Math.PI / 180; return [{ x: x - Math.cos(a) * L, z: z - Math.sin(a) * L }, { x: x + Math.cos(a) * L, z: z + Math.sin(a) * L }]; })();

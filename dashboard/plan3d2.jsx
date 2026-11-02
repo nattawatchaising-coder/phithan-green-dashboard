@@ -2048,6 +2048,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   }
   (st.obstacles || []).forEach((o) => {
     const T = p3sObsType(o), onRoof = P3S_ON_ROOF[T] != null, ox = +o.x || 0, oz = +o.z || 0;
+    if (P3S_EQUIP[T]) return;   // อุปกรณ์ไฟฟ้า: ระบุตำแหน่งไปแสดงในแบบเท่านั้น ไม่วาดใน 3D (ผู้ใช้)
     const by = onRoof ? (topY(ox, oz) || 0) : 0;
     if (T === "sky") {
       // หลังคาช่องแสง = แผ่นโปร่งแสงแนบผิวหลังคาตามแนวเส้น กว้าง 1 ม. (ของเก่าไม่มี pts = เส้นตรงตาม w/rot) · ลอนเป็นเส้นตามยาว
@@ -2237,18 +2238,6 @@ function p3sBuild3D(THREE, grp, st, tex) {
       put(new THREE.CylinderGeometry(pipeR * 1.08, pipeR * 1.08, 0.06, 22), metal, pipeH * 0.55);
       put(new THREE.CylinderGeometry(r * 0.96, r * 0.96, capH * 0.28, 26), metal, pipeH + capH * 0.14);
       put(new THREE.CylinderGeometry(r * 0.32, r * 0.96, capH * 0.72, 26), metal, pipeH + capH * 0.28 + capH * 0.36);
-    } else if (P3S_EQUIP[T]) {
-      // อุปกรณ์บนพื้น: ฐานปูน + ตัวตู้ (MDB เทา · อินเวอร์เตอร์ตู้เทาอ่อนบนแท่น · หม้อแปลงเขียวมีบุชชิ่ง 3 ตัว)
-      const W = Math.max(+o.w || 1, 0.3), D = Math.max(+o.d || 1, 0.3), M = (c, r) => new THREE.MeshStandardMaterial({ color: c, roughness: r == null ? 0.6 : r });
-      put(new THREE.BoxGeometry(W + 0.2, 0.12, D + 0.2), M(0xb8b2a6, 0.95), 0.06);
-      if (T === "invst") {
-        const n = Math.max(1, Math.min(4, Math.floor(W / 0.8))), bw = Math.min(0.62, W / n - 0.12);
-        for (let i = 0; i < n; i++) { const m = put(new THREE.BoxGeometry(bw, Math.min(0.85, h * 0.45), 0.26), M(0xe5e7eb, 0.4), 0.12 + h * 0.3); m.position.x = -W / 2 + (i + 0.5) * W / n; }
-        put(new THREE.BoxGeometry(W, 0.06, D), M(0x94a3b8, 0.5), h);
-      } else {
-        put(new THREE.BoxGeometry(W, h - 0.12, D), M(T === "xfmr" ? 0x5b7a62 : 0xcbd5e1, 0.5), 0.12 + (h - 0.12) / 2);
-        if (T === "xfmr") [-1, 0, 1].forEach((k) => { const m = put(new THREE.CylinderGeometry(0.05, 0.07, 0.35, 10), M(0x8b5a2b, 0.4), h + 0.17); m.position.x = k * W * 0.25; });
-      }
     } else if (o.kind === "tree") {
       // ต้นไม้: ลำต้นเรียว + กิ่งแยก 3 กิ่ง + พุ่มใบเป็นก้อนหลายก้อน (สุ่มคงที่ตาม id ทุกครั้งที่วาดได้รูปเดิม)
       let sd = 0; String(o.id || "t").split("").forEach((ch) => { sd = (sd * 31 + ch.charCodeAt(0)) >>> 0; });
@@ -2564,9 +2553,9 @@ const P3S_OBS_TIP = {
   rail: "ราวกันตกเสาทุก ≤ 2 ม. · คลิกทีละจุดต่อเป็นเส้น (ดูดเข้าขอบหลังคา)",
   walkway: "ทางเดินตะแกรง FRP สีเหลือง · คลิกทีละจุดต่อเป็นเส้น · แผงเว้น 5 ซม.",
   ladder: "บันไดลิงมีกรง ขึ้นจากพื้นถึงหลังคา · แตะที่ขอบหลังคา ติดผนังด้านนอกเอง",
-  mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบแดงขีดทแยง",
-  invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) · แตะ = วาง · ลาก = ขนาดจริง · ผังติดตั้งวาดกรอบกากบาท",
-  xfmr: "หม้อแปลงไฟฟ้า · แตะ = วาง · ลาก = ขนาดจริง",
+  mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
+  invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
+  xfmr: "หม้อแปลงไฟฟ้า — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
   bldg: "อาคารข้างเคียงที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ขนาดจริง",
   tree: "ต้นไม้ที่ทอดเงาลงแผง · แตะ = ขนาดมาตรฐาน · ลาก = ทรงพุ่มจริง",
 };
@@ -2593,9 +2582,8 @@ function p3sObsPreview(T) {
     if (T === "tray") { o.pts = [{ x: -0.9, z: 0.3 }, { x: 0.5, z: 0.3 }, { x: 0.5, z: -0.9 }]; tg = [0, 2.45, 0]; dist = 2; }
     if (T === "ladder") { o.x = 3.42; o.z = 0; o.rot = 90; tg = [2.6, 2.2, 0]; dist = 8.4; }
     if (T === "bldg") { tg = [0, 3, 0]; dist = 19; }
-    if (P3S_EQUIP[T]) { tg = [0, 1.1, 0]; dist = 7; }
     if (T === "tree") { tg = [0, 2.6, 0]; dist = 11; }
-    p3sBuild3D(THREE, grp, { roofs: T === "bldg" || T === "tree" || P3S_EQUIP[T] ? [] : [roof], obstacles: [o], buildH: 0, groundW: 40 }, () => null);
+    p3sBuild3D(THREE, grp, { roofs: T === "bldg" || T === "tree" ? [] : [roof], obstacles: [o], buildH: 0, groundW: 40 }, () => null);
     const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 400), dv = new THREE.Vector3(1, 0.72, 1.25).normalize().multiplyScalar(dist);
     cam.position.set(tg[0] + dv.x, tg[1] + dv.y, tg[2] + dv.z); cam.lookAt(tg[0], tg[1], tg[2]);
     _p3sPrevR.render(scene, cam);
@@ -5353,7 +5341,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           {/* อุปกรณ์ไฟฟ้า: ระบุตำแหน่งตู้ MDB เดิม/จุดอินเวอร์เตอร์/หม้อแปลง ลงผังติดตั้ง (ผู้ใช้ 2026-11-02 "ให้มาอยู่หน้านี้") */}
           <div style={{ flex: "1 1 100%", fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 6 }}>อุปกรณ์ไฟฟ้า · ระบุตำแหน่งลงผังติดตั้ง</div>
           {P3S_OBS.filter((q) => P3S_EQUIP[q[0]]).map(([k, lb]) => <button key={k} className={"p3s-btn" + (obsType === k && tool === "obs" ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }}
-            onMouseEnter={(e) => { if (!coarse) setObsHov({ k, r: e.currentTarget.getBoundingClientRect() }); }} onMouseLeave={() => setObsHov(null)}
+            title={(P3S_OBS_TIP[k] || "").split(" · ")[0]}
             onClick={() => { setObsType(k); setTool("obs"); setSel(null); setObsPts(null); setObsMsg(null); }}>{lb}</button>)}
           {obsPts && <div className="p3s-row" style={{ flex: "1 1 100%", gap: 6 }}>
             <button className="p3s-btn pri" style={{ flex: 2 }} disabled={obsPts.length < 2} onClick={finishObsLine}><P3Icon name="check" />จบเส้น ({obsPts.length} จุด)</button>

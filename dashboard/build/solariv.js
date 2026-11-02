@@ -828,6 +828,7 @@ function ivGeom(st) {
       h = Math.max(0.2, scNum(o.h, 1));
     const T = o.p3sType;
     if (T === "walkway" || T === "pipe" || T === "tray" || T === "sky" || T === "ladder") return;
+    if (T === "mdb" || T === "invst" || T === "xfmr") return;
     if (T === "rail") {
       const P = Array.isArray(o.pts) && o.pts.length >= 2 ? o.pts.map(q => ({
         x: x + scNum(q.x),
