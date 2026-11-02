@@ -908,9 +908,16 @@ function DvDwgModal({
     el.scrollLeft = A.fx * el.scrollWidth - A.px;
     el.scrollTop = A.fy * el.scrollHeight - A.py;
   }, [z]);
+  const tabsRef = React.useRef(null);
   React.useEffect(() => {
     setZ(1);
     if (boxRef.current) boxRef.current.scrollTo(0, 0);
+    const t = tabsRef.current && tabsRef.current.children[i];
+    if (t) t.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: "smooth"
+    });
   }, [i]);
   React.useEffect(() => {
     const el = boxRef.current;
@@ -1078,10 +1085,32 @@ function DvDwgModal({
   }))), sheets.length > 1 && React.createElement("div", {
     style: {
       display: "flex",
+      alignItems: "center",
       gap: 6,
-      overflowX: "auto",
-      padding: "8px 14px",
+      padding: "8px 10px",
       background: "var(--bg)"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    title: "\u0E41\u0E1C\u0E48\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+    disabled: i <= 0,
+    onClick: () => setI(x => Math.max(0, x - 1)),
+    style: Object.assign({}, zBtn, {
+      flexShrink: 0,
+      opacity: i <= 0 ? .4 : 1,
+      cursor: i <= 0 ? "default" : "pointer"
+    })
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 16
+  })), React.createElement("div", {
+    ref: tabsRef,
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      gap: 6,
+      overflowX: "auto"
     }
   }, sheets.map((s, k) => React.createElement("button", {
     key: k,
@@ -1107,7 +1136,20 @@ function DvDwgModal({
       marginRight: 5,
       opacity: .7
     }
-  }, k + 1), s.label))), React.createElement("div", {
+  }, k + 1), s.label))), React.createElement("button", {
+    type: "button",
+    title: "\u0E41\u0E1C\u0E48\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    disabled: i >= sheets.length - 1,
+    onClick: () => setI(x => Math.min(sheets.length - 1, x + 1)),
+    style: Object.assign({}, zBtn, {
+      flexShrink: 0,
+      opacity: i >= sheets.length - 1 ? .4 : 1,
+      cursor: i >= sheets.length - 1 ? "default" : "pointer"
+    })
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16
+  }))), React.createElement("div", {
     ref: boxRef,
     onPointerDown: onDown,
     onPointerMove: onMove,

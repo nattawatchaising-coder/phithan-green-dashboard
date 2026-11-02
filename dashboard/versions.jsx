@@ -524,7 +524,13 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
     if (!el || !A) return;
     el.scrollLeft = A.fx * el.scrollWidth - A.px; el.scrollTop = A.fy * el.scrollHeight - A.py;
   }, [z]);
-  React.useEffect(() => { setZ(1); if (boxRef.current) boxRef.current.scrollTo(0, 0); }, [i]);
+  const tabsRef = React.useRef(null);
+  React.useEffect(() => {
+    setZ(1); if (boxRef.current) boxRef.current.scrollTo(0, 0);
+    /* แท็บของแผ่นปัจจุบันเลื่อนเข้ามาในแถบเสมอ (กดลูกศร/คีย์บอร์ดไปแผ่นที่อยู่นอกจอ) */
+    const t = tabsRef.current && tabsRef.current.children[i];
+    if (t) t.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  }, [i]);
   React.useEffect(() => {
     const el = boxRef.current; if (!el) return;
     const w = (e) => {   // Ctrl+ล้อ / บีบทัชแพด = ซูม · ล้อเฉย ๆ = เลื่อนตามปกติ
@@ -579,7 +585,11 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         {sheets.length > 1 && (
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "8px 14px", background: "var(--bg)" }}>
+          /* ปุ่มลูกศรซ้าย/ขวาสองข้างแถบแท็บ — ไปแผ่นก่อน/ถัดไป (ผู้ใช้วงชี้ 2026-11-02) */
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "var(--bg)" }}>
+          <button type="button" title="แผ่นก่อนหน้า" disabled={i <= 0} onClick={() => setI((x) => Math.max(0, x - 1))}
+            style={Object.assign({}, zBtn, { flexShrink: 0, opacity: i <= 0 ? .4 : 1, cursor: i <= 0 ? "default" : "pointer" })}><Icon name="chevronLeft" size={16} /></button>
+          <div ref={tabsRef} style={{ flex: 1, minWidth: 0, display: "flex", gap: 6, overflowX: "auto" }}>
             {sheets.map((s, k) => (
               <button key={k} type="button" onClick={() => setI(k)}
                 style={{ flexShrink: 0, border: "none", borderRadius: "var(--r-chip)", padding: "6px 11px", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
@@ -587,6 +597,9 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
                 <span style={{ fontFamily: "var(--mono)", marginRight: 5, opacity: .7 }}>{k + 1}</span>{s.label}
               </button>
             ))}
+          </div>
+          <button type="button" title="แผ่นถัดไป" disabled={i >= sheets.length - 1} onClick={() => setI((x) => Math.min(sheets.length - 1, x + 1))}
+            style={Object.assign({}, zBtn, { flexShrink: 0, opacity: i >= sheets.length - 1 ? .4 : 1, cursor: i >= sheets.length - 1 ? "default" : "pointer" })}><Icon name="chevronRight" size={16} /></button>
           </div>
         )}
         <div ref={boxRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={onDbl}
