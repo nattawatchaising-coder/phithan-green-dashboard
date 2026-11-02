@@ -1906,7 +1906,7 @@ function pgModuleDatasheet(pen, R, o) {
     wv = W * s;
   const gB = NS ? 13 : 24;
   const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0),
-    ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
+    ox = NS ? Math.max(X0, X1 - need - 8) : X0 + Math.max(0, (X1 - X0 - need) / 2);
   const sx = ox + 1,
     fx = ox + 12,
     bx = fx + wv + gB;

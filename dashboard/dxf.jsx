@@ -1288,7 +1288,7 @@ function pgModuleDatasheet(pen, R, o) {
   /* ขนาดรูปหน้า/หลังตามพื้นที่ */
   const yb = Y0 + (NS ? (o.model ? 12 : 7) : SR ? 9 : 33), yt = Y1 - (NS ? 8.6 : 14), hv = yt - yb, s = hv / H, wv = W * s;
   const gB = NS ? 13 : 24;   // ช่องระหว่างรูปหน้า-หลัง · ผังวางแผงชิดกว่า (ผู้ใช้ "ขยับชิดกันหน่อย")
-  const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0), ox = X0 + Math.max(0, (X1 - X0 - need) / 2);
+  const need = 12 + wv + gB + wv + 8 + (SR ? 40 : 0), ox = NS ? Math.max(X0, X1 - need - 8) : X0 + Math.max(0, (X1 - X0 - need) / 2);   // ผังวางแผง: ชิดขวา (ผู้ใช้ลากชี้ 2026-11-02) · เผื่อป้าย Junction Box ทางขวา
   const sx = ox + 1, fx = ox + 12, bx = fx + wv + gB;
   /* หัวลูกศร: ปลาย (x, y) ชี้ทิศ (dx, dy) */
   const arrow = (x, y, dx, dy) => {
