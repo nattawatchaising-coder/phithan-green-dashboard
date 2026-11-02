@@ -912,7 +912,7 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 4, 40], ["PG-OBS-PIPE", 140, 25, "PG-DASH"], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13], ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-OBS-TAPR", 140, 13, "PG-DASH"], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-OBS-TRAY", 30, 60], ["PG-OBS-WALKWAY", 40, 25], ["PG-OBS-WALKWAY-H", 40, 9], ["PG-OBS-PIPE", 140, 25], ["PG-OBS-RAIL", 1, 18], ["PG-OBS-SKY", 8, 13], ["PG-OBS-MDB", 1, 35], ["PG-OBS-INVST", 42, 35], ["PG-OBS-XFMR", 3, 35], ["PG-OBS-LADDER", 1, 35], ["PG-OBS-TAP", 1, 25], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
 const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
@@ -1413,7 +1413,17 @@ const P3_EQUIP_SYM = {
     doc.line("PG-OBS-INVST", Q[0][0], Q[0][1], Q[2][0], Q[2][1]);
     doc.line("PG-OBS-INVST", Q[1][0], Q[1][1], Q[3][0], Q[3][1]);
   },
-  ladder: (doc, Q) => p3LadderSym((a, b) => doc.line("PG-OBS-LADDER", a[0], a[1], b[0], b[1]), Q),
+  ladder: (doc, Q, o, st) => {
+    let inV = -1;
+    try {
+      const f = typeof p3sLadderFit === "function" ? p3sLadderFit(st.roofs, +o.x || 0, +o.z || 0) : null,
+        a = (+o.rot || 0) * P3_DEG;
+      if (f) inV = -f.n.x * -Math.sin(a) + -f.n.z * Math.cos(a) > 0 ? 1 : -1;
+    } catch (e) {
+      inV = -1;
+    }
+    p3LadderSym((a, b) => doc.line("PG-OBS-LADDER", a[0], a[1], b[0], b[1]), inV < 0 ? [Q[3], Q[0], Q[1], Q[2]] : [Q[0], Q[3], Q[2], Q[1]]);
+  },
   xfmr: (doc, Q) => {
     doc.pline("PG-OBS-XFMR", Q, true);
     const cx = (Q[0][0] + Q[2][0]) / 2,
@@ -1432,13 +1442,33 @@ function p3LadderSym(line, Q) {
     arc.push(P(0.5 + 0.42 * Math.cos(t), 0.5 + 0.45 * Math.sin(t)));
   }
   for (let i = 1; i < arc.length; i++) line(arc[i - 1], arc[i]);
-  [[0.62, 0.12, 0.5, 0.12], [0.5, 0.12, 0.5, 0.88], [0.5, 0.88, 0.62, 0.88]].forEach(q => line(P(q[0], q[1]), P(q[2], q[3])));
+  [[0.5, 0.05, 0.8, 0.05], [0.8, 0.05, 0.8, 0.95], [0.8, 0.95, 0.5, 0.95]].forEach(q => line(P(q[0], q[1]), P(q[2], q[3])));
 }
-const P3_TAP_R = 15;
 function p3TapSym(doc, x, y, r) {
   doc.circle("PG-OBS-TAP", x, y, r);
   doc.line("PG-OBS-TAP", x - r * 0.7, y - r * 0.7, x + r * 0.7, y + r * 0.7);
   doc.line("PG-OBS-TAP", x - r * 0.7, y + r * 0.7, x + r * 0.7, y - r * 0.7);
+}
+function p3WalkBand(line, A, B, hw, sp) {
+  const dx = B[0] - A[0],
+    dy = B[1] - A[1],
+    L = Math.hypot(dx, dy);
+  if (L < 1e-6) return;
+  const ux = dx / L,
+    uy = dy / L,
+    P = (u, v) => [A[0] + ux * u - uy * v, A[1] + uy * u + ux * v];
+  [[0, -hw, L, -hw], [L, -hw, L, hw], [L, hw, 0, hw], [0, hw, 0, -hw]].forEach(q => line("PG-OBS-WALKWAY", P(q[0], q[1]), P(q[2], q[3])));
+  [1, -1].forEach(sg => {
+    for (let t = -hw; t <= L + hw + 1e-9; t += sp) {
+      let v0 = -hw,
+        v1 = hw;
+      const va = (0 - t) * sg,
+        vb = (L - t) * sg;
+      v0 = Math.max(v0, Math.min(va, vb));
+      v1 = Math.min(v1, Math.max(va, vb));
+      if (v1 - v0 > 1e-6) line("PG-OBS-WALKWAY-H", P(t + sg * v0, v0), P(t + sg * v1, v1));
+    }
+  });
 }
 const P3_TRAY_ACI = [30, 10, 3, 6, 200];
 function p3TrayWidths(st) {
@@ -1449,7 +1479,7 @@ function p3TrayLayer(ws, o) {
   const mm = Math.round((+o.d || 0.1) * 1000);
   return ws.indexOf(mm) > 0 ? "PG-OBS-TRAY-" + mm : "PG-OBS-TRAY";
 }
-function p3LegendRows(st, trayW) {
+function p3LegendRows(st, trayW, job) {
   const ob = t => (st.obstacles || []).filter(o => o && o.p3sType === t),
     rows = [];
   rows.push([{
@@ -1486,10 +1516,17 @@ function p3LegendRows(st, trayW) {
     }, kind === "perf" ? "PERFORATED TRAY" : "CABLE TRAY", nm || mm + " mm."]);
   });
   const wk = ob("walkway");
-  if (wk.length) rows.push([{
-    k: "line",
-    lay: "PG-OBS-WALKWAY"
-  }, "SERVICE WALKWAY", wk.map(o => Math.round((+o.d || 0.3) * 1000)).filter((v, i, a) => a.indexOf(v) === i).join(" / ") + " mm. WIDTH"]);
+  if (wk.length) {
+    let sl = 2.44;
+    try {
+      sl = window.BOQ && window.BOQ.walkLenOf ? +window.BOQ.walkLenOf(job && job.boq) || 2.44 : 2.44;
+    } catch (e) {
+      sl = 2.44;
+    }
+    rows.push([{
+      k: "walk"
+    }, "SERVICE WALKWAY", wk.map(o => Math.round((+o.d || 0.3) * 1000)).filter((v, i, a) => a.indexOf(v) === i).map(w => w + "x" + Math.round(sl * 1000)).join(" / ") + " mm."]);
+  }
   const pp = ob("pipe");
   if (pp.length) {
     const PPR = typeof DS_PPR !== "undefined" ? DS_PPR : {};
@@ -1503,7 +1540,7 @@ function p3LegendRows(st, trayW) {
     k: "box",
     lay: "PG-OBS-TAP",
     mark: "tap"
-  }, "WATER TAP (" + nTap + " PCS.)", "R" + P3_TAP_R + " m. CLEANING RADIUS"]);
+  }, "WATER TAP (" + nTap + " PCS.)"]);
   if (ob("ladder").length) rows.push([{
     k: "box",
     lay: "PG-OBS-LADDER",
@@ -1542,11 +1579,11 @@ function p3Legend(pen, x, yTop, w, hh, rh, rows) {
       bh = Math.min(rh - 2, 4.4),
       bx = x + (sw - bw) / 2,
       by = cy - bh / 2;
-    if (S.k === "line") pen.line(S.lay, x + 4, cy, x + sw - 4, cy);else if (S.mark === "tap") p3TapSym(pen, cx0(x, sw), cy, Math.min(2, rh * 0.32));else if (S.mark === "ladder") {
+    if (S.k === "line") pen.line(S.lay, x + 4, cy, x + sw - 4, cy);else if (S.k === "walk") p3WalkBand((Ly, a, b) => pen.line(Ly, a[0], a[1], b[0], b[1]), [x + 4, cy], [x + sw - 4, cy], Math.min(2, rh * 0.3), 0.9);else if (S.mark === "tap") p3TapSym(pen, cx0(x, sw), cy, Math.min(2, rh * 0.32));else if (S.mark === "ladder") {
       const a = bh * 1.1;
       p3LadderSym((p, q) => pen.line(S.lay, p[0], p[1], q[0], q[1]), [[cx0(x, sw) - a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy - a / 2], [cx0(x, sw) + a / 2, cy + a / 2], [cx0(x, sw) - a / 2, cy + a / 2]]);
     } else {
-      pen.rect(S.lay, bx, by, bw, bh);
+      if (S.k === "panel") pen.rect(S.lay, bx + bw * 0.18, by - bh * 0.03, bw * 0.64, bh * 1.06);else pen.rect(S.lay, bx, by, bw, bh);
       if (S.mark === "mdb" || S.mark === "invst") pen.line(S.lay, bx, by, bx + bw, by + bh);
       if (S.mark === "invst") pen.line(S.lay, bx, by + bh, bx + bw, by);
       if (S.mark === "xfmr") [-0.22, 0.22].forEach(t => pen.circle(S.lay, bx + bw / 2 + t * bw, cy, bh * 0.36));
@@ -1661,7 +1698,7 @@ function p3Dxf(st, job, media) {
         c3 = Math.cos(a3),
         s3 = Math.sin(a3);
       const Q = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * c3 - v * s3, -(z + u * s3 + v * c3)]);
-      P3_EQUIP_SYM[o.p3sType](doc, Q);
+      P3_EQUIP_SYM[o.p3sType](doc, Q, o, st);
       return;
     }
     if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
@@ -1673,17 +1710,11 @@ function p3Dxf(st, job, media) {
           uz = Math.sin(a1);
         P = [[x - ux * L, -(z - uz * L)], [x + ux * L, -(z + uz * L)]];
       }
-      doc.pline(o.p3sType === "tray" ? p3TrayLayer(trayW, o) : "PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
-      if (o.p3sType === "pipe") (o.taps || []).forEach(t => {
-        const tx = x + (+t.x || 0),
-          ty = -(z + (+t.z || 0));
-        p3TapSym(doc, tx, ty, 1.3 * k);
-        doc.circle("PG-OBS-TAPR", tx, ty, P3_TAP_R);
-        doc.line("PG-OBS-TAPR", tx, ty, tx + P3_TAP_R * 0.7071, ty + P3_TAP_R * 0.7071);
-        doc.text("PG-OBS-TAPR", tx + P3_TAP_R * 0.36, ty + P3_TAP_R * 0.36 + TH * 0.4, TH, "R" + P3_TAP_R, {
-          align: 1
-        });
-      });
+      if (o.p3sType === "walkway") {
+        const hw = Math.max(0.05, (+o.d || 0.3) / 2);
+        for (let i = 1; i < P.length; i++) p3WalkBand((L, a, b) => doc.line(L, a[0], a[1], b[0], b[1]), P[i - 1], P[i], hw, Math.max(hw * 0.6, 0.7 * k));
+      } else doc.pline(o.p3sType === "tray" ? p3TrayLayer(trayW, o) : "PG-OBS-" + String(o.p3sType).toUpperCase(), P, false);
+      if (o.p3sType === "pipe") (o.taps || []).forEach(t => p3TapSym(doc, x + (+t.x || 0), -(z + (+t.z || 0)), 1.3 * k));
       return;
     }
     const a2 = (+o.rot || 0) * P3_DEG,
@@ -1804,7 +1835,7 @@ function p3Dxf(st, job, media) {
       headRow: 1
     });
   }
-  const LG = p3LegendRows(st, trayW);
+  const LG = p3LegendRows(st, trayW, job);
   if (LG.length) {
     const hh = 6,
       avail = V.wide ? P3_WIDE_B - 8 : 999,
