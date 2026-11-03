@@ -4646,7 +4646,11 @@ function pgCuDraw(pen, M) {
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA);
   pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6);
   pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
-  pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), {
+  pen.text(T, xMn, yA + 3.4, TS.tag, M.phase === 3 ? "400/230V, 3P 4W, 50Hz" : "230V, 1P 2W, 50Hz", {
+    align: 1,
+    valign: 1
+  });
+  pen.text(LB, xMn, yA + 3.4 + TS.tag + 1.2, TS.head, "TO " + (P.auth || "GRID"), {
     align: 1,
     valign: 1
   });
