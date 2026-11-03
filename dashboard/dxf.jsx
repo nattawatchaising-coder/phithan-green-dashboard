@@ -2207,7 +2207,7 @@ function pgSldPro(doc, sheet, M) {
     const rowsY = [], mids = [];
     const trunkX = X.iv1 - (ivIn ? 22 : 16.5);   // แกนรวม MPPT → สัญลักษณ์อินเวอร์เตอร์ (ขอบซ้ายสัญลักษณ์ = iv1 − 13.5)
     let nStrB = 0, first = true;
-    const strY = [];   // แถวที่มีสตริงจริง (แกน RSS คล้องสาย)
+    const strY = [], strK = [];   // แถวที่มีสตริงจริง (แกน RSS คล้องสาย) · strK = จำนวนสตริงต่อแถว
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
       const ys = [], emp = [];
@@ -2219,7 +2219,7 @@ function pgSldPro(doc, sheet, M) {
           y -= EH;
           return;
         }
-        strY.push(y);
+        strY.push(y); strK.push(row.k || 1);
         /* สตริง: แผงแรก ─ ─ แผงสุดท้าย */
         /* ช่องแผงจากขวา: 1 · 2 · 3 · (• • •) · n — เลขอยู่ในตัวแผงฝั่งซ้ายของสามเหลี่ยม */
         /* มีตัวคุมแผง: ช่องเป็นตัวคุม (OPT-1 · OPT-2 · … · OPT-n) ต่ออนุกรมบนเส้นสตริง แผงอยู่เหนือกล่องต่อเข้าขั้วบน (ผู้ใช้วาดให้ดู 2026-11-01)
@@ -2382,19 +2382,31 @@ function pgSldPro(doc, sheet, M) {
        Sungrow SR20D-M ใช้กับอินเวอร์เตอร์ Sungrow ที่ส่งสัญญาณเอง → ไม่มีกล่องตัวส่ง/แกนคล้องสาย/ปุ่มฉุกเฉินแยก (ผู้ใช้ "ไม่มี อินเวอร์เตอร์ส่งเอง") */
     if (M.opt && M.opt.rsd && !/\bSR\d+D\b/i.test(M.opt.model) && strY.length) {
       /* แกนคล้องสายวงเดียวรอบสายสตริงทุกเส้น ก่อนเข้าตู้ DC (ตำแหน่งขีดคู่ ไม่วาดขีดคู่แล้ว · ตารางสรุปถอยซ้ายพ้นสาย C1 · ผู้ใช้วาดชี้ 2026-11-01 "ปกติจะคล้องก่อนเข้าตู้ DC") */
-      const xC = X.sl + 0.4, eRx = 1.0, yLt = strY[0] + 2.2, yLb = strY[strY.length - 1] - 2.2;
-      const eCy = (yLt + yLb) / 2, eRy = (yLt - yLb) / 2;
-      for (let k = 0; k < 48; k++) { const t0 = Math.PI * k / 24, t1 = Math.PI * (k + 1) / 24; pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1)); }
+      /* SUNGO SD (ดาต้าชีต · ผู้ใช้ 2026-11-03): วงแม่เหล็กวงละ ≤ 5 สตริง ตัวส่งละ 2 วง (≤ 10 สตริง) — แบ่งวงตามจำนวนสตริงจริง (row.k) วงต่อกันด้วยสายสัญญาณ
+         ตัวส่งต่อเครื่อง = ceil(สตริง ÷ 10) เลขเรียงต่อกันทั้งงาน (sdOf) · รุ่นอื่นไม่รู้ข้อจำกัด = วงเดียว ตัวส่งเดียว */
+      const SP = window.BOQ && window.BOQ.rssSpec ? window.BOQ.rssSpec({ rss: M.opt.rss }, M.opt.model) : null;
+      const xC = X.sl + 0.4, eRx = 1.0, yLb = strY[strY.length - 1] - 2.2;
+      const rings = [];
+      strK.forEach((k, i) => { const r = rings[rings.length - 1]; if (r && (!SP || r.n + k <= SP.strPerRing)) { r.b = i; r.n += k; } else rings.push({ a: i, b: i, n: k }); });
+      rings.forEach((r, ri) => {
+        const ya = strY[r.a] + 2.2, yb = strY[r.b] - 2.2, cy = (ya + yb) / 2, ry = (ya - yb) / 2;
+        for (let k = 0; k < 48; k++) { const t0 = Math.PI * k / 24, t1 = Math.PI * (k + 1) / 24; pen.line(S, xC + eRx * Math.cos(t0), cy + ry * Math.sin(t0), xC + eRx * Math.cos(t1), cy + ry * Math.sin(t1)); }
+        if (ri) pen.line(PG_SLD.ctsig, xC, strY[rings[ri - 1].b] - 2.2, xC, ya);   // ต่อวงก่อนหน้า
+      });
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
          C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
       /* ตัวส่งมีเลขตามเครื่องเสมอ SD-1 SD-2 … ป้าย TO บอกชัดว่าไปตัวไหน (ผู้ใช้สั่ง 2026-11-01) — Sungrow ใช้ SUNGO SD-n ตามแบบงานจริง */
       const sg = /SUNGO/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" : "SD-") + n;
-      const nxt = invNos[invNos.indexOf(b.no) + 1];
+      /* เลขตัวส่งของเครื่อง: [แรก, สุดท้าย] เรียงต่อกันทั้งงาน (เครื่องละ ceil(สตริง ÷ 10) ตัว) */
+      const nSD = (no) => (SP ? Math.max(1, Math.ceil(byInv[no].reduce((t, r) => t + r.ins.length, 0) / SP.maxStr)) : 1);
+      const sdOf = (no) => { let a = 1; for (const k of invNos) { if (k === no) return [a, a + nSD(k) - 1]; a += nSD(k); } return [a, a]; };
+      const [sdA, sdB] = sdOf(b.no), nxtN = invNos[invNos.indexOf(b.no) + 1];
+      const nxt = sdB > sdA ? sdA + 1 : nxtN != null ? sdOf(nxtN)[0] : null;
       const base = dBot - 26, bx0 = X.dc0, bx1 = X.dc1, W = bx1 - bx0;   // นอกตู้ DC ใต้ขอบล่าง (ผู้ใช้ 2026-11-01)
       const tB = base + 17, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;
       pen.rect(S, bx0, tB, W, tT - tB);
       pen.line(S, bx0, tD, bx1, tD);
-      const t1 = "TRANSMITTER", t2 = txN(b.no);
+      const t1 = "TRANSMITTER" + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""), t2 = txN(sdA) + (sdB > sdA ? " ~ " + sdB : "");
       pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, { align: 1, valign: 1 });
       pen.text(T, bx0 + W / 2, bm - 0.25, fitH(t2, TS.tag, W - 1), t2, { align: 1, valign: 3 });
       const c1 = bx0 + W * 0.4, c2 = bx0 + W * 0.7, ch = TS.tag;
@@ -2415,14 +2427,14 @@ function pgSldPro(doc, sheet, M) {
          ในกล่อง = สัญลักษณ์ปุ่มกด (ขาซ้าย · หน้าสัมผัสเอียง · ขาขวา · ก้านขึ้นหัวเห็ด) · สายเดียวกันแตกกิ่งลูกศร TO ตัวส่งเครื่องอื่น */
       /* สายปุ่มฉุกเฉินออกข้างขวาตัวส่ง (ซ้ายมีสาย C1 จากแกนผ่าน ไม่ให้ตัดกัน) ลงแล้วเลี้ยวเข้าข้างขวากล่องปุ่ม */
       /* ปุ่มฉุกเฉินมีตัวเดียวที่ตัวส่งเครื่องแรก แตกกิ่งไปเครื่องอื่น — เครื่องอื่นไม่วาดปุ่มซ้ำ (ผู้ใช้ขีดฆ่า 2026-11-01) */
-      if (b.no === invNos[0]) {
+      if (sdA === 1) {
       const ex = bx1 + 1.5, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex - 2 - bw, yEo = (tB + tD) / 2;
       pen.line(S, bx1, yEo, ex, yEo);
       pen.line(S, ex, yEo, ex, yBt);
       pen.line(S, ex, yBt, bL + bw, yBt);
       /* ตัวส่งเครื่องอื่นทั้งหมดรวมเป็นกิ่งเดียวบรรทัดเดียว (หลายเครื่องไม่ซ้อนขึ้นไปทับป้าย C2 · ผู้ใช้ถาม 2026-11-01)
          เลขเรียงติดกันเกิน 2 ตัวเขียนเป็นช่วง SD-2 ~ SD-5 · ไม่ติดกันคั่นด้วย , */
-      const oth = invNos.filter((k) => k !== b.no);
+      const oth = []; invNos.forEach((k) => { const [a, z] = sdOf(k); for (let j = a; j <= z; j++) if (j !== sdA) oth.push(j); });   // ตัวส่งอื่นทั้งงาน
       if (oth.length) {
         const runs = [];
         oth.forEach((k) => { const r = runs[runs.length - 1]; if (r && k === r[1] + 1) r[1] = k; else runs.push([k, k]); });

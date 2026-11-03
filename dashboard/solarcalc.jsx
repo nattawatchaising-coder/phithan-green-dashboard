@@ -1629,7 +1629,8 @@ function scOptPlan(opt, panel, totalPanels, invModel) {
     vOff: scNum(opt.vOff, 0), vOffPerUnit: scNum(opt.vOff, 0),
     /* ค่าจากตารางจับคู่มาก่อนเสมอ ค่าที่ตั้งไว้กลาง ๆ ในตัวอุปกรณ์เป็นตัวสำรอง */
     minPerStr: pair ? scNum(pair.min, 0) : scNum(opt.minPerStr, 0),
-    maxPerStr: pair ? scNum(pair.max, 0) : scNum(opt.maxPerStr, 0),
+    /* ไม่มีในคลัง: ใช้ขีดจำกัดของตัวส่ง (SUNGO SD สตริงละ ≤ 30 แผง → ตัวคุม ≤ 30 ÷ แผงต่อตัว) */
+    maxPerStr: pair ? scNum(pair.max, 0) : scNum(opt.maxPerStr, 0) || (() => { const sp = window.BOQ && window.BOQ.rssSpec ? window.BOQ.rssSpec(opt) : null; return sp ? Math.floor(sp.maxSeries / per) : 0; })(),
     maxWPerStr: pair ? scNum(pair.maxW, 0) : 0,
     pairInv: pair ? pair.inv : "", paired: !!pair,
     wp: wp,

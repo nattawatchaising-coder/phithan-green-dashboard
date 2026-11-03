@@ -3149,7 +3149,8 @@ function pgSldPro(doc, sheet, M) {
     const trunkX = X.iv1 - (ivIn ? 22 : 16.5);
     let nStrB = 0,
       first = true;
-    const strY = [];
+    const strY = [],
+      strK = [];
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
       const ys = [],
@@ -3163,6 +3164,7 @@ function pgSldPro(doc, sheet, M) {
           return;
         }
         strY.push(y);
+        strK.push(row.k || 1);
         const OP = M.opt,
           nP0 = row.last || 1,
           nP = OP ? Math.ceil(nP0 / OP.per) : nP0;
@@ -3366,20 +3368,50 @@ function pgSldPro(doc, sheet, M) {
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     if (M.opt && M.opt.rsd && !/\bSR\d+D\b/i.test(M.opt.model) && strY.length) {
+      const SP = window.BOQ && window.BOQ.rssSpec ? window.BOQ.rssSpec({
+        rss: M.opt.rss
+      }, M.opt.model) : null;
       const xC = X.sl + 0.4,
         eRx = 1.0,
-        yLt = strY[0] + 2.2,
         yLb = strY[strY.length - 1] - 2.2;
-      const eCy = (yLt + yLb) / 2,
-        eRy = (yLt - yLb) / 2;
-      for (let k = 0; k < 48; k++) {
-        const t0 = Math.PI * k / 24,
-          t1 = Math.PI * (k + 1) / 24;
-        pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1));
-      }
+      const rings = [];
+      strK.forEach((k, i) => {
+        const r = rings[rings.length - 1];
+        if (r && (!SP || r.n + k <= SP.strPerRing)) {
+          r.b = i;
+          r.n += k;
+        } else rings.push({
+          a: i,
+          b: i,
+          n: k
+        });
+      });
+      rings.forEach((r, ri) => {
+        const ya = strY[r.a] + 2.2,
+          yb = strY[r.b] - 2.2,
+          cy = (ya + yb) / 2,
+          ry = (ya - yb) / 2;
+        for (let k = 0; k < 48; k++) {
+          const t0 = Math.PI * k / 24,
+            t1 = Math.PI * (k + 1) / 24;
+          pen.line(S, xC + eRx * Math.cos(t0), cy + ry * Math.sin(t0), xC + eRx * Math.cos(t1), cy + ry * Math.sin(t1));
+        }
+        if (ri) pen.line(PG_SLD.ctsig, xC, strY[rings[ri - 1].b] - 2.2, xC, ya);
+      });
       const sg = /SUNGO/i.test(M.opt.model),
         txN = n => (sg ? "SUNGO SD-" : "SD-") + n;
-      const nxt = invNos[invNos.indexOf(b.no) + 1];
+      const nSD = no => SP ? Math.max(1, Math.ceil(byInv[no].reduce((t, r) => t + r.ins.length, 0) / SP.maxStr)) : 1;
+      const sdOf = no => {
+        let a = 1;
+        for (const k of invNos) {
+          if (k === no) return [a, a + nSD(k) - 1];
+          a += nSD(k);
+        }
+        return [a, a];
+      };
+      const [sdA, sdB] = sdOf(b.no),
+        nxtN = invNos[invNos.indexOf(b.no) + 1];
+      const nxt = sdB > sdA ? sdA + 1 : nxtN != null ? sdOf(nxtN)[0] : null;
       const base = dBot - 26,
         bx0 = X.dc0,
         bx1 = X.dc1,
@@ -3390,8 +3422,8 @@ function pgSldPro(doc, sheet, M) {
         bm = (tD + tT) / 2;
       pen.rect(S, bx0, tB, W, tT - tB);
       pen.line(S, bx0, tD, bx1, tD);
-      const t1 = "TRANSMITTER",
-        t2 = txN(b.no);
+      const t1 = "TRANSMITTER" + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""),
+        t2 = txN(sdA) + (sdB > sdA ? " ~ " + sdB : "");
       pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, {
         align: 1,
         valign: 1
@@ -3425,7 +3457,7 @@ function pgSldPro(doc, sheet, M) {
           valign: 2
         });
       }
-      if (b.no === invNos[0]) {
+      if (sdA === 1) {
         const ex = bx1 + 1.5,
           yBt = base + 3.6,
           bw = Math.min(8, W * 0.5),
@@ -3435,7 +3467,11 @@ function pgSldPro(doc, sheet, M) {
         pen.line(S, bx1, yEo, ex, yEo);
         pen.line(S, ex, yEo, ex, yBt);
         pen.line(S, ex, yBt, bL + bw, yBt);
-        const oth = invNos.filter(k => k !== b.no);
+        const oth = [];
+        invNos.forEach(k => {
+          const [a, z] = sdOf(k);
+          for (let j = a; j <= z; j++) if (j !== sdA) oth.push(j);
+        });
         if (oth.length) {
           const runs = [];
           oth.forEach(k => {
