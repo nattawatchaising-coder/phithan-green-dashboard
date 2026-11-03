@@ -10649,6 +10649,11 @@ function BOQEditor({
     style: {
       minWidth: 0
     }
+  }, React.createElement(BoqItemHover, {
+    code: it.code,
+    name: (it.name || "").trim(),
+    group: g.group,
+    stock: stock
   }, React.createElement("span", {
     style: {
       display: "block",
@@ -10656,7 +10661,7 @@ function BOQEditor({
       color: "var(--text-1)",
       lineHeight: 1.35
     }
-  }, (it.name || "").trim()), it.renamed && React.createElement("span", {
+  }, (it.name || "").trim())), it.renamed && React.createElement("span", {
     style: {
       display: "block",
       fontSize: 10,
@@ -12196,6 +12201,181 @@ function MatVariantModal({
     size: 15,
     color: "#fff"
   }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))));
+}
+const BQ_IMG = {};
+function bqStockImg(id) {
+  if (!(id in BQ_IMG)) BQ_IMG[id] = window.FBDB ? window.FBDB.ref("stockImg/" + id).once("value").then(sn => sn.val() || "").catch(() => "") : Promise.resolve("");
+  return BQ_IMG[id];
+}
+function BoqItemHover({
+  code,
+  name,
+  group,
+  stock,
+  children
+}) {
+  const [pos, setPos] = React.useState(null);
+  const [src, setSrc] = React.useState(null);
+  const tm = React.useRef(0);
+  React.useEffect(() => () => clearTimeout(tm.current), []);
+  const canHover = !window.matchMedia || window.matchMedia("(hover: hover)").matches;
+  const items = stock && stock.items || [];
+  const mk = window.BOQ && window.BOQ.matKey || (x => String(x || "").trim().toLowerCase());
+  const it = code && items.find(x => x && x.sku === code && !x.trashFrom) || (name ? items.find(x => x && !x.trashFrom && mk(x.name) === mk(name)) : null);
+  const enter = e => {
+    if (!canHover || !name) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    clearTimeout(tm.current);
+    tm.current = setTimeout(() => {
+      setPos({
+        x: r.left,
+        top: r.top,
+        bottom: r.bottom
+      });
+      const pre = it && stock && stock.imgs && stock.imgs[it.id];
+      if (pre) setSrc(pre);else if (it) {
+        setSrc(undefined);
+        bqStockImg(it.id).then(v => setSrc(v));
+      } else setSrc("");
+    }, 250);
+  };
+  const leave = () => {
+    clearTimeout(tm.current);
+    setPos(null);
+  };
+  let card = null;
+  if (pos) {
+    const B = window.BOQ || {},
+      md = String(it && it.model || "").toLowerCase(),
+      nm = String(name).toLowerCase();
+    const hit = m => {
+      m = String(m || "").toLowerCase();
+      return !!m && (m === nm || nm.indexOf(m) >= 0 || md && m.indexOf(md) >= 0);
+    };
+    const pan = (B.PANELS || []).find(p => hit(p.model)),
+      inv = (B.INVERTERS || []).find(p => hit(p.model)),
+      bat = (B.BATTERIES || []).find(p => hit(p.name));
+    const spec = [];
+    if (pan) spec.push([pan.wp ? pan.wp + " W" : "", pan.length && pan.width ? Math.round(pan.length * 1000) + " × " + Math.round(pan.width * 1000) + " มม." : ""]);else if (inv) spec.push([inv.kw ? inv.kw + " kW" : "", inv.phase ? inv.phase + " เฟส" : "", inv.type === "hybrid" ? "Hybrid" : inv.type ? "On-grid" : "", inv.batV ? "แบต " + String(inv.batV).toUpperCase() : ""]);else if (bat) spec.push([bat.kwh ? bat.kwh + " kWh" : "", bat.v ? String(bat.v).toUpperCase() : ""]);
+    if (it) spec.push([it.elecType, it.poles, it.amp ? it.amp + " A" : "", it.watt ? it.watt + " W" : ""]);
+    const specTx = spec.map(r => r.filter(Boolean).join(" · ")).filter(Boolean);
+    const W = 280,
+      H = 330,
+      left = Math.max(8, Math.min(pos.x, window.innerWidth - W - 8));
+    const below = pos.bottom + 6 + H < window.innerHeight;
+    card = ReactDOM.createPortal(React.createElement("div", {
+      style: {
+        position: "fixed",
+        left,
+        top: below ? pos.bottom + 6 : undefined,
+        bottom: below ? undefined : window.innerHeight - pos.top + 6,
+        width: W,
+        zIndex: 9999,
+        pointerEvents: "none",
+        background: "var(--surface)",
+        borderRadius: 14,
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden"
+      }
+    }, React.createElement("div", {
+      style: {
+        height: 160,
+        background: "var(--surface2)",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, src ? React.createElement("img", {
+      src: src,
+      alt: "",
+      style: {
+        maxWidth: "100%",
+        maxHeight: 160,
+        objectFit: "contain",
+        display: "block"
+      }
+    }) : React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, src === undefined ? "กำลังโหลดรูป…" : "ไม่มีรูป")), React.createElement("div", {
+      style: {
+        padding: "10px 12px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 5
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        lineHeight: 1.35
+      }
+    }, name), it && (it.brand || it.model) && React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, [it.brand, it.model].filter(Boolean).join(" · ")), specTx.map((t, i) => React.createElement("div", {
+      key: i,
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, t)), it ? React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginTop: 2,
+        padding: "6px 8px",
+        borderRadius: 8,
+        background: "var(--surface2)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontFamily: "var(--mono)",
+        fontSize: 10.5,
+        color: "var(--text-3)"
+      }
+    }, it.sku, it.qty ? " · คงเหลือ " + it.qty + " " + (it.unit || "") : ""), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: +it.price > 0 ? "var(--text-1)" : "var(--text-3)",
+        whiteSpace: "nowrap"
+      }
+    }, +it.price > 0 ? "฿" + (+it.price).toLocaleString() : "–", it.unit ? React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 500,
+        color: "var(--text-3)"
+      }
+    }, "/", it.unit) : null)) : React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--tint-amber-tx)"
+      }
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07", group ? " · หมวด " + group : ""), it && (it.desc || it.note) && React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-2)",
+        lineHeight: 1.45
+      }
+    }, String(it.desc || it.note).slice(0, 160)))), document.body);
+  }
+  return React.createElement("span", {
+    onMouseEnter: enter,
+    onMouseLeave: leave,
+    style: {
+      display: "block"
+    }
+  }, children, card);
 }
 function BoqSection({
   title,
