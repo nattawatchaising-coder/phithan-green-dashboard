@@ -1662,30 +1662,67 @@ function dsRtmMetal(pen, x0, yT, sc, LY) {
   const fill = (L, P) => {
     for (let i = 1; i < P.length - 1; i++) pen.solid(L, P[0], P[i], P[i + 1]);
   };
-  dsVec(pen, "RTM", x0, yT, sc, LY, [[97, 322.9, 473, 329.45], [179.6, 301, 185.85, 346.5], [337.6, 301, 343.25, 346.5], [245, 305, 291, 311]]);
+  dsVec(pen, "RTM", x0, yT, sc, LY, [[97, 322.9, 473, 329.45], [179.6, 301, 185.85, 346.5], [337.6, 301, 343.25, 346.5], [245, 305, 291, 311], [185.7, 301.45, 189.7, 307.1], [343.1, 301.45, 347.1, 307.1], [346.5, 302, 440, 307.8], [303.5, 304.8, 337, 307.2]]);
   const RL = [185.8, 343.2],
     RX0 = 97.8,
-    RX1 = 472.1;
+    RX1 = 472.1,
+    YC = 531.5,
+    RS = (323.2 - 301.4) / (565.7 - YC),
+    CX = 853.05;
+  const at = (rl, X, Y) => tp(rl + 1.9 + (X - CX) * RS, 301.4 + (Y - YC) * RS);
+  const arrow = (xa, xb, y) => {
+    const d = xb > xa ? -1 : 1,
+      A = tp(xa, y),
+      B = tp(xb + d * 5.6, y),
+      T = tp(xb, y),
+      U = tp(xb + d * 5.6, y - 0.8),
+      V = tp(xb + d * 5.6, y + 0.8);
+    pen.line(LY.k, A[0], A[1], B[0], B[1]);
+    pen.solid(LY.k, T, U, V);
+  };
+  const yR = 301.4 + (543.7 - YC) * RS / 2,
+    yN = 301.4 + (536.9 - YC) * RS;
+  dsVecEach("RTM", (t, u, b) => {
+    if (t === "k" && b[0] >= 372.5 && b[2] <= 440 && b[1] >= 302 && b[3] <= 307.8) poly(LY.k, u.map(([X, Y]) => tp(X - 149.1, Y + yR - 304.9)));
+  });
+  arrow(293, RL[1] + 1.9 + (845.9 - CX) * RS, yR);
+  arrow(371, RL[1] + 1.9 + (868.2 - CX) * RS, yN);
   let wave = null;
   dsVecEach("MOUNT", (t, u, b) => {
     if (t === "g" && Math.abs(b[0] - 838.5) < 0.3 && Math.abs(b[2] - 928.6) < 0.3 && Math.abs(b[1] - 566.7) < 0.3) wave = u;
     const tl = t.toLowerCase();
     if (tl === "k" && b[0] >= 889.5 && b[2] <= 941 && b[1] >= 555.5 && b[3] <= 564) {
-      poly(LY.k, u.map(([X, Y]) => tp(290.6 - (940 - X) * 1.2, 310.6 - (561.7 - Y) * 1.2)));
+      poly(LY.k, u.map(([X, Y]) => tp(373 + (X - 890.5) * 1.2, yN + (Y - 559.8) * 1.2)));
       return;
     }
-    if (tl !== "k" || !(b[0] >= 836 && b[2] <= 877 && b[1] >= 524 && b[3] <= 602)) return;
-    if (b[0] >= 845.3 && b[2] <= 860.4 && b[1] >= 517 && b[3] <= 560.5) return;
-    const nut = b[0] >= 864.5;
+    if (tl !== "k" || !(b[0] >= 836 && b[2] <= 877 && b[1] >= 516 && b[3] <= 602)) return;
+    if (b[3] <= YC + 0.1) return;
     RL.forEach(rl => {
-      const P = u.map(([X, Y]) => tp(rl - (X - 860.2) * 0.5, nut ? 304.4 + (Y - 542.5) * 0.5 : 323.2 + (Y - 565.7) * 0.5));
-      if (t === "K") fill(LY.k, P);else poly(LY.k, P);
+      if (t === "K") {
+        if (b[1] >= YC) fill(LY.k, u.map(([X, Y]) => at(rl, X, Y)));
+        return;
+      }
+      for (let i = 1; i < u.length; i++) {
+        let p = u[i - 1],
+          q = u[i];
+        if (p[1] < YC && q[1] < YC) continue;
+        const cut = (m, n) => [m[0] + (n[0] - m[0]) * (YC - m[1]) / (n[1] - m[1]), YC];
+        if (p[1] < YC) p = cut(p, q);else if (q[1] < YC) q = cut(q, p);
+        const A = at(rl, p[0], p[1]),
+          C = at(rl, q[0], q[1]);
+        pen.line(LY.k, A[0], A[1], C[0], C[1]);
+      }
     });
+  });
+  RL.forEach(rl => {
+    const A = at(rl, 845.9, YC),
+      C = at(rl, 864, YC);
+    pen.line(LY.k, A[0], A[1], C[0], C[1]);
   });
   if (!wave) return;
   const per = 52.47,
     kx = per / 90.1,
-    ph = 189.55 - (852.65 - 838.5) * kx;
+    ph = RL[0] + 1.9 + (852.7 - CX) * RS - (852.65 - 838.5) * kx;
   for (let k = -4; k <= 8; k++) {
     const P = wave.map(([X, Y]) => [ph + k * per + (X - 838.5) * kx, 323.2 + (Y - 566.7) * 0.5]);
     for (let i = 1; i < P.length; i++) {
