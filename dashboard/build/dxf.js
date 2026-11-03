@@ -1140,6 +1140,10 @@ function pgXfApi(base, layer, x, y, sx, sy, rot) {
       const p = P([cx, cy]);
       base.circle(L(l), p[0], p[1], r * k);
     },
+    arc: (l, cx, cy, r, a1, a2) => {
+      const p = P([cx, cy]);
+      base.arc(L(l), p[0], p[1], r * k, a1 + (+rot || 0), a2 + (+rot || 0));
+    },
     solid: (l, p1, p2, p3, p4) => base.solid(L(l), P(p1), P(p2), P(p3), p4 && P(p4)),
     text: (l, tx, ty, h, t, o) => {
       const p = P([tx, ty]);
@@ -1283,24 +1287,84 @@ function pgPen(doc, k, ox, oy) {
     Y = v => oy + v * k,
     S = v => v * k;
   const P = p => [X(p[0]), Y(p[1])];
-  return {
-    k,
-    X,
-    Y,
-    S,
+  const raw = {
     line: (l, x1, y1, x2, y2) => doc.line(l, X(x1), Y(y1), X(x2), Y(y2)),
     rect: (l, x, y, w, h) => doc.rect(l, X(x), Y(y), S(w), S(h)),
     pline: (l, pts, c) => doc.pline(l, pts.map(P), c),
     circle: (l, x, y, r) => doc.circle(l, X(x), Y(y), S(r)),
     arc: (l, x, y, r, a1, a2) => doc.arc(l, X(x), Y(y), S(r), a1, a2),
     solid: (l, a, b, c, d) => doc.solid(l, P(a), P(b), P(c), d && P(d)),
-    text: (l, x, y, h, s, o) => doc.text(l, X(x), Y(y), S(h), s, o),
+    text: (l, x, y, h, s, o) => doc.text(l, X(x), Y(y), S(h), s, o)
+  };
+  let Z = null;
+  const rec = (m, pts, a) => {
+    if (!Z) return false;
+    let x0 = 1e9,
+      y0 = 1e9,
+      x1 = -1e9,
+      y1 = -1e9;
+    pts.forEach(p => {
+      x0 = Math.min(x0, p[0]);
+      y0 = Math.min(y0, p[1]);
+      x1 = Math.max(x1, p[0]);
+      y1 = Math.max(y1, p[1]);
+    });
+    const z = Z.find(z => x0 >= z.b[0] && y0 >= z.b[1] && x1 <= z.b[2] && y1 <= z.b[3]);
+    if (!z) return false;
+    z.c.push([m, a]);
+    return true;
+  };
+  const pen = {
+    k,
+    X,
+    Y,
+    S,
+    line: (l, x1, y1, x2, y2) => rec("line", [[x1, y1], [x2, y2]], [l, x1, y1, x2, y2]) || raw.line(l, x1, y1, x2, y2),
+    rect: (l, x, y, w, h) => rec("rect", [[x, y], [x + w, y + h]], [l, x, y, w, h]) || raw.rect(l, x, y, w, h),
+    pline: (l, pts, c) => rec("pline", pts, [l, pts, c]) || raw.pline(l, pts, c),
+    circle: (l, x, y, r) => rec("circle", [[x - r, y - r], [x + r, y + r]], [l, x, y, r]) || raw.circle(l, x, y, r),
+    arc: (l, x, y, r, a1, a2) => rec("arc", [[x - r, y - r], [x + r, y + r]], [l, x, y, r, a1, a2]) || raw.arc(l, x, y, r, a1, a2),
+    solid: (l, a, b, c, d) => rec("solid", d ? [a, b, c, d] : [a, b, c], [l, a, b, c, d]) || raw.solid(l, a, b, c, d),
+    text: (l, x, y, h, s, o) => rec("text", [[x, y]], [l, x, y, h, s, o]) || raw.text(l, x, y, h, s, o),
     dot: (l, x, y, r) => {
       const N = 16,
-        p = k => P([x + r * Math.cos(2 * Math.PI * k / N), y + r * Math.sin(2 * Math.PI * k / N)]);
-      for (let k = 0; k < N; k++) doc.solid(l, P([x, y]), p(k), p(k + 1));
+        p = k => [x + r * Math.cos(2 * Math.PI * k / N), y + r * Math.sin(2 * Math.PI * k / N)];
+      for (let k = 0; k < N; k++) pen.solid(l, [x, y], p(k), p(k + 1));
+    },
+    zones(list) {
+      Z = (list || []).map(z => ({
+        n: z[0],
+        b: z[1],
+        c: []
+      }));
+    },
+    flush() {
+      const L = Z || [];
+      Z = null;
+      L.forEach(z => {
+        if (!z.c.length) return;
+        if (!doc.block || !doc.insert) {
+          z.c.forEach(([m, a]) => raw[m](...a));
+          return;
+        }
+        const bx = z.b[0],
+          by = z.b[1],
+          R = x => (x - bx) * k,
+          Ry = y => (y - by) * k,
+          Q = p => [R(p[0]), Ry(p[1])];
+        let h = 5381;
+        const js = JSON.stringify(z.c) + "|" + k;
+        for (let i = 0; i < js.length; i++) h = (h << 5) + h + js.charCodeAt(i) | 0;
+        const nm = (z.n + "-" + (h >>> 0).toString(36).toUpperCase()).replace(/[^A-Za-z0-9_-]/g, "_");
+        doc.block(nm, api => z.c.forEach(([m, a]) => {
+          const l = a[0];
+          if (m === "line") api.line(l, R(a[1]), Ry(a[2]), R(a[3]), Ry(a[4]));else if (m === "rect") api.rect(l, R(a[1]), Ry(a[2]), a[3] * k, a[4] * k);else if (m === "pline") api.pline(l, a[1].map(Q), a[2]);else if (m === "circle") api.circle(l, R(a[1]), Ry(a[2]), a[3] * k);else if (m === "arc") api.arc(l, R(a[1]), Ry(a[2]), a[3] * k, a[4], a[5]);else if (m === "solid") api.solid(l, Q(a[1]), Q(a[2]), Q(a[3]), a[4] && Q(a[4]));else if (m === "text") api.text(l, R(a[1]), Ry(a[2]), a[3] * k, a[4], a[5]);
+        }));
+        doc.insert("0", nm, X(bx), Y(by), 1, 1);
+      });
     }
   };
+  return pen;
 }
 function pgWrap(s, per) {
   s = String(s == null ? "" : s).trim();

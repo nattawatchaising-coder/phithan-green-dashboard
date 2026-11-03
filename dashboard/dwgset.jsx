@@ -560,11 +560,13 @@ function dsPanelSheet(st, job, media) {
     const fx0 = P.titleTop && P.noteMid ? P.tbX + Math.max(P.tbW || 0, P.noteW || 0) + 10 : P.RX0;
     if (yT - yB >= 30) {
       doc.layer("DS-MOD", 7, "CONTINUOUS", 18); doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5); doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+      P.pen.zones([["DS-PV-MODULE", [fx0 - 2, yB - 2, P.RX0 + P.RW + 2, yT + 2]]]);   // รูปแผงเป็นบล็อก CAD
       pgModuleDatasheet(P.pen, [fx0, yB, P.RX0 + P.RW, yT], {
         noSec: true, model: (M0 ? M0.panel.model : ps.model || "") + " " + wp + " Wp",
         wMm: Math.round((+ps.width || 1.134) * 1000), hMm: Math.round((+ps.length || 2.382) * 1000), tMm: +ps.frame || 30,
         cells: +ps.cells || 144, lay: { line: "DS-MOD", thin: "DS-MOD-T", dim: "DS-MOD-DIM" },
       });
+      P.pen.flush();
     }
   }
   /* ตัวใหญ่ใต้ตาราง แบบแผ่นจริง (TOTAL ... MODULE) */
@@ -871,10 +873,12 @@ function dsStrDetSheet(st, job, media) {
   S.doc.layer("DS-MOD", 7, "CONTINUOUS", 18);
   S.doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
   S.doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+  pen.zones([["DS-PV-MODULE", [lx - 2, A.y0 + 4, sx - 4, bandTop]]]);   // รูปแผงเป็นบล็อก CAD
   pgModuleDatasheet(pen, [lx, A.y0 + 6, sx - 6, bandTop - 2], { secRight: true,
     wMm: Math.round((+ps.width || 1.134) * 1000), hMm: Math.round((+ps.length || 2.382) * 1000), tMm: +ps.frame || 30,
     cells: +ps.cells || 144, lay: { line: "DS-MOD", thin: "DS-MOD-T", dim: "DS-MOD-DIM" },
   });
+  pen.flush();
 
   /* มีตัวคุมแผง: รูป TYPE-nPV สองแถวต่อขนาดสตริง (ใช้มากสุด 2 ขนาด เล็กอยู่บน) แทนรูปที่ 1/2 (ผู้ใช้ส่งรูปแบบ 2026-11-01) */
   if (OP) {
@@ -1075,8 +1079,10 @@ function dsRaceSheet(st, job, media) {
     const x0 = A.x0 + i * sw, sc = Math.min((sw - 2 * m) / v.w, hA / v.h);
     if (i) pen.line(LY.k, x0, A.y1 - m, x0, A.y0 + m);
     const nm = dsRaceParts(st)[i], vx = x0 + (sw - v.w * sc) / 2, vy = (A.y0 + A.y1 + v.h * sc) / 2;
+    pen.zones(dsVecZ("DS-" + nm, DS_BLK[nm], vx, vy, sc));
     if (nm === "RTM") dsRtmMetal(pen, vx, vy, sc, LY);
     else dsVec(pen, nm, vx, vy, sc, LY);
+    pen.flush();
   });
   return S.doc.build();
 }
@@ -1225,8 +1231,11 @@ function dsWalkDetSheet(st, job, media, kind) {
     const ks = ["hb", "cl"].filter((k) => need[k]), R = [60, 234, 385, 380], w = (R[2] - R[0]) / ks.length;
     ks.forEach((k, i) => put.push([k, [R[0] + w * i, R[1], R[0] + w * (i + 1), R[3]]]));
   }
+  const PN = { hb: "HANGER-BOLT", cl: "CLIP-LOCK", lf: "L-FEET" };   // ชิ้นที่ยกมาวางเป็นบล็อกชื่อตามชิ้น (โซนมาก่อนโซนเดิมของช่อง)
+  pen.zones(dsVecZ("DS-" + D.key, put.map(([k, dst]) => [PN[k], dst]).concat(DS_BLK[D.vec]), x0, yT, sc));
   dsVec(pen, D.vec, x0, yT, sc, LY, hide);
   put.forEach(([k, dst]) => dsVecPut(pen, DS_FAST_SRC[k][0], DS_FAST_SRC[k][1], dst, x0, yT, sc, LY));
+  pen.flush();
   return S.doc.build();
 }
 /* วาด DS_VEC[name] มุมซ้ายบนที่ (x0, yTop) บนกระดาษ (y ขึ้น) ย่อ/ขยาย sc มม. ต่อ pt · ชนิดเส้น k/g/l/d/w → ชั้น LY · ตัวใหญ่ = ระบายทึบ */
@@ -1284,6 +1293,27 @@ function dsVecPut(pen, name, src, dst, x0, yTop, sc, LY) {
     for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
   });
 }
+/* ── บล็อก CAD ของอุปกรณ์/รูปรายละเอียด (ผู้ใช้ 2026-11-03 "พวกอุปกรณ์พวกนี้ได้ทำเป็นบล็อกไว้เวลาเปิด CAD ไหม" · "พวกนี้ด้วยนะ") ──
+   กรอบ pt ของภาพเวกเตอร์ (y ลง) ต่อชิ้น — หาจากกลุ่มเส้นที่อยู่ติดกัน (ห่าง < 12 pt) รวมชื่อรูป · ลำดับมีผล: เส้นเข้ากรอบแรกที่ครอบทั้งเส้น
+   ใช้กับ pen.zones / pen.flush (dxf.jsx pgPen) — เส้นที่อยู่ในกรอบรวมเป็น BLOCK เดียววางที่เดิม */
+const DS_BLK = {
+  MOUNT: [["DETAIL-A", [727.9, 442.1, 974.2, 685.6]], ["RAIL-JOINER", [495.9, 421.8, 731.9, 568.2]], ["END-CLAMP", [500.5, 17.2, 686.9, 172.7]],
+    ["GROUND-PLATE", [762.4, 35.1, 917.5, 172.7]], ["GROUND-LUX", [503.2, 215.7, 724.8, 384.3]], ["MID-CLAMP", [772.7, 256.8, 951.6, 387.1]]],
+  WKFRP: [["RAIL", [103.6, 96, 245.2, 218.9]], ["END-CLAMP", [344.3, 136, 411.5, 218.9]], ["HANGER-BOLT", [122.3, 232.2, 234.5, 381.3]],
+    ["CLIP-LOCK", [318.3, 246.3, 444.7, 380.9]], ["ELEVATION", [140.9, 397.3, 506.5, 471.4]], ["SECTION", [575.3, 396.4, 719.3, 439.6]],
+    ["DETAIL-A", [175, 512.2, 403.7, 678.6]], ["DETAIL-B", [533.8, 534.9, 725.7, 678.6]], ["ISOMETRIC", [435, 38.6, 907, 340.7]]],
+  WKZAM: [["RAIL", [173.2, 125.8, 302.8, 224.7]], ["SCREW", [392, 148, 442, 228]], ["NUTS", [388, 285, 435, 374]], ["L-FEET", [219.1, 245.7, 267.9, 373.3]],
+    ["ELEVATION", [101.3, 386.3, 732, 460.3]], ["SECTION", [757, 386.3, 886.3, 438.5]], ["DETAIL-C", [100.7, 491.7, 322.3, 659.8]],
+    ["DETAIL-B", [412.1, 510.5, 603.7, 659.8]], ["DETAIL-A", [705.7, 498.7, 854.3, 659.8]], ["ISOMETRIC", [388.1, 42.6, 871.5, 349.8]]],
+  RTK: [["TOP-VIEW", [35.3, 19.2, 450.1, 240]], ["SIDE-VIEW", [62.8, 245, 486, 384]], ["ISOMETRIC", [88, 385, 486, 603.6]]],
+  RTM: [["TOP-VIEW", [45.8, 19.2, 458.9, 231.7]], ["SIDE-VIEW", [38, 245, 473, 380]], ["ISOMETRIC", [38.8, 385, 428.6, 603.6]]],
+  RTT: [["TOP-VIEW", [6.9, 7.9, 503, 262.2]], ["SIDE-VIEW", [10, 280, 520.8, 430]], ["ISOMETRIC", [72.4, 440, 545, 686]]],
+  GV2: [["TOP-VIEW", [20.5, 51.9, 403.3, 505.3]], ["TRAY", [476, 99, 681, 272]], ["DETAIL-A", [741, 45, 918, 173]], ["DETAIL-B", [729, 248, 955, 378]],
+    ["LADDER", [480.5, 344.3, 678.5, 553.3]], ["DETAIL-C", [777, 397, 926, 651]], ["SECTION-A", [32, 612, 757, 708]]],
+};
+DS_BLK.KLIP = DS_BLK.MOUNT;
+/* กรอบ pt ของภาพ (y ลง) → โซนบล็อก มม.บนกระดาษ (y ขึ้น) · ภาพวางมุมซ้ายบน (x0, yT) ย่อ sc มม./pt · เผื่อขอบ 1 pt */
+const dsVecZ = (pre, L, x0, yT, sc) => (L || []).map(([n, b]) => [pre + "-" + n, [x0 + (b[0] - 1) * sc, yT - (b[3] + 1) * sc, x0 + (b[2] + 1) * sc, yT - (b[1] - 1) * sc]]);
 /* วาด DS_VEC[name] ลงกรอบ bw×bh (มุมซ้ายบน bx, byTop · มม.) ย่อ s มม./pt — F = กรอบรูปในภาพ [x0, y0, x1, y1] pt (ไม่วาด วาดกรอบใหม่แทน)
    ของในกรอบจัดกลางกรอบใหม่ · ชื่อรูปเหนือกรอบ (ล่างไม่เกิน F[1]) คงระยะจากขอบบน — กรอบ DETAIL ทุกรูปเท่ากัน (ผู้ใช้ "ปรับกรอบให้เท่ากันทั้ง 4") */
 function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
@@ -1391,7 +1421,9 @@ function dsMountLike(st, job, media, C) {
   const swap = wk && wk !== C.wk && (window.DS_VEC || {})[DS_WALK_PLAN[wk].vec];
   const hide = cut ? TX.concat(C.cutHide) : TX.slice();
   if (swap) hide.push((b, t) => dsWalkIn(DS_WALK_PLAN[C.wk], t, b));
+  pen.zones(dsVecZ("DS-" + C.key, DS_BLK[C.vec], x0, yT, sc));   // รูปรายละเอียดขวาเป็นบล็อก
   dsVec(pen, C.vec, x0, yT, sc, LY, hide, cut);
+  pen.flush();
   if (swap) dsWalkSwap(pen, C.wk, wk, x0, yT, sc, LY);
   TX.forEach((t) => {
     const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]), sx = (x) => (ct ? dsCutX(ct, x) : x);
@@ -1464,11 +1496,17 @@ function dsGroundMain(pen, D, o) {
   else if (!o.tray) { hd([686.4, 415.3, 686.4, 467.4], 1); LN.push([[686.4, 415.3], [686.4, 436.9]]); }
   if (!o.ladder) { hd([945, 278, 990, 412]); hd([676.2, 400.2, 949.0, 400.2], 1); hd([821, 397, 881, 416]); hd([673, 397, 679.5, 403.5]); }
   if (o.yBot < 511) { hd([550.6, 196.2, 550.6, 510.9], 1); LN.push([[550.6, 196.2], [550.6, o.yBot]]); }
+  /* บล็อก CAD: อินเวอร์เตอร์ · ตู้ DC · INV RACK · บันได · ทางเดิน · รางไฟ (กรอบ pt หน้า PDF · รวมป้ายชื่อที่เขียนทับ) */
+  const ZB = (nm, b) => { const xa = X(b[0]), xb = X(b[2]), ya = Y(b[1]), yb = Y(b[3]); return ["DS-GND-" + nm, [Math.min(xa, xb) - 0.3, Math.min(ya, yb) - 0.3, Math.max(xa, xb) + 0.3, Math.max(ya, yb) + 0.3]]; };
+  pen.zones(INV.slice(0, n).map((v, i) => ZB("INVERTER-" + (i + 1), [v[0] - 4, 200, v[0] + 48, 258]))
+    .concat(DCB.slice(0, nd).map((v, i) => ZB("DC-BOX-" + (i + 1), [v[0] - 1.5, 284, v[0] + 43.5, 320])),
+      o.home ? [] : [ZB("INV-RACK", [455, 198, 525, 256])], [ZB("LADDER", [945, 278, 990, 412]), ZB("WALKWAY", [673, 428, 777, 455]), ZB("TRAY", [673, 455.5, 880, 489])]));
   dsVec(pen, "GV1M", X(OX), Y(OY), sc, DS_GND_LY, HD);
   LN.forEach((P) => { for (let i = 1; i < P.length; i++) pen.line(DS_GND_LY.k, X(P[i - 1][0]), Y(P[i - 1][1]), X(P[i][0]), Y(P[i][1])); });
   /* ตัวหนังสือเขียนทับ: ฟอนต์ CAD จากป้ายในต้นฉบับ สูงเท่าป้ายเดิม (ไม่นับหางตัว q) · ชิดซ้ายที่เดิม (ป้ายใต้บัส = กลาง) */
   TX.forEach(([b, t, c]) => { const cap = Math.min(b[3] - b[1], 4.2);
     dsGlyphText(pen, DS_GND_LY.k, c ? (X(b[0]) + X(b[2])) / 2 : X(b[0]), Y(b[1] + cap), cap * sc, t, c ? 1 : 0); });
+  pen.flush();
 }
 /* ตัวอักษรแบบ CAD จากป้ายในผังต่อลงดินของต้นฉบับ (GV1M) — เขียนชื่อตู้/ขนาดสายที่ต่างจากต้นฉบับให้ฟอนต์เดียวกับแบบ
    แยกตัวอักษรจากเส้นในกรอบป้าย (pt ของหน้า PDF · ข้อความไม่มีช่องว่าง) เรียงซ้าย→ขวา เส้นที่ซ้อนกันแนวนอน = ตัวเดียวกัน
@@ -1657,7 +1695,10 @@ function dsGroundSheet(st, job, media) {
     const r = Math.min(FW * 0.97 / 190.5, (rowH - 42) / (92 / 0.97 + 15.1));   // pt ของภาพ → หน่วยรูป (ชื่อรูปสูง 15.1 pt อยู่เหนือกรอบ)
     const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
     const bT = MB + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4, x0 = (1366 - n * FW - (n - 1) * g) / 2;
+    pen.zones(L.map((nm, i) => { const bx = D.X(x0 + i * (FW + g)), by = D.Y(bT);   // กล่อง DETAIL ละบล็อก (กรอบ + ชื่อรูปเหนือกรอบ)
+      return ["DS-GND-DETAIL-" + nm.slice(3), [bx - 1, by - FH * D.k - 1, bx + FW * D.k + 1, by + 15.1 * r * D.k + 3]]; }));
     L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
+    pen.flush();
   } else {
   /* ── (สำรองเมื่อไม่มี groundvec.js) DETAIL A–D: รูปต้นแบบของผู้ใช้ลอกเป็นเส้นทั้งกล่อง (หัวเรื่อง · กรอบ · ป้าย) — ย่อให้กรอบตรงตำแหน่งเดิม · D เฉพาะงานที่มีรางไฟ ── */
   const CL = DL("cell");
@@ -1712,6 +1753,10 @@ function dsGroundDetSheet(st, job, media) {
       const y0 = yMid - (126.6 + 25 + 128.4) / 2;
       mv.push([DA, 580 - (741.7 + 917.2) / 2, y0 - 45.5], [DB, 580 - (729.7 + 954.1) / 2, y0 + 126.6 + 25 - 248.7], [DC, 0, yMid - (397.9 + 650.8) / 2]);
     }
+    /* บล็อกละรูป · รูปที่ย้ายที่ (mv) ใช้กรอบที่เลื่อนตาม */
+    const inR = (b, R) => b[0] >= R[0] && b[1] >= R[1] && b[2] <= R[2] && b[3] <= R[3], zl = [];
+    mv.forEach((m) => DS_BLK.GV2.forEach(([nm, b]) => { if (inR(b, m[0])) zl.push([nm, [b[0] + m[1], b[1] + m[2], b[2] + m[1], b[3] + m[2]]]); }));
+    pen.zones(dsVecZ("DS-GND2", zl.concat(DS_BLK.GV2), x0, yT, sc));
     dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, hide.concat(txt, mv.map((m) => m[0])));
     mv.forEach((m) => dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, m[0], [[m[1], m[2]]], txt));
     /* "1C-6 sq.mm. IEC01" ของ TOP VIEW ไปวางแทนที่ซ่อน (ตามไปกับ DETAIL B ถ้าย้าย) */
@@ -1719,6 +1764,7 @@ function dsGroundDetSheet(st, job, media) {
       const mB = mv.find((m) => m[0] === DB) || [0, 0, 0];
       dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, [353.7, 161.5, 398.7, 167.5], [[0, 23.1], [352.7, 483.9], [553.8 + mB[1], 164.3 + mB[2]]]);
     }
+    pen.flush();
     return S.doc.build();
   }
 

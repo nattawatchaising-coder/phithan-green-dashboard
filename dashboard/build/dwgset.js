@@ -926,6 +926,7 @@ function dsPanelSheet(st, job, media) {
       doc.layer("DS-MOD", 7, "CONTINUOUS", 18);
       doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
       doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+      P.pen.zones([["DS-PV-MODULE", [fx0 - 2, yB - 2, P.RX0 + P.RW + 2, yT + 2]]]);
       pgModuleDatasheet(P.pen, [fx0, yB, P.RX0 + P.RW, yT], {
         noSec: true,
         model: (M0 ? M0.panel.model : ps.model || "") + " " + wp + " Wp",
@@ -939,6 +940,7 @@ function dsPanelSheet(st, job, media) {
           dim: "DS-MOD-DIM"
         }
       });
+      P.pen.flush();
     }
   }
   P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.tbTop + 6, PG_TS.head, totS);
@@ -1337,6 +1339,7 @@ function dsStrDetSheet(st, job, media) {
   S.doc.layer("DS-MOD", 7, "CONTINUOUS", 18);
   S.doc.layer("DS-MOD-T", 8, "CONTINUOUS", 5);
   S.doc.layer("DS-MOD-DIM", 1, "CONTINUOUS", 9);
+  pen.zones([["DS-PV-MODULE", [lx - 2, A.y0 + 4, sx - 4, bandTop]]]);
   pgModuleDatasheet(pen, [lx, A.y0 + 6, sx - 6, bandTop - 2], {
     secRight: true,
     wMm: Math.round((+ps.width || 1.134) * 1000),
@@ -1349,6 +1352,7 @@ function dsStrDetSheet(st, job, media) {
       dim: "DS-MOD-DIM"
     }
   });
+  pen.flush();
   if (OP) {
     const per = OP.per >= 2 ? 2 : 1;
     const sizes = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a).slice(0, 2);
@@ -1637,7 +1641,9 @@ function dsRaceSheet(st, job, media) {
     const nm = dsRaceParts(st)[i],
       vx = x0 + (sw - v.w * sc) / 2,
       vy = (A.y0 + A.y1 + v.h * sc) / 2;
+    pen.zones(dsVecZ("DS-" + nm, DS_BLK[nm], vx, vy, sc));
     if (nm === "RTM") dsRtmMetal(pen, vx, vy, sc, LY);else dsVec(pen, nm, vx, vy, sc, LY);
+    pen.flush();
   });
   return S.doc.build();
 }
@@ -1890,8 +1896,15 @@ function dsWalkDetSheet(st, job, media, kind) {
       w = (R[2] - R[0]) / ks.length;
     ks.forEach((k, i) => put.push([k, [R[0] + w * i, R[1], R[0] + w * (i + 1), R[3]]]));
   }
+  const PN = {
+    hb: "HANGER-BOLT",
+    cl: "CLIP-LOCK",
+    lf: "L-FEET"
+  };
+  pen.zones(dsVecZ("DS-" + D.key, put.map(([k, dst]) => [PN[k], dst]).concat(DS_BLK[D.vec]), x0, yT, sc));
   dsVec(pen, D.vec, x0, yT, sc, LY, hide);
   put.forEach(([k, dst]) => dsVecPut(pen, DS_FAST_SRC[k][0], DS_FAST_SRC[k][1], dst, x0, yT, sc, LY));
+  pen.flush();
   return S.doc.build();
 }
 const dsCutX = (C, x) => x <= C.x1 ? x : x >= C.x2 ? x - (C.x2 - C.x1) : C.x1;
@@ -1977,6 +1990,17 @@ function dsVecPut(pen, name, src, dst, x0, yTop, sc, LY) {
     for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
   });
 }
+const DS_BLK = {
+  MOUNT: [["DETAIL-A", [727.9, 442.1, 974.2, 685.6]], ["RAIL-JOINER", [495.9, 421.8, 731.9, 568.2]], ["END-CLAMP", [500.5, 17.2, 686.9, 172.7]], ["GROUND-PLATE", [762.4, 35.1, 917.5, 172.7]], ["GROUND-LUX", [503.2, 215.7, 724.8, 384.3]], ["MID-CLAMP", [772.7, 256.8, 951.6, 387.1]]],
+  WKFRP: [["RAIL", [103.6, 96, 245.2, 218.9]], ["END-CLAMP", [344.3, 136, 411.5, 218.9]], ["HANGER-BOLT", [122.3, 232.2, 234.5, 381.3]], ["CLIP-LOCK", [318.3, 246.3, 444.7, 380.9]], ["ELEVATION", [140.9, 397.3, 506.5, 471.4]], ["SECTION", [575.3, 396.4, 719.3, 439.6]], ["DETAIL-A", [175, 512.2, 403.7, 678.6]], ["DETAIL-B", [533.8, 534.9, 725.7, 678.6]], ["ISOMETRIC", [435, 38.6, 907, 340.7]]],
+  WKZAM: [["RAIL", [173.2, 125.8, 302.8, 224.7]], ["SCREW", [392, 148, 442, 228]], ["NUTS", [388, 285, 435, 374]], ["L-FEET", [219.1, 245.7, 267.9, 373.3]], ["ELEVATION", [101.3, 386.3, 732, 460.3]], ["SECTION", [757, 386.3, 886.3, 438.5]], ["DETAIL-C", [100.7, 491.7, 322.3, 659.8]], ["DETAIL-B", [412.1, 510.5, 603.7, 659.8]], ["DETAIL-A", [705.7, 498.7, 854.3, 659.8]], ["ISOMETRIC", [388.1, 42.6, 871.5, 349.8]]],
+  RTK: [["TOP-VIEW", [35.3, 19.2, 450.1, 240]], ["SIDE-VIEW", [62.8, 245, 486, 384]], ["ISOMETRIC", [88, 385, 486, 603.6]]],
+  RTM: [["TOP-VIEW", [45.8, 19.2, 458.9, 231.7]], ["SIDE-VIEW", [38, 245, 473, 380]], ["ISOMETRIC", [38.8, 385, 428.6, 603.6]]],
+  RTT: [["TOP-VIEW", [6.9, 7.9, 503, 262.2]], ["SIDE-VIEW", [10, 280, 520.8, 430]], ["ISOMETRIC", [72.4, 440, 545, 686]]],
+  GV2: [["TOP-VIEW", [20.5, 51.9, 403.3, 505.3]], ["TRAY", [476, 99, 681, 272]], ["DETAIL-A", [741, 45, 918, 173]], ["DETAIL-B", [729, 248, 955, 378]], ["LADDER", [480.5, 344.3, 678.5, 553.3]], ["DETAIL-C", [777, 397, 926, 651]], ["SECTION-A", [32, 612, 757, 708]]]
+};
+DS_BLK.KLIP = DS_BLK.MOUNT;
+const dsVecZ = (pre, L, x0, yT, sc) => (L || []).map(([n, b]) => [pre + "-" + n, [x0 + (b[0] - 1) * sc, yT - (b[3] + 1) * sc, x0 + (b[2] + 1) * sc, yT - (b[1] - 1) * sc]]);
 function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
   const a = (window.DS_VEC || {})[name];
   if (!a) return false;
@@ -2133,7 +2157,9 @@ function dsMountLike(st, job, media, C) {
   const swap = wk && wk !== C.wk && (window.DS_VEC || {})[DS_WALK_PLAN[wk].vec];
   const hide = cut ? TX.concat(C.cutHide) : TX.slice();
   if (swap) hide.push((b, t) => dsWalkIn(DS_WALK_PLAN[C.wk], t, b));
+  pen.zones(dsVecZ("DS-" + C.key, DS_BLK[C.vec], x0, yT, sc));
   dsVec(pen, C.vec, x0, yT, sc, LY, hide, cut);
+  pen.flush();
   if (swap) dsWalkSwap(pen, C.wk, wk, x0, yT, sc, LY);
   TX.forEach(t => {
     const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]),
@@ -2249,6 +2275,14 @@ function dsGroundMain(pen, D, o) {
     hd([550.6, 196.2, 550.6, 510.9], 1);
     LN.push([[550.6, 196.2], [550.6, o.yBot]]);
   }
+  const ZB = (nm, b) => {
+    const xa = X(b[0]),
+      xb = X(b[2]),
+      ya = Y(b[1]),
+      yb = Y(b[3]);
+    return ["DS-GND-" + nm, [Math.min(xa, xb) - 0.3, Math.min(ya, yb) - 0.3, Math.max(xa, xb) + 0.3, Math.max(ya, yb) + 0.3]];
+  };
+  pen.zones(INV.slice(0, n).map((v, i) => ZB("INVERTER-" + (i + 1), [v[0] - 4, 200, v[0] + 48, 258])).concat(DCB.slice(0, nd).map((v, i) => ZB("DC-BOX-" + (i + 1), [v[0] - 1.5, 284, v[0] + 43.5, 320])), o.home ? [] : [ZB("INV-RACK", [455, 198, 525, 256])], [ZB("LADDER", [945, 278, 990, 412]), ZB("WALKWAY", [673, 428, 777, 455]), ZB("TRAY", [673, 455.5, 880, 489])]));
   dsVec(pen, "GV1M", X(OX), Y(OY), sc, DS_GND_LY, HD);
   LN.forEach(P => {
     for (let i = 1; i < P.length; i++) pen.line(DS_GND_LY.k, X(P[i - 1][0]), Y(P[i - 1][1]), X(P[i][0]), Y(P[i][1]));
@@ -2257,6 +2291,7 @@ function dsGroundMain(pen, D, o) {
     const cap = Math.min(b[3] - b[1], 4.2);
     dsGlyphText(pen, DS_GND_LY.k, c ? (X(b[0]) + X(b[2])) / 2 : X(b[0]), Y(b[1] + cap), cap * sc, t, c ? 1 : 0);
   });
+  pen.flush();
 }
 const DS_GLYPH_SRC = [[[70.0, 276.1, 103.8, 280.2], "MDBEXISTING"], [[170.8, 276.1, 199.1, 280.2], "SOLARMDB"], [[95.8, 374.3, 128.0, 378.5], "GROUNDBUS"], [[295.1, 207.2, 323.3, 211.3], "INVERTER-1"], [[94.3, 328.8, 136.8, 334.3], "IEC0170sq.mm."], [[236.2, 247, 278.6, 252.6], "IEC0125sq.mm."], [[292.8, 401.3, 334.6, 406.8], "IEC0116sq.mm."], [[475.8, 201.3, 498.8, 205.4], "INVRACK"], [[701, 243.2, 726.8, 247.4], "PVSTRING"], [[514.6, 333.1, 536.4, 337.2], "DETAILC"], [[708.5, 429.1, 734.4, 433.2], "WALKWAY"], [[707.6, 461.4, 754.4, 465.5], "PERFORRATETRAY"], [[404.8, 286, 441.8, 289.8], "DCFUSEBOX-3"]];
 const DS_GLYPH_HAND = {
@@ -2582,7 +2617,13 @@ function dsGroundSheet(st, job, media) {
     const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
     const bT = MB + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4,
       x0 = (1366 - n * FW - (n - 1) * g) / 2;
+    pen.zones(L.map((nm, i) => {
+      const bx = D.X(x0 + i * (FW + g)),
+        by = D.Y(bT);
+      return ["DS-GND-DETAIL-" + nm.slice(3), [bx - 1, by - FH * D.k - 1, bx + FW * D.k + 1, by + 15.1 * r * D.k + 3]];
+    }));
     L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
+    pen.flush();
   } else {
     const CL = DL("cell");
     const FW = 274,
@@ -2661,12 +2702,19 @@ function dsGroundDetSheet(st, job, media) {
       const y0 = yMid - (126.6 + 25 + 128.4) / 2;
       mv.push([DA, 580 - (741.7 + 917.2) / 2, y0 - 45.5], [DB, 580 - (729.7 + 954.1) / 2, y0 + 126.6 + 25 - 248.7], [DC, 0, yMid - (397.9 + 650.8) / 2]);
     }
+    const inR = (b, R) => b[0] >= R[0] && b[1] >= R[1] && b[2] <= R[2] && b[3] <= R[3],
+      zl = [];
+    mv.forEach(m => DS_BLK.GV2.forEach(([nm, b]) => {
+      if (inR(b, m[0])) zl.push([nm, [b[0] + m[1], b[1] + m[2], b[2] + m[1], b[3] + m[2]]]);
+    }));
+    pen.zones(dsVecZ("DS-GND2", zl.concat(DS_BLK.GV2), x0, yT, sc));
     dsVec(pen, "GV2", x0, yT, sc, DS_GND_LY, hide.concat(txt, mv.map(m => m[0])));
     mv.forEach(m => dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, m[0], [[m[1], m[2]]], txt));
     if (home) {
       const mB = mv.find(m => m[0] === DB) || [0, 0, 0];
       dsVecCopy(pen, "GV2", x0, yT, sc, DS_GND_LY, [353.7, 161.5, 398.7, 167.5], [[0, 23.1], [352.7, 483.9], [553.8 + mB[1], 164.3 + mB[2]]]);
     }
+    pen.flush();
     return S.doc.build();
   }
   const cols = [[85, 135], [137, 260], [262, 385]],
