@@ -1625,9 +1625,80 @@ function dsRaceSheet(st, job, media) {
     const x0 = A.x0 + i * sw,
       sc = Math.min((sw - 2 * m) / v.w, hA / v.h);
     if (i) pen.line(LY.k, x0, A.y1 - m, x0, A.y0 + m);
-    dsVec(pen, dsRaceParts(st)[i], x0 + (sw - v.w * sc) / 2, (A.y0 + A.y1 + v.h * sc) / 2, sc, LY);
+    const nm = dsRaceParts(st)[i],
+      vx = x0 + (sw - v.w * sc) / 2,
+      vy = (A.y0 + A.y1 + v.h * sc) / 2;
+    if (nm === "RTM") dsRtmMetal(pen, vx, vy, sc, LY);else dsVec(pen, nm, vx, vy, sc, LY);
   });
   return S.doc.build();
+}
+function dsVecEach(name, fn) {
+  const a = (window.DS_VEC || {})[name];
+  if (!a) return;
+  const q = a.q || 1;
+  a.d.split(";").forEach(c => {
+    const n = c.slice(1).split(",").map(Number),
+      u = [],
+      b = [1e9, 1e9, -1e9, -1e9];
+    for (let i = 0, x = 0, y = 0; i < n.length; i += 2) {
+      x = i ? x + n[i] : n[i];
+      y = i ? y + n[i + 1] : n[i + 1];
+      const X = x / q,
+        Y = y / q;
+      b[0] = Math.min(b[0], X);
+      b[1] = Math.min(b[1], Y);
+      b[2] = Math.max(b[2], X);
+      b[3] = Math.max(b[3], Y);
+      u.push([X, Y]);
+    }
+    fn(c[0], u, b);
+  });
+}
+function dsRtmMetal(pen, x0, yT, sc, LY) {
+  const tp = (X, Y) => [x0 + X * sc, yT - Y * sc];
+  const poly = (L, P) => {
+    for (let i = 1; i < P.length; i++) pen.line(L, P[i - 1][0], P[i - 1][1], P[i][0], P[i][1]);
+  };
+  const fill = (L, P) => {
+    for (let i = 1; i < P.length - 1; i++) pen.solid(L, P[0], P[i], P[i + 1]);
+  };
+  dsVec(pen, "RTM", x0, yT, sc, LY, [[97, 322.9, 473, 329.45], [179.6, 301, 185.85, 346.5], [337.6, 301, 343.25, 346.5], [245, 305, 291, 311]]);
+  const RL = [185.8, 343.2],
+    RX0 = 97.8,
+    RX1 = 472.1;
+  let wave = null;
+  dsVecEach("MOUNT", (t, u, b) => {
+    if (t === "g" && Math.abs(b[0] - 838.5) < 0.3 && Math.abs(b[2] - 928.6) < 0.3 && Math.abs(b[1] - 566.7) < 0.3) wave = u;
+    const tl = t.toLowerCase();
+    if (tl === "k" && b[0] >= 889.5 && b[2] <= 941 && b[1] >= 555.5 && b[3] <= 564) {
+      poly(LY.k, u.map(([X, Y]) => tp(290.6 - (940 - X) * 1.2, 310.6 - (561.7 - Y) * 1.2)));
+      return;
+    }
+    if (tl !== "k" || !(b[0] >= 836 && b[2] <= 877 && b[1] >= 524 && b[3] <= 602)) return;
+    if (b[0] >= 845.3 && b[2] <= 860.4 && b[1] >= 517 && b[3] <= 560.5) return;
+    const nut = b[0] >= 864.5;
+    RL.forEach(rl => {
+      const P = u.map(([X, Y]) => tp(rl - (X - 860.2) * 0.5, nut ? 304.4 + (Y - 542.5) * 0.5 : 323.2 + (Y - 565.7) * 0.5));
+      if (t === "K") fill(LY.k, P);else poly(LY.k, P);
+    });
+  });
+  if (!wave) return;
+  const per = 52.47,
+    kx = per / 90.1,
+    ph = 187.7 - (852.65 - 838.5) * kx;
+  for (let k = -4; k <= 8; k++) {
+    const P = wave.map(([X, Y]) => [ph + k * per + (X - 838.5) * kx, 323.2 + (Y - 566.7) * 0.5]);
+    for (let i = 1; i < P.length; i++) {
+      let [a, c] = [P[i - 1], P[i]];
+      if (Math.max(a[0], c[0]) <= RX0 || Math.min(a[0], c[0]) >= RX1) continue;
+      const cl = (p, q, x) => [x, p[1] + (q[1] - p[1]) * (x - p[0]) / (q[0] - p[0] || 1)];
+      if (a[0] < RX0) a = cl(a, c, RX0);
+      if (c[0] > RX1) c = cl(a, c, RX1);
+      const A = tp(a[0], a[1]),
+        C = tp(c[0], c[1]);
+      pen.line(LY.g, A[0], A[1], C[0], C[1]);
+    }
+  }
 }
 function dsHasMetal(st) {
   return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
