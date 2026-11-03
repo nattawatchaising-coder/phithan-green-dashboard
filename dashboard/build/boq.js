@@ -6226,6 +6226,91 @@ function BOQEditor({
     };
   });
   const qReady = qPick.pan && qPick.inv;
+  const dsSys = plan3d && plan3d.sys || null;
+  const dsMicro = !!(dsSys && dsSys.mode === "micro");
+  const dsInvSpec = dsSys && !dsMicro && dsSys.invModel ? (window.BOQ.INVERTERS || []).find(x => x.model === dsSys.invModel) : null;
+  let dsInv = null;
+  if (dsMicro || dsInvSpec) {
+    dsInv = {
+      inverterModel: dsMicro ? "" : dsInvSpec.model,
+      invCount: dsMicro ? 0 : Math.max(0, Math.round(+dsSys.invCount || 0))
+    };
+    if (dsMicro && dsSys.microRatio) dsInv.microRatio = dsSys.microRatio;
+    INV_SLOTS.forEach(k => {
+      const m = dsMicro ? "" : dsSys["inv" + k + "Model"] || "",
+        c = Math.round(+dsSys["inv" + k + "Count"] || 0);
+      dsInv["inv" + k + "Model"] = m && c > 0 ? m : "";
+      if (m && c > 0) dsInv["inv" + k + "Count"] = c;
+    });
+  }
+  const dsInvKey = dsInv ? JSON.stringify(dsInv) : "";
+  const dsInvLabel = dsInv ? dsMicro ? "ไมโคร" + (dsInv.microRatio ? " " + dsInv.microRatio : "") : [dsInv.inverterModel + (dsInv.invCount ? " × " + dsInv.invCount : "")].concat(INV_SLOTS.filter(k => dsInv["inv" + k + "Model"]).map(k => dsInv["inv" + k + "Model"] + " × " + dsInv["inv" + k + "Count"])).join(" + ") : "";
+  const dsPan = dsSys && dsSys.panelModel && (window.BOQ.PANELS || []).some(p => p.model === dsSys.panelModel) ? dsSys.panelModel : "";
+  React.useEffect(() => {
+    if (!dsInv || b.invSrc === "boq") return;
+    if (Object.keys(dsInv).some(k => String(b[k] == null ? "" : b[k]) !== String(dsInv[k]))) setB(p => Object.assign({}, p, dsInv));
+    setQPick(o => o.inv ? o : Object.assign({}, o, {
+      inv: true
+    }));
+  }, [dsInvKey, b.invSrc]);
+  React.useEffect(() => {
+    if (!dsPan || b.panSrc === "boq") return;
+    if (b.panelModel !== dsPan) setB(p => Object.assign({}, p, {
+      panelModel: dsPan
+    }));
+    setQPick(o => o.pan ? o : Object.assign({}, o, {
+      pan: true
+    }));
+  }, [dsPan, b.panSrc]);
+  const invFromDs = !!dsInv && b.invSrc !== "boq",
+    panFromDs = !!dsPan && b.panSrc !== "boq";
+  const invDdVal = invFromDs ? "__design" : qPick.inv ? b.inverterModel || "" : "__unset";
+  const invDdOpts = (dsInv ? [{
+    value: "__design",
+    label: "ตามออกแบบระบบ — " + dsInvLabel
+  }] : []).concat(invOptions);
+  const pickInv = v => {
+    setQPick(o => Object.assign({}, o, {
+      inv: true
+    }));
+    if (v === "__design") {
+      setB(p => Object.assign({}, p, dsInv || {}, {
+        invSrc: ""
+      }));
+      return;
+    }
+    setB(p => Object.assign({}, p, {
+      inverterModel: v,
+      invSrc: dsInv ? "boq" : p.invSrc
+    }));
+  };
+  const panDdVal = panFromDs ? "__design" : qPick.pan ? b.panelModel : "__unset";
+  const panDdOpts = (dsPan ? [{
+    value: "__design",
+    label: "ตามออกแบบระบบ — " + dsPan
+  }] : []).concat(window.BOQ.PANELS.map(p => ({
+    value: p.model,
+    label: p.model,
+    sub: p.wp ? p.wp + "W" : "",
+    group: p.group || ""
+  })));
+  const pickPan = v => {
+    setQPick(o => Object.assign({}, o, {
+      pan: true
+    }));
+    if (v === "__design") {
+      setB(p => Object.assign({}, p, {
+        panelModel: dsPan,
+        panSrc: ""
+      }));
+      return v;
+    }
+    setB(p => Object.assign({}, p, {
+      panelModel: v,
+      panSrc: dsPan ? "boq" : p.panSrc
+    }));
+    return v;
+  };
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -6370,34 +6455,22 @@ function BOQEditor({
     }, React.createElement(Field, {
       label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07"
     }, React.createElement(Dropdown, {
-      value: qPick.pan ? b.panelModel : "__unset",
+      value: panDdVal,
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014",
       onChange: v => {
-        setQPick(o => Object.assign({}, o, {
-          pan: true
-        }));
-        set("panelModel", v);
-        const w = +((window.BOQ.findPanel(v) || {}).wp || 0);
+        const m = v === "__design" ? dsPan : v;
+        pickPan(v);
+        const w = +((window.BOQ.findPanel(m) || {}).wp || 0);
         if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil(+qKw * 1000 / w));
       },
-      options: window.BOQ.PANELS.map(p => ({
-        value: p.model,
-        label: p.model,
-        sub: p.wp ? p.wp + "W" : "",
-        group: p.group || ""
-      }))
+      options: panDdOpts
     }))), React.createElement(Field, {
       label: "อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")
     }, React.createElement(Dropdown, {
-      value: qPick.inv ? b.inverterModel || "" : "__unset",
+      value: invDdVal,
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014",
-      onChange: v => {
-        setQPick(o => Object.assign({}, o, {
-          inv: true
-        }));
-        set("inverterModel", v);
-      },
-      options: invOptions
+      onChange: pickInv,
+      options: invDdOpts
     })), !qPick.inv ? React.createElement("div", null) : !b.inverterModel ? React.createElement(Field, {
       label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
     }, React.createElement(Dropdown, {
@@ -6651,17 +6724,12 @@ function BOQEditor({
       gap: 12
     }
   }, React.createElement(Field, {
-    label: "อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")
+    label: "อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (invFromDs ? " · ตามออกแบบระบบ" : jobBrand ? " · " + jobBrand : "")
   }, React.createElement(Dropdown, {
-    value: qPick.inv ? b.inverterModel || "" : "__unset",
+    value: invDdVal,
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014",
-    onChange: v => {
-      setQPick(o => Object.assign({}, o, {
-        inv: true
-      }));
-      set("inverterModel", v);
-    },
-    options: invOptions
+    onChange: pickInv,
+    options: invDdOpts
   })), !qPick.inv ? React.createElement("div", null) : !b.inverterModel ? React.createElement(Field, {
     label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
   }, React.createElement(Dropdown, {
@@ -6794,22 +6862,12 @@ function BOQEditor({
       gridColumn: isMobile ? "1 / -1" : "auto"
     }
   }, React.createElement(Field, {
-    label: "รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")
+    label: "รุ่นแผง" + (panFromDs ? " · ตามออกแบบระบบ" : jobPanel ? " · ตามฐานข้อมูล" : "")
   }, React.createElement(Dropdown, {
-    value: qPick.pan ? b.panelModel : "__unset",
+    value: panDdVal,
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014",
-    onChange: v => {
-      setQPick(o => Object.assign({}, o, {
-        pan: true
-      }));
-      set("panelModel", v);
-    },
-    options: window.BOQ.PANELS.map(p => ({
-      value: p.model,
-      label: p.model,
-      sub: p.wp ? p.wp + "W" : "",
-      group: p.group || ""
-    }))
+    onChange: pickPan,
+    options: panDdOpts
   }), panelOff && qPick.pan && React.createElement("div", {
     style: {
       marginTop: 6,

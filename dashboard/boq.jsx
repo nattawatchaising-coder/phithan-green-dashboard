@@ -3162,6 +3162,53 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      ("" ของอินเวอร์เตอร์ = ไมโคร จึงใช้ธงแยก ไม่ใช่ค่าว่าง) */
   const [qPick, setQPick] = React.useState(() => { const f = !!(quickNew || fresh); return { pan: !f, inv: !f }; });
   const qReady = qPick.pan && qPick.inv;
+  /* ── อินเวอร์เตอร์ / รุ่นแผง ตามหน้าออกแบบระบบ (sys ของแบบ 3D ที่ใบนี้ผูก) — ผู้ใช้ 2026-11-03 "ให้เลือกตามที่ออกแบบเลยได้ไหม ที่พวก Inverter Bat"
+     ท่าเดียวกับแบต: ค่าเริ่ม "ตามออกแบบระบบ" ดึงรุ่น + จำนวน (รุ่นที่ 2–4 · ไมโคร = อัตรา) มาให้เอง
+     เลือกรุ่นอื่นในหน้านี้ = invSrc / panSrc "boq" เลิกดึงจากแบบ จนกว่าจะเลือก "ตามออกแบบระบบ" กลับ · แบบที่ยังไม่ได้เลือกรุ่น (หรือรุ่นไม่มีในคลัง) = เลือกเองเหมือนเดิม */
+  const dsSys = (plan3d && plan3d.sys) || null;
+  const dsMicro = !!(dsSys && dsSys.mode === "micro");
+  const dsInvSpec = dsSys && !dsMicro && dsSys.invModel ? (window.BOQ.INVERTERS || []).find((x) => x.model === dsSys.invModel) : null;
+  let dsInv = null;
+  if (dsMicro || dsInvSpec) {
+    dsInv = { inverterModel: dsMicro ? "" : dsInvSpec.model, invCount: dsMicro ? 0 : Math.max(0, Math.round(+dsSys.invCount || 0)) };
+    if (dsMicro && dsSys.microRatio) dsInv.microRatio = dsSys.microRatio;
+    INV_SLOTS.forEach((k) => {
+      const m = dsMicro ? "" : dsSys["inv" + k + "Model"] || "", c = Math.round(+dsSys["inv" + k + "Count"] || 0);
+      dsInv["inv" + k + "Model"] = m && c > 0 ? m : "";
+      if (m && c > 0) dsInv["inv" + k + "Count"] = c;
+    });
+  }
+  const dsInvKey = dsInv ? JSON.stringify(dsInv) : "";
+  const dsInvLabel = dsInv ? (dsMicro ? "ไมโคร" + (dsInv.microRatio ? " " + dsInv.microRatio : "")
+    : [dsInv.inverterModel + (dsInv.invCount ? " × " + dsInv.invCount : "")].concat(INV_SLOTS.filter((k) => dsInv["inv" + k + "Model"]).map((k) => dsInv["inv" + k + "Model"] + " × " + dsInv["inv" + k + "Count"])).join(" + ")) : "";
+  const dsPan = dsSys && dsSys.panelModel && (window.BOQ.PANELS || []).some((p) => p.model === dsSys.panelModel) ? dsSys.panelModel : "";
+  React.useEffect(() => {
+    if (!dsInv || b.invSrc === "boq") return;
+    if (Object.keys(dsInv).some((k) => String(b[k] == null ? "" : b[k]) !== String(dsInv[k]))) setB((p) => Object.assign({}, p, dsInv));
+    setQPick((o) => (o.inv ? o : Object.assign({}, o, { inv: true })));
+  }, [dsInvKey, b.invSrc]); // eslint-disable-line
+  React.useEffect(() => {
+    if (!dsPan || b.panSrc === "boq") return;
+    if (b.panelModel !== dsPan) setB((p) => Object.assign({}, p, { panelModel: dsPan }));
+    setQPick((o) => (o.pan ? o : Object.assign({}, o, { pan: true })));
+  }, [dsPan, b.panSrc]); // eslint-disable-line
+  const invFromDs = !!dsInv && b.invSrc !== "boq", panFromDs = !!dsPan && b.panSrc !== "boq";
+  const invDdVal = invFromDs ? "__design" : qPick.inv ? (b.inverterModel || "") : "__unset";
+  const invDdOpts = (dsInv ? [{ value: "__design", label: "ตามออกแบบระบบ — " + dsInvLabel }] : []).concat(invOptions);
+  const pickInv = (v) => {
+    setQPick((o) => Object.assign({}, o, { inv: true }));
+    if (v === "__design") { setB((p) => Object.assign({}, p, dsInv || {}, { invSrc: "" })); return; }
+    setB((p) => Object.assign({}, p, { inverterModel: v, invSrc: dsInv ? "boq" : p.invSrc }));
+  };
+  const panDdVal = panFromDs ? "__design" : qPick.pan ? b.panelModel : "__unset";
+  const panDdOpts = (dsPan ? [{ value: "__design", label: "ตามออกแบบระบบ — " + dsPan }] : [])
+    .concat(window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" })));
+  const pickPan = (v) => {
+    setQPick((o) => Object.assign({}, o, { pan: true }));
+    if (v === "__design") { setB((p) => Object.assign({}, p, { panelModel: dsPan, panSrc: "" })); return v; }
+    setB((p) => Object.assign({}, p, { panelModel: v, panSrc: dsPan ? "boq" : p.panSrc }));
+    return v;
+  };
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -3229,11 +3276,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                     : <BoqLocked value={b.panels} unit="แผง" num />}
                 </Field>
                 <div className="full"><Field label="รุ่นแผง">
-                  <Dropdown value={qPick.pan ? b.panelModel : "__unset"} placeholder="— เลือกรุ่นแผง —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { pan: true })); set("panelModel", v); const w = +((window.BOQ.findPanel(v) || {}).wp || 0); if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil((+qKw * 1000) / w)); }}
-                    options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
+                  <Dropdown value={panDdVal} placeholder="— เลือกรุ่นแผง —" onChange={(v) => { const m = v === "__design" ? dsPan : v; pickPan(v); const w = +((window.BOQ.findPanel(m) || {}).wp || 0); if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil((+qKw * 1000) / w)); }}
+                    options={panDdOpts} />
                 </Field></div>
                 <Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}>
-                  <Dropdown value={qPick.inv ? (b.inverterModel || "") : "__unset"} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { inv: true })); set("inverterModel", v); }} options={invOptions} />
+                  <Dropdown value={invDdVal} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={pickInv} options={invDdOpts} />
                 </Field>
                 {!qPick.inv ? <div /> : !b.inverterModel
                   ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
@@ -3374,8 +3421,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   จำนวนตัวของรุ่นที่สองกรอกเองเสมอ · รุ่นแรกคิดกำลังที่เหลือให้อัตโนมัติ
                   ที่นี่คือที่เดียวที่กรอก — กรอบ "ระบบ On-grid/Hybrid" ของแต่ละตัวดึงค่าจากตรงนี้ไปแสดง */}
               <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
-                <Field label={"อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")}>
-                  <Dropdown value={qPick.inv ? (b.inverterModel || "") : "__unset"} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { inv: true })); set("inverterModel", v); }} options={invOptions} />
+                <Field label={"อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (invFromDs ? " · ตามออกแบบระบบ" : jobBrand ? " · " + jobBrand : "")}>
+                  <Dropdown value={invDdVal} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={pickInv} options={invDdOpts} />
                 </Field>
                 {!qPick.inv ? <div /> : !b.inverterModel
                   ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
@@ -3431,9 +3478,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                 </div>
               )}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
-                <Field label={"รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")}>
-                  <Dropdown value={qPick.pan ? b.panelModel : "__unset"} placeholder="— เลือกรุ่นแผง —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { pan: true })); set("panelModel", v); }}
-                    options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
+                <Field label={"รุ่นแผง" + (panFromDs ? " · ตามออกแบบระบบ" : jobPanel ? " · ตามฐานข้อมูล" : "")}>
+                  <Dropdown value={panDdVal} placeholder="— เลือกรุ่นแผง —" onChange={pickPan} options={panDdOpts} />
                   {panelOff && qPick.pan && (
                     <div style={{ marginTop: 6, padding: "7px 9px", borderRadius: 9, background: "var(--tint-amber-bg)",
                       border: "1px solid var(--tint-amber-bd)", fontSize: 11.5, lineHeight: 1.55, color: "var(--text-1)" }}>
