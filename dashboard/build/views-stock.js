@@ -1633,10 +1633,19 @@ function StockView({
     onAddCat: stock.addCat,
     onRemoveCat: stock.removeCat,
     hint: itemForm.sizeOf ? "ก๊อปมาจาก “" + itemForm.sizeOf + "” — แก้เฉพาะตรงขนาด (ตัวอักษรอื่นต้องเหมือนเดิมเป๊ะ) ระบบจะรวมเป็นสินค้าเดียวกันให้เอง" : "",
-    img: imgs[itemForm.item.id],
-    onImage: d => stock.setImage(itemForm.item.id, d),
+    img: itemForm.isNew ? itemForm.pimg : imgs[itemForm.item.id],
+    onImage: d => itemForm.isNew ? setItemForm(p => Object.assign({}, p, {
+      pimg: d
+    })) : stock.setImage(itemForm.item.id, d),
     onSave: rec => {
-      stock.upsertItem(rec);
+      const pimg = itemForm.isNew && itemForm.pimg;
+      Promise.resolve(stock.upsertItem(pimg ? Object.assign({}, rec, {
+        img: true
+      }) : rec, {
+        isNew: itemForm.isNew
+      })).then(id => {
+        if (pimg && id) stock.setImage(id, pimg);
+      }).catch(e => console.error(e));
       setItemForm(null);
     },
     onClose: () => setItemForm(null)
@@ -5168,7 +5177,9 @@ function BrStockGap({
         if (x.elecType) rec.elecType = x.elecType;
         if (x.poles) rec.poles = x.poles;
         if (x.amp) rec.amp = x.amp;
-        stock.upsertItem(rec);
+        stock.upsertItem(rec, {
+          isNew: true
+        });
       });
       setBusy(false);
       setOpen(false);

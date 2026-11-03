@@ -453,9 +453,25 @@ function useStockStore() {
       aka: aka.filter(n => n && n !== rec.name)
     });
   };
-  const upsertItem = React.useCallback(rec0 => {
-    const rec = withAka(rec0);
+  const claimNew = (rec, tries) => _fbTx("stock/" + rec.id, cur => cur == null ? rec : undefined).then(r => {
+    if (r.committed) return rec.id;
+    if (tries >= 30) throw new Error("จองรหัสของในคลังไม่ได้: " + rec.id);
+    let max = 0;
+    (itemsRef.current || []).concat([{
+      id: rec.id
+    }]).forEach(x => {
+      const n = parseInt(String(x.id || "").replace(/\D/g, ""), 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+    return claimNew(Object.assign({}, rec, {
+      id: "IV-" + String(max + 1).padStart(2, "0")
+    }), tries + 1);
+  });
+  const upsertItem = React.useCallback((rec0, opt) => {
+    const isNew = !!(opt && opt.isNew);
+    const rec = isNew ? rec0 : withAka(rec0);
     if (_FB()) {
+      if (isNew || !(itemsRef.current || []).some(x => x.id === rec.id)) return claimNew(rec, 0);
       _fbSet("stock/" + rec.id, rec);
     } else {
       setItems(prev => {
@@ -466,6 +482,7 @@ function useStockStore() {
         return copy;
       });
     }
+    return Promise.resolve(rec.id);
   }, []);
   const [imgs, setImgs] = React.useState(() => _FB() ? {} : _lsGet(SF_STOCKIMG_KEY, {}));
   const [imgOn, setImgOn] = React.useState(false);

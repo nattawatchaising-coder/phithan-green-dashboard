@@ -3374,10 +3374,11 @@ function pgSldPro(doc, sheet, M) {
       const xC = X.sl + 0.4,
         eRx = 1.0,
         yLb = strY[strY.length - 1] - 2.2;
-      const rings = [];
+      const rings = [],
+        cap = SP ? window.BOQ.rssRingCap(SP, strK.reduce((t, k) => t + k, 0)) : Infinity;
       strK.forEach((k, i) => {
         const r = rings[rings.length - 1];
-        if (r && (!SP || r.n + k <= SP.strPerRing)) {
+        if (r && r.n + k <= cap) {
           r.b = i;
           r.n += k;
         } else rings.push({
@@ -3398,8 +3399,9 @@ function pgSldPro(doc, sheet, M) {
         }
         if (ri) pen.line(PG_SLD.ctsig, xC, strY[rings[ri - 1].b] - 2.2, xC, ya);
       });
-      const sg = /SUNGO/i.test(M.opt.model),
-        txN = n => (sg ? "SUNGO SD-" : "SD-") + n;
+      const tPre = SP ? SP.pre : "",
+        tCode = SP ? SP.code : "SD-",
+        txN = n => tPre + tCode + n;
       const nSD = no => SP ? Math.max(1, Math.ceil(byInv[no].reduce((t, r) => t + r.ins.length, 0) / SP.maxStr)) : 1;
       const sdOf = no => {
         let a = 1;
@@ -3422,7 +3424,7 @@ function pgSldPro(doc, sheet, M) {
         bm = (tD + tT) / 2;
       pen.rect(S, bx0, tB, W, tT - tB);
       pen.line(S, bx0, tD, bx1, tD);
-      const t1 = "TRANSMITTER" + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""),
+      const t1 = (SP && SP.box || "TRANSMITTER") + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""),
         t2 = txN(sdA) + (sdB > sdA ? " ~ " + sdB : "");
       pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, {
         align: 1,
@@ -3478,8 +3480,8 @@ function pgSldPro(doc, sheet, M) {
             const r = runs[runs.length - 1];
             if (r && k === r[1] + 1) r[1] = k;else runs.push([k, k]);
           });
-          const pre = sg ? "SUNGO " : "",
-            sd = k => "SD-" + k;
+          const pre = tPre,
+            sd = k => tCode + k;
           const tt = "TO " + pre + runs.map(r => r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1])).join(", ");
           const xa = bL - 2.2,
             xt = xa - 1.4;

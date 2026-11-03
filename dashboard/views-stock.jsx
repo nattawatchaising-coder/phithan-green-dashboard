@@ -772,8 +772,16 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} items={stock.items} onAddCat={stock.addCat} onRemoveCat={stock.removeCat}
         hint={itemForm.sizeOf ? "ก๊อปมาจาก “" + itemForm.sizeOf + "” — แก้เฉพาะตรงขนาด (ตัวอักษรอื่นต้องเหมือนเดิมเป๊ะ) ระบบจะรวมเป็นสินค้าเดียวกันให้เอง" : ""}
-        img={imgs[itemForm.item.id]} onImage={(d) => stock.setImage(itemForm.item.id, d)}
-        onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
+        /* ของใหม่: เก็บรูปไว้ในฟอร์มก่อน แล้วใส่ตามรหัสที่จองได้จริงตอนบันทึก (อีกเครื่องอาจเพิ่งใช้เลขเดิมไป — ใส่ทันทีจะไปทับรูปของชิ้นนั้น) */
+        img={itemForm.isNew ? itemForm.pimg : imgs[itemForm.item.id]}
+        onImage={(d) => (itemForm.isNew ? setItemForm((p) => Object.assign({}, p, { pimg: d })) : stock.setImage(itemForm.item.id, d))}
+        onSave={(rec) => {
+          const pimg = itemForm.isNew && itemForm.pimg;
+          Promise.resolve(stock.upsertItem(pimg ? Object.assign({}, rec, { img: true }) : rec, { isNew: itemForm.isNew }))
+            .then((id) => { if (pimg && id) stock.setImage(id, pimg); })
+            .catch((e) => console.error(e));
+          setItemForm(null);
+        }} onClose={() => setItemForm(null)} />}
       {detailItem && <ItemDetailModal item={(stock.items || []).find((x) => x.id === detailItem.id) || detailItem} img={imgs[detailItem.id]}
         variants={variantsOf(detailItem)} onPickVariant={setDetailItem}
         items={stock.items || []} imgs={imgs} onOpen={setDetailItem}
@@ -2021,7 +2029,7 @@ function BrStockGap({ stock }) {
           if (x.elecType) rec.elecType = x.elecType;
           if (x.poles) rec.poles = x.poles;
           if (x.amp) rec.amp = x.amp;
-          stock.upsertItem(rec);
+          stock.upsertItem(rec, { isNew: true });
         });
         setBusy(false); setOpen(false);
       });

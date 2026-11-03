@@ -377,9 +377,24 @@ function useStockStore() {
     return Object.assign({}, rec, { aka: aka.filter((n) => n && n !== rec.name) });
   };
 
-  const upsertItem = React.useCallback((rec0) => {
-    const rec = withAka(rec0);
+  /* ของชิ้นใหม่: รหัส IV-n แต่ละเครื่องคิดเองจากเลขสูงสุดที่เห็น — สองเครื่องเพิ่มพร้อมกันได้เลขเดียวกันแล้วตัวหลังเขียนทับตัวแรก
+     (ผู้ใช้ 2026-11-03 "เพิ่มของแบบพิมพ์เอง แต่ทำคนละเครื่องสองเครื่องในเวลาเดียวกันแล้วมันบัค เพิ่มทับกัน")
+     → จองรหัสด้วย transaction: ช่องว่างจึงเขียน · มีของคนอื่นแล้ว = ขยับไปเลขถัดไปแล้วลองใหม่ · คืน Promise ของรหัสที่ได้จริง */
+  const claimNew = (rec, tries) => _fbTx("stock/" + rec.id, (cur) => (cur == null ? rec : undefined)).then((r) => {
+    if (r.committed) return rec.id;
+    if (tries >= 30) throw new Error("จองรหัสของในคลังไม่ได้: " + rec.id);
+    let max = 0;
+    (itemsRef.current || []).concat([{ id: rec.id }]).forEach((x) => { const n = parseInt(String(x.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > max) max = n; });
+    return claimNew(Object.assign({}, rec, { id: "IV-" + String(max + 1).padStart(2, "0") }), tries + 1);
+  });
+
+  /* opt.isNew = ฟอร์มเพิ่มของใหม่ — ต้องบอกเอง: รหัสที่ได้ตอนเปิดฟอร์มอาจถูกอีกเครื่องใช้ไปแล้วระหว่างกรอก
+     (ถ้าดูแค่ว่ามีรหัสในรายการไหม จะกลายเป็น "แก้ของชิ้นนั้น" เขียนทับ + จดชื่อเก่าลง aka — เคยเกิดกับ IV-2611) */
+  const upsertItem = React.useCallback((rec0, opt) => {
+    const isNew = !!(opt && opt.isNew);
+    const rec = isNew ? rec0 : withAka(rec0);
     if (_FB()) {
+      if (isNew || !(itemsRef.current || []).some((x) => x.id === rec.id)) return claimNew(rec, 0);
       _fbSet("stock/" + rec.id, rec);
     } else {
       setItems((prev) => {
@@ -388,6 +403,7 @@ function useStockStore() {
         const copy = prev.slice(); copy[i] = Object.assign({}, prev[i], rec); return copy;
       });
     }
+    return Promise.resolve(rec.id);
   }, []);
 
   /* ── รูปสินค้า ──

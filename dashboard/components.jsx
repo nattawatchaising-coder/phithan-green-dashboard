@@ -499,7 +499,7 @@ function saveMatPrice(stock, opt, ctx) {
   }
   c.maxId += 1;
   const id = "IV-" + String(c.maxId).padStart(2, "0");
-  stock.upsertItem(Object.assign({ id: id, name: name, sku: sku, cat: catKey, unit: opt.unit || "", qty: 0, min: 0, loc: "", price: price }, vf));
+  stock.upsertItem(Object.assign({ id: id, name: name, sku: sku, cat: catKey, unit: opt.unit || "", qty: 0, min: 0, loc: "", price: price }, vf), { isNew: true });
   return id;
 }
 

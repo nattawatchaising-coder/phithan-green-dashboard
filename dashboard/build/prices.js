@@ -436,6 +436,8 @@ function AddPriceModal({
         min: 0,
         loc: "",
         price: +nf.price || 0
+      }, {
+        isNew: true
       });
     }
     onClose();

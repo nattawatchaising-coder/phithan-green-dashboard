@@ -832,7 +832,9 @@ function saveMatPrice(stock, opt, ctx) {
     min: 0,
     loc: "",
     price: price
-  }, vf));
+  }, vf), {
+    isNew: true
+  });
   return id;
 }
 function SearchPick({

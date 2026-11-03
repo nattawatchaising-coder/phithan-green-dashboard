@@ -2386,8 +2386,9 @@ function pgSldPro(doc, sheet, M) {
          ตัวส่งต่อเครื่อง = ceil(สตริง ÷ 10) เลขเรียงต่อกันทั้งงาน (sdOf) · รุ่นอื่นไม่รู้ข้อจำกัด = วงเดียว ตัวส่งเดียว */
       const SP = window.BOQ && window.BOQ.rssSpec ? window.BOQ.rssSpec({ rss: M.opt.rss }, M.opt.model) : null;
       const xC = X.sl + 0.4, eRx = 1.0, yLb = strY[strY.length - 1] - 2.2;
-      const rings = [];
-      strK.forEach((k, i) => { const r = rings[rings.length - 1]; if (r && (!SP || r.n + k <= SP.strPerRing)) { r.b = i; r.n += k; } else rings.push({ a: i, b: i, n: k }); });
+      /* AndSolar ADCU-M0: ≤ 10 สตริงวงเดียว เกินนั้น 2 วงเฉลี่ยกัน (วงละ ≤ 15) — rssRingCap */
+      const rings = [], cap = SP ? window.BOQ.rssRingCap(SP, strK.reduce((t, k) => t + k, 0)) : Infinity;
+      strK.forEach((k, i) => { const r = rings[rings.length - 1]; if (r && r.n + k <= cap) { r.b = i; r.n += k; } else rings.push({ a: i, b: i, n: k }); });
       rings.forEach((r, ri) => {
         const ya = strY[r.a] + 2.2, yb = strY[r.b] - 2.2, cy = (ya + yb) / 2, ry = (ya - yb) / 2;
         for (let k = 0; k < 48; k++) { const t0 = Math.PI * k / 24, t1 = Math.PI * (k + 1) / 24; pen.line(S, xC + eRx * Math.cos(t0), cy + ry * Math.sin(t0), xC + eRx * Math.cos(t1), cy + ry * Math.sin(t1)); }
@@ -2396,7 +2397,7 @@ function pgSldPro(doc, sheet, M) {
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
          C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
       /* ตัวส่งมีเลขตามเครื่องเสมอ SD-1 SD-2 … ป้าย TO บอกชัดว่าไปตัวไหน (ผู้ใช้สั่ง 2026-11-01) — Sungrow ใช้ SUNGO SD-n ตามแบบงานจริง */
-      const sg = /SUNGO/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" : "SD-") + n;
+      const tPre = SP ? SP.pre : "", tCode = SP ? SP.code : "SD-", txN = (n) => tPre + tCode + n;   // SUNGO SD-n · ADCU-n
       /* เลขตัวส่งของเครื่อง: [แรก, สุดท้าย] เรียงต่อกันทั้งงาน (เครื่องละ ceil(สตริง ÷ 10) ตัว) */
       const nSD = (no) => (SP ? Math.max(1, Math.ceil(byInv[no].reduce((t, r) => t + r.ins.length, 0) / SP.maxStr)) : 1);
       const sdOf = (no) => { let a = 1; for (const k of invNos) { if (k === no) return [a, a + nSD(k) - 1]; a += nSD(k); } return [a, a]; };
@@ -2406,7 +2407,7 @@ function pgSldPro(doc, sheet, M) {
       const tB = base + 17, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;
       pen.rect(S, bx0, tB, W, tT - tB);
       pen.line(S, bx0, tD, bx1, tD);
-      const t1 = "TRANSMITTER" + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""), t2 = txN(sdA) + (sdB > sdA ? " ~ " + sdB : "");
+      const t1 = ((SP && SP.box) || "TRANSMITTER") + (sdB > sdA ? " x" + (sdB - sdA + 1) : ""), t2 = txN(sdA) + (sdB > sdA ? " ~ " + sdB : "");
       pen.text(T, bx0 + W / 2, bm + 0.25, fitH(t1, TS.spec, W - 1), t1, { align: 1, valign: 1 });
       pen.text(T, bx0 + W / 2, bm - 0.25, fitH(t2, TS.tag, W - 1), t2, { align: 1, valign: 3 });
       const c1 = bx0 + W * 0.4, c2 = bx0 + W * 0.7, ch = TS.tag;
@@ -2438,7 +2439,7 @@ function pgSldPro(doc, sheet, M) {
       if (oth.length) {
         const runs = [];
         oth.forEach((k) => { const r = runs[runs.length - 1]; if (r && k === r[1] + 1) r[1] = k; else runs.push([k, k]); });
-        const pre = sg ? "SUNGO " : "", sd = (k) => "SD-" + k;
+        const pre = tPre, sd = (k) => tCode + k;
         const tt = "TO " + pre + runs.map((r) => (r[0] === r[1] ? sd(r[0]) : r[1] === r[0] + 1 ? sd(r[0]) + ", " + sd(r[1]) : sd(r[0]) + " ~ " + sd(r[1]))).join(", ");
         /* ออกข้างซ้ายกล่องปุ่ม ลูกศรชี้ซ้าย ป้ายชิดขวา — ทางขวามีสายดินอินเวอร์เตอร์ ไม่ให้ทับ (ผู้ใช้ชี้ 2026-11-01) */
         const xa = bL - 2.2, xt = xa - 1.4;

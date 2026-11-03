@@ -150,7 +150,7 @@ function AddPriceModal({ priceStore, stock, onClose }) {
     } else {
       let maxId = 0;
       stockItems.forEach((it) => { const m = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(m) && m > maxId) maxId = m; });
-      stock.upsertItem({ id: "IV-" + String(maxId + 1).padStart(2, "0"), name: name, sku: code, cat: nf.cat || "accessory", unit: nf.unit || "", qty: 0, min: 0, loc: "", price: +nf.price || 0 });
+      stock.upsertItem({ id: "IV-" + String(maxId + 1).padStart(2, "0"), name: name, sku: code, cat: nf.cat || "accessory", unit: nf.unit || "", qty: 0, min: 0, loc: "", price: +nf.price || 0 }, { isNew: true });
     }
     onClose();
   };
