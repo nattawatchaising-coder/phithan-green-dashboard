@@ -224,6 +224,15 @@ const P3S_OBS_LINE = { rail: 1, walkway: 1, sky: 1, pipe: 1, tray: 1 };
 /* ท่อน้ำ PPR / รางไฟ เดินใต้แผงบน Rail — ไม่ตัดแผง (ไม่อยู่ใน P3S_ON_ROOF) · ก๊อกบนท่อเก็บที่ o.taps = [{x,z} สัมพัทธ์ o.x/z]
    ก๊อกสูง ~20 ซม. เกินช่องใต้แผง → ตรงก๊อกติดแผงไม่ได้ (กรอบ ±P3S_TAP_KEEP รอบก๊อก ลง roof.obs id "ท่อ@k") */
 const P3S_TAP_KEEP = 0.25;
+/* ชนิดทางเดิน (ผู้ใช้ 2026-11-03 "เวลาวางบน3D ก็ให้เลือกว่าเป็นทางเดินแบบไหน") เก็บที่ o.wk — hdg = ตะแกรงเหล็กชุบ HDG · zam = แผ่น ZAM STEEL เจาะลายบั้ง
+   ไม่ได้เลือก = ตามหลังคาที่วาง (เมทัลชีท/แซนวิช = ZAM STEEL · อื่น ๆ = HDG ตามแบบมาตรฐาน (ผู้ใช้ "อันนี้คือ ชุบHDG" · "อันนี้คือ ZAM STEEL")) · ชุดแบบใช้เลือกแผ่นรายละเอียดทางเดินและรูปทางเดินในแผ่นติดตั้งแผง */
+const P3S_WALK_KIND = [["hdg", "ตะแกรงชุบ HDG"], ["zam", "ZAM STEEL"]];
+function p3sWalkKind(s, o) {
+  if (o && (o.wk === "hdg" || o.wk === "zam")) return o.wk;
+  const r = ((s && s.roofs) || []).find((r) => (r.obs || []).some((x) => x && (x.id === o.id || String(x.id).indexOf(o.id + "#") === 0)));
+  const m = r ? p3sRoofMat(r) : "";
+  return m === "metal" || m === "sandwich" ? "zam" : "hdg";
+}
 const P3S_PIPE_D = [[0.02, "20 มม. (½\")"], [0.025, "25 มม. (¾\")"], [0.032, "32 มม. (1\")"]];
 const P3S_TRAY_W = [[0.05, "5 ซม."], [0.1, "10 ซม."], [0.15, "15 ซม."], [0.2, "20 ซม."]];
 /* จุดบนเส้นที่ใกล้ w ที่สุด → { x, z, d, t: ทิศเส้นตรงนั้น } */
@@ -2097,7 +2106,9 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง หนา 10 ซม. วางบน Rail ขวาง (ทีละช่วง ปลายยื่นครึ่งความกว้างให้มุมต่อสนิท)
       const wLift = (x, z) => topY(x, z) == null ? 0.02 : supLift(x, z);
-      const W = Math.max(0.1, +o.d || 0.3), pos = [], sides = [], ln = [], wmat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6, side: THREE.DoubleSide });
+      // ZAM STEEL (o.wk) = แผ่นเหล็กสีเงินอ่อน · HDG = ตะแกรงเหล็กชุบสังกะสีสีเทา
+      const alu = p3sWalkKind(st, o) === "zam", WC = alu ? [0xd5d9df, 0xa3a9b2, 0x7b828c] : [0x9da3ab, 0x7c838c, 0x5d636b];
+      const W = Math.max(0.1, +o.d || 0.3), pos = [], sides = [], ln = [], wmat = new THREE.MeshStandardMaterial({ color: WC[0], roughness: 0.45, metalness: 0.5, side: THREE.DoubleSide });
       const LN = (p, q) => ln.push(p.x, p.y + 0.006, p.z, q.x, q.y + 0.006, q.z);
       for (let i = 1; i < P.length; i++) {
         const R = p3sSegRect(P[i - 1], P[i], W / 2, W / 2), Ls = Math.hypot(R[1].x - R[0].x, R[1].z - R[0].z), n = Math.max(1, Math.ceil(Ls / 0.5)), rows = [];
@@ -2113,9 +2124,9 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); gg.computeVertexNormals();
       const wm = add(new THREE.Mesh(gg, wmat)); wm.castShadow = true; wm.receiveShadow = true;
-      meshOf(sides, new THREE.MeshStandardMaterial({ color: 0xc99400, roughness: 0.7, side: THREE.DoubleSide }));
+      meshOf(sides, new THREE.MeshStandardMaterial({ color: WC[1], roughness: 0.7, side: THREE.DoubleSide }));
       const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
-      add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xa87900 })));
+      add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: WC[2] })));
       return;
     }
     if (T === "pipe" || T === "tray") {
@@ -2551,7 +2562,7 @@ const P3S_OBS_TIP = {
   vent: "ปล่องดูดควัน ท่อกลม + ฝาครอบ · แตะบนหลังคา = วาง · แผงเว้นรอบ 15 ซม.",
   sky: "แผ่นหลังคาโปร่งแสงแนบหลังคา · คลิกทีละจุดต่อเป็นเส้น · ตรงช่องแสงติดแผงไม่ได้",
   rail: "ราวกันตกเสาทุก ≤ 2 ม. · คลิกทีละจุดต่อเป็นเส้น (ดูดเข้าขอบหลังคา)",
-  walkway: "ทางเดินตะแกรง FRP สีเหลือง · คลิกทีละจุดต่อเป็นเส้น · แผงเว้น 5 ซม.",
+  walkway: "ทางเดิน (ตะแกรงชุบ HDG / ZAM STEEL เลือกได้หลังวาง) · คลิกทีละจุดต่อเป็นเส้น · แผงเว้น 5 ซม.",
   ladder: "บันไดลิงมีกรง ขึ้นจากพื้นถึงหลังคา · แตะที่ขอบหลังคา ติดผนังด้านนอกเอง",
   mdb: "ตู้ MDB เดิมของลูกค้า (จุดเชื่อมระบบ) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
   invst: "จุดติดตั้งอินเวอร์เตอร์ (INVERTER STATION) — ระบุตำแหน่งลงผังติดตั้ง ไม่แสดงใน 3D",
@@ -5020,6 +5031,8 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
             {T === "tray" && <label className="p3s-fld" style={{ gridColumn: "1 / -1" }}><span className="lb">กว้างราง</span>
               <div className="p3s-seg full">{P3S_TRAY_W.map(([v, lb]) => <button key={v} type="button" data-on={Math.abs((+o.d || 0.1) - v) < 0.001 ? "1" : "0"} onClick={() => patchObs(o.id, { d: v }, "od")}>{lb}</button>)}</div></label>}
             {T === "tray" && <P3SNum label="กว้างราง (กำหนดเอง)" unit="ซม." step={5} min={5} max={100} digits={0} value={Math.round((+o.d || 0.1) * 100)} onChange={(v) => patchObs(o.id, { d: Math.max(0.05, Math.min(1, v / 100)) }, "od")} />}
+            {T === "walkway" && <label className="p3s-fld" style={{ gridColumn: "1 / -1" }}><span className="lb">ชนิดทางเดิน{o.wk ? "" : " (ตามหลังคา)"}</span>
+              <div className="p3s-seg full">{P3S_WALK_KIND.map(([v, lb]) => <button key={v} type="button" data-on={p3sWalkKind(st, o) === v ? "1" : "0"} onClick={() => patchObs(o.id, { wk: v }, "owk")}>{lb}</button>)}</div></label>}
             {(T === "walkway" || T === "sky") && <P3SNum label="กว้าง" unit="ม." step={0.05} min={0.2} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
             {T !== "walkway" && T !== "sky" && T !== "pipe" && T !== "tray" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
             {T !== "ladder" && <div className="p3s-fld"><span className="lb">ยาวรวม</span><b style={{ fontSize: 15, padding: "6px 2px" }}>{p3sR(p3sPathLen(p3sObsPath(o)), 10)} ม. <small style={{ fontWeight: 400 }}>· {p3sObsPath(o).length - 1} ช่วง</small></b></div>}
@@ -5038,7 +5051,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       </div>}
       <span className="p3s-note">{p3sObsType(o) === "rail" ? "ราวกันตกตั้งบนหลังคา เสาทุกมุมและทุก 2 ม. — แนวราวและรอบ ๆ 10 ซม. ติดแผงไม่ได้ · ลากจุดกลมบนผังเพื่อแก้แนว"
         : p3sObsType(o) === "sky" ? "หลังคาช่องแสงโปร่งแสง กว้าง 1 ม. แนบหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง · ลากจุดกลมบนผังเพื่อแก้แนว"
-        : p3sObsType(o) === "walkway" ? "ทางเดินตะแกรง (FRP) กว้าง 30 ซม. แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากจุดกลมบนผังเพื่อแก้แนว"
+        : p3sObsType(o) === "walkway" ? "ทางเดิน" + (p3sWalkKind(st, o) === "zam" ? " ZAM STEEL" : "ตะแกรงเหล็กชุบ HDG") + " กว้าง 30 ซม. แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากจุดกลมบนผังเพื่อแก้แนว"
         : p3sObsType(o) === "ladder" ? "บันไดลิงมีกรง ติดที่ขอบหลังคาเสมอ (ลากย้ายแล้วดูดเข้าขอบที่ใกล้สุด) — 3D ตั้งจากพื้นดินถึงหลังคาตรงนั้นเอง ราวจับยื่นเหนือขอบ 1.1 ม. · จุดขึ้นบนหลังคาเว้นไม่ติดแผง 40 ซม."
         : P3S_ON_ROOF[p3sObsType(o)] != null
         ? (p3sObsType(o) === "sky" ? "แนบไปกับหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง" : "ตั้งบนหลังคา — ตรงนี้และรอบ ๆ 15 ซม. ติดแผงไม่ได้ (กรอบเส้นประแดง) · ความสูงใช้คำนวณเงาที่ตกบนแผงข้าง ๆ ดูได้ในมุมมอง 3D")

@@ -64,7 +64,10 @@ const DS_SET_EN = {
   PHOTO: "SITE PHOTO",
   MAT: "MATERIAL LIST",
   MOUNT: "TYPICAL MOUNTING STRUCTURE",
-  RACE: "CABLE TRAY & CONDUIT DETAIL"
+  RACE: "CABLE TRAY & CONDUIT DETAIL",
+  KLIP: "TYPICAL MOUNTING STRUCTURE (KLIPLOK)",
+  WALKH: "SERVICE WALKWAY DETAIL (HDG)",
+  WALKZ: "SERVICE WALKWAY DETAIL (ZAM STEEL)"
 };
 const DS_SET_GROUP = {
   COVER: "COVER",
@@ -81,6 +84,9 @@ const DS_SET_GROUP = {
   WALK: "MECHANICAL",
   SAFETY: "MECHANICAL",
   MOUNT: "MECHANICAL",
+  KLIP: "MECHANICAL",
+  WALKH: "MECHANICAL",
+  WALKZ: "MECHANICAL",
   RACE: "MECHANICAL",
   WATER: "WATER",
   PHOTO: "SITE",
@@ -1011,6 +1017,7 @@ function dsWalkSheet(st, job, media) {
   const rows = [["NO.", "WIDTH", "LENGTH", "SHEET"]];
   let tot = 0,
     sh = 0;
+  const kinds = {};
   const lw = p3PanelLw(P.k);
   P.doc.layer("PG-OBS-WALKWAY", 40, "CONTINUOUS", lw);
   P.doc.layer("PG-OBS-WALKWAY-H", 40, "CONTINUOUS", lw > 13 ? 9 : 5);
@@ -1021,13 +1028,15 @@ function dsWalkSheet(st, job, media) {
       hw = Math.max(0.05, w / 2);
     for (let j = 1; j < pts.length; j++) p3WalkBand((Ly, a, b) => P.doc.line(Ly, a[0], a[1], b[0], b[1]), pts[j - 1], pts[j], hw, Math.max(hw * 0.6, 0.7 * P.k));
     dsTag(P, pts, "W" + (i + 1));
-    const n = Math.ceil(L / sl - 1e-9);
+    const wk = dsWalkKind(st, o);
+    kinds[wk] = 1;
+    const n = Math.ceil(L / (wk === "zam" ? 4 : sl) - 1e-9);
     tot += L;
     sh += n;
     rows.push(["W" + (i + 1), Math.round(w * 1000) + " mm.", L.toFixed(1) + " m.", n]);
   });
   rows.push(["TOTAL", obs.length + " RUN", tot.toFixed(1) + " m.", sh]);
-  dsRight(P, rows, [0.7, 1.6, 1.4, 1], ["ทางเดินตะแกรง FRP วางบน RAIL ขวาง ยึดด้วย END CLAMP — แผ่นยาว " + sl + " ม. (จำนวนแผ่นปัดขึ้นต่อแนว)", "แนวทางเดินต้องเข้าถึงแผงทุกกลุ่ม อินเวอร์เตอร์ และจุดล้างแผงได้", "ความยาวในตารางวัดจากแบบ 3D — ตรวจระยะจริงที่หน้างานก่อนสั่งของ"], [1, 1, 1, 1]);
+  dsRight(P, rows, [0.7, 1.6, 1.4, 1], [(kinds.hdg ? "ทางเดินตะแกรงเหล็กชุบ HDG วางบน RAIL ขวาง ยึดด้วย END CLAMP — แผ่นยาว " + sl + " ม." : "") + (kinds.hdg && kinds.zam ? " · " : "") + (kinds.zam ? "ทางเดิน ZAM STEEL วางบน RAIL ยึดด้วย L-FEET — แผ่นยาว 4.00 ม." : "") + " (จำนวนแผ่นปัดขึ้นต่อแนว)", "แนวทางเดินต้องเข้าถึงแผงทุกกลุ่ม อินเวอร์เตอร์ และจุดล้างแผงได้", "ความยาวในตารางวัดจากแบบ 3D — ตรวจระยะจริงที่หน้างานก่อนสั่งของ"], [1, 1, 1, 1]);
   return P.doc.build();
 }
 function dsSafetySheet(st, job, media) {
@@ -1737,11 +1746,163 @@ function dsRtmMetal(pen, x0, yT, sc, LY) {
     }
   }
 }
+const dsMat = r => typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal";
+function dsHasMat(st, mats) {
+  return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && mats.indexOf(dsMat(r)) >= 0);
+}
 function dsHasMetal(st) {
-  return (st.roofs || []).some(r => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
+  return dsHasMat(st, ["metal", "sandwich"]);
+}
+const dsWalkKind = (st, o) => typeof p3sWalkKind === "function" ? p3sWalkKind(st, o) : o.wk === "zam" ? "zam" : "hdg";
+const dsObsRoofs = (st, o) => (st.roofs || []).filter(r => (r.obs || []).some(x => x && (x.id === o.id || String(x.id).indexOf(o.id + "#") === 0)));
+function dsWalkKindFor(st, mats) {
+  const W = dsObs(st, "walkway");
+  if (!W.length) return null;
+  return dsWalkKind(st, W.find(o => dsObsRoofs(st, o).some(r => mats.indexOf(dsMat(r)) >= 0)) || W[0]);
+}
+const DS_WALK_PLAN = {
+  zam: {
+    vec: "MOUNT",
+    rect: [201.7, 175.8, 225.7, 308.2],
+    box: [198.4, 175.5, 229, 308.5],
+    rib: [186.5, 193.8],
+    y: [170, 335]
+  },
+  hdg: {
+    vec: "KLIP",
+    rect: [204.3, 190.1, 227.2, 321.0],
+    box: [191.5, 189.8, 240.5, 321.3],
+    rib: [195.0, 198.6],
+    y: [175, 340]
+  }
+};
+const dsWalkRib = (W, t, b) => t === "g" && b[2] - b[0] < 0.05 && W.rib.some(x0 => {
+  const r = (b[0] - x0) / 10.925;
+  return Math.abs(r - Math.round(r)) * 10.925 < 0.08;
+});
+const dsWalkIn = (W, t, b) => b[0] >= W.box[0] && b[1] >= W.box[1] && b[2] <= W.box[2] && b[3] <= W.box[3] && !dsWalkRib(W, t, b);
+function dsWalkSwap(pen, cur, want, x0, yT, sc, LY) {
+  const A = DS_WALK_PLAN[cur],
+    B = DS_WALK_PLAN[want],
+    by = {};
+  dsVecEach(A.vec, (t, u, b) => {
+    if (!dsWalkRib(A, t, b) || b[0] < A.box[0] - 1 || b[0] > A.box[2] + 1 || b[1] < A.y[0] || b[3] > A.y[1]) return;
+    const k = b[0].toFixed(1);
+    (by[k] = by[k] || []).push([b[1], b[3]]);
+  });
+  Object.keys(by).forEach(k => {
+    const s = by[k].sort((p, q) => p[0] - q[0]);
+    for (let i = 1; i < s.length; i++) {
+      const g = s[i][0] - s[i - 1][1];
+      if (g > 0.05 && g < 2.5) pen.line(LY.g, x0 + +k * sc, yT - s[i - 1][1] * sc, x0 + +k * sc, yT - s[i][0] * sc);
+    }
+  });
+  const kx = (A.rect[2] - A.rect[0]) / (B.rect[2] - B.rect[0]),
+    ky = (A.rect[3] - A.rect[1]) / (B.rect[3] - B.rect[1]);
+  dsVecEach(B.vec, (t, u, b) => {
+    if (!dsWalkIn(B, t, b)) return;
+    const p = u.map(([X, Y]) => [x0 + (A.rect[0] + (X - B.rect[0]) * kx) * sc, yT - (A.rect[1] + (Y - B.rect[1]) * ky) * sc]),
+      L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) {
+      for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
+      return;
+    }
+    for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+  });
+}
+const DS_WALK_DET = {
+  hdg: {
+    vec: "WKFRP",
+    key: "WALKH",
+    slots: {
+      hb: [118, 229, 240, 383],
+      cl: [312, 240, 470, 388]
+    }
+  },
+  zam: {
+    vec: "WKZAM",
+    key: "WALKZ",
+    slots: {
+      lf: [205, 238, 280, 378],
+      sc: [385, 150, 445, 228]
+    }
+  }
+};
+const DS_FAST_SRC = {
+  hb: ["WKFRP", [118, 229, 240, 383]],
+  cl: ["WKFRP", [312, 240, 470, 388]],
+  lf: ["WKZAM", [205, 238, 280, 378]]
+};
+function dsWalkFast(st, kind) {
+  const s = {};
+  dsObs(st, "walkway").filter(o => dsWalkKind(st, o) === kind).forEach(o => {
+    const R = dsObsRoofs(st, o);
+    if (!R.length) s[kind === "zam" ? "lf" : "hb"] = 1;
+    R.forEach(r => {
+      const m = dsMat(r);
+      s[m === "metal" || m === "sandwich" ? "lf" : m === "kliplok" ? "cl" : "hb"] = 1;
+    });
+  });
+  return s;
+}
+function dsWalkDetSheet(st, job, media, kind) {
+  media = media || {};
+  const D = DS_WALK_DET[kind],
+    S = dsMm(st, job, media, D.key, null);
+  S.doc.layer("DS-WKD", 7, "CONTINUOUS", 13);
+  S.doc.layer("DS-WKD-G", 8, "CONTINUOUS", 9);
+  S.doc.layer("DS-WKD-L", 254, "CONTINUOUS", 5);
+  S.doc.layer("DS-WKD-D", 8, "CONTINUOUS", 13);
+  S.doc.layer("DS-WKD-W", 255, "CONTINUOUS", 9);
+  const LY = {
+    k: "DS-WKD",
+    g: "DS-WKD-G",
+    l: "DS-WKD-L",
+    d: "DS-WKD-D",
+    w: "DS-WKD-W"
+  };
+  const pen = S.pen,
+    A = S.A,
+    v = (window.DS_VEC || {})[D.vec];
+  if (!v) return S.doc.build();
+  const m = 3,
+    sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
+  const x0 = (A.x0 + A.x1 - v.w * sc) / 2,
+    yT = (A.y0 + A.y1 + v.h * sc) / 2;
+  const need = dsWalkFast(st, kind),
+    hide = [],
+    put = [];
+  if (kind === "hdg") {
+    const free = [];
+    if (!need.hb && (need.cl || need.lf)) {
+      hide.push(D.slots.hb);
+      free.push(D.slots.hb);
+    }
+    if (!need.cl && (need.hb || need.lf)) {
+      hide.push(D.slots.cl);
+      free.push(D.slots.cl);
+    }
+    if (need.lf && free.length) put.push(["lf", free.shift()]);
+  } else if (!need.lf && (need.hb || need.cl)) {
+    hide.push(D.slots.lf, D.slots.sc);
+    const ks = ["hb", "cl"].filter(k => need[k]),
+      R = [60, 234, 385, 380],
+      w = (R[2] - R[0]) / ks.length;
+    ks.forEach((k, i) => put.push([k, [R[0] + w * i, R[1], R[0] + w * (i + 1), R[3]]]));
+  }
+  dsVec(pen, D.vec, x0, yT, sc, LY, hide);
+  put.forEach(([k, dst]) => dsVecPut(pen, DS_FAST_SRC[k][0], DS_FAST_SRC[k][1], dst, x0, yT, sc, LY));
+  return S.doc.build();
 }
 const dsCutX = (C, x) => x <= C.x1 ? x : x >= C.x2 ? x - (C.x2 - C.x1) : C.x1;
-const dsCutIn = (C, b) => !!C && b[2] <= C.xmax && C.ys.some(r => b[1] >= r[0] && b[3] <= r[1]) && !(C.keep || []).some(k => b[0] >= k[0] && b[1] >= k[1] && b[2] <= k[2] && b[3] <= k[3]);
+const dsCutIn = (C, b) => {
+  if (!C || b[2] > C.xmax || (C.keep || []).some(k => b[0] >= k[0] && b[1] >= k[1] && b[2] <= k[2] && b[3] <= k[3])) return null;
+  const r = C.ys.find(r => b[1] >= r[0] && b[3] <= r[1]);
+  return r ? {
+    x1: r[2] != null ? r[2] : C.x1,
+    x2: r[3] != null ? r[3] : C.x2
+  } : null;
+};
 function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
   const a = (window.DS_VEC || {})[name];
   if (!a) return false;
@@ -1763,18 +1924,58 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
       b[3] = Math.max(b[3], Y);
       u.push([X, Y]);
     }
-    if (H.some(h => h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6 : b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
+    if (H.some(h => typeof h === "function" ? h(b, t) : h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6 : b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
     const ct = dsCutIn(cut, b);
-    if (ct && b[0] >= cut.x1 && b[2] <= cut.x2) return;
-    const p = u.map(([X, Y]) => [x0 + (ct ? dsCutX(cut, X) : X) * sc, yTop - Y * sc]);
+    if (ct && b[0] >= ct.x1 && b[2] <= ct.x2) return;
+    const tp = (X, Y) => [x0 + (ct ? dsCutX(ct, X) : X) * sc, yTop - Y * sc];
     const L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) {
+      const p = u.map(([X, Y]) => tp(X, Y));
+      for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
+      return;
+    }
+    for (let i = 1; i < u.length; i++) {
+      const A = u[i - 1],
+        B = u[i];
+      if (!ct) {
+        const P = tp(A[0], A[1]),
+          Q = tp(B[0], B[1]);
+        pen.line(L, P[0], P[1], Q[0], Q[1]);
+        continue;
+      }
+      const ts = [0, 1];
+      [ct.x1, ct.x2].forEach(xc => {
+        if ((A[0] - xc) * (B[0] - xc) < 0) ts.push((xc - A[0]) / (B[0] - A[0]));
+      });
+      ts.sort((m, n) => m - n);
+      const at = f => [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f];
+      for (let j = 1; j < ts.length; j++) {
+        const xm = at((ts[j - 1] + ts[j]) / 2)[0];
+        if (xm > ct.x1 + 1e-6 && xm < ct.x2 - 1e-6) continue;
+        const a = at(ts[j - 1]),
+          c = at(ts[j]),
+          P = tp(a[0], a[1]),
+          Q = tp(c[0], c[1]);
+        pen.line(L, P[0], P[1], Q[0], Q[1]);
+      }
+    }
+  });
+  return true;
+}
+function dsVecPut(pen, name, src, dst, x0, yTop, sc, LY) {
+  const k = Math.min((dst[2] - dst[0]) / (src[2] - src[0]), (dst[3] - dst[1]) / (src[3] - src[1]));
+  const ox = dst[0] + (dst[2] - dst[0] - (src[2] - src[0]) * k) / 2,
+    oy = dst[1] + (dst[3] - dst[1] - (src[3] - src[1]) * k) / 2;
+  dsVecEach(name, (t, u, b) => {
+    if (!(b[0] >= src[0] && b[1] >= src[1] && b[2] <= src[2] && b[3] <= src[3])) return;
+    const p = u.map(([X, Y]) => [x0 + (ox + (X - src[0]) * k) * sc, yTop - (oy + (Y - src[1]) * k) * sc]),
+      L = LY[t.toLowerCase()] || LY.k;
     if (t !== t.toLowerCase()) {
       for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]);
       return;
     }
     for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
   });
-  return true;
 }
 function dsVecFit(pen, name, F, bx, byTop, bw, bh, s, LY, Lf) {
   const a = (window.DS_VEC || {})[name];
@@ -1853,9 +2054,46 @@ function dsGndLayers(doc) {
   doc.layer("DS-GND-W", 255, "CONTINUOUS", 9);
 }
 const DS_MOUNT_TX = [[102.3, 119.2, 127.5, 126.3, "L"], [302.1, 119.2, 327.3, 126.3, "L"], [52.7, 142.1, 70.8, 149.2, "E"], [103, 142.1, 126.7, 149.2, "M"], [158.9, 142.1, 177, 149.2, "E"], [252.5, 142.1, 270.5, 149.2, "E"], [302.7, 142.1, 326.5, 149.2, "M"], [358.7, 142.1, 376.8, 149.2, "E"], [413.9, 206.2, 421.1, 229.1, "W", 1], [413.9, 272.3, 421.1, 295.1, "W", 1], [96, 211.1, 136.8, 215.8, "PV", 0, 1], [294.6, 211.1, 335.4, 215.8, "PV", 0, 1], [96, 277.2, 136.8, 281.8, "PV", 0, 1], [294.6, 277.2, 335.4, 281.8, "PV", 0, 1], [107.8, 218.8, 125.2, 223.3, "WP", 0, 1], [306.3, 218.8, 323.8, 223.3, "WP", 0, 1], [107.8, 284.9, 125.2, 289.5, "WP", 0, 1], [306.3, 284.9, 323.8, 289.5, "WP", 0, 1], [106.1, 393.3, 132.2, 400.3, "L"], [301.9, 393.3, 328, 400.3, "L"], [56.8, 417.6, 74.8, 424.8, "E"], [106.9, 417.6, 130.8, 424.8, "M"], [163.1, 417.6, 181.1, 424.8, "E"], [252.5, 417.6, 270.6, 424.8, "E"], [302.8, 417.6, 326.7, 424.8, "M"], [358.8, 417.6, 376.9, 424.8, "E"], [103.8, 546.7, 127.2, 553.8, "W"], [169.9, 546.7, 193.2, 553.8, "W"], [235.9, 546.7, 259.2, 553.8, "W"], [302.1, 546.7, 325.3, 553.8, "W"]];
+const DS_KLIP_TX = [[103.5, 124, 128.8, 131.2, "L"], [303.3, 124, 328.5, 131.2, "L"], [54.3, 146.9, 69.6, 154.1, "E"], [104.2, 146.9, 128.1, 154.1, "M"], [162.5, 146.9, 177.9, 154.1, "E"], [254.1, 146.9, 269.4, 154.1, "E"], [304.0, 146.9, 327.7, 154.1, "M"], [362.3, 146.9, 377.7, 154.1, "E"], [415.1, 211.1, 422.3, 233.9, "W", 1], [415.1, 277.1, 422.3, 300.0, "W", 1], [97.3, 216, 138, 220.6, "PV", 0, 1], [295.8, 216, 336.6, 220.6, "PV", 0, 1], [97.3, 282, 138, 286.7, "PV", 0, 1], [295.8, 282, 336.6, 286.7, "PV", 0, 1], [109, 223.7, 126.4, 228.3, "WP", 0, 1], [307.5, 223.7, 325, 228.3, "WP", 0, 1], [109, 289.7, 126.4, 294.3, "WP", 0, 1], [307.5, 289.7, 325, 294.3, "WP", 0, 1], [103.3, 393.9, 128.8, 401.1, "L"], [303.3, 393.9, 328.8, 401.1, "L"], [52.7, 418.3, 71.1, 425.4, "E"], [104.2, 418.3, 127.9, 425.4, "M"], [161.1, 418.3, 179.4, 425.4, "E"], [252.6, 418.3, 271.0, 425.4, "E"], [304.1, 418.3, 327.9, 425.4, "M"], [361.0, 418.3, 379.3, 425.4, "E"], [101.9, 549.5, 124.7, 556.7, "W"], [167.9, 549.5, 190.7, 556.7, "W"], [234.0, 549.5, 256.8, 556.7, "W"], [300.0, 549.5, 322.8, 556.7, "W"]];
 function dsMountSheet(st, job, media) {
+  return dsMountLike(st, job, media, {
+    key: "MOUNT",
+    vec: "MOUNT",
+    TX: DS_MOUNT_TX,
+    e: 526,
+    mats: ["metal", "sandwich"],
+    wk: "zam",
+    cut: {
+      x1: 187.8,
+      x2: 242.15,
+      xmax: 460,
+      ys: [[100, 366], [380, 503]],
+      keep: [[158, 328, 221, 350]]
+    },
+    cutHide: [[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]]
+  });
+}
+function dsKlipSheet(st, job, media) {
+  return dsMountLike(st, job, media, {
+    key: "KLIP",
+    vec: "KLIP",
+    TX: DS_KLIP_TX,
+    e: 491,
+    mats: ["kliplok"],
+    wk: "hdg",
+    cut: {
+      x1: 188,
+      x2: 242.63,
+      xmax: 460,
+      ys: [[100, 366, 188, 242.63], [380, 507, 188, 241.31]],
+      keep: [[170, 340, 222, 352]]
+    },
+    cutHide: [[225, 496, 285, 506]]
+  });
+}
+function dsMountLike(st, job, media, C) {
   media = media || {};
-  const S = dsMm(st, job, media, "MOUNT", null);
+  const S = dsMm(st, job, media, C.key, null);
   S.doc.layer("DS-MNT", 7, "CONTINUOUS", 13);
   S.doc.layer("DS-MNT-G", 8, "CONTINUOUS", 9);
   S.doc.layer("DS-MNT-L", 254, "CONTINUOUS", 5);
@@ -1863,7 +2101,7 @@ function dsMountSheet(st, job, media) {
   S.doc.layer("DS-MNT-W", 255, "CONTINUOUS", 9);
   const pen = S.pen,
     A = S.A,
-    v = (window.DS_VEC || {}).MOUNT;
+    v = (window.DS_VEC || {})[C.vec];
   if (!v) return S.doc.build();
   const m = 3,
     sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
@@ -1873,7 +2111,7 @@ function dsMountSheet(st, job, media) {
   const L = Math.round((+ps.length || 0) * 1000),
     W = Math.round((+ps.width || 0) * 1000),
     wp = +st.wp || 0;
-  const E = L ? Math.round(L * 526 / 2382) : 0;
+  const E = L ? Math.round(L * C.e / 2382) : 0;
   const val = {
     L,
     W,
@@ -1882,25 +2120,24 @@ function dsMountSheet(st, job, media) {
     PV: "PV MODULE",
     WP: wp ? wp + "W" : ""
   };
-  const TX = DS_MOUNT_TX.filter(t => val[t[4]]);
-  const cut = dsObs(st, "walkway").length ? null : {
-    x1: 187.8,
-    x2: 242.15,
-    xmax: 460,
-    ys: [[100, 366], [380, 503]],
-    keep: [[158, 328, 221, 350]]
-  };
-  const hide = cut ? TX.concat([[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]]) : TX;
-  dsVec(pen, "MOUNT", x0, yT, sc, {
-    k: "DS-MNT",
-    g: "DS-MNT-G",
-    l: "DS-MNT-L",
-    d: "DS-MNT-D",
-    w: "DS-MNT-W"
-  }, hide, cut);
+  const TX = C.TX.filter(t => val[t[4]]);
+  const wk = dsWalkKindFor(st, C.mats),
+    LY = {
+      k: "DS-MNT",
+      g: "DS-MNT-G",
+      l: "DS-MNT-L",
+      d: "DS-MNT-D",
+      w: "DS-MNT-W"
+    };
+  const cut = wk ? null : C.cut;
+  const swap = wk && wk !== C.wk && (window.DS_VEC || {})[DS_WALK_PLAN[wk].vec];
+  const hide = cut ? TX.concat(C.cutHide) : TX.slice();
+  if (swap) hide.push((b, t) => dsWalkIn(DS_WALK_PLAN[C.wk], t, b));
+  dsVec(pen, C.vec, x0, yT, sc, LY, hide, cut);
+  if (swap) dsWalkSwap(pen, C.wk, wk, x0, yT, sc, LY);
   TX.forEach(t => {
     const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]),
-      sx = x => ct ? dsCutX(cut, x) : x;
+      sx = x => ct ? dsCutX(ct, x) : x;
     const r = t[5] === 1,
       cx = x0 + (sx(t[0]) + sx(t[2])) / 2 * sc,
       cy = yT - (t[1] + t[3]) / 2 * sc,
@@ -2530,12 +2767,16 @@ function dsSheetDefs(st, job, design, imgs) {
   if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro") add("STRDET", "รูปการเดินสายสตริง", o => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", o => dsMountSheet(st, job, o));
+  if (dsHasMat(st, ["kliplok"])) add("KLIP", "รายละเอียดติดตั้งคลิปล็อก", o => dsKlipSheet(st, job, o));
   if (dsRaceParts(st).length) add("RACE", "รายละเอียดรางไฟ/ท่อไฟ", o => dsRaceSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", o => dsGroundSheet(st, job, o));
   add("GROUND2", "รายละเอียดต่อลงดิน", o => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
   if (dsObs(st, "pipe").length) add("WATER", "ผังท่อน้ำ", withImg(dsWaterSheet));
   if (dsObs(st, "walkway").length) add("WALK", "ผังทางเดิน", withImg(dsWalkSheet));
+  ["hdg", "zam"].forEach(k => {
+    if (dsObs(st, "walkway").some(o => dsWalkKind(st, o) === k)) add(DS_WALK_DET[k].key, "รายละเอียดติดตั้งทางเดิน " + (k === "zam" ? "ZAM STEEL" : "HDG"), o => dsWalkDetSheet(st, job, o, k));
+  });
   if (dsObs(st, "ladder").length || dsObs(st, "rail").length) add("SAFETY", "ผังบันได/ราวกันตก", withImg(dsSafetySheet));
   return D;
 }

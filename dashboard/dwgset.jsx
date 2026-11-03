@@ -33,14 +33,15 @@ const DS_SET_EN = {
   STRING: "STRING LAYOUT", STRDET: "PV STRING WIRING DETAIL", SLD: "SINGLE LINE DIAGRAM", CU: "CONSUMER UNIT CONNECTION", DC: "DC WIRING",
   GROUND: "GROUNDING DIAGRAM", GROUND2: "GROUNDING DETAIL", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
   SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST", MOUNT: "TYPICAL MOUNTING STRUCTURE",
-  RACE: "CABLE TRAY & CONDUIT DETAIL",
+  RACE: "CABLE TRAY & CONDUIT DETAIL", KLIP: "TYPICAL MOUNTING STRUCTURE (KLIPLOK)",
+  WALKH: "SERVICE WALKWAY DETAIL (HDG)", WALKZ: "SERVICE WALKWAY DETAIL (ZAM STEEL)",
 };
 
 /* หมวดของแต่ละแผ่นในไฟล์รวม (pgCombine groups) — แผ่นหมวดเดียวกันอยู่แถว/กรอบเดียวกัน */
 const DS_SET_GROUP = {
   COVER: "COVER", NOTES: "COVER", PLAN: "LAYOUT", PANEL: "LAYOUT", STRING: "LAYOUT",
   STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL", GROUND2: "ELECTRICAL",
-  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", RACE: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
+  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", KLIP: "MECHANICAL", WALKH: "MECHANICAL", WALKZ: "MECHANICAL", RACE: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
 };
 
 /* ── ช่วยเรื่องข้อความ/หมายเหตุ (มม.บนกระดาษ) ── */
@@ -633,6 +634,7 @@ function dsWalkSheet(st, job, media) {
   try { sl = B.walkLenOf ? +B.walkLenOf(job && job.boq) || 2.44 : 2.44; } catch (e) { sl = 2.44; }
   const rows = [["NO.", "WIDTH", "LENGTH", "SHEET"]];
   let tot = 0, sh = 0;
+  const kinds = {};
   /* แถบลายตาข่ายไขว้เหลืองแบบผังติดตั้ง (ผู้ใช้ 2026-11-02 "ทำไมไม่เป็นแบบนี้") — แทนเส้นทึบหนา */
   const lw = p3PanelLw(P.k);
   P.doc.layer("PG-OBS-WALKWAY", 40, "CONTINUOUS", lw);
@@ -641,13 +643,15 @@ function dsWalkSheet(st, job, media) {
     const pts = dsPath(o), L = dsLen(pts), w = +o.d || 0.3, hw = Math.max(0.05, w / 2);
     for (let j = 1; j < pts.length; j++) p3WalkBand((Ly, a, b) => P.doc.line(Ly, a[0], a[1], b[0], b[1]), pts[j - 1], pts[j], hw, Math.max(hw * 0.6, 0.7 * P.k));
     dsTag(P, pts, "W" + (i + 1));
-    const n = Math.ceil(L / sl - 1e-9);
+    const wk = dsWalkKind(st, o); kinds[wk] = 1;
+    const n = Math.ceil(L / (wk === "zam" ? 4 : sl) - 1e-9);   // ZAM STEEL แผ่นยาว 4.00 ม. (แบบมาตรฐาน)
     tot += L; sh += n;
     rows.push(["W" + (i + 1), Math.round(w * 1000) + " mm.", L.toFixed(1) + " m.", n]);
   });
   rows.push(["TOTAL", obs.length + " RUN", tot.toFixed(1) + " m.", sh]);
   dsRight(P, rows, [0.7, 1.6, 1.4, 1], [
-    "ทางเดินตะแกรง FRP วางบน RAIL ขวาง ยึดด้วย END CLAMP — แผ่นยาว " + sl + " ม. (จำนวนแผ่นปัดขึ้นต่อแนว)",
+    (kinds.hdg ? "ทางเดินตะแกรงเหล็กชุบ HDG วางบน RAIL ขวาง ยึดด้วย END CLAMP — แผ่นยาว " + sl + " ม." : "")
+      + (kinds.hdg && kinds.zam ? " · " : "") + (kinds.zam ? "ทางเดิน ZAM STEEL วางบน RAIL ยึดด้วย L-FEET — แผ่นยาว 4.00 ม." : "") + " (จำนวนแผ่นปัดขึ้นต่อแนว)",
     "แนวทางเดินต้องเข้าถึงแผงทุกกลุ่ม อินเวอร์เตอร์ และจุดล้างแผงได้",
     "ความยาวในตารางวัดจากแบบ 3D — ตรวจระยะจริงที่หน้างานก่อนสั่งของ",
   ], [1, 1, 1, 1]);
@@ -1143,15 +1147,100 @@ function dsRtmMetal(pen, x0, yT, sc, LY) {
     }
   }
 }
-function dsHasMetal(st) {
-  return (st.roofs || []).some((r) => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
+const dsMat = (r) => (typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal");
+function dsHasMat(st, mats) {
+  return (st.roofs || []).some((r) => !r.p3sGround && p3Panels(r).count > 0 && mats.indexOf(dsMat(r)) >= 0);
+}
+function dsHasMetal(st) { return dsHasMat(st, ["metal", "sandwich"]); }
+/* ── ทางเดิน 2 ชนิด (ผู้ใช้ 2026-11-03 "ทางเดินจะมี 2 แบบ" · "อันนี้คือ ชุบHDG" · "อันนี้คือ ZAM STEEL") — เลือกในแบบ 3D (o.wk · p3sWalkKind) ── */
+const dsWalkKind = (st, o) => (typeof p3sWalkKind === "function" ? p3sWalkKind(st, o) : o.wk === "zam" ? "zam" : "hdg");
+const dsObsRoofs = (st, o) => (st.roofs || []).filter((r) => (r.obs || []).some((x) => x && (x.id === o.id || String(x.id).indexOf(o.id + "#") === 0)));
+/* ชนิดทางเดินของแผ่นติดตั้งแผง = ทางเดินเส้นแรกที่อยู่บนหลังคาวัสดุนั้น (ไม่มี = เส้นแรกของงาน) · ไม่มีทางเดินเลย = null */
+function dsWalkKindFor(st, mats) {
+  const W = dsObs(st, "walkway"); if (!W.length) return null;
+  return dsWalkKind(st, W.find((o) => dsObsRoofs(st, o).some((r) => mats.indexOf(dsMat(r)) >= 0)) || W[0]);
+}
+/* ทางเดินในผังแผ่นติดตั้งแผง (ผู้ใช้ "ส่วนใบติดตั้งแผงก็สามารถเปลี่ยนทางเดินได้"): แผ่นเมทัลชีท (MOUNT) ต้นฉบับเป็น ZAM STEEL · แผ่นคลิปล็อก (KLIP) เป็น HDG
+   ชนิดไม่ตรง = ซ่อนทางเดิน+รางรองของต้นฉบับ (กรอบ box ยกเว้นเส้นลอนหลังคา) แล้วยกทางเดินของอีกแผ่นมาวางกรอบ rect เดิม · ลอนที่เคยขาดใต้รางรองเดิมต่อให้
+   rib = จุดเริ่มเส้นลอนสองชุดในผัง (ห่าง 10.925 pt) */
+const DS_WALK_PLAN = {
+  zam: { vec: "MOUNT", rect: [201.7, 175.8, 225.7, 308.2], box: [198.4, 175.5, 229, 308.5], rib: [186.5, 193.8], y: [170, 335] },
+  hdg: { vec: "KLIP", rect: [204.3, 190.1, 227.2, 321.0], box: [191.5, 189.8, 240.5, 321.3], rib: [195.0, 198.6], y: [175, 340] },
+};
+const dsWalkRib = (W, t, b) => t === "g" && b[2] - b[0] < 0.05 && W.rib.some((x0) => { const r = (b[0] - x0) / 10.925; return Math.abs(r - Math.round(r)) * 10.925 < 0.08; });
+const dsWalkIn = (W, t, b) => b[0] >= W.box[0] && b[1] >= W.box[1] && b[2] <= W.box[2] && b[3] <= W.box[3] && !dsWalkRib(W, t, b);
+function dsWalkSwap(pen, cur, want, x0, yT, sc, LY) {
+  const A = DS_WALK_PLAN[cur], B = DS_WALK_PLAN[want], by = {};
+  dsVecEach(A.vec, (t, u, b) => {
+    if (!dsWalkRib(A, t, b) || b[0] < A.box[0] - 1 || b[0] > A.box[2] + 1 || b[1] < A.y[0] || b[3] > A.y[1]) return;
+    const k = b[0].toFixed(1); (by[k] = by[k] || []).push([b[1], b[3]]);
+  });
+  Object.keys(by).forEach((k) => {
+    const s = by[k].sort((p, q) => p[0] - q[0]);
+    for (let i = 1; i < s.length; i++) { const g = s[i][0] - s[i - 1][1]; if (g > 0.05 && g < 2.5) pen.line(LY.g, x0 + +k * sc, yT - s[i - 1][1] * sc, x0 + +k * sc, yT - s[i][0] * sc); }
+  });
+  const kx = (A.rect[2] - A.rect[0]) / (B.rect[2] - B.rect[0]), ky = (A.rect[3] - A.rect[1]) / (B.rect[3] - B.rect[1]);
+  dsVecEach(B.vec, (t, u, b) => {
+    if (!dsWalkIn(B, t, b)) return;
+    const p = u.map(([X, Y]) => [x0 + (A.rect[0] + (X - B.rect[0]) * kx) * sc, yT - (A.rect[1] + (Y - B.rect[1]) * ky) * sc]), L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) { for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]); return; }
+    for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
+  });
+}
+/* แผ่นรายละเอียดติดตั้งทางเดิน (ผู้ใช้ "เพิ่มใบดีเทลติดตั้งทางเดินด้วยนะ") — PDF "ทางเดิน ครีบล็อก" = HDG (WKFRP) · "ทางเดิน เมทรัน" = ZAM STEEL (WKZAM) (walkvec.js)
+   ตัวยึดตามหลังคาที่ทางเดินชนิดนั้นวางอยู่: HANGER BOLT = กระเบื้องลอนคู่/อื่น ๆ · CLIP LOCK = คลิปล็อก · L-FEET (+SCREW) = เมทัลชีท
+   ชิ้นที่งานไม่มีซ่อน · ชิ้นที่ต้องใช้แต่แผ่นนี้ไม่มี ยกจากอีกแผ่นมาวางช่องที่ว่าง (dsVecPut) — รูป DETAIL ยังเป็นของต้นฉบับ */
+const DS_WALK_DET = {
+  hdg: { vec: "WKFRP", key: "WALKH", slots: { hb: [118, 229, 240, 383], cl: [312, 240, 470, 388] } },
+  zam: { vec: "WKZAM", key: "WALKZ", slots: { lf: [205, 238, 280, 378], sc: [385, 150, 445, 228] } },
+};
+const DS_FAST_SRC = { hb: ["WKFRP", [118, 229, 240, 383]], cl: ["WKFRP", [312, 240, 470, 388]], lf: ["WKZAM", [205, 238, 280, 378]] };
+function dsWalkFast(st, kind) {
+  const s = {};
+  dsObs(st, "walkway").filter((o) => dsWalkKind(st, o) === kind).forEach((o) => {
+    const R = dsObsRoofs(st, o);
+    if (!R.length) s[kind === "zam" ? "lf" : "hb"] = 1;
+    R.forEach((r) => { const m = dsMat(r); s[m === "metal" || m === "sandwich" ? "lf" : m === "kliplok" ? "cl" : "hb"] = 1; });
+  });
+  return s;
+}
+function dsWalkDetSheet(st, job, media, kind) {
+  media = media || {};
+  const D = DS_WALK_DET[kind], S = dsMm(st, job, media, D.key, null);
+  S.doc.layer("DS-WKD", 7, "CONTINUOUS", 13); S.doc.layer("DS-WKD-G", 8, "CONTINUOUS", 9); S.doc.layer("DS-WKD-L", 254, "CONTINUOUS", 5);
+  S.doc.layer("DS-WKD-D", 8, "CONTINUOUS", 13); S.doc.layer("DS-WKD-W", 255, "CONTINUOUS", 9);
+  const LY = { k: "DS-WKD", g: "DS-WKD-G", l: "DS-WKD-L", d: "DS-WKD-D", w: "DS-WKD-W" };
+  const pen = S.pen, A = S.A, v = (window.DS_VEC || {})[D.vec];
+  if (!v) return S.doc.build();
+  const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
+  const x0 = (A.x0 + A.x1 - v.w * sc) / 2, yT = (A.y0 + A.y1 + v.h * sc) / 2;
+  const need = dsWalkFast(st, kind), hide = [], put = [];
+  if (kind === "hdg") {
+    const free = [];
+    if (!need.hb && (need.cl || need.lf)) { hide.push(D.slots.hb); free.push(D.slots.hb); }
+    if (!need.cl && (need.hb || need.lf)) { hide.push(D.slots.cl); free.push(D.slots.cl); }
+    if (need.lf && free.length) put.push(["lf", free.shift()]);
+  } else if (!need.lf && (need.hb || need.cl)) {
+    hide.push(D.slots.lf, D.slots.sc);   // ช่อง L-FEET เล็ก — วางชิ้นแทนในที่ว่างซ้ายของ NUTS (x 60–385) แบ่งครึ่งถ้าสองชิ้น
+    const ks = ["hb", "cl"].filter((k) => need[k]), R = [60, 234, 385, 380], w = (R[2] - R[0]) / ks.length;
+    ks.forEach((k, i) => put.push([k, [R[0] + w * i, R[1], R[0] + w * (i + 1), R[3]]]));
+  }
+  dsVec(pen, D.vec, x0, yT, sc, LY, hide);
+  put.forEach(([k, dst]) => dsVecPut(pen, DS_FAST_SRC[k][0], DS_FAST_SRC[k][1], dst, x0, yT, sc, LY));
+  return S.doc.build();
 }
 /* วาด DS_VEC[name] มุมซ้ายบนที่ (x0, yTop) บนกระดาษ (y ขึ้น) ย่อ/ขยาย sc มม. ต่อ pt · ชนิดเส้น k/g/l/d/w → ชั้น LY · ตัวใหญ่ = ระบายทึบ */
 /* hide = กรอบ [x0, y0, x1, y1] (pt ของภาพ) — เส้นที่อยู่ในกรอบทั้งเส้นไม่วาด (ใช้แทนตัวหนังสือด้วยค่าของงาน) · [x0, y0, x1, y1, "="] = เส้นที่กรอบตรงนี้พอดี */
-/* cut = { x1, x2, xmax, ys: [[y0, y1], …], keep: [กรอบที่ไม่แตะ] } (pt ในภาพ): ตัดแถบ x1..x2 ออกแล้วเลื่อนของทางขวาเข้ามาชิด — เฉพาะเส้นที่อยู่ในช่วง y และขวาสุดไม่เกิน xmax
-   (เส้นยาวที่พาดผ่านแถบหดสั้นลงเอง · เส้นที่อยู่ในแถบทั้งเส้นไม่วาด) ใช้เอาทางเดินระหว่างแผงออก */
+/* hide ใส่ฟังก์ชัน (b, ชนิด) ได้ด้วย = ซ่อนเส้นที่ฟังก์ชันตอบ true
+   cut = { x1, x2, xmax, ys: [[y0, y1, x1?, x2?], …], keep: [กรอบที่ไม่แตะ] } (pt ในภาพ): ตัดแถบ x1..x2 ออกแล้วเลื่อนของทางขวาเข้ามาชิด — เฉพาะเส้นที่อยู่ในช่วง y และขวาสุดไม่เกิน xmax
+   แต่ละช่วง y กำหนดแถบเองได้ (ลอนหลังคาในผังกับรูปตัดห่างไม่เท่ากัน — แถบต้องเป็นจำนวนเต็มลอน ต่อกันเนียน)
+   เส้นที่พาดผ่านแถบ = ตัดส่วนในแถบทิ้ง (ส่วนขวาเลื่อนมาต่อพอดี) · เส้นที่อยู่ในแถบทั้งเส้นไม่วาด · ใช้เอาทางเดินระหว่างแผงออก */
 const dsCutX = (C, x) => (x <= C.x1 ? x : x >= C.x2 ? x - (C.x2 - C.x1) : C.x1);
-const dsCutIn = (C, b) => !!C && b[2] <= C.xmax && C.ys.some((r) => b[1] >= r[0] && b[3] <= r[1]) && !(C.keep || []).some((k) => b[0] >= k[0] && b[1] >= k[1] && b[2] <= k[2] && b[3] <= k[3]);
+const dsCutIn = (C, b) => {
+  if (!C || b[2] > C.xmax || (C.keep || []).some((k) => b[0] >= k[0] && b[1] >= k[1] && b[2] <= k[2] && b[3] <= k[3])) return null;
+  const r = C.ys.find((r) => b[1] >= r[0] && b[3] <= r[1]);
+  return r ? { x1: r[2] != null ? r[2] : C.x1, x2: r[3] != null ? r[3] : C.x2 } : null;
+};
 function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
   const a = (window.DS_VEC || {})[name]; if (!a) return false;
   const q = a.q || 1, H = hide || [];
@@ -1159,16 +1248,41 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
     const t = c[0], n = c.slice(1).split(",").map(Number), u = [], b = [1e9, 1e9, -1e9, -1e9];
     for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1];
       const X = x / q, Y = y / q; b[0] = Math.min(b[0], X); b[1] = Math.min(b[1], Y); b[2] = Math.max(b[2], X); b[3] = Math.max(b[3], Y); u.push([X, Y]); }
-    if (H.some((h) => h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6
+    if (H.some((h) => typeof h === "function" ? h(b, t) : h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6
       : b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
     const ct = dsCutIn(cut, b);
-    if (ct && b[0] >= cut.x1 && b[2] <= cut.x2) return;
-    const p = u.map(([X, Y]) => [x0 + (ct ? dsCutX(cut, X) : X) * sc, yTop - Y * sc]);
+    if (ct && b[0] >= ct.x1 && b[2] <= ct.x2) return;
+    const tp = (X, Y) => [x0 + (ct ? dsCutX(ct, X) : X) * sc, yTop - Y * sc];
     const L = LY[t.toLowerCase()] || LY.k;
+    if (t !== t.toLowerCase()) { const p = u.map(([X, Y]) => tp(X, Y)); for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]); return; }
+    for (let i = 1; i < u.length; i++) {
+      const A = u[i - 1], B = u[i];
+      if (!ct) { const P = tp(A[0], A[1]), Q = tp(B[0], B[1]); pen.line(L, P[0], P[1], Q[0], Q[1]); continue; }
+      const ts = [0, 1];
+      [ct.x1, ct.x2].forEach((xc) => { if ((A[0] - xc) * (B[0] - xc) < 0) ts.push((xc - A[0]) / (B[0] - A[0])); });
+      ts.sort((m, n) => m - n);
+      const at = (f) => [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f];
+      for (let j = 1; j < ts.length; j++) {
+        const xm = at((ts[j - 1] + ts[j]) / 2)[0];
+        if (xm > ct.x1 + 1e-6 && xm < ct.x2 - 1e-6) continue;
+        const a = at(ts[j - 1]), c = at(ts[j]), P = tp(a[0], a[1]), Q = tp(c[0], c[1]);
+        pen.line(L, P[0], P[1], Q[0], Q[1]);
+      }
+    }
+  });
+  return true;
+}
+/* วาดเส้นของ DS_VEC[name] ที่อยู่ในกรอบ src (pt) ย่อ/ขยายให้พอดีกรอบ dst (pt ของภาพที่วาดอยู่ มุมซ้ายบน x0, yTop · sc มม./pt) จัดกลาง
+   ใช้ยกชิ้นอุปกรณ์จากแผ่นอื่นมาวางแทน (เช่น L-FEET จากแบบทางเดิน ZAM STEEL ลงแผ่นทางเดิน HDG) */
+function dsVecPut(pen, name, src, dst, x0, yTop, sc, LY) {
+  const k = Math.min((dst[2] - dst[0]) / (src[2] - src[0]), (dst[3] - dst[1]) / (src[3] - src[1]));
+  const ox = dst[0] + ((dst[2] - dst[0]) - (src[2] - src[0]) * k) / 2, oy = dst[1] + ((dst[3] - dst[1]) - (src[3] - src[1]) * k) / 2;
+  dsVecEach(name, (t, u, b) => {
+    if (!(b[0] >= src[0] && b[1] >= src[1] && b[2] <= src[2] && b[3] <= src[3])) return;
+    const p = u.map(([X, Y]) => [x0 + (ox + (X - src[0]) * k) * sc, yTop - (oy + (Y - src[1]) * k) * sc]), L = LY[t.toLowerCase()] || LY.k;
     if (t !== t.toLowerCase()) { for (let i = 1; i < p.length - 1; i++) pen.solid(L, p[0], p[i], p[i + 1]); return; }
     for (let i = 1; i < p.length; i++) pen.line(L, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1]);
   });
-  return true;
 }
 /* วาด DS_VEC[name] ลงกรอบ bw×bh (มุมซ้ายบน bx, byTop · มม.) ย่อ s มม./pt — F = กรอบรูปในภาพ [x0, y0, x1, y1] pt (ไม่วาด วาดกรอบใหม่แทน)
    ของในกรอบจัดกลางกรอบใหม่ · ชื่อรูปเหนือกรอบ (ล่างไม่เกิน F[1]) คงระยะจากขอบบน — กรอบ DETAIL ทุกรูปเท่ากัน (ผู้ใช้ "ปรับกรอบให้เท่ากันทั้ง 4") */
@@ -1227,13 +1341,40 @@ const DS_MOUNT_TX = [
   [252.5, 417.6, 270.6, 424.8, "E"], [302.8, 417.6, 326.7, 424.8, "M"], [358.8, 417.6, 376.9, 424.8, "E"],
   [103.8, 546.7, 127.2, 553.8, "W"], [169.9, 546.7, 193.2, 553.8, "W"], [235.9, 546.7, 259.2, 553.8, "W"], [302.1, 546.7, 325.3, 553.8, "W"],
 ];
+/* แผ่นคลิปล็อก (KLIP · kliplokvec.js จาก PDF "ครีบล็อก" ผู้ใช้ 2026-11-03 "ทำเวอร์ชั่นที่มีทางเดินละไม่มีทางเดินด้วย") — ผังเดียวกับแผ่นเมทัลชีท
+   ระยะปลาย-ราง 491 ของแผง 2382 · ระยะราง 1400 · ไม่มีทางเดิน: ผังตัด 5 ลอน (10.925 pt) · รูปตัด A ตัด 4 ลอน (13.328 pt) แถบเริ่ม x 188 */
+const DS_KLIP_TX = [
+  [103.5, 124, 128.8, 131.2, "L"], [303.3, 124, 328.5, 131.2, "L"],
+  [54.3, 146.9, 69.6, 154.1, "E"], [104.2, 146.9, 128.1, 154.1, "M"], [162.5, 146.9, 177.9, 154.1, "E"],
+  [254.1, 146.9, 269.4, 154.1, "E"], [304.0, 146.9, 327.7, 154.1, "M"], [362.3, 146.9, 377.7, 154.1, "E"],
+  [415.1, 211.1, 422.3, 233.9, "W", 1], [415.1, 277.1, 422.3, 300.0, "W", 1],
+  [97.3, 216, 138, 220.6, "PV", 0, 1], [295.8, 216, 336.6, 220.6, "PV", 0, 1], [97.3, 282, 138, 286.7, "PV", 0, 1], [295.8, 282, 336.6, 286.7, "PV", 0, 1],
+  [109, 223.7, 126.4, 228.3, "WP", 0, 1], [307.5, 223.7, 325, 228.3, "WP", 0, 1], [109, 289.7, 126.4, 294.3, "WP", 0, 1], [307.5, 289.7, 325, 294.3, "WP", 0, 1],
+  [103.3, 393.9, 128.8, 401.1, "L"], [303.3, 393.9, 328.8, 401.1, "L"],
+  [52.7, 418.3, 71.1, 425.4, "E"], [104.2, 418.3, 127.9, 425.4, "M"], [161.1, 418.3, 179.4, 425.4, "E"],
+  [252.6, 418.3, 271.0, 425.4, "E"], [304.1, 418.3, 327.9, 425.4, "M"], [361.0, 418.3, 379.3, 425.4, "E"],
+  [101.9, 549.5, 124.7, 556.7, "W"], [167.9, 549.5, 190.7, 556.7, "W"], [234.0, 549.5, 256.8, 556.7, "W"], [300.0, 549.5, 322.8, 556.7, "W"],
+];
 function dsMountSheet(st, job, media) {
+  /* งานไม่มีทางเดิน: เอาทางเดินระหว่างแผงออก (ผัง + SECTION-A + ป้าย WALKWAY) แผงชุดขวาเลื่อนมาชิด (ผู้ใช้ 2026-11-02 "ที่ไหนไม่มีทางเดินเอาออก ขยับแผงมาชิดกัน")
+     แถบตัด x 187.8–242.15 pt = 5 ลอนหลังคาพอดี (ลอนละ 10.87 · ตัดตรงรอยต่อลอน หลังคาต่อกันเนียน) เหลือช่องระหว่างแผง ~6 pt · ช่วง y = ผังบน (100–366 รวมเส้นตัด A · ป้าย RAIL R ซ้ายไม่แตะ) กับ SECTION-A (380–503 ไม่รวมชื่อรูป) · xmax 460 = รวมเส้นตัด B (x 456) ไปกับสัญลักษณ์ B แต่ไม่ถึงรูปรายละเอียดทางขวา (ผู้ใช้ชี้เส้น B ค้างที่เดิม)
+     ซ่อนทางเดิน SECTION-A ทีละชิ้น (ตัวทางเดิน · หัวลูกศร · เส้นชี้ · ตัวหนังสือ) — กรอบใหญ่กรอบเดียวเคยกินลอนหลังคากับตัวยึดแผงขวาไปด้วย (ผู้ใช้ "หลังคามันหายไป") */
+  return dsMountLike(st, job, media, { key: "MOUNT", vec: "MOUNT", TX: DS_MOUNT_TX, e: 526, mats: ["metal", "sandwich"], wk: "zam",
+    cut: { x1: 187.8, x2: 242.15, xmax: 460, ys: [[100, 366], [380, 503]], keep: [[158, 328, 221, 350]] },
+    cutHide: [[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]] });
+}
+function dsKlipSheet(st, job, media) {
+  return dsMountLike(st, job, media, { key: "KLIP", vec: "KLIP", TX: DS_KLIP_TX, e: 491, mats: ["kliplok"], wk: "hdg",
+    cut: { x1: 188, x2: 242.63, xmax: 460, ys: [[100, 366, 188, 242.63], [380, 507, 188, 241.31]], keep: [[170, 340, 222, 352]] },
+    cutHide: [[225, 496, 285, 506]] });
+}
+function dsMountLike(st, job, media, C) {
   media = media || {};
-  const S = dsMm(st, job, media, "MOUNT", null);
+  const S = dsMm(st, job, media, C.key, null);
   /* เส้นบางแบบต้นแบบ CAD */
   S.doc.layer("DS-MNT", 7, "CONTINUOUS", 13); S.doc.layer("DS-MNT-G", 8, "CONTINUOUS", 9); S.doc.layer("DS-MNT-L", 254, "CONTINUOUS", 5);
   S.doc.layer("DS-MNT-D", 8, "CONTINUOUS", 13); S.doc.layer("DS-MNT-W", 255, "CONTINUOUS", 9);
-  const pen = S.pen, A = S.A, v = (window.DS_VEC || {}).MOUNT;
+  const pen = S.pen, A = S.A, v = (window.DS_VEC || {})[C.vec];
   if (!v) return S.doc.build();
   /* ทั้งแผ่นของต้นฉบับ (รวมชื่อแผ่นมุมขวาล่าง) ย่อให้พอดีพื้นที่วาดของเรา */
   const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
@@ -1241,17 +1382,19 @@ function dsMountSheet(st, job, media) {
   /* ขนาดแผง/วัตต์ตามแผงที่งานใช้จริง (ผู้ใช้ 2026-11-02 "เปลี่ยนตามแบบที่ใช้จริง") — ระยะราง 526/1330 ปรับตามสัดส่วนความยาวแผงเดิม 2382 */
   const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
   const L = Math.round((+ps.length || 0) * 1000), W = Math.round((+ps.width || 0) * 1000), wp = +st.wp || 0;
-  const E = L ? Math.round(L * 526 / 2382) : 0;
+  const E = L ? Math.round(L * C.e / 2382) : 0;
   const val = { L, W, E, M: L - 2 * E, PV: "PV MODULE", WP: wp ? wp + "W" : "" };
-  const TX = DS_MOUNT_TX.filter((t) => val[t[4]]);
-  /* งานไม่มีทางเดิน: เอาทางเดินระหว่างแผงออก (ผัง + SECTION-A + ป้าย WALKWAY) แผงชุดขวาเลื่อนมาชิด (ผู้ใช้ 2026-11-02 "ที่ไหนไม่มีทางเดินเอาออก ขยับแผงมาชิดกัน")
-     แถบตัด x 187.8–242.15 pt = 5 ลอนหลังคาพอดี (ลอนละ 10.87 · ตัดตรงรอยต่อลอน หลังคาต่อกันเนียน) เหลือช่องระหว่างแผง ~6 pt · ช่วง y = ผังบน (100–366 รวมเส้นตัด A · ป้าย RAIL R ซ้ายไม่แตะ) กับ SECTION-A (380–503 ไม่รวมชื่อรูป) · xmax 460 = รวมเส้นตัด B (x 456) ไปกับสัญลักษณ์ B แต่ไม่ถึงรูปรายละเอียดทางขวา (ผู้ใช้ชี้เส้น B ค้างที่เดิม)
-     ซ่อนทางเดิน SECTION-A ทีละชิ้น (ตัวทางเดิน · หัวลูกศร · เส้นชี้ · ตัวหนังสือ) — กรอบใหญ่กรอบเดียวเคยกินลอนหลังคากับตัวยึดแผงขวาไปด้วย (ผู้ใช้ "หลังคามันหายไป") */
-  const cut = dsObs(st, "walkway").length ? null : { x1: 187.8, x2: 242.15, xmax: 460, ys: [[100, 366], [380, 503]], keep: [[158, 328, 221, 350]] };
-  const hide = cut ? TX.concat([[185, 184, 231, 196], [197, 462, 236.5, 468.65], [215, 462, 218, 468.2], [216, 468, 227.5, 496.5], [222, 490, 290, 500]]) : TX;
-  dsVec(pen, "MOUNT", x0, yT, sc, { k: "DS-MNT", g: "DS-MNT-G", l: "DS-MNT-L", d: "DS-MNT-D", w: "DS-MNT-W" }, hide, cut);
+  const TX = C.TX.filter((t) => val[t[4]]);
+  /* ไม่มีทางเดิน = ตัดแถบทางเดินออก · มีทางเดินคนละชนิดกับต้นฉบับ = เปลี่ยนรูปทางเดินในผัง */
+  const wk = dsWalkKindFor(st, C.mats), LY = { k: "DS-MNT", g: "DS-MNT-G", l: "DS-MNT-L", d: "DS-MNT-D", w: "DS-MNT-W" };
+  const cut = wk ? null : C.cut;
+  const swap = wk && wk !== C.wk && (window.DS_VEC || {})[DS_WALK_PLAN[wk].vec];
+  const hide = cut ? TX.concat(C.cutHide) : TX.slice();
+  if (swap) hide.push((b, t) => dsWalkIn(DS_WALK_PLAN[C.wk], t, b));
+  dsVec(pen, C.vec, x0, yT, sc, LY, hide, cut);
+  if (swap) dsWalkSwap(pen, C.wk, wk, x0, yT, sc, LY);
   TX.forEach((t) => {
-    const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]), sx = (x) => (ct ? dsCutX(cut, x) : x);
+    const ct = dsCutIn(cut, [t[0], t[1], t[2], t[3]]), sx = (x) => (ct ? dsCutX(ct, x) : x);
     const r = t[5] === 1, cx = x0 + (sx(t[0]) + sx(t[2])) / 2 * sc, cy = yT - (t[1] + t[3]) / 2 * sc, cap = (r ? t[2] - t[0] : t[3] - t[1]) * sc;
     pen.text(t[6] ? "DS-MNT-G" : PG_TBL.txt, cx, cy, cap / 0.72, String(val[t[4]]), { align: 1, valign: 2, rot: r ? 90 : 0 });
   });
@@ -1650,12 +1793,17 @@ function dsSheetDefs(st, job, design, imgs) {
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", (o) => dsMountSheet(st, job, o));   // ผู้ใช้ 2026-11-02 "เพิ่มหน้านี้ไปหน้า 9 สำหรับงานติดตั้งหลังคาเมทัลชีท"
+  if (dsHasMat(st, ["kliplok"])) add("KLIP", "รายละเอียดติดตั้งคลิปล็อก", (o) => dsKlipSheet(st, job, o));   // ผู้ใช้ 2026-11-03 PDF "ครีบล็อก"
   if (dsRaceParts(st).length) add("RACE", "รายละเอียดรางไฟ/ท่อไฟ", (o) => dsRaceSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", (o) => dsGroundSheet(st, job, o));
   add("GROUND2", "รายละเอียดต่อลงดิน", (o) => dsGroundDetSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
   if (dsObs(st, "pipe").length) add("WATER", "ผังท่อน้ำ", withImg(dsWaterSheet));
   if (dsObs(st, "walkway").length) add("WALK", "ผังทางเดิน", withImg(dsWalkSheet));
+  ["hdg", "zam"].forEach((k) => {   // แผ่นรายละเอียดติดตั้งทางเดินตามชนิดที่งานใช้ (ผู้ใช้ "เพิ่มใบดีเทลติดตั้งทางเดินด้วยนะ")
+    if (dsObs(st, "walkway").some((o) => dsWalkKind(st, o) === k))
+      add(DS_WALK_DET[k].key, "รายละเอียดติดตั้งทางเดิน " + (k === "zam" ? "ZAM STEEL" : "HDG"), (o) => dsWalkDetSheet(st, job, o, k));
+  });
   if (dsObs(st, "ladder").length || dsObs(st, "rail").length) add("SAFETY", "ผังบันได/ราวกันตก", withImg(dsSafetySheet));
   return D;
 }

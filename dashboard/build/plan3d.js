@@ -5901,11 +5901,14 @@ async function p3PrepSet(st, job, photos, design) {
     });
     add("STRDET");
     add("MOUNT");
+    add("KLIP");
     add("RACE");
     add("GROUND");
     add("GROUND2");
     add("TRAY");
     add("WALK");
+    add("WALKH");
+    add("WALKZ");
     add("SAFETY");
     add("WATER");
     if (ph.length) list.push({
