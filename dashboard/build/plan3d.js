@@ -5910,6 +5910,8 @@ async function p3PrepSet(st, job, photos, design) {
     add("WALKH");
     add("WALKZ");
     add("SAFETY");
+    add("LADA");
+    add("LADB");
     add("WATER");
     if (ph.length) list.push({
       key: "PHOTO",

@@ -4888,7 +4888,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const cc = off + cr - 0.05,
         y0 = Math.min(2.4, top * 0.6),
         hoops = [];
-      for (let y = y0; y <= top + 1.05; y += 0.9) hoops.push(y);
+      if (top > 5) for (let y = y0; y <= top + 1.05; y += 0.9) hoops.push(y);
       hoops.forEach(y => {
         const tor = new THREE.Mesh(new THREE.TorusGeometry(cr, 0.014, 6, 28), metal);
         tor.position.copy(P(cc, 0, y));

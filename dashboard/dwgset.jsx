@@ -32,7 +32,7 @@ const DS_SET_EN = {
   COVER: "COVER", NOTES: "GENERAL NOTES & LEGEND", PLAN: "OVERALL LAYOUT", PANEL: "PV MODULE LAYOUT",
   STRING: "STRING LAYOUT", STRDET: "PV STRING WIRING DETAIL", SLD: "SINGLE LINE DIAGRAM", CU: "CONSUMER UNIT CONNECTION", DC: "DC WIRING",
   GROUND: "GROUNDING DIAGRAM", GROUND2: "GROUNDING DETAIL", TRAY: "CABLE TRAY LAYOUT", WATER: "WATER PIPE LAYOUT", WALK: "WALKWAY LAYOUT",
-  SAFETY: "LADDER & GUARD RAIL", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST", MOUNT: "TYPICAL MOUNTING STRUCTURE",
+  SAFETY: "LADDER & GUARD RAIL", LADA: "SERVICE LADDER DETAIL (TYPE-A)", LADB: "SERVICE LADDER DETAIL (TYPE-B)", PHOTO: "SITE PHOTO", MAT: "MATERIAL LIST", MOUNT: "TYPICAL MOUNTING STRUCTURE",
   RACE: "CABLE TRAY & CONDUIT DETAIL", KLIP: "TYPICAL MOUNTING STRUCTURE (KLIPLOK)",
   WALKH: "SERVICE WALKWAY DETAIL (HDG)", WALKZ: "SERVICE WALKWAY DETAIL (ZAM STEEL)",
 };
@@ -41,7 +41,7 @@ const DS_SET_EN = {
 const DS_SET_GROUP = {
   COVER: "COVER", NOTES: "COVER", PLAN: "LAYOUT", PANEL: "LAYOUT", STRING: "LAYOUT",
   STRDET: "ELECTRICAL", SLD: "ELECTRICAL", DC: "ELECTRICAL", GROUND: "ELECTRICAL", GROUND2: "ELECTRICAL",
-  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", MOUNT: "MECHANICAL", KLIP: "MECHANICAL", WALKH: "MECHANICAL", WALKZ: "MECHANICAL", RACE: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
+  TRAY: "MECHANICAL", WALK: "MECHANICAL", SAFETY: "MECHANICAL", LADA: "MECHANICAL", LADB: "MECHANICAL", MOUNT: "MECHANICAL", KLIP: "MECHANICAL", WALKH: "MECHANICAL", WALKZ: "MECHANICAL", RACE: "MECHANICAL", WATER: "WATER", PHOTO: "SITE", MAT: "SITE",
 };
 
 /* ── ช่วยเรื่องข้อความ/หมายเหตุ (มม.บนกระดาษ) ── */
@@ -659,6 +659,30 @@ function dsWalkSheet(st, job, media) {
   ], [1, 1, 1, 1]);
   return P.doc.build();
 }
+/* ความสูงบันได = ขอบหลังคาที่ใกล้สุด (ไม่เกิน 5 ม. จากตัวบันได) ไม่งั้นค่าที่กรอก o.h · 0 = ไม่รู้ */
+function dsLadderH(st, o) {
+  const e = dsEaveAt(st, +o.x || 0, +o.z || 0);
+  return e && e.d < 5 ? e.y : (+o.h || 0);
+}
+/* แผ่นรายละเอียดบันได (ผู้ใช้ 2026-11-03 "ถ้ามีบรรได จะมีสองรูปแบบ คือไม่เกิน 5 เมตร จะไม่มีกันตก ถ้ามีจะมีกันตก")
+   laddervec.js: LADA = PDF "บันไดมีกันตก" (TYPE-A · สูงเกิน 5 ม.) · LADB = PDF "บันใด" (TYPE-B · ไม่เกิน 5 ม.) — งานมีบันไดทั้งสองแบบ = ออกทั้งสองแผ่น
+   ทั้งแผ่นตามต้นฉบับ (ระยะในรูปเป็นแบบมาตรฐาน) · รูป FRONT/SIDE VIEW · SECTION A/B · DETAIL A เป็นบล็อก CAD */
+const dsLadderKinds = (st) => { const k = {}; dsObs(st, "ladder").forEach((o) => { k[dsLadderH(st, o) > 5 ? "LADA" : "LADB"] = 1; }); return k; };
+function dsLadderDetSheet(st, job, media, key) {
+  media = media || {};
+  const S = dsMm(st, job, media, key, null);
+  S.doc.layer("DS-LAD", 7, "CONTINUOUS", 13); S.doc.layer("DS-LAD-G", 8, "CONTINUOUS", 9); S.doc.layer("DS-LAD-L", 254, "CONTINUOUS", 5);
+  S.doc.layer("DS-LAD-D", 8, "CONTINUOUS", 13); S.doc.layer("DS-LAD-W", 255, "CONTINUOUS", 9);
+  const LY = { k: "DS-LAD", g: "DS-LAD-G", l: "DS-LAD-L", d: "DS-LAD-D", w: "DS-LAD-W" };
+  const pen = S.pen, A = S.A, v = (window.DS_VEC || {})[key];
+  if (!v) return S.doc.build();
+  const m = 3, sc = Math.min((A.x1 - A.x0 - 2 * m) / v.w, (A.y1 - A.y0 - 2 * m) / v.h);
+  const x0 = (A.x0 + A.x1 - v.w * sc) / 2, yT = (A.y0 + A.y1 + v.h * sc) / 2;
+  pen.zones(dsVecZ("DS-" + key, DS_BLK[key], x0, yT, sc));
+  dsVec(pen, key, x0, yT, sc, LY);
+  pen.flush();
+  return S.doc.build();
+}
 function dsSafetySheet(st, job, media) {
   const lad = dsObs(st, "ladder"), rail = dsObs(st, "rail");
   const P = dsPlan(st, job, media, "SAFETY", { img: true });
@@ -671,10 +695,9 @@ function dsSafetySheet(st, job, media) {
     const at = (u, v) => [x + u * ca - v * sa, -(z + u * sa + v * ca)];
     doc.pline(DL("lad"), [at(-w / 2, -d / 2), at(w / 2, -d / 2), at(w / 2, d / 2), at(-w / 2, d / 2)], true);
     for (let j = 1; j < 3; j++) doc.line(DL("lad"), at(-w / 2, -d / 2 + d * j / 3)[0], at(-w / 2, -d / 2 + d * j / 3)[1], at(w / 2, -d / 2 + d * j / 3)[0], at(w / 2, -d / 2 + d * j / 3)[1]);
-    const e = dsEaveAt(st, x, z);
-    const H = e && e.d < 5 ? e.y : (+o.h || 0);
+    const H = dsLadderH(st, o);
     dsTagAt(P, x, -z, 0.7071, 0.7071, "L" + (i + 1));
-    rows.push(["L" + (i + 1), "CAT LADDER + SAFETY CAGE", H ? "H " + H.toFixed(1) + " m." : "-"]);
+    rows.push(["L" + (i + 1), H > 5 ? "CAT LADDER + SAFETY CAGE (TYPE-A)" : "CAT LADDER (TYPE-B)", H ? "H " + H.toFixed(1) + " m." : "-"]);
   });
   let tot = 0;
   rail.forEach((o, i) => {
@@ -1312,6 +1335,11 @@ const DS_BLK = {
     ["LADDER", [480.5, 344.3, 678.5, 553.3]], ["DETAIL-C", [777, 397, 926, 651]], ["SECTION-A", [32, 612, 757, 708]]],
 };
 DS_BLK.KLIP = DS_BLK.MOUNT;
+/* บันได TYPE-A (มีกันตก) / TYPE-B — dsLadderDetSheet */
+DS_BLK.LADA = [["SECTION-A", [632.7, 87.4, 935.9, 276]], ["FRONT-VIEW", [23.9, 79.2, 334, 681.5]], ["SIDE-VIEW", [335.5, 94.7, 666.7, 681.5]],
+  ["SECTION-B", [686.2, 303.6, 907.8, 442.2]], ["DETAIL-A", [750.7, 478.3, 959.4, 599.7]]];
+DS_BLK.LADB = [["SECTION-A", [637, 144.4, 940.3, 282]], ["FRONT-VIEW", [28.2, 139.2, 338, 609.7]], ["SIDE-VIEW", [340, 152.6, 671.1, 609.7]],
+  ["SECTION-B", [757.6, 306.6, 912.1, 448.6]], ["DETAIL-A", [755.1, 484.7, 963.7, 606]]];
 /* กรอบ pt ของภาพ (y ลง) → โซนบล็อก มม.บนกระดาษ (y ขึ้น) · ภาพวางมุมซ้ายบน (x0, yT) ย่อ sc มม./pt · เผื่อขอบ 1 pt */
 const dsVecZ = (pre, L, x0, yT, sc) => (L || []).map(([n, b]) => [pre + "-" + n, [x0 + (b[0] - 1) * sc, yT - (b[3] + 1) * sc, x0 + (b[2] + 1) * sc, yT - (b[1] - 1) * sc]]);
 /* วาด DS_VEC[name] ลงกรอบ bw×bh (มุมซ้ายบน bx, byTop · มม.) ย่อ s มม./pt — F = กรอบรูปในภาพ [x0, y0, x1, y1] pt (ไม่วาด วาดกรอบใหม่แทน)
@@ -1851,6 +1879,9 @@ function dsSheetDefs(st, job, design, imgs) {
       add(DS_WALK_DET[k].key, "รายละเอียดติดตั้งทางเดิน " + (k === "zam" ? "ZAM STEEL" : "HDG"), (o) => dsWalkDetSheet(st, job, o, k));
   });
   if (dsObs(st, "ladder").length || dsObs(st, "rail").length) add("SAFETY", "ผังบันได/ราวกันตก", withImg(dsSafetySheet));
+  const lk = dsLadderKinds(st);
+  if (lk.LADA) add("LADA", "รายละเอียดบันไดมีกันตก (สูงเกิน 5 ม.)", (o) => dsLadderDetSheet(st, job, o, "LADA"));
+  if (lk.LADB) add("LADB", "รายละเอียดบันได (ไม่เกิน 5 ม.)", (o) => dsLadderDetSheet(st, job, o, "LADB"));
   return D;
 }
 
