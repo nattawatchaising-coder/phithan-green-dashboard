@@ -302,6 +302,7 @@ const BQ_CSS = `
   .bq-foot .bq-btn.pri{flex:1.6}
 }
 `;
+const HOME_SOLAR_CU = "ตู้คอนซูเมอร์ยูนิต 6 ช่อง";
 const BQ_MERGE = [["info", "hybrid"], ["dc", "layout"], ["raceway", "tray"], ["site", "support", "struct"], ["labor", "permit", "om"]];
 const BQ_PAGE_TT = {
   info: "ข้อมูลระบบ & อินเวอร์เตอร์",
@@ -3615,9 +3616,9 @@ function BOQEditor({
     if (isHome && solAt > 0) {
       const cu = window.BOQ.homeCuOf ? window.BOQ.homeCuOf(job) : "slot",
         sv = job && job.survey || {};
-      const cuTxt = cu === "rccb" ? "เมนตู้บ้านเป็น RCCB (ใบสำรวจ) → เมนใหม่ในตู้บ้านเหนือ RCCB เดิม · MCB โซลาร์ในตู้ MDB SOLAR ใหม่ ต่อเข้าก่อน RCCB" : cu === "far" ? (sv.mdbSpace === "full" ? "ตู้บ้านเต็ม (ใบสำรวจ)" : "ตู้ AC โซลาร์ห่างตู้บ้าน " + sv.cableAc + " ม. > " + RU.homeCuFarM + " ม.") + " → ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าบัส" : "ตู้บ้านมีช่องว่าง → ใส่ MCB โซลาร์ในตู้บ้าน (TIE IN POSITION)";
+      const cuTxt = cu === "rccb" ? "เมนตู้บ้านเป็น RCCB (ใบสำรวจ) → ใช้เมนเดิมของบ้าน · MCB โซลาร์ในตู้ MDB SOLAR ใหม่ ต่อเข้าก่อน RCCB" : cu === "far" ? (sv.mdbSpace === "full" ? "ตู้บ้านเต็ม (ใบสำรวจ)" : "ตู้ AC โซลาร์ห่างตู้บ้าน " + sv.cableAc + " ม. > " + RU.homeCuFarM + " ม.") + " → ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าบัส" : "ตู้บ้านมีช่องว่าง → ใส่ MCB โซลาร์ในตู้บ้าน (TIE IN POSITION)";
       if (cu !== "slot") out.ac.push({
-        name: "ตู้ไฟ AC",
+        name: HOME_SOLAR_CU,
         qty: 1,
         unit: "ตู้",
         auto: 1,
@@ -3630,17 +3631,6 @@ function BOQEditor({
         auto: 1,
         why: "MCB โซลาร์ในตู้" + (cu === "slot" ? "บ้าน" : " MDB SOLAR") + " ขนาดเท่าเบรกเกอร์ตู้ AC " + solAt + " A · " + cuTxt
       });
-      if (cu === "rccb") {
-        const ex = +(String((job && job.permit || {}).mainAT || sv.mainBreaker || "").match(/\d+/) || [0])[0];
-        const at = ex ? (MCBH_AT[pole] || MCBH_AT["2P"]).find(x => x >= ex) : 0;
-        if (ex) out.ac.push({
-          name: at ? "MCB " + pole + " " + at + "A" : window.BOQ.mccbName(ex, "main"),
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: "เมนใหม่ในตู้บ้าน (เหนือ RCCB เดิม) ขนาดเท่าเมนเดิมของบ้าน " + ex + " A (ใบสำรวจ/ขออนุญาต)"
-        });else out.ac[out.ac.length - 1].why += " · ยังไม่ได้ใส่เมนใหม่ในตู้บ้าน — ใบสำรวจยังไม่กรอกขนาดเมนเดิม";
-      }
     }
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
     if (!(+projBoard.dc > 0)) out.dc.push({

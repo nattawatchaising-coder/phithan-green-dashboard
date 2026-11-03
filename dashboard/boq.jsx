@@ -314,6 +314,8 @@ const BQ_CSS = `
 /* หน้าในแถบซ้ายที่ยุบหลายหัวข้อรวมกัน — หัวข้อที่กรอกต่อเนื่องกันจริงอยู่หน้าเดียว ไม่ต้องกดสลับไปมา
    คีย์แรกของแต่ละชุด = คีย์ของหน้า (openSec เก็บคีย์หน้า) · หัวข้อที่ไม่อยู่ในชุดไหนเป็นหน้าของตัวเอง
    ข้างในยังเป็นการ์ดแยกตามหัวข้อเดิม สถานะของหน้า = รวมของทุกการ์ด */
+/* ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน (งานบ้าน far/rccb) — ชื่อตรงในคลัง (CHINT NX30-6G · ผู้ใช้ 2026-11-03) */
+const HOME_SOLAR_CU = "ตู้คอนซูเมอร์ยูนิต 6 ช่อง";
 const BQ_MERGE = [["info", "hybrid"], ["dc", "layout"], ["raceway", "tray"], ["site", "support", "struct"], ["labor", "permit", "om"]];
 const BQ_PAGE_TT = { info: "ข้อมูลระบบ & อินเวอร์เตอร์", dc: "สตริง DC & การจัดวางแผง", raceway: "ท่อร้อยสาย & รางไฟ",
   site: "หน้างาน & โครงสร้าง", labor: "ค่าแรง · ขออนุญาต · O&M" };
@@ -2111,20 +2113,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
           why: tag + "กันสายวัดแรงดัน" + (pmOn ? " PM2230" : "") + (gfSep ? (pmOn ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "") });
     });
     /* งานบ้าน: ต่อเข้าตู้ไฟบ้านลูกค้า 3 แบบตามใบสำรวจ (BOQ.homeCuOf — ตัวเดียวกับ SLD · ผู้ใช้ 2026-10-31)
-       slot = MCB โซลาร์ใส่ช่องว่างตู้บ้าน · far = ตู้ใหม่ข้างตู้บ้าน + MCB โซลาร์ · rccb = ตู้ใหม่เหนือ RCCB เดิม + เมนใหม่ (ขนาดเท่าเมนเดิม) + MCB โซลาร์ */
+       slot = MCB โซลาร์ใส่ช่องว่างตู้บ้าน · far/rccb = ตู้คอนซูเมอร์ใหม่ (MDB SOLAR) ข้างตู้บ้าน + MCB โซลาร์
+       rccb ไม่ใส่เมนใหม่แล้ว — ใช้เมนเดิมของบ้าน · ตู้ MDB SOLAR = ตู้คอนซูเมอร์ CHINT NX30-6G (ผู้ใช้ 2026-11-03 "ไม่ต้องมีตัวนี้ ในแบบเราใช้ของบ้านเลย แต่ต้องเพิ่มตู้ตัวนี้แทน")
+       ชื่อต้องตรงชื่อในคลัง (ราคาดึงด้วยชื่อ) */
     if (isHome && solAt > 0) {
       const cu = window.BOQ.homeCuOf ? window.BOQ.homeCuOf(job) : "slot", sv = (job && job.survey) || {};
-      const cuTxt = cu === "rccb" ? "เมนตู้บ้านเป็น RCCB (ใบสำรวจ) → เมนใหม่ในตู้บ้านเหนือ RCCB เดิม · MCB โซลาร์ในตู้ MDB SOLAR ใหม่ ต่อเข้าก่อน RCCB"
+      const cuTxt = cu === "rccb" ? "เมนตู้บ้านเป็น RCCB (ใบสำรวจ) → ใช้เมนเดิมของบ้าน · MCB โซลาร์ในตู้ MDB SOLAR ใหม่ ต่อเข้าก่อน RCCB"
         : cu === "far" ? (sv.mdbSpace === "full" ? "ตู้บ้านเต็ม (ใบสำรวจ)" : "ตู้ AC โซลาร์ห่างตู้บ้าน " + sv.cableAc + " ม. > " + RU.homeCuFarM + " ม.") + " → ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าบัส"
         : "ตู้บ้านมีช่องว่าง → ใส่ MCB โซลาร์ในตู้บ้าน (TIE IN POSITION)";
-      if (cu !== "slot") out.ac.push({ name: "ตู้ไฟ AC", qty: 1, unit: "ตู้", auto: 1, why: "ตู้ MDB SOLAR · " + cuTxt });
+      if (cu !== "slot") out.ac.push({ name: HOME_SOLAR_CU, qty: 1, unit: "ตู้", auto: 1, why: "ตู้ MDB SOLAR · " + cuTxt });
       out.ac.push({ name: "MCB " + pole + " " + solAt + "A", qty: 1, unit: "ตัว", auto: 1, why: "MCB โซลาร์ในตู้" + (cu === "slot" ? "บ้าน" : " MDB SOLAR") + " ขนาดเท่าเบรกเกอร์ตู้ AC " + solAt + " A · " + cuTxt });
-      if (cu === "rccb") {
-        const ex = +((String(((job && job.permit) || {}).mainAT || sv.mainBreaker || "").match(/\d+/) || [0])[0]);
-        const at = ex ? (MCBH_AT[pole] || MCBH_AT["2P"]).find((x) => x >= ex) : 0;
-        if (ex) out.ac.push({ name: at ? "MCB " + pole + " " + at + "A" : window.BOQ.mccbName(ex, "main"), qty: 1, unit: "ตัว", auto: 1, why: "เมนใหม่ในตู้บ้าน (เหนือ RCCB เดิม) ขนาดเท่าเมนเดิมของบ้าน " + ex + " A (ใบสำรวจ/ขออนุญาต)" });
-        else out.ac[out.ac.length - 1].why += " · ยังไม่ได้ใส่เมนใหม่ในตู้บ้าน — ใบสำรวจยังไม่กรอกขนาดเมนเดิม";
-      }
     }
     // ── DC ──
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
