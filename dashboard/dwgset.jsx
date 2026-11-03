@@ -182,6 +182,8 @@ function dsRight(P, rows, cols, notes, align, o) {
   if (ST) {
     tx = P.RX1 - Math.max(tw, o.wHead || 0);
     if (nh) { const vw = 4.5 + Math.max(...notes.map((t) => pgTextW(t, PG_TS.cell))) + 1; sN = { x: Math.max(P.RX0, Math.min(tx, P.RX1 - vw)), h: dsNoteH(notes, 1e4) }; }
+    /* ตาราง + หัว TOTAL ชิดซ้ายตรงขอบหมายเหตุ (ผู้ใช้ลากลูกศร 2026-11-03) */
+    if (sN) tx = sN.x;
     ty = Math.min(yTop, AR.y0 + 1 + (o.below || 0) + 6 + (sN ? sN.h + 8 : 0) + R.length * RH);
   }
   P.tbX = tx; P.tbTop = ty; P.notes = notes; P.noteMid = !!mid; P.tbW = tw; P.noteW = mid ? mid.w : 0;

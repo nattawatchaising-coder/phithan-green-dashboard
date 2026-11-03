@@ -305,6 +305,7 @@ function dsRight(P, rows, cols, notes, align, o) {
         h: dsNoteH(notes, 1e4)
       };
     }
+    if (sN) tx = sN.x;
     ty = Math.min(yTop, AR.y0 + 1 + (o.below || 0) + 6 + (sN ? sN.h + 8 : 0) + R.length * RH);
   }
   P.tbX = tx;
