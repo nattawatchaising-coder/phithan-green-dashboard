@@ -3365,7 +3365,7 @@ function pgSldPro(doc, sheet, M) {
       dBot = G.dBot - dDy;
     const dTop = top - 1.5 - dDy;
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
-    if (M.opt && M.opt.rsd && strY.length) {
+    if (M.opt && M.opt.rsd && !/\bSR\d+D\b/i.test(M.opt.model) && strY.length) {
       const xC = X.sl + 0.4,
         eRx = 1.0,
         yLt = strY[0] + 2.2,
@@ -3377,7 +3377,7 @@ function pgSldPro(doc, sheet, M) {
           t1 = Math.PI * (k + 1) / 24;
         pen.line(S, xC + eRx * Math.cos(t0), eCy + eRy * Math.sin(t0), xC + eRx * Math.cos(t1), eCy + eRy * Math.sin(t1));
       }
-      const sg = /\bSR\d+D\b/i.test(M.opt.model),
+      const sg = /SUNGO/i.test(M.opt.model),
         txN = n => (sg ? "SUNGO SD-" : "SD-") + n;
       const nxt = invNos[invNos.indexOf(b.no) + 1];
       const base = dBot - 26,

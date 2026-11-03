@@ -2378,8 +2378,9 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     /* Rapid Shutdown (Tigo TS4-A-F ฯลฯ): ตัวส่งสัญญาณ RSS ต้องมีคู่กับ RSD ทุกแผง (ผู้ใช้สั่ง 2026-11-01 "วาด RSS ด้วย")
        แกน (core) คล้องสายสตริงทุกเส้นช่วงตู้ DC → อินเวอร์เตอร์ · สายสัญญาณเส้นประจากแกนลงเข้ากล่อง RSS TRANSMITTER ในตู้ DC ใต้สตริงสุดท้าย (เหนือป้ายท้ายตู้) */
-    /* ทุกรุ่น RSD มีตัวส่ง — Sungrow SR20D-M ใช้ TRANSMITTER SUNGO SD-2 (ผู้ใช้ส่งแบบงานจริง 2026-11-01) · ชื่อจากคลัง (optRss) ก่อน */
-    if (M.opt && M.opt.rsd && strY.length) {
+    /* RSD มีตัวส่ง — SUNGO RSD-2 ใช้ TRANSMITTER SUNGO SD-n (ผู้ใช้ 2026-11-03 "ไม่ได้ใช้กับ Sungrow SR20D-M ตัวนี้นะ ใช้กับตัวนี้ SUNGO RSD-2")
+       Sungrow SR20D-M ใช้กับอินเวอร์เตอร์ Sungrow ที่ส่งสัญญาณเอง → ไม่มีกล่องตัวส่ง/แกนคล้องสาย/ปุ่มฉุกเฉินแยก (ผู้ใช้ "ไม่มี อินเวอร์เตอร์ส่งเอง") */
+    if (M.opt && M.opt.rsd && !/\bSR\d+D\b/i.test(M.opt.model) && strY.length) {
       /* แกนคล้องสายวงเดียวรอบสายสตริงทุกเส้น ก่อนเข้าตู้ DC (ตำแหน่งขีดคู่ ไม่วาดขีดคู่แล้ว · ตารางสรุปถอยซ้ายพ้นสาย C1 · ผู้ใช้วาดชี้ 2026-11-01 "ปกติจะคล้องก่อนเข้าตู้ DC") */
       const xC = X.sl + 0.4, eRx = 1.0, yLt = strY[0] + 2.2, yLb = strY[strY.length - 1] - 2.2;
       const eCy = (yLt + yLb) / 2, eRy = (yLt - yLb) / 2;
@@ -2387,7 +2388,7 @@ function pgSldPro(doc, sheet, M) {
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
          C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
       /* ตัวส่งมีเลขตามเครื่องเสมอ SD-1 SD-2 … ป้าย TO บอกชัดว่าไปตัวไหน (ผู้ใช้สั่ง 2026-11-01) — Sungrow ใช้ SUNGO SD-n ตามแบบงานจริง */
-      const sg = /\bSR\d+D\b/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" : "SD-") + n;
+      const sg = /SUNGO/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" : "SD-") + n;
       const nxt = invNos[invNos.indexOf(b.no) + 1];
       const base = dBot - 26, bx0 = X.dc0, bx1 = X.dc1, W = bx1 - bx0;   // นอกตู้ DC ใต้ขอบล่าง (ผู้ใช้ 2026-11-01)
       const tB = base + 17, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;

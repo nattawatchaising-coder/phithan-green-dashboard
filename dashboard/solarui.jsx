@@ -2853,8 +2853,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                       <span style={{ fontWeight: 600 }}>{optSel ? "ติดตั้ง" : "ไม่ได้ใช้"}</span></span>
                     <select className="p3-inp" value={S.optModel || ""} onChange={(e) => set({ optModel: e.target.value })}>
                       <option value="">— ไม่ใช้ตัวคุมแผง —</option>
-                      {(((window.BOQ || {}).OPTIMIZERS) || []).map((o) => <option key={o.model} value={o.model}>{o.model}</option>)}
+                      {(((window.BOQ || {}).OPTIMIZERS) || []).map((o) => {   // รุ่นที่ใช้กับอินเวอร์เตอร์ที่เลือกไม่ได้ (เช่น Sungrow SR20D-M กับอินเวอร์เตอร์ยี่ห้ออื่น) เลือกไม่ได้
+                        const f = window.BOQ.optimizerFits && S.invModel ? window.BOQ.optimizerFits(o.model, S.invModel) : { ok: true };
+                        return <option key={o.model} value={o.model} disabled={!f.ok && o.model !== S.optModel}>{o.model}{f.ok ? "" : f.brand ? " — ใช้กับอินเวอร์เตอร์ " + f.brand.replace(/^./, (c) => c.toUpperCase()) + " เท่านั้น" : " — ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้"}</option>;
+                      })}
                     </select>
+                    {S.optModel && S.invModel && window.BOQ.optimizerFits && !window.BOQ.optimizerFits(S.optModel, S.invModel).ok && (
+                      <span className="p3-note" style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>{S.optModel} ใช้กับอินเวอร์เตอร์ {S.invModel} ไม่ได้ — เลือกรุ่นอื่น (เช่น SUNGO RSD-2)</span>
+                    )}
                     {!((window.BOQ || {}).OPTIMIZERS || []).length && (
                       <span className="p3-note">ยังไม่มีรุ่นในคลัง — เพิ่มที่ คลังสินค้า › Smart Module Controller แล้วกรอกสเปคจากดาต้าชีต</span>
                     )}

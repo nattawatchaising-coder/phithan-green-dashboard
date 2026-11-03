@@ -5306,10 +5306,22 @@ function SolarWorkspace({
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 \u2014"), ((window.BOQ || {}).OPTIMIZERS || []).map(o => React.createElement("option", {
-    key: o.model,
-    value: o.model
-  }, o.model))), !((window.BOQ || {}).OPTIMIZERS || []).length && React.createElement("span", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 \u2014"), ((window.BOQ || {}).OPTIMIZERS || []).map(o => {
+    const f = window.BOQ.optimizerFits && S.invModel ? window.BOQ.optimizerFits(o.model, S.invModel) : {
+      ok: true
+    };
+    return React.createElement("option", {
+      key: o.model,
+      value: o.model,
+      disabled: !f.ok && o.model !== S.optModel
+    }, o.model, f.ok ? "" : f.brand ? " — ใช้กับอินเวอร์เตอร์ " + f.brand.replace(/^./, c => c.toUpperCase()) + " เท่านั้น" : " — ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้");
+  })), S.optModel && S.invModel && window.BOQ.optimizerFits && !window.BOQ.optimizerFits(S.optModel, S.invModel).ok && React.createElement("span", {
+    className: "p3-note",
+    style: {
+      color: "var(--tint-red-tx2)",
+      fontWeight: 700
+    }
+  }, S.optModel, " \u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C ", S.invModel, " \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E37\u0E48\u0E19 (\u0E40\u0E0A\u0E48\u0E19 SUNGO RSD-2)"), !((window.BOQ || {}).OPTIMIZERS || []).length && React.createElement("span", {
     className: "p3-note"
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E38\u0E48\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A Smart Module Controller \u0E41\u0E25\u0E49\u0E27\u0E01\u0E23\u0E2D\u0E01\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15"), optSel && optPlan && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {

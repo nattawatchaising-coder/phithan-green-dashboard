@@ -3113,9 +3113,13 @@
 
      ตารางว่าง = ยังไม่ได้กรอกในคลัง ไม่ใช่ "ใช้ไม่ได้" — คืน unknown ไว้
      ให้หน้าจอบอกว่ายังไม่มีข้อมูล ดีกว่าล็อกจนเลือกรุ่นนั้นไม่ได้เลย */
+  /* ยี่ห้อที่ล็อกกับอินเวอร์เตอร์ยี่ห้อเดียวกัน (ผู้ใช้ 2026-11-03 "Sungrow SR20D-M ใช้กับ Inverter Sungrow") — ตัวคุมยี่ห้ออื่น (SUNGO ฯลฯ) ใช้ได้ทุกยี่ห้อ */
+  const optBrand = (g, m) => { const s = (String(g || "") + " " + String(m || "")).toLowerCase(); return /sungrow/.test(s) ? "sungrow" : /huawei|sun2000/.test(s) ? "huawei" : ""; };
   function optimizerFits(model, invModel) {
     const o = findOptimizer(model);
     if (!o) return { ok: false, unknown: true, pair: null };
+    const ob = optBrand(o.group, o.model), inv = findInverter(invModel), ib = invModel ? optBrand(inv && inv.group, invModel) : "";
+    if (ob && ib && ob !== ib) return { ok: false, unknown: false, pair: null, brand: ob };
     const list = o.pairs || [];
     if (!list.length) return { ok: true, unknown: true, pair: null };
     const pair = list.find((r) => r.inv === invModel) || null;
