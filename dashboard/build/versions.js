@@ -849,6 +849,8 @@ function DvDwgModal({
   const [err, setErr] = React.useState("");
   const [i, setI] = React.useState(0);
   const [z, setZ] = React.useState(1);
+  const [busy, setBusy] = React.useState("");
+  const stRef = React.useRef(null);
   const boxRef = React.useRef(null),
     anchor = React.useRef(null),
     drag = React.useRef(null);
@@ -879,6 +881,7 @@ function DvDwgModal({
     window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then(s => {
       const st = s.val();
       if (!st) throw new Error("ไม่พบแบบ 3D");
+      stRef.current = st;
       return window.p3PrepSet(st, Object.assign({}, job, {
         id: coId
       }), null, Object.assign({
@@ -987,6 +990,19 @@ function DvDwgModal({
     const r = boxRef.current.getBoundingClientRect();
     zoomTo(z >= 2.5 ? 1 : 2.5, e.clientX - r.left, e.clientY - r.top);
   };
+  const dl = async kind => {
+    if (!prep || busy) return;
+    setBusy(kind === "dxf" ? "กำลังทำ DXF" : "กำลังทำ PDF");
+    try {
+      if (kind === "dxf") await window.p3ExportSet(stRef.current, Object.assign({}, job, {
+        id: coId
+      }), null, prep, false);else await window.dsExportPdf(prep, (k, n) => setBusy("กำลังทำ PDF " + k + "/" + n), kind === "one" ? i : null);
+    } catch (e) {
+      console.error(e);
+      setErr("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message || e));
+    }
+    setBusy("");
+  };
   const zBtn = {
     width: 30,
     height: 30,
@@ -1072,7 +1088,38 @@ function DvDwgModal({
       label: window.BRAND_COS[k].label,
       sub: window.BRAND_COS[k].sub
     }))
-  })), React.createElement("span", {
+  })), prep && React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, busy ? React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      padding: "0 6px"
+    }
+  }, busy, "\u2026") : [["one", "PDF แผ่นนี้", "ดาวน์โหลดแผ่นที่เปิดอยู่เป็น PDF (A3)"], ["all", "PDF ทั้งเล่ม", "ทุกแผ่นเป็นไฟล์ PDF เดียว หน้าละแผ่น (A3)"], ["dxf", "DXF", "ชุดแบบ DXF ทั้งชุด (.zip) เปิดใน AutoCAD ได้"]].map(b => React.createElement("button", {
+    key: b[0],
+    type: "button",
+    title: b[2],
+    onClick: () => dl(b[0]),
+    style: Object.assign({}, zBtn, {
+      width: "auto",
+      padding: "0 10px",
+      gap: 5,
+      display: "inline-flex",
+      alignItems: "center",
+      fontSize: 12,
+      fontWeight: 700
+    })
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 13,
+    color: "var(--text-2)"
+  }), b[1]))), React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",

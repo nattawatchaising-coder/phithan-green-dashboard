@@ -1686,11 +1686,13 @@ async function dsSvgCanvas(svg, W, H) {
     return c;
   } finally { URL.revokeObjectURL(url); }
 }
-async function dsExportPdf(prep, onStep) {
+/* only = เลขแผ่น (เริ่ม 0) → PDF แผ่นเดียว ชื่อไฟล์ตามรหัสแผ่น (หน้าดูชุดแบบ · ผู้ใช้ 2026-11-03 "ทำให้ดาวโหลดผ่านหน้านี้ให้หน่อย") */
+async function dsExportPdf(prep, onStep, only) {
   const JsPDF = await dsJsPdf();
   const pdf = new JsPDF({ orientation: "landscape", unit: "mm", format: "a3", compress: true });
   const DPI = 170, W = Math.round(PG_SHEET.W / 25.4 * DPI), H = Math.round(PG_SHEET.H / 25.4 * DPI);
-  const L = prep.sheets;
+  const one = only != null && prep.sheets[only];
+  const L = one ? [one] : prep.sheets;
   for (let i = 0; i < L.length; i++) {
     if (onStep) onStep(i + 1, L.length);
     const c = await dsSvgCanvas(L[i].make(true), W, H);
@@ -1698,7 +1700,7 @@ async function dsExportPdf(prep, onStep) {
     pdf.addImage(c.toDataURL("image/jpeg", 0.88), "JPEG", 0, 0, PG_SHEET.W, PG_SHEET.H, undefined, "FAST");
     await new Promise((r) => setTimeout(r, 0));
   }
-  p3SaveBlob(pdf.output("blob"), prep.base + "-SHOP-DRAWING.pdf");
+  p3SaveBlob(pdf.output("blob"), one ? String(one.file || prep.base + "-" + (only + 1)).replace(/\.dxf$/i, "") + ".pdf" : prep.base + "-SHOP-DRAWING.pdf");
   return L.length;
 }
 

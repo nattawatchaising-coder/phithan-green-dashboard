@@ -2573,7 +2573,7 @@ async function dsSvgCanvas(svg, W, H) {
     URL.revokeObjectURL(url);
   }
 }
-async function dsExportPdf(prep, onStep) {
+async function dsExportPdf(prep, onStep, only) {
   const JsPDF = await dsJsPdf();
   const pdf = new JsPDF({
     orientation: "landscape",
@@ -2584,7 +2584,8 @@ async function dsExportPdf(prep, onStep) {
   const DPI = 170,
     W = Math.round(PG_SHEET.W / 25.4 * DPI),
     H = Math.round(PG_SHEET.H / 25.4 * DPI);
-  const L = prep.sheets;
+  const one = only != null && prep.sheets[only];
+  const L = one ? [one] : prep.sheets;
   for (let i = 0; i < L.length; i++) {
     if (onStep) onStep(i + 1, L.length);
     const c = await dsSvgCanvas(L[i].make(true), W, H);
@@ -2592,7 +2593,7 @@ async function dsExportPdf(prep, onStep) {
     pdf.addImage(c.toDataURL("image/jpeg", 0.88), "JPEG", 0, 0, PG_SHEET.W, PG_SHEET.H, undefined, "FAST");
     await new Promise(r => setTimeout(r, 0));
   }
-  p3SaveBlob(pdf.output("blob"), prep.base + "-SHOP-DRAWING.pdf");
+  p3SaveBlob(pdf.output("blob"), one ? String(one.file || prep.base + "-" + (only + 1)).replace(/\.dxf$/i, "") + ".pdf" : prep.base + "-SHOP-DRAWING.pdf");
   return L.length;
 }
 Object.assign(window, {

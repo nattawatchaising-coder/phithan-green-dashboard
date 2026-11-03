@@ -480,7 +480,8 @@ const DVC_CSS = `
 `;
 /* ── ดูชุดแบบของแบบ 3D เวอร์ชันหนึ่ง ทุกแผ่น ซูมได้ (ผู้ใช้ 2026-10-29: "ถ้ามีแบบ SLD ให้แสดงตรงจุดนี้" → "แบบทั้งหมดเลยทุกหน้าซูมได้ด้วยสิ") ──
    ชุดเดียวกับปุ่มชุดแบบ DXF ในหน้าออกแบบระบบ: p3PrepSet(แบบ 3D ล่าสุด, งาน, null, design ที่ SolarWorkspace เก็บไว้ใน plan3dSldDesign)
-   แต่ละแผ่นวาดเป็น SVG ตอนเปิดดู (make(true)) · ดูอย่างเดียว ดาวน์โหลด DXF/PDF ยังทำที่หน้าออกแบบระบบ
+   แต่ละแผ่นวาดเป็น SVG ตอนเปิดดู (make(true)) · ดาวน์โหลดได้ที่นี่ด้วย (ผู้ใช้ 2026-11-03 "ทำให้ดาวโหลดผ่านหน้านี้ให้หน่อย"):
+   PDF แผ่นนี้ · PDF ทั้งเล่ม (dsExportPdf) · DXF ทั้งชุด .zip (p3ExportSet) — ตัวเดียวกับปุ่มในหน้าออกแบบระบบ
    ซูม: ปุ่ม −/+ · Ctrl+ล้อ/บีบทัชแพด (ซูมตรงจุดเมาส์) · ดับเบิลคลิก · ลากเมาส์เลื่อนภาพ · ←/→ เปลี่ยนแผ่น */
 const DV_Z = [1, 1.5, 2, 3, 4, 6];
 function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
@@ -488,6 +489,8 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
   const [err, setErr] = React.useState("");
   const [i, setI] = React.useState(0);
   const [z, setZ] = React.useState(1);
+  const [busy, setBusy] = React.useState("");
+  const stRef = React.useRef(null);
   const boxRef = React.useRef(null), anchor = React.useRef(null), drag = React.useRef(null);
   const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
   /* บริษัทในหัวแบบ (แอดมินเลือก · ผู้ใช้ 2026-11-02 "เพิ่มฟังก์ชันเปลี่ยนบริษัทตรงนี้สำหรับแอดมิน") — dwgCompany/{งาน} · p3PrepSet อ่านเอง */
@@ -510,6 +513,7 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
     window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then((s) => {
       const st = s.val();
       if (!st) throw new Error("ไม่พบแบบ 3D");
+      stRef.current = st;
       return window.p3PrepSet(st, Object.assign({}, job, { id: coId }), null, Object.assign({ paths: [] }, design));
     }).then((p) => {
       if (!live) return;
@@ -583,6 +587,15 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
     const r = boxRef.current.getBoundingClientRect();
     zoomTo(z >= 2.5 ? 1 : 2.5, e.clientX - r.left, e.clientY - r.top);
   };
+  const dl = async (kind) => {
+    if (!prep || busy) return;
+    setBusy(kind === "dxf" ? "กำลังทำ DXF" : "กำลังทำ PDF");
+    try {
+      if (kind === "dxf") await window.p3ExportSet(stRef.current, Object.assign({}, job, { id: coId }), null, prep, false);
+      else await window.dsExportPdf(prep, (k, n) => setBusy("กำลังทำ PDF " + k + "/" + n), kind === "one" ? i : null);
+    } catch (e) { console.error(e); setErr("ดาวน์โหลดไม่สำเร็จ: " + ((e && e.message) || e)); }
+    setBusy("");
+  };
   const zBtn = { width: 30, height: 30, borderRadius: "var(--r-chip)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", fontFamily: "inherit", fontSize: 16, fontWeight: 800, color: "var(--text-2)" };
   const zNext = (dir) => { const L = DV_Z; const k = dir > 0 ? L.find((x) => x > z + 0.01) : L.slice().reverse().find((x) => x < z - 0.01); zoomTo(k || z); };
   return ReactDOM.createPortal(
@@ -597,6 +610,20 @@ function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
             <span title="บริษัทในหัวแบบของงานนี้ (เฉพาะแอดมิน)" style={{ width: 190 }}>
               <Dropdown value={co} onChange={pickCo}
                 options={Object.keys(window.BRAND_COS).map((k) => ({ value: k, label: window.BRAND_COS[k].label, sub: window.BRAND_COS[k].sub }))} />
+            </span>
+          )}
+          {prep && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {busy ? <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", padding: "0 6px" }}>{busy}…</span> : [
+                ["one", "PDF แผ่นนี้", "ดาวน์โหลดแผ่นที่เปิดอยู่เป็น PDF (A3)"],
+                ["all", "PDF ทั้งเล่ม", "ทุกแผ่นเป็นไฟล์ PDF เดียว หน้าละแผ่น (A3)"],
+                ["dxf", "DXF", "ชุดแบบ DXF ทั้งชุด (.zip) เปิดใน AutoCAD ได้"],
+              ].map((b) => (
+                <button key={b[0]} type="button" title={b[2]} onClick={() => dl(b[0])}
+                  style={Object.assign({}, zBtn, { width: "auto", padding: "0 10px", gap: 5, display: "inline-flex", alignItems: "center", fontSize: 12, fontWeight: 700 })}>
+                  <Icon name="download" size={13} color="var(--text-2)" />{b[1]}
+                </button>
+              ))}
             </span>
           )}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
