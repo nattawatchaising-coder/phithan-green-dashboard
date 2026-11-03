@@ -1763,7 +1763,7 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
       b[3] = Math.max(b[3], Y);
       u.push([X, Y]);
     }
-    if (H.some(h => b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
+    if (H.some(h => h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6 : b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
     const ct = dsCutIn(cut, b);
     if (ct && b[0] >= cut.x1 && b[2] <= cut.x2) return;
     const p = u.map(([X, Y]) => [x0 + (ct ? dsCutX(cut, X) : X) * sc, yTop - Y * sc]);
@@ -1920,6 +1920,199 @@ function dsBus(D, L, x, y, w, n) {
     D.pl(L, [[cx - 2.6, y + 3.5], [cx, y + 1], [cx + 2.6, y + 3.5], [cx, y + 6]], true);
   }
 }
+function dsGroundMain(pen, D, o) {
+  const kp = 1366 / 973.7,
+    OX = 42.5,
+    OY = 196.2,
+    sc = kp * D.k;
+  const X = x => D.X((x - 42.2) * kp),
+    Y = y => D.Y(66 + (y - 195.6) * kp);
+  const HD = [],
+    TX = [],
+    LN = [];
+  const hd = (b, eq) => HD.push([b[0] - OX, b[1] - OY, b[2] - OX, b[3] - OY].concat(eq ? ["="] : []));
+  const tx = (b, t, c) => {
+    hd(b);
+    TX.push([b, t, c]);
+  };
+  const n = o.home ? 1 : Math.min(3, o.nInv);
+  const INV = [[285.2, 318.1, [204.7, 237.1, 318.1, 368.1]], [343.8, 376.7, [210.5, 245.1, 376.7, 368.4]], [402.4, 435.2, [216.2, 248.9, 435.2, 368.4]]];
+  INV.forEach((v, i) => {
+    if (i >= n) {
+      hd([v[0] - 4, 200, v[0] + 48, 258]);
+      hd(v[2], 1);
+    }
+  });
+  if (n < 3) {
+    hd([235.1, 253.4, 435.2, 253.4], 1);
+    LN.push([[235.1, 253.4], [INV[n - 1][1], 253.4]]);
+  }
+  if (!o.home && o.nInv > 3) tx([412.3, 207.7, 441.8, 211.8], "INVERTER-3 ~ " + o.nInv);
+  const DCB = [[287.9, [287.9, 286, 323.6, 289.8], [309.6, 317.7, 470.9, 368.4], 470.9], [345.6, [346.4, 286, 383.4, 289.8], [368.2, 317.7, 476.5, 368.4], 476.5], [403.9, [404.8, 286, 441.8, 289.8], [426.5, 317.7, 482.3, 368.4], 482.3]];
+  const nd = o.home ? 0 : n;
+  DCB.forEach((v, i) => {
+    if (i < nd) {
+      const more = i === 2 && o.nInv > 3;
+      if (!o.fuse || more) tx(v[1], (o.fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (more ? " ~ " + o.nInv : ""));
+      return;
+    }
+    hd([v[0] - 1.5, 284, v[0] + 43.5, 320]);
+    hd(v[2], 1);
+    hd([v[3] - 3.2, 354.4, v[3] + 3.2, 360.4]);
+  });
+  if (!nd) {
+    hd([386.5, 351, 425.8, 356.5]);
+    hd([385.9, 357.5, 493.8, 357.5], 1);
+  }
+  if (o.home) {
+    hd([455, 198, 525, 256]);
+    hd([466.3, 252.5, 493.8, 366.6], 1);
+    hd([490.5, 354.4, 497.2, 360.4]);
+    hd([454, 364, 506, 388]);
+    hd([500, 331, 538, 370]);
+    LN.push([[457.4, 368.4], [499.6, 368.4], [499.6, 370.3]]);
+    tx([70.0, 276.1, 103.8, 280.2], o.mdbN);
+    tx([96.4, 381.1, 130.1, 385.3], "CONSUMER UNIT", 1);
+    tx([170.8, 276.1, 199.1, 280.2], o.solN);
+    tx([197.2, 381.1, 225.4, 385.3], "DC/AC BOX", 1);
+  }
+  const cab = (b, v, v0) => {
+    if (v !== v0) tx(b, "IEC01 " + v + " sq.mm.");
+  };
+  cab([94.3, 328.8, 136.8, 334.3], o.eCu, 70);
+  cab([292.8, 401.3, 334.6, 406.8], o.eCu, 16);
+  cab([236.2, 247, 278.6, 252.6], o.invCu, 25);
+  cab([565.7, 344.4, 607.4, 349.9], o.roofCu, 16);
+  const yLow = o.tray ? 467.4 : o.walk ? 436.9 : o.ladder ? 400.2 : 380.3;
+  if (yLow < 467.4) {
+    hd([676.2, 261.7, 676.2, 467.4], 1);
+    LN.push([[676.2, 261.7], [676.2, yLow]]);
+  }
+  if (!o.tray) {
+    hd([673, 455.5, 880, 489]);
+    hd([805, 452, 845, 458]);
+    hd([693.0, 214.0, 747.5, 218.3]);
+  }
+  if (!o.walk) hd([673, 428, 777, 455]);
+  if (!o.walk && !o.tray) {
+    hd([699.4, 408.9, 738.6, 414.5]);
+    hd([686.4, 415.3, 742.6, 415.3], 1);
+    hd([686.4, 415.3, 686.4, 467.4], 1);
+  } else if (!o.tray) {
+    hd([686.4, 415.3, 686.4, 467.4], 1);
+    LN.push([[686.4, 415.3], [686.4, 436.9]]);
+  }
+  if (!o.ladder) {
+    hd([945, 278, 990, 412]);
+    hd([676.2, 400.2, 949.0, 400.2], 1);
+    hd([821, 397, 881, 416]);
+    hd([673, 397, 679.5, 403.5]);
+  }
+  if (o.yBot < 511) {
+    hd([550.6, 196.2, 550.6, 510.9], 1);
+    LN.push([[550.6, 196.2], [550.6, o.yBot]]);
+  }
+  dsVec(pen, "GV1M", X(OX), Y(OY), sc, DS_GND_LY, HD);
+  LN.forEach(P => {
+    for (let i = 1; i < P.length; i++) pen.line(DS_GND_LY.k, X(P[i - 1][0]), Y(P[i - 1][1]), X(P[i][0]), Y(P[i][1]));
+  });
+  TX.forEach(([b, t, c]) => {
+    const cap = Math.min(b[3] - b[1], 4.2);
+    dsGlyphText(pen, DS_GND_LY.k, c ? (X(b[0]) + X(b[2])) / 2 : X(b[0]), Y(b[1] + cap), cap * sc, t, c ? 1 : 0);
+  });
+}
+const DS_GLYPH_SRC = [[[70.0, 276.1, 103.8, 280.2], "MDBEXISTING"], [[170.8, 276.1, 199.1, 280.2], "SOLARMDB"], [[95.8, 374.3, 128.0, 378.5], "GROUNDBUS"], [[295.1, 207.2, 323.3, 211.3], "INVERTER-1"], [[94.3, 328.8, 136.8, 334.3], "IEC0170sq.mm."], [[236.2, 247, 278.6, 252.6], "IEC0125sq.mm."], [[292.8, 401.3, 334.6, 406.8], "IEC0116sq.mm."], [[475.8, 201.3, 498.8, 205.4], "INVRACK"], [[701, 243.2, 726.8, 247.4], "PVSTRING"], [[514.6, 333.1, 536.4, 337.2], "DETAILC"], [[708.5, 429.1, 734.4, 433.2], "WALKWAY"], [[707.6, 461.4, 754.4, 465.5], "PERFORRATETRAY"], [[404.8, 286, 441.8, 289.8], "DCFUSEBOX-3"]];
+const DS_GLYPH_HAND = {
+  "/": {
+    w: 0.5,
+    p: [[[0, 0], [0.5, -1]]]
+  },
+  "(": {
+    w: 0.3,
+    p: [[[0.3, -1.15], [0.12, -0.9], [0.02, -0.5], [0.12, -0.1], [0.3, 0.15]]]
+  },
+  ")": {
+    w: 0.3,
+    p: [[[0, -1.15], [0.18, -0.9], [0.28, -0.5], [0.18, -0.1], [0, 0.15]]]
+  },
+  "~": {
+    w: 0.75,
+    p: [[[0, -0.42], [0.15, -0.56], [0.3, -0.56], [0.45, -0.45], [0.6, -0.42], [0.75, -0.56]]]
+  },
+  "4": {
+    w: 0.6,
+    p: [[[0.45, 0], [0.45, -1], [0, -0.33], [0.6, -0.33]]]
+  },
+  "8": {
+    w: 0.55,
+    p: [[[0.27, -0.55], [0.08, -0.65], [0.04, -0.82], [0.12, -0.96], [0.27, -1], [0.43, -0.96], [0.51, -0.82], [0.47, -0.65], [0.27, -0.55], [0.05, -0.43], [0, -0.25], [0.08, -0.06], [0.27, 0], [0.47, -0.06], [0.55, -0.25], [0.5, -0.43], [0.27, -0.55]]]
+  },
+  "9": {
+    w: 0.55,
+    p: [[[0.55, -0.65], [0.47, -0.45], [0.27, -0.38], [0.08, -0.45], [0, -0.67], [0.08, -0.9], [0.27, -1], [0.47, -0.9], [0.55, -0.65], [0.55, -0.35], [0.47, -0.1], [0.27, 0], [0.08, -0.07]]]
+  }
+};
+let dsGlyphs = null;
+function dsGlyphMap() {
+  if (dsGlyphs) return dsGlyphs;
+  const G = {},
+    S = [];
+  dsVecEach("GV1M", (t, u, b) => {
+    if (t === "k") S.push({
+      u,
+      b
+    });
+  });
+  DS_GLYPH_SRC.forEach(([B0, str]) => {
+    const B = [B0[0] - 42.5, B0[1] - 196.2, B0[2] - 42.5, B0[3] - 196.2];
+    const L = S.filter(o => o.b[0] >= B[0] - 0.4 && o.b[1] >= B[1] - 0.4 && o.b[2] <= B[2] + 0.4 && o.b[3] <= B[3] + 0.4).sort((p, r) => p.b[0] - r.b[0]);
+    const C = [];
+    L.forEach(o => {
+      const c = C[C.length - 1];
+      if (c && o.b[0] <= c.b[2] + 0.15) {
+        c.b = [c.b[0], Math.min(c.b[1], o.b[1]), Math.max(c.b[2], o.b[2]), Math.max(c.b[3], o.b[3])];
+        c.s.push(o.u);
+      } else C.push({
+        b: o.b.slice(),
+        s: [o.u]
+      });
+    });
+    if (C.length !== str.length) return;
+    const cap = C[0].b[3] - C[0].b[1],
+      base = C[0].b[3];
+    C.forEach((c, i) => {
+      if (!G[str[i]]) G[str[i]] = {
+        w: (c.b[2] - c.b[0]) / cap,
+        p: c.s.map(u => u.map(([x, y]) => [(x - c.b[0]) / cap, (y - base) / cap]))
+      };
+    });
+  });
+  Object.keys(DS_GLYPH_HAND).forEach(k => {
+    if (!G[k]) G[k] = DS_GLYPH_HAND[k];
+  });
+  return dsGlyphs = G;
+}
+function dsGlyphText(pen, L, x, yB, cap, str, align) {
+  const G = dsGlyphMap(),
+    gap = 1.0 / 4.1,
+    sp = 3.0 / 4.1,
+    items = [];
+  let w = 0;
+  [...String(str)].forEach(ch => {
+    const g = G[ch];
+    if (!g) {
+      w += sp;
+      return;
+    }
+    if (items.length) w += gap;
+    items.push([g, w]);
+    w += g.w;
+  });
+  const x0 = x - (align === 1 ? w * cap / 2 : 0);
+  items.forEach(([g, ox]) => g.p.forEach(P => {
+    for (let i = 1; i < P.length; i++) pen.line(L, x0 + (ox + P[i - 1][0]) * cap, yB - P[i - 1][1] * cap, x0 + (ox + P[i][0]) * cap, yB - P[i][1] * cap);
+  }));
+}
 function dsGroundSheet(st, job, media) {
   media = media || {};
   const S = dsMm(st, job, media, "GROUND", "GROUNDING DIAGRAM FOR SOLAR SYSTEM");
@@ -1949,167 +2142,191 @@ function dsGroundSheet(st, job, media) {
     HB = PG_TS.body;
   const sl = (x, y) => D.ln(T, x - 4, y + 6, x + 4, y - 6);
   const slV = (x, y) => D.ln(T, x - 6, y + 4, x + 6, y - 4);
-  const useV = !!(window.DS_VEC || {}).GV1A;
+  const useV = !!(window.DS_VEC || {}).GV1A,
+    gm = !!(window.DS_VEC || {}).GV1M;
   const fB = useV ? Math.max(735, Math.floor((D.Y(0) - A.y0) / D.k - 78)) : 735;
+  const ladder = dsObs(st, "ladder").length > 0;
+  const yBot = tray ? 511.2 : walk ? 470 : ladder ? 430 : 425;
+  const MB = gm ? 66 + (yBot - 195.6) * 1366 / 973.7 : 520,
+    xH = gm ? (550.6 - 42.2) * 1366 / 973.7 : 718;
   D.ln(E, 0, 66, 1366, 66);
-  D.ln(E, 0, 520, 1366, 520);
-  D.ln(E, 718, 66, 718, 520);
+  D.ln(E, 0, MB, 1366, MB);
+  if (!gm) D.ln(E, 718, 66, 718, 520);
   D.rc(E, 0, 42, 1366, fB - 42);
-  D.tx(359, 58, "INVERTER STATION", HB, {
-    align: 1
-  });
-  D.tx(1042, 58, "ROOFTOP", HB, {
-    align: 1
-  });
   const mdbN = home ? "CONSUMER UNIT EXISTING" : "MDB EXISTING",
     solN = home ? "DC/AC BOX (SOLAR)" : "SOLAR MDB";
-  D.rc(E, 45, 220, 125, 220);
-  D.tx(45, 213, mdbN, H);
-  dsBus(D, E, 48, 313, 112, 14);
-  D.tx(104, 333, "GROUND BUS", H, {
-    align: 1,
-    valign: 3
-  });
-  D.tx(104, 344, home ? "CONSUMER UNIT" : "MDB EXISTING", H, {
-    align: 1,
-    valign: 3
-  });
-  D.rc(E, 190, 205, 125, 235);
-  D.tx(190, 198, solN, H);
-  dsBus(D, E, 192, 313, 113, 11);
-  D.tx(248, 333, "GROUND BUS", H, {
-    align: 1,
-    valign: 3
-  });
-  D.tx(248, 344, home ? "DC/AC BOX" : "SOLAR MDB", H, {
-    align: 1,
-    valign: 3
-  });
-  D.ln(E, 160, 317, 192, 317);
-  sl(178, 317);
-  D.lead(80, 292, "IEC01 " + eCu + "sq.mm.", H, [[178, 292], [178, 311]]);
-  D.ln(E, 305, 317, home ? 670 : 600, 317);
-  sl(448, 317);
-  D.lead(338, 370, "IEC01 " + eCu + " sq.mm.", H, [[448, 370], [448, 323]]);
-  const nDraw = Math.min(2, nInv),
-    invNm = i => "INVERTER-" + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
-  for (let i = 0; i < nDraw; i++) {
-    const x = 395 + i * 75,
-      y = 80;
-    D.rc(E, x, y, 60, 56);
-    D.tx(x + 2, 75, invNm(i), H);
-    D.tx(x + 4, y + 13, "3~", HB);
-    D.ln(E, x, y + 56, x + 60, y);
-    D.tx(x + 46, y + 32, "DC", H);
-    D.ln(E, x + 46, y + 22, x + 56, y + 22);
-    D.rc(E, x + 15, y + 41, 32, 13);
-    ["L1", "L2", "L3", "N", "G"].forEach((s, j) => {
-      D.tx(x + 16.5 + j * 6.2, y + 51, s, 1.1);
-      if (j) D.ln(E, x + 15 + j * 6.4, y + 41, x + 15 + j * 6.4, y + 54);
+  if (gm) {
+    dsGndLayers(S.doc);
+    [[xH / 2, "INVERTER STATION"], [(xH + 1366) / 2, "ROOFTOP"]].forEach(h => dsGlyphText(pen, DS_GND_LY.k, D.X(h[0]), D.Y(54 + 4.3), 8.6 * D.k, h[1], 1));
+    dsGroundMain(pen, D, {
+      home,
+      fuse,
+      nInv,
+      eCu,
+      invCu,
+      roofCu,
+      tray,
+      walk,
+      ladder,
+      yBot,
+      mdbN,
+      solN
     });
-    const gx = x + 44,
-      ly = 145 + i * 10,
-      bx = 282 - i * 12;
-    D.pl(E, [[gx, y + 54], [gx, ly], [bx, ly], [bx, 313]]);
-    sl(420 - i * 0, ly);
-  }
-  D.lead(312, 138, "IEC01 " + invCu + " sq.mm.", H, [[420, 143]]);
-  const dcNm = i => (fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
-  for (let i = 0; i < (home ? 0 : nDraw); i++) {
-    const x = 370 + i * 93,
-      y = 210;
-    D.rc(E, x, y, 70, 30);
-    D.tx(x + 2, 203, dcNm(i), H);
-    [[x - 3, y + 15], [x + 73, y + 15]].forEach(p => {
-      D.rc(E, p[0] - 3, p[1] - 5, 6, 10);
-      D.ln(E, p[0] - 3, p[1], p[0] + 3, p[1]);
-    });
-    const gx = x + 42,
-      ly = 275 - i * 10,
-      bx = 625 + i * 15;
-    D.pl(E, [[gx, y + 30], [gx, ly], [bx, ly], [bx, 313]]);
-    slV(bx, 300);
-  }
-  if (!home) {
-    D.lead(500, 292, "IEC01 6 sq.mm.", H, [[620, 292]]);
-    const x = 610,
-      y = 80;
-    D.tx(x + 12, 75, "INV RACK", H);
-    D.pl(E, [[x + 5, y + 65], [x + 5, y + 5], [x + 75, y + 5], [x + 75, y + 65]]);
-    D.pl(E, [[x + 9, y + 65], [x + 9, y + 9], [x + 71, y + 9], [x + 71, y + 65]]);
-    [20, 32, 44].forEach(d => {
-      D.ln(E, x + 9, y + d, x + 71, y + d);
-      D.ln(E, x + 9, y + d + 3, x + 71, y + d + 3);
-    });
-    D.ln(E, x, y + 66, x + 14, y + 66);
-    D.ln(E, x + 66, y + 66, x + 80, y + 66);
-    D.dot(E, x + 7, y + 64, 2.2);
-    D.pl(E, [[x + 7, y + 66], [x + 7, y + 74], [655, y + 74], [655, 313]]);
-    slV(655, 300);
-  }
-  if (!home) {
-    dsBus(D, E, 600, 313, 70, 8);
-    D.tx(635, 333, "GROUND BUS", H, {
-      align: 1,
-      valign: 3
-    });
-    D.tx(635, 344, "INVERTER STATION", H, {
-      align: 1,
-      valign: 3
-    });
-    D.pl(T, [[670, 313], [674, 285], [686, 285]]);
-    D.tx(690, 288, "DETAIL C", H);
-  }
-  const tY1 = tray ? 458 : walk ? 410 : 330;
-  D.pl(E, [[670, 317], [690, 317], [690, 340], [920, 340]]);
-  sl(845, 340);
-  D.lead(760, 292, "IEC01 " + roofCu + " sq.mm.", H, [[845, 292], [845, 334]]);
-  D.ln(E, 920, 105, 920, tY1);
-  D.tx(935, 92, "IEC01 6 sq.mm.", H);
-  if (tray) D.tx(935, 104, "IN PERFORATED TRAY", H);
-  D.pl(T, [[920, 118], [906, 118]]);
-  D.tx(872, 121, "DETAIL B", H);
-  D.tx(958, 136, "PV STRING", H);
-  [[143, [160, 222]], [255, [272, 330]]].forEach(g => {
-    for (let i = 0; i < 4; i++) D.rc(E, 955 + i * 49.5, g[0], 49.5, 97);
-    D.rc(E, 1208, g[0], 47, 97);
-    D.tx(1182, g[0] + 52, "ooo", H, {
+  } else {
+    D.tx(xH / 2, 58, "INVERTER STATION", HB, {
       align: 1
     });
-    g[1].forEach(ry => {
-      D.ln(DL("cell"), 940, ry, 1300, ry);
-      D.ln(E, 920, ry, 952, ry);
-      slV(935, ry);
-      D.dot(E, 920, ry, 2.2);
-      [1004, 1103, 1208].forEach(cx => D.rc(E, cx - 3, ry - 4, 6, 8));
-      D.tx(1215, ry - 3, "ALUMINUM RAIL", H);
+    D.tx((xH + 1366) / 2, 58, "ROOFTOP", HB, {
+      align: 1
     });
-  });
-  D.pl(T, [[1004, 156], [1004, 113], [1012, 113]]);
-  D.tx(1015, 116, "DETAIL A", H);
-  if (walk) {
-    D.dot(E, 920, 410, 2.2);
-    D.ln(E, 920, 410, 955, 410);
-    slV(935, 410);
-    D.tx(958, 405, "WALK WAY", H);
-    D.rc(E, 955, 408, 80, 22);
-    for (let i = 0; i < 16; i++) D.ln(DL("cell"), 958 + i * 5, 410, 958 + i * 5, 428);
-    D.ln(E, 955, 414, 1035, 414);
-    D.ln(E, 955, 424, 1035, 424);
-    D.lead(935, 378, "IEC01 6 sq.mm.", H, [[935, 404]]);
-  }
-  if (tray) {
-    D.dot(E, 920, 458, 2.2);
-    D.ln(E, 920, 458, 955, 458);
-    slV(935, 458);
-    D.tx(958, 452, "PERFORRATE TRAY", H);
-    D.rc(E, 955, 455, 350, 7);
-    D.ci(E, 1118, 458, 7);
-    D.ln(E, 1118, 451, 1118, 465);
-    D.pl(T, [[1125, 451], [1130, 445], [1138, 445]]);
-    D.tx(1140, 448, "DETAIL D", H);
-    D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]);
-    D.tx(1122, 485, "IEC01 6 sq.mm.", H);
+    D.rc(E, 45, 220, 125, 220);
+    D.tx(45, 213, mdbN, H);
+    dsBus(D, E, 48, 313, 112, 14);
+    D.tx(104, 333, "GROUND BUS", H, {
+      align: 1,
+      valign: 3
+    });
+    D.tx(104, 344, home ? "CONSUMER UNIT" : "MDB EXISTING", H, {
+      align: 1,
+      valign: 3
+    });
+    D.rc(E, 190, 205, 125, 235);
+    D.tx(190, 198, solN, H);
+    dsBus(D, E, 192, 313, 113, 11);
+    D.tx(248, 333, "GROUND BUS", H, {
+      align: 1,
+      valign: 3
+    });
+    D.tx(248, 344, home ? "DC/AC BOX" : "SOLAR MDB", H, {
+      align: 1,
+      valign: 3
+    });
+    D.ln(E, 160, 317, 192, 317);
+    sl(178, 317);
+    D.lead(80, 292, "IEC01 " + eCu + "sq.mm.", H, [[178, 292], [178, 311]]);
+    D.ln(E, 305, 317, home ? 670 : 600, 317);
+    sl(448, 317);
+    D.lead(338, 370, "IEC01 " + eCu + " sq.mm.", H, [[448, 370], [448, 323]]);
+    const nDraw = Math.min(2, nInv),
+      invNm = i => "INVERTER-" + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
+    for (let i = 0; i < nDraw; i++) {
+      const x = 395 + i * 75,
+        y = 80;
+      D.rc(E, x, y, 60, 56);
+      D.tx(x + 2, 75, invNm(i), H);
+      D.tx(x + 4, y + 13, "3~", HB);
+      D.ln(E, x, y + 56, x + 60, y);
+      D.tx(x + 46, y + 32, "DC", H);
+      D.ln(E, x + 46, y + 22, x + 56, y + 22);
+      D.rc(E, x + 15, y + 41, 32, 13);
+      ["L1", "L2", "L3", "N", "G"].forEach((s, j) => {
+        D.tx(x + 16.5 + j * 6.2, y + 51, s, 1.1);
+        if (j) D.ln(E, x + 15 + j * 6.4, y + 41, x + 15 + j * 6.4, y + 54);
+      });
+      const gx = x + 44,
+        ly = 145 + i * 10,
+        bx = 282 - i * 12;
+      D.pl(E, [[gx, y + 54], [gx, ly], [bx, ly], [bx, 313]]);
+      sl(420 - i * 0, ly);
+    }
+    D.lead(312, 138, "IEC01 " + invCu + " sq.mm.", H, [[420, 143]]);
+    const dcNm = i => (fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (i === 1 && nInv > 2 ? " ~ " + nInv : "");
+    for (let i = 0; i < (home ? 0 : nDraw); i++) {
+      const x = 370 + i * 93,
+        y = 210;
+      D.rc(E, x, y, 70, 30);
+      D.tx(x + 2, 203, dcNm(i), H);
+      [[x - 3, y + 15], [x + 73, y + 15]].forEach(p => {
+        D.rc(E, p[0] - 3, p[1] - 5, 6, 10);
+        D.ln(E, p[0] - 3, p[1], p[0] + 3, p[1]);
+      });
+      const gx = x + 42,
+        ly = 275 - i * 10,
+        bx = 625 + i * 15;
+      D.pl(E, [[gx, y + 30], [gx, ly], [bx, ly], [bx, 313]]);
+      slV(bx, 300);
+    }
+    if (!home) {
+      D.lead(500, 292, "IEC01 6 sq.mm.", H, [[620, 292]]);
+      const x = 610,
+        y = 80;
+      D.tx(x + 12, 75, "INV RACK", H);
+      D.pl(E, [[x + 5, y + 65], [x + 5, y + 5], [x + 75, y + 5], [x + 75, y + 65]]);
+      D.pl(E, [[x + 9, y + 65], [x + 9, y + 9], [x + 71, y + 9], [x + 71, y + 65]]);
+      [20, 32, 44].forEach(d => {
+        D.ln(E, x + 9, y + d, x + 71, y + d);
+        D.ln(E, x + 9, y + d + 3, x + 71, y + d + 3);
+      });
+      D.ln(E, x, y + 66, x + 14, y + 66);
+      D.ln(E, x + 66, y + 66, x + 80, y + 66);
+      D.dot(E, x + 7, y + 64, 2.2);
+      D.pl(E, [[x + 7, y + 66], [x + 7, y + 74], [655, y + 74], [655, 313]]);
+      slV(655, 300);
+    }
+    if (!home) {
+      dsBus(D, E, 600, 313, 70, 8);
+      D.tx(635, 333, "GROUND BUS", H, {
+        align: 1,
+        valign: 3
+      });
+      D.tx(635, 344, "INVERTER STATION", H, {
+        align: 1,
+        valign: 3
+      });
+      D.pl(T, [[670, 313], [674, 285], [686, 285]]);
+      D.tx(690, 288, "DETAIL C", H);
+    }
+    const tY1 = tray ? 458 : walk ? 410 : 330;
+    D.pl(E, [[670, 317], [690, 317], [690, 340], [920, 340]]);
+    sl(845, 340);
+    D.lead(760, 292, "IEC01 " + roofCu + " sq.mm.", H, [[845, 292], [845, 334]]);
+    D.ln(E, 920, 105, 920, tY1);
+    D.tx(935, 92, "IEC01 6 sq.mm.", H);
+    if (tray) D.tx(935, 104, "IN PERFORATED TRAY", H);
+    D.pl(T, [[920, 118], [906, 118]]);
+    D.tx(872, 121, "DETAIL B", H);
+    D.tx(958, 136, "PV STRING", H);
+    [[143, [160, 222]], [255, [272, 330]]].forEach(g => {
+      for (let i = 0; i < 4; i++) D.rc(E, 955 + i * 49.5, g[0], 49.5, 97);
+      D.rc(E, 1208, g[0], 47, 97);
+      D.tx(1182, g[0] + 52, "ooo", H, {
+        align: 1
+      });
+      g[1].forEach(ry => {
+        D.ln(DL("cell"), 940, ry, 1300, ry);
+        D.ln(E, 920, ry, 952, ry);
+        slV(935, ry);
+        D.dot(E, 920, ry, 2.2);
+        [1004, 1103, 1208].forEach(cx => D.rc(E, cx - 3, ry - 4, 6, 8));
+        D.tx(1215, ry - 3, "ALUMINUM RAIL", H);
+      });
+    });
+    D.pl(T, [[1004, 156], [1004, 113], [1012, 113]]);
+    D.tx(1015, 116, "DETAIL A", H);
+    if (walk) {
+      D.dot(E, 920, 410, 2.2);
+      D.ln(E, 920, 410, 955, 410);
+      slV(935, 410);
+      D.tx(958, 405, "WALK WAY", H);
+      D.rc(E, 955, 408, 80, 22);
+      for (let i = 0; i < 16; i++) D.ln(DL("cell"), 958 + i * 5, 410, 958 + i * 5, 428);
+      D.ln(E, 955, 414, 1035, 414);
+      D.ln(E, 955, 424, 1035, 424);
+      D.lead(935, 378, "IEC01 6 sq.mm.", H, [[935, 404]]);
+    }
+    if (tray) {
+      D.dot(E, 920, 458, 2.2);
+      D.ln(E, 920, 458, 955, 458);
+      slV(935, 458);
+      D.tx(958, 452, "PERFORRATE TRAY", H);
+      D.rc(E, 955, 455, 350, 7);
+      D.ci(E, 1118, 458, 7);
+      D.ln(E, 1118, 451, 1118, 465);
+      D.pl(T, [[1125, 451], [1130, 445], [1138, 445]]);
+      D.tx(1140, 448, "DETAIL D", H);
+      D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]);
+      D.tx(1122, 485, "IEC01 6 sq.mm.", H);
+    }
   }
   dsGndLayers(S.doc);
   const GF = {
@@ -2123,10 +2340,10 @@ function dsGroundSheet(st, job, media) {
       n = L.length;
     const g = n >= 4 ? 15 : 40,
       FW = Math.min(420, (1141 - (n - 1) * g) / n),
-      rowH = fB - 520;
+      rowH = fB - MB;
     const r = Math.min(FW * 0.97 / 190.5, (rowH - 42) / (92 / 0.97 + 15.1));
     const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
-    const bT = 520 + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4,
+    const bT = MB + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4,
       x0 = (1366 - n * FW - (n - 1) * g) / 2;
     L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
   } else {

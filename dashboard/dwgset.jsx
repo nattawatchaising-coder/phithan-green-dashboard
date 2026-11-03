@@ -1147,7 +1147,7 @@ function dsHasMetal(st) {
   return (st.roofs || []).some((r) => !r.p3sGround && p3Panels(r).count > 0 && ["metal", "sandwich"].indexOf(typeof p3sRoofMat === "function" ? p3sRoofMat(r) : "metal") >= 0);
 }
 /* วาด DS_VEC[name] มุมซ้ายบนที่ (x0, yTop) บนกระดาษ (y ขึ้น) ย่อ/ขยาย sc มม. ต่อ pt · ชนิดเส้น k/g/l/d/w → ชั้น LY · ตัวใหญ่ = ระบายทึบ */
-/* hide = กรอบ [x0, y0, x1, y1] (pt ของภาพ) — เส้นที่อยู่ในกรอบทั้งเส้นไม่วาด (ใช้แทนตัวหนังสือด้วยค่าของงาน) */
+/* hide = กรอบ [x0, y0, x1, y1] (pt ของภาพ) — เส้นที่อยู่ในกรอบทั้งเส้นไม่วาด (ใช้แทนตัวหนังสือด้วยค่าของงาน) · [x0, y0, x1, y1, "="] = เส้นที่กรอบตรงนี้พอดี */
 /* cut = { x1, x2, xmax, ys: [[y0, y1], …], keep: [กรอบที่ไม่แตะ] } (pt ในภาพ): ตัดแถบ x1..x2 ออกแล้วเลื่อนของทางขวาเข้ามาชิด — เฉพาะเส้นที่อยู่ในช่วง y และขวาสุดไม่เกิน xmax
    (เส้นยาวที่พาดผ่านแถบหดสั้นลงเอง · เส้นที่อยู่ในแถบทั้งเส้นไม่วาด) ใช้เอาทางเดินระหว่างแผงออก */
 const dsCutX = (C, x) => (x <= C.x1 ? x : x >= C.x2 ? x - (C.x2 - C.x1) : C.x1);
@@ -1159,7 +1159,8 @@ function dsVec(pen, name, x0, yTop, sc, LY, hide, cut) {
     const t = c[0], n = c.slice(1).split(",").map(Number), u = [], b = [1e9, 1e9, -1e9, -1e9];
     for (let i = 0, x = 0, y = 0; i < n.length; i += 2) { x = i ? x + n[i] : n[i]; y = i ? y + n[i + 1] : n[i + 1];
       const X = x / q, Y = y / q; b[0] = Math.min(b[0], X); b[1] = Math.min(b[1], Y); b[2] = Math.max(b[2], X); b[3] = Math.max(b[3], Y); u.push([X, Y]); }
-    if (H.some((h) => b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
+    if (H.some((h) => h[4] === "=" ? Math.abs(b[0] - h[0]) < 0.6 && Math.abs(b[1] - h[1]) < 0.6 && Math.abs(b[2] - h[2]) < 0.6 && Math.abs(b[3] - h[3]) < 0.6
+      : b[0] >= h[0] - 0.6 && b[1] >= h[1] - 0.6 && b[2] <= h[2] + 0.6 && b[3] <= h[3] + 0.6)) return;
     const ct = dsCutIn(cut, b);
     if (ct && b[0] >= cut.x1 && b[2] <= cut.x2) return;
     const p = u.map(([X, Y]) => [x0 + (ct ? dsCutX(cut, X) : X) * sc, yTop - Y * sc]);
@@ -1270,6 +1271,109 @@ function dsBus(D, L, x, y, w, n) {
    ขนาดสาย: เมน = M.pro.earthCu · อินเวอร์เตอร์ ≈ ครึ่งหนึ่ง (ไม่ต่ำกว่า 10 / ไม่เกินเมน) · ขึ้นหลังคา 16 · อุปกรณ์ 6
    งานบ้าน (ผู้ใช้ 2026-11-02): สาย 6 ทุกเส้น · ตู้ DC/AC เป็นตู้เดียว ใช้ GROUND BUS ร่วมในตู้ — ไม่มีตู้ DC แยก/บัส INVERTER STATION/DETAIL C ("งานบ้านไม่มีตัวนี้")
    ================================================================== */
+/* ผังหลัก GROUNDING DIAGRAM (ส่วนบน) — ลายเส้นเวกเตอร์ตรงจาก PDF "ระยยกาว 1" (groundmain.js GV1M)
+   ผู้ใช้ 2026-11-03 "ตัวหนังสือไม่ตรงตำแหน่ง เส้นก็ไม่ค่อยครบ" (ผังที่วาดด้วยโค้ด) → เลือก "ใช้เส้นจาก PDF แล้วตัดส่วนที่งานไม่มี"
+   ต้นฉบับเป็นงานโรงงานเต็มชุด (อินเวอร์เตอร์ 3 · ตู้ DC FUSE 3 · INV RACK · บันได · ทางเดิน · รางไฟ) → ซ่อนชิ้นที่งานไม่มี แล้วต่อสายที่ขาดด้วยเส้นเพิ่ม
+   พิกัดทั้งหมด = pt ของหน้า PDF · ชื่อตู้/ขนาดสายที่ต่างจากต้นฉบับ = ซ่อนตัวหนังสือเดิมแล้วเขียนทับที่เดิม */
+function dsGroundMain(pen, D, o) {
+  const kp = 1366 / 973.7, OX = 42.5, OY = 196.2, sc = kp * D.k;
+  const X = (x) => D.X((x - 42.2) * kp), Y = (y) => D.Y(66 + (y - 195.6) * kp);
+  const HD = [], TX = [], LN = [];
+  const hd = (b, eq) => HD.push([b[0] - OX, b[1] - OY, b[2] - OX, b[3] - OY].concat(eq ? ["="] : []));
+  const tx = (b, t, c) => { hd(b); TX.push([b, t, c]); };
+  const n = o.home ? 1 : Math.min(3, o.nInv);
+  /* อินเวอร์เตอร์เกินจำนวนงาน: ตัวเครื่อง + สายดินลงบัส SOLAR MDB · เส้นป้าย IEC01 ของสายเครื่องสั้นลงถึงเครื่องสุดท้าย */
+  const INV = [[285.2, 318.1, [204.7, 237.1, 318.1, 368.1]], [343.8, 376.7, [210.5, 245.1, 376.7, 368.4]], [402.4, 435.2, [216.2, 248.9, 435.2, 368.4]]];
+  INV.forEach((v, i) => { if (i >= n) { hd([v[0] - 4, 200, v[0] + 48, 258]); hd(v[2], 1); } });
+  if (n < 3) { hd([235.1, 253.4, 435.2, 253.4], 1); LN.push([[235.1, 253.4], [INV[n - 1][1], 253.4]]); }
+  if (!o.home && o.nInv > 3) tx([412.3, 207.7, 441.8, 211.8], "INVERTER-3 ~ " + o.nInv);
+  /* ตู้ DC FUSE ตามจำนวนเครื่อง (งานบ้านไม่มี) · ไม่ใช่ฟิวส์ = DC BOX */
+  const DCB = [[287.9, [287.9, 286, 323.6, 289.8], [309.6, 317.7, 470.9, 368.4], 470.9], [345.6, [346.4, 286, 383.4, 289.8], [368.2, 317.7, 476.5, 368.4], 476.5],
+    [403.9, [404.8, 286, 441.8, 289.8], [426.5, 317.7, 482.3, 368.4], 482.3]];
+  const nd = o.home ? 0 : n;
+  DCB.forEach((v, i) => {
+    if (i < nd) {
+      const more = i === 2 && o.nInv > 3;
+      if (!o.fuse || more) tx(v[1], (o.fuse ? "DC FUSE BOX-" : "DC BOX-") + (i + 1) + (more ? " ~ " + o.nInv : ""));
+      return;
+    }
+    hd([v[0] - 1.5, 284, v[0] + 43.5, 320]); hd(v[2], 1); hd([v[3] - 3.2, 354.4, v[3] + 3.2, 360.4]);
+  });
+  if (!nd) { hd([386.5, 351, 425.8, 356.5]); hd([385.9, 357.5, 493.8, 357.5], 1); }
+  /* งานบ้าน: ไม่มี INV RACK · GROUND BUS INVERTER STATION · DETAIL C → สายจากบัส DC/AC BOX ต่อตรงขึ้นหลังคา · ชื่อตู้แบบงานบ้าน */
+  if (o.home) {
+    hd([455, 198, 525, 256]); hd([466.3, 252.5, 493.8, 366.6], 1); hd([490.5, 354.4, 497.2, 360.4]);
+    hd([454, 364, 506, 388]); hd([500, 331, 538, 370]);
+    LN.push([[457.4, 368.4], [499.6, 368.4], [499.6, 370.3]]);
+    tx([70.0, 276.1, 103.8, 280.2], o.mdbN); tx([96.4, 381.1, 130.1, 385.3], "CONSUMER UNIT", 1);
+    tx([170.8, 276.1, 199.1, 280.2], o.solN); tx([197.2, 381.1, 225.4, 385.3], "DC/AC BOX", 1);
+  }
+  /* ขนาดสายตามงาน (ต้นฉบับ 70 / 16 / 25 / 16) */
+  const cab = (b, v, v0) => { if (v !== v0) tx(b, "IEC01 " + v + " sq.mm."); };
+  cab([94.3, 328.8, 136.8, 334.3], o.eCu, 70); cab([292.8, 401.3, 334.6, 406.8], o.eCu, 16);
+  cab([236.2, 247, 278.6, 252.6], o.invCu, 25); cab([565.7, 344.4, 607.4, 349.9], o.roofCu, 16);
+  /* ROOFTOP: สายดินแนวตั้ง x 676.2 ยาวถึงชิ้นล่างสุดที่งานมี · ไม่มีรางไฟ/ทางเดิน/บันได = ซ่อน */
+  const yLow = o.tray ? 467.4 : o.walk ? 436.9 : o.ladder ? 400.2 : 380.3;
+  if (yLow < 467.4) { hd([676.2, 261.7, 676.2, 467.4], 1); LN.push([[676.2, 261.7], [676.2, yLow]]); }
+  if (!o.tray) { hd([673, 455.5, 880, 489]); hd([805, 452, 845, 458]); hd([693.0, 214.0, 747.5, 218.3]); }
+  if (!o.walk) hd([673, 428, 777, 455]);
+  if (!o.walk && !o.tray) { hd([699.4, 408.9, 738.6, 414.5]); hd([686.4, 415.3, 742.6, 415.3], 1); hd([686.4, 415.3, 686.4, 467.4], 1); }
+  else if (!o.tray) { hd([686.4, 415.3, 686.4, 467.4], 1); LN.push([[686.4, 415.3], [686.4, 436.9]]); }
+  if (!o.ladder) { hd([945, 278, 990, 412]); hd([676.2, 400.2, 949.0, 400.2], 1); hd([821, 397, 881, 416]); hd([673, 397, 679.5, 403.5]); }
+  if (o.yBot < 511) { hd([550.6, 196.2, 550.6, 510.9], 1); LN.push([[550.6, 196.2], [550.6, o.yBot]]); }
+  dsVec(pen, "GV1M", X(OX), Y(OY), sc, DS_GND_LY, HD);
+  LN.forEach((P) => { for (let i = 1; i < P.length; i++) pen.line(DS_GND_LY.k, X(P[i - 1][0]), Y(P[i - 1][1]), X(P[i][0]), Y(P[i][1])); });
+  /* ตัวหนังสือเขียนทับ: ฟอนต์ CAD จากป้ายในต้นฉบับ สูงเท่าป้ายเดิม (ไม่นับหางตัว q) · ชิดซ้ายที่เดิม (ป้ายใต้บัส = กลาง) */
+  TX.forEach(([b, t, c]) => { const cap = Math.min(b[3] - b[1], 4.2);
+    dsGlyphText(pen, DS_GND_LY.k, c ? (X(b[0]) + X(b[2])) / 2 : X(b[0]), Y(b[1] + cap), cap * sc, t, c ? 1 : 0); });
+}
+/* ตัวอักษรแบบ CAD จากป้ายในผังต่อลงดินของต้นฉบับ (GV1M) — เขียนชื่อตู้/ขนาดสายที่ต่างจากต้นฉบับให้ฟอนต์เดียวกับแบบ
+   แยกตัวอักษรจากเส้นในกรอบป้าย (pt ของหน้า PDF · ข้อความไม่มีช่องว่าง) เรียงซ้าย→ขวา เส้นที่ซ้อนกันแนวนอน = ตัวเดียวกัน
+   ตัวที่ต้นฉบับไม่มี (/ ( ) ~ 4 8 9) วาดเอง · ระยะห่างตัวอักษร 1.0 / ช่องว่าง 4.0 pt ต่อความสูง 4.1 pt ตามต้นฉบับ */
+const DS_GLYPH_SRC = [[[70.0, 276.1, 103.8, 280.2], "MDBEXISTING"], [[170.8, 276.1, 199.1, 280.2], "SOLARMDB"], [[95.8, 374.3, 128.0, 378.5], "GROUNDBUS"],
+  [[295.1, 207.2, 323.3, 211.3], "INVERTER-1"], [[94.3, 328.8, 136.8, 334.3], "IEC0170sq.mm."], [[236.2, 247, 278.6, 252.6], "IEC0125sq.mm."],
+  [[292.8, 401.3, 334.6, 406.8], "IEC0116sq.mm."], [[475.8, 201.3, 498.8, 205.4], "INVRACK"], [[701, 243.2, 726.8, 247.4], "PVSTRING"],
+  [[514.6, 333.1, 536.4, 337.2], "DETAILC"], [[708.5, 429.1, 734.4, 433.2], "WALKWAY"], [[707.6, 461.4, 754.4, 465.5], "PERFORRATETRAY"],
+  [[404.8, 286, 441.8, 289.8], "DCFUSEBOX-3"]];
+const DS_GLYPH_HAND = {
+  "/": { w: 0.5, p: [[[0, 0], [0.5, -1]]] },
+  "(": { w: 0.3, p: [[[0.3, -1.15], [0.12, -0.9], [0.02, -0.5], [0.12, -0.1], [0.3, 0.15]]] },
+  ")": { w: 0.3, p: [[[0, -1.15], [0.18, -0.9], [0.28, -0.5], [0.18, -0.1], [0, 0.15]]] },
+  "~": { w: 0.75, p: [[[0, -0.42], [0.15, -0.56], [0.3, -0.56], [0.45, -0.45], [0.6, -0.42], [0.75, -0.56]]] },
+  "4": { w: 0.6, p: [[[0.45, 0], [0.45, -1], [0, -0.33], [0.6, -0.33]]] },
+  "8": { w: 0.55, p: [[[0.27, -0.55], [0.08, -0.65], [0.04, -0.82], [0.12, -0.96], [0.27, -1], [0.43, -0.96], [0.51, -0.82], [0.47, -0.65], [0.27, -0.55],
+    [0.05, -0.43], [0, -0.25], [0.08, -0.06], [0.27, 0], [0.47, -0.06], [0.55, -0.25], [0.5, -0.43], [0.27, -0.55]]] },
+  "9": { w: 0.55, p: [[[0.55, -0.65], [0.47, -0.45], [0.27, -0.38], [0.08, -0.45], [0, -0.67], [0.08, -0.9], [0.27, -1], [0.47, -0.9], [0.55, -0.65],
+    [0.55, -0.35], [0.47, -0.1], [0.27, 0], [0.08, -0.07]]] },
+};
+let dsGlyphs = null;
+function dsGlyphMap() {
+  if (dsGlyphs) return dsGlyphs;
+  const G = {}, S = [];
+  dsVecEach("GV1M", (t, u, b) => { if (t === "k") S.push({ u, b }); });
+  DS_GLYPH_SRC.forEach(([B0, str]) => {
+    const B = [B0[0] - 42.5, B0[1] - 196.2, B0[2] - 42.5, B0[3] - 196.2];
+    const L = S.filter((o) => o.b[0] >= B[0] - 0.4 && o.b[1] >= B[1] - 0.4 && o.b[2] <= B[2] + 0.4 && o.b[3] <= B[3] + 0.4).sort((p, r) => p.b[0] - r.b[0]);
+    const C = [];
+    L.forEach((o) => { const c = C[C.length - 1];
+      if (c && o.b[0] <= c.b[2] + 0.15) { c.b = [c.b[0], Math.min(c.b[1], o.b[1]), Math.max(c.b[2], o.b[2]), Math.max(c.b[3], o.b[3])]; c.s.push(o.u); }
+      else C.push({ b: o.b.slice(), s: [o.u] }); });
+    if (C.length !== str.length) return;
+    const cap = C[0].b[3] - C[0].b[1], base = C[0].b[3];
+    C.forEach((c, i) => { if (!G[str[i]]) G[str[i]] = { w: (c.b[2] - c.b[0]) / cap, p: c.s.map((u) => u.map(([x, y]) => [(x - c.b[0]) / cap, (y - base) / cap])) }; });
+  });
+  Object.keys(DS_GLYPH_HAND).forEach((k) => { if (!G[k]) G[k] = DS_GLYPH_HAND[k]; });
+  return (dsGlyphs = G);
+}
+/* (x, yB) = มุมซ้ายบนเส้นฐาน (มม.) · cap = สูงตัวพิมพ์ใหญ่ (มม.) · align 1 = กลาง */
+function dsGlyphText(pen, L, x, yB, cap, str, align) {
+  const G = dsGlyphMap(), gap = 1.0 / 4.1, sp = 3.0 / 4.1, items = [];
+  let w = 0;
+  [...String(str)].forEach((ch) => { const g = G[ch]; if (!g) { w += sp; return; } if (items.length) w += gap; items.push([g, w]); w += g.w; });
+  const x0 = x - (align === 1 ? w * cap / 2 : 0);
+  items.forEach(([g, ox]) => g.p.forEach((P) => { for (let i = 1; i < P.length; i++)
+    pen.line(L, x0 + (ox + P[i - 1][0]) * cap, yB - P[i - 1][1] * cap, x0 + (ox + P[i][0]) * cap, yB - P[i][1] * cap); }));
+}
 function dsGroundSheet(st, job, media) {
   media = media || {};
   const S = dsMm(st, job, media, "GROUND", "GROUNDING DIAGRAM FOR SOLAR SYSTEM");
@@ -1287,14 +1391,24 @@ function dsGroundSheet(st, job, media) {
 
   /* กรอบตาราง: หัว INVERTER STATION | ROOFTOP · แถว DETAIL */
   /* แถว DETAIL ยืดลงจนเหลือที่ REMARK พอดีขอบล่างพื้นที่วาด (ผู้ใช้ 2026-11-02 "จัดหน้ากระดาษหน่อย") — เดิมล่างว่างเกือบ 1/4 แผ่น */
-  const useV = !!(window.DS_VEC || {}).GV1A;
+  const useV = !!(window.DS_VEC || {}).GV1A, gm = !!(window.DS_VEC || {}).GV1M;
   const fB = useV ? Math.max(735, Math.floor((D.Y(0) - A.y0) / D.k - 78)) : 735;
-  D.ln(E, 0, 66, 1366, 66); D.ln(E, 0, 520, 1366, 520); D.ln(E, 718, 66, 718, 520);
+  /* ผังหลักจาก PDF: กว้าง 42.2–1015.9 pt = 1366 หน่วย · ลงถึง yBot pt → เส้นล่าง MB (ต้นฉบับ 511.2 · งานไม่มีรางไฟ/ทางเดิน/บันได ตัดที่ว่างล่างออกให้แถว DETAIL ได้ที่เพิ่ม)
+     เส้นแบ่ง INVERTER STATION | ROOFTOP x 550.6 pt · หัวตารางเป็นฟอนต์ CAD เดียวกับลายเส้น */
+  const ladder = dsObs(st, "ladder").length > 0;
+  const yBot = tray ? 511.2 : walk ? 470 : ladder ? 430 : 425;
+  const MB = gm ? 66 + (yBot - 195.6) * 1366 / 973.7 : 520, xH = gm ? (550.6 - 42.2) * 1366 / 973.7 : 718;
+  D.ln(E, 0, 66, 1366, 66); D.ln(E, 0, MB, 1366, MB); if (!gm) D.ln(E, 718, 66, 718, 520);
   D.rc(E, 0, 42, 1366, fB - 42);
-  D.tx(359, 58, "INVERTER STATION", HB, { align: 1 }); D.tx(1042, 58, "ROOFTOP", HB, { align: 1 });
-
-  /* ── INVERTER STATION ── */
   const mdbN = home ? "CONSUMER UNIT EXISTING" : "MDB EXISTING", solN = home ? "DC/AC BOX (SOLAR)" : "SOLAR MDB";
+  if (gm) {
+    dsGndLayers(S.doc);
+    [[xH / 2, "INVERTER STATION"], [(xH + 1366) / 2, "ROOFTOP"]].forEach((h) => dsGlyphText(pen, DS_GND_LY.k, D.X(h[0]), D.Y(54 + 4.3), 8.6 * D.k, h[1], 1));
+    dsGroundMain(pen, D, { home, fuse, nInv, eCu, invCu, roofCu, tray, walk, ladder, yBot, mdbN, solN });
+  } else {
+  D.tx(xH / 2, 58, "INVERTER STATION", HB, { align: 1 }); D.tx((xH + 1366) / 2, 58, "ROOFTOP", HB, { align: 1 });
+
+  /* ── (สำรองเมื่อไม่มี groundmain.js) INVERTER STATION ── */
   D.rc(E, 45, 220, 125, 220); D.tx(45, 213, mdbN, H);
   dsBus(D, E, 48, 313, 112, 14); D.tx(104, 333, "GROUND BUS", H, { align: 1, valign: 3 }); D.tx(104, 344, home ? "CONSUMER UNIT" : "MDB EXISTING", H, { align: 1, valign: 3 });
   D.rc(E, 190, 205, 125, 235); D.tx(190, 198, solN, H);
@@ -1387,6 +1501,7 @@ function dsGroundSheet(st, job, media) {
     D.pl(T, [[1125, 451], [1130, 445], [1138, 445]]); D.tx(1140, 448, "DETAIL D", H);
     D.pl(T, [[1118, 465], [1118, 487], [1210, 487]]); D.tx(1122, 485, "IEC01 6 sq.mm.", H);
   }
+  }
 
   /* ── DETAIL A–D: ลายเส้นเวกเตอร์ตรงจาก PDF แบบของผู้ใช้ (dashboard/groundvec.js GV1A–D · ผู้ใช้ส่ง PDF 2026-11-02 "ถอดเส้นจากอันนี้")
      กรอบเท่ากันทุกรูป ย่ออัตราเดียวกัน · D เฉพาะงานที่มีรางไฟ · งานบ้านไม่มี C
@@ -1395,10 +1510,10 @@ function dsGroundSheet(st, job, media) {
   const GF = { GV1A: [3.2, 15.1, 192.8, 83.9], GV1B: [3.8, 15.1, 193.4, 94.9], GV1C: [3.5, 15.1, 178.7, 106.1], GV1D: [3.7, 15.1, 178.9, 106.1] };
   if (useV) {
     const L = ["GV1A", "GV1B"].concat(home ? [] : ["GV1C"], tray ? ["GV1D"] : []), n = L.length;
-    const g = n >= 4 ? 15 : 40, FW = Math.min(420, (1141 - (n - 1) * g) / n), rowH = fB - 520;
+    const g = n >= 4 ? 15 : 40, FW = Math.min(420, (1141 - (n - 1) * g) / n), rowH = fB - MB;
     const r = Math.min(FW * 0.97 / 190.5, (rowH - 42) / (92 / 0.97 + 15.1));   // pt ของภาพ → หน่วยรูป (ชื่อรูปสูง 15.1 pt อยู่เหนือกรอบ)
     const FH = Math.min(rowH - 42 - 15.1 * r, 92 * r / 0.97 + 24);
-    const bT = 520 + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4, x0 = (1366 - n * FW - (n - 1) * g) / 2;
+    const bT = MB + (rowH - FH - 15.1 * r - 4) / 2 + 15.1 * r + 4, x0 = (1366 - n * FW - (n - 1) * g) / 2;
     L.forEach((nm, i) => dsVecFit(pen, nm, GF[nm], D.X(x0 + i * (FW + g)), D.Y(bT), FW * D.k, FH * D.k, r * D.k, DS_GND_LY, E));
   } else {
   /* ── (สำรองเมื่อไม่มี groundvec.js) DETAIL A–D: รูปต้นแบบของผู้ใช้ลอกเป็นเส้นทั้งกล่อง (หัวเรื่อง · กรอบ · ป้าย) — ย่อให้กรอบตรงตำแหน่งเดิม · D เฉพาะงานที่มีรางไฟ ── */
