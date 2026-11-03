@@ -1109,7 +1109,7 @@ function dsRtmMetal(pen, x0, yT, sc, LY) {
       if (t === "K") fill(LY.k, P); else poly(LY.k, P); });
   });
   if (!wave) return;
-  const per = 52.47, kx = per / 90.1, ph = 187.7 - (852.65 - 838.5) * kx;
+  const per = 52.47, kx = per / 90.1, ph = 189.55 - (852.65 - 838.5) * kx;   // สันลอนตรงสกรู (rl + 3.75)
   for (let k = -4; k <= 8; k++) {
     const P = wave.map(([X, Y]) => [ph + k * per + (X - 838.5) * kx, 323.2 + (Y - 566.7) * 0.5]);
     for (let i = 1; i < P.length; i++) {

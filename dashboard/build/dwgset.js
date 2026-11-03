@@ -1685,7 +1685,7 @@ function dsRtmMetal(pen, x0, yT, sc, LY) {
   if (!wave) return;
   const per = 52.47,
     kx = per / 90.1,
-    ph = 187.7 - (852.65 - 838.5) * kx;
+    ph = 189.55 - (852.65 - 838.5) * kx;
   for (let k = -4; k <= 8; k++) {
     const P = wave.map(([X, Y]) => [ph + k * per + (X - 838.5) * kx, 323.2 + (Y - 566.7) * 0.5]);
     for (let i = 1; i < P.length; i++) {
