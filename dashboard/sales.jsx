@@ -717,6 +717,25 @@ const QUOTE_I18N = {
   "ผู้ขาย": ["Seller", "卖方"],
   "ผู้ซื้อ": ["Buyer", "买方"],
   " บาท": [" THB", " 泰铢"],
+  /* หน้าแรกแบบใบแจ้งหนี้ (2026-11-05) */
+  "เลขที่เอกสาร": ["Document no.", "单据编号"],
+  "ยืนราคาถึง": ["Valid until", "有效期至"],
+  "ขนาดระบบ": ["System size", "系统规模"],
+  "เลขที่ภาษี": ["Tax ID", "税号"],
+  " (สำนักงานใหญ่)": [" (Head office)", "（总部）"],
+  "อีเมล": ["Email", "邮箱"],
+  "เว็บ": ["Web", "网站"],
+  "ติดต่อกลับที่": ["Contact", "联系人"],
+  "คำอธิบาย": ["Description", "项目说明"],
+  "มูลค่าก่อนภาษี": ["Amount (excl. VAT)", "不含税金额"],
+  "จำนวนเงินทั้งสิ้น": ["Grand total", "总计"],
+  "การยืนราคา": ["Price validity", "报价有效期"],
+  "ยืนราคาตามที่ตกลงกัน": ["Prices as agreed", "按约定价格"],
+  "หมายเหตุ": ["Note", "备注"],
+  "รับรอง": ["Signatures", "签字"],
+  "สรุป": ["Summary", "汇总"],
+  "ผู้เสนอราคา": ["Quoted by", "报价人"],
+  "ราคา": ["Price", "单价"],
 };
 
 /* ============================================================
@@ -803,6 +822,17 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
       + "</li>").join("");
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
+  /* ── ชิ้นส่วนหน้าแรกแบบใบแจ้งหนี้ ── */
+  const ivKv = (k, v, nb) => (v == null || v === "" ? "" : '<tr><td class="ivk">' + k + ' :</td><td' + (nb ? ' class="nb"' : "") + ">" + sEsc(v) + "</td></tr>");
+  const ivSum = (k, v) => "<tr><td>" + k + '</td><td class="r">' + sBaht(v) + "</td><td> บาท</td></tr>";
+  const ivSec = (k, body) => '<div class="ivsec"><div class="ivsl">' + k + '</div><div class="ivsb">' + body + "</div></div>";
+  const ivRows = items.map((it, i) =>
+    "<tr><td><b>" + (i + 1) + ". " + sEsc(it.name) + "</b>" +
+    quoteDetailLines(it.detail).map((ln) => '<div class="dt">- ' + sEsc(ln) + "</div>").join("") + "</td>" +
+    '<td class="r">' + sEsc(it.qty) + '</td><td class="c">' + sEsc(it.unit || "") + "</td>" +
+    '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>").join("");
+  const validTo = (() => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(q.date || "")); if (!m || !(+q.validDays > 0)) return "";
+    const d = new Date(+m[1], +m[2] - 1, +m[3] + (+q.validDays)); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
   /* ── หน้าปก ──
      ชุดเอกสารของงานโครงการถูกพรินต์ไปวางบนโต๊ะประชุมรวมกับของเจ้าอื่น
      แผ่นแรกจึงต้องบอกครบในสายตาเดียวว่าใครเสนอ เสนอให้ใคร ระบบใหญ่เท่าไร */
@@ -1006,6 +1036,29 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
        ราคากับลายเซ็นจะได้อยู่ที่เดิมทุกใบ ไม่ลอยตามจำนวนรายการ */
     ".pg1{display:flex;flex-direction:column;min-height:269mm}" +
     ".pgft{margin-top:auto}" +
+    /* หน้าแรกแบบใบแจ้งหนี้ (.ivq) — สีหลัก #0A4D68 · พื้นอ่อน #E6F2F6 เหมือน invoice.jsx */
+    ".ivq{font-size:11px;color:#1F2A33}" +
+    ".ivh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}" +
+    ".ivh h1{font-size:26px;margin:0;color:#0A4D68;font-weight:700;line-height:1.2}" +
+    ".ivr{display:flex;gap:16px;margin-bottom:10px}.ivbt{padding-top:10px;border-top:1px solid #DCE6EA;margin-bottom:14px}" +
+    ".ivl{flex:1;display:flex;gap:14px;min-width:0;align-items:flex-start}.ivl>table:first-child{flex:1}" +
+    ".ivbx{width:238px;background:#E6F2F6;border-radius:4px;padding:8px 12px}.ivc{width:238px}" +
+    ".ivch{font-size:10.5px;font-weight:700;margin-bottom:2px}" +
+    ".ivkv{width:auto;border-collapse:collapse;font-size:10.5px;line-height:1.6}" +
+    ".ivkv td{border:0;padding:0;vertical-align:top}.ivkv .ivk{font-weight:700;white-space:nowrap;padding-right:8px;color:#1F2A33}" +
+    ".ivkv .nb{white-space:nowrap}.ivct .ivk{font-weight:400;color:#5B6770}" +
+    ".ivt th{background:#E6F2F6;color:#1F2A33;font-weight:700;font-size:10.5px;padding:7px 8px}" +
+    ".ivt td{font-size:10.5px;border-bottom:1px solid #DCE6EA;padding:8px}.ivt .dt{padding-left:12px}" +
+    ".ivs{display:flex;gap:16px;padding:14px 0;border-top:1px solid #DCE6EA}" +
+    ".ivsl{width:92px;flex:0 0 92px;font-size:11px;font-weight:700}.ivsm{flex:1}" +
+    ".ivsum{width:auto;font-size:10.5px;line-height:1.75}.ivsum td{border:0;padding:0 24px 0 0;white-space:nowrap}.ivsum td.ivtx{white-space:normal}.ivsum td.r{padding-right:6px}" +
+    ".ivsum .ivb{font-weight:700}.ivsum .ivtx{color:#5B6770}" +
+    ".ivtot{align-self:flex-start;width:238px;background:#E6F2F6;border-radius:4px;padding:10px 12px;display:flex;align-items:baseline;gap:8px;font-size:10.5px}" +
+    ".ivtot span:first-child{flex:1}.ivtot b{font-size:17px;color:#0A4D68}" +
+    ".ivsec{display:flex;gap:10px;padding:10px 0;border-top:1px solid #DCE6EA;font-size:11px;break-inside:avoid}.ivsb{flex:1;line-height:1.6}" +
+    ".ivsg{display:flex;gap:24px;padding-top:14px;border-top:1px solid #DCE6EA;font-size:10.5px;break-inside:avoid}" +
+    ".ivsg>div:not(.ivsl){flex:1;text-align:center}.ivsr{font-weight:700;margin-bottom:46px}" +
+    ".ivsg .ln{border-top:1px dotted #5B6770;margin:0 18px 4px}.ivmu{color:#5B6770;margin-top:2px}" +
     ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" +
     ".tmpg .ft{margin-top:auto}" +
     ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" +
@@ -1073,35 +1126,41 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
       "box-shadow:0 1px 2px rgba(15,43,51,.08),0 10px 30px rgba(15,43,51,.14)}}" +
     "</style></head><body>" +
     (quotePageOn(q, "cover") ? coverHTML() : "") +
-    '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") +
-    '<div class="two"><div><h3>ลูกค้า</h3>' +
-    '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" +
-    '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" +
-    '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" +
-    "<div><h3>รายละเอียดข้อเสนอ</h3>" +
-    '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" +
-    '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" +
-    '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" +
-    "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" +
-    "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" +
-    "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" +
-    "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" +
+    /* หน้าแรกแบบเดียวกับใบแจ้งหนี้ (invoice.jsx · ผู้ใช้ 2026-11-05 "อยากให้ทำแนวใบแจ้งหนี้ได้ไหม จะได้ฟอร์มเดียวกัน")
+       โลโก้ซ้าย หัวขวา · ผู้ขาย + กล่องเลขที่ · ลูกค้า + ติดต่อกลับ · ตารางหัวพื้นอ่อน · สรุป/ยืนราคา/ลงชื่อชิดขอบล่าง (.pgft) */
+    '<div class="pg1 ivq' + (quotePageOn(q, "cover") ? " brk" : "") + '">' +
+    '<div class="ivh"><div>' + window.brandDocHTML({ height: 56, name: false }) + '</div><h1>ใบเสนอราคา</h1></div>' +
+    '<div class="ivr"><div class="ivl"><table class="ivkv"><tbody>' +
+      ivKv("ผู้ขาย", window.BRANDING.legalTH) + ivKv("ที่อยู่", window.BRANDING.addrTH) +
+      ivKv("เลขที่ภาษี", window.BRANDING.taxId ? window.BRANDING.taxId + " (สำนักงานใหญ่)" : "") + "</tbody></table>" +
+      '<table class="ivkv ivct"><tbody>' + ivKv("โทร", window.BRANDING.tel) + ivKv("อีเมล", window.BRANDING.email) + ivKv("เว็บ", window.BRANDING.site) + "</tbody></table></div>" +
+    '<div class="ivbx"><table class="ivkv"><tbody>' +
+      ivKv("เลขที่เอกสาร", q.no, true) + ivKv("วันที่", dsp(q.date), true) +
+      ivKv("ยืนราคาถึง", validTo ? dsp(validTo) : "", true) + ivKv("อ้างอิง", q.refCode, true) +
+      ivKv("ขนาดระบบ", q.kwp ? q.kwp + " kWp" : "", true) + ivKv("ผู้เสนอ", q.ownerName || q.byName, true) + "</tbody></table></div></div>" +
+    '<div class="ivr ivbt"><div class="ivl"><table class="ivkv"><tbody>' +
+      ivKv("ลูกค้า", c.name || "—") + ivKv("ที่อยู่", (c.address || "") + (c.province ? " " + c.province : "")) +
+      ivKv("เลขที่ภาษี", c.taxId) + "</tbody></table></div>" +
+    '<div class="ivc">' + ((c.contact || c.phone || c.email) ? '<div class="ivch">ติดต่อกลับที่</div><table class="ivkv ivct"><tbody>' +
+      ivKv("ชื่อ", c.contact) + ivKv("โทร", c.phone) + ivKv("อีเมล", c.email) + "</tbody></table>" : "") + "</div></div>" +
+    "<table class=\"ivt\"><thead><tr><th>คำอธิบาย</th>" +
+    "<th class=\"r\" style=\"width:56px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" +
+    "<th class=\"r\" style=\"width:92px\">ราคา</th><th class=\"r\" style=\"width:100px\">มูลค่าก่อนภาษี</th></tr></thead>" +
+    "<tbody>" + (ivRows || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" +
     '<div class="pgft">' +
-    '<table class="sum">' + money("รวมเป็นเงิน", T.sub) +
-    (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc)
-      + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
-    money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
-    money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
-    /* ช่องยืนราคา — เดิมเป็นบรรทัดเล็ก ๆ ลอยอยู่ ลูกค้ามองข้าม
-       ทำเป็นช่องให้เห็นชัดว่าราคานี้มีวันหมดอายุ และเว้นที่ให้เขียนวันครบกำหนดด้วยมือได้ */
-    '<div class="vbx"><h3>การยืนราคา</h3>' +
-    '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" +
-    (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
-    "</div>" +
-    '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
-    '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
-    '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
-    /* ท้ายใบบอกขอบเขตงานที่บริษัททำ — ย้ายมาจากหัวใบ หัวใบจะได้เหลือแต่ตัวตนนิติบุคคลล้วน ๆ */
+    '<div class="ivs"><div class="ivsl">สรุป</div><div class="ivsm"><table class="ivsum"><tbody>' +
+      ivSum("รวมเป็นเงิน", T.sub) +
+      (T.disc > 0 ? ivSum(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + ivSum("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
+      ivSum("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
+      '<tr><td class="ivb">จำนวนเงินทั้งสิ้น</td><td colspan="2" class="ivtx">' + (L === "th" && window.ecBahtText ? window.ecBahtText(T.grand) : "") + "</td></tr>" +
+      "</tbody></table></div>" +
+      '<div class="ivtot"><span>จำนวนเงินทั้งสิ้น</span><b>' + sBaht(T.grand) + "</b><span> บาท</span></div></div>" +
+    ivSec("การยืนราคา", sEsc(valid || "ยืนราคาตามที่ตกลงกัน")) +
+    (q.note ? ivSec("หมายเหตุ", '<div style="white-space:pre-wrap">' + sEsc(q.note) + "</div>") : "") +
+    '<div class="ivsg"><div class="ivsl">รับรอง</div>' +
+      '<div><div class="ivsr">ผู้เสนอราคา</div><div class="ln"></div><div>' + sEsc(q.ownerName || q.byName || "") + '</div><div class="ivmu">' + dsp(q.date) + "</div></div>" +
+      '<div><div class="ivsr">ผู้อนุมัติ / ลูกค้า</div><div class="ln"></div><div>' + sEsc(c.name || "") + '</div><div class="ivmu">วันที่ ______ / ______ / ______</div></div></div>' +
+    /* ท้ายใบบอกขอบเขตงานที่บริษัททำ */
     footHTML +
     "</div></div>" +
     /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
