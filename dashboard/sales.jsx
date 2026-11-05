@@ -721,6 +721,7 @@ const QUOTE_I18N = {
   "เลขที่เอกสาร": ["Document no.", "单据编号"],
   "ยืนราคาถึง": ["Valid until", "有效期至"],
   "ขนาดระบบ": ["System size", "系统规模"],
+  "มือถือ": ["Mobile", "手机"],
   "เลขที่ภาษี": ["Tax ID", "税号"],
   " (สำนักงานใหญ่)": [" (Head office)", "（总部）"],
   "อีเมล": ["Email", "邮箱"],
@@ -1142,9 +1143,10 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
       ivKv("เลขที่ภาษี", c.taxId) + "</tbody></table></div></div></div>" +
     '<div class="ivc"><div class="ivbx"><table class="ivkv"><tbody>' +
       ivKv("เลขที่เอกสาร", q.no, true) + ivKv("วันที่", dsp(q.date), true) +
-      ivKv("ยืนราคาถึง", validTo ? dsp(validTo) : "", true) + ivKv("ผู้เสนอ", q.ownerName || q.byName, true) + "</tbody></table>" +
-      ((q.refCode || q.kwp) ? '<table class="ivkv ivct ivref"><tbody>' + ivKv("อ้างอิง", q.refCode, true) +
-      ivKv("ขนาดระบบ", q.kwp ? q.kwp + " kWp" : "", true) + "</tbody></table>" : "") + "</div>" + ((c.contact || c.phone || c.email) ? '<div class="ivch">ติดต่อกลับที่</div><table class="ivkv ivct"><tbody>' +
+      ivKv("ยืนราคาถึง", validTo ? dsp(validTo) : "", true) + ivKv("ผู้เสนอ", q.ownerName || q.byName, true) + ivKv("มือถือ", q._ownerPhone, true) +
+      /* ตารางเดียวกัน — หัวข้อตัวเข้ม ค่าตรงคอลัมน์เดียวกับข้างบน (ผู้ใช้ 2026-11-05 "สีเข้ม" ขีดแนวคอลัมน์) */
+      ((q.refCode || q.kwp) ? '<tr><td colspan="2" style="height:8px"></td></tr>' + ivKv("อ้างอิง", q.refCode, true) +
+      ivKv("ขนาดระบบ", q.kwp ? q.kwp + " kWp" : "", true) : "") + "</tbody></table></div>" + ((c.contact || c.phone || c.email) ? '<div class="ivch">ติดต่อกลับที่</div><table class="ivkv ivct"><tbody>' +
       ivKv("ชื่อ", c.contact) + ivKv("โทร", c.phone) + ivKv("อีเมล", c.email) + "</tbody></table>" : "") + "</div></div>" +
     "<table class=\"ivt\"><thead><tr><th>คำอธิบาย</th>" +
     "<th class=\"r\" style=\"width:56px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" +
@@ -1789,8 +1791,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
       : cp !== "auto" && planId && window.FBDB
         ? window.FBDB.ref("plan3dShotData/" + planId + "/" + cp).once("value").then((x) => x.val() || autoP()).catch(autoP)
         : Promise.resolve(autoP());
-    Promise.all([shP, loadPics(), cvP])
-      .then((r) => { setRep(quoteHTML(q, qLang, r[0], r[1], r[2])); })
+    /* เบอร์มือถือผู้เสนอ = เบอร์ในบัญชีผู้ใช้ users/{ownerId}/phone (ผู้ใช้ 2026-11-05 "แปะเบอร์มือถือ") — ไม่เก็บลงใบ ดึงตอนเปิด */
+    const phP = q.ownerId && window.FBDB ? window.FBDB.ref("users/" + q.ownerId + "/phone").once("value").then((x) => x.val() || "").catch(() => "") : Promise.resolve("");
+    Promise.all([shP, loadPics(), cvP, phP])
+      .then((r) => { setRep(quoteHTML(Object.assign({}, q, { _ownerPhone: r[3] }), qLang, r[0], r[1], r[2])); })
       .then(() => setRepBusy(false), () => setRepBusy(false));
   };
   const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
