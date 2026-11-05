@@ -1059,7 +1059,7 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     ".ivtot span:first-child{flex:1}.ivtot b{font-size:17px;color:#0A4D68}" +
     ".ivsec{display:flex;gap:10px;padding:10px 0;border-top:1px solid #DCE6EA;font-size:11px;break-inside:avoid}.ivsb{flex:1;line-height:1.6}" +
     ".ivsg{display:flex;gap:24px;padding-top:14px;border-top:1px solid #DCE6EA;font-size:10.5px;break-inside:avoid}" +
-    ".ivsg>div:not(.ivsl){flex:1;text-align:center}.ivsr{font-weight:700;margin-bottom:46px}" +
+    ".ivsg>div:not(.ivsl){flex:0 0 220px;text-align:center}.ivsg>div:last-child{margin-left:auto}.ivsr{font-weight:700;margin-bottom:46px}" +
     ".ivsg .ln{border-top:1px dotted #5B6770;margin:0 18px 4px}.ivmu{color:#5B6770;margin-top:2px}" +
     ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" +
     ".tmpg .ft{margin-top:auto}" +
