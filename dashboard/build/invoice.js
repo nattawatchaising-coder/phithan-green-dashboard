@@ -335,6 +335,7 @@ function InvoiceEditor({
   };
   const IN = ivIn();
   return ReactDOM.createPortal(React.createElement("div", {
+    className: "sv-rep-noprint",
     style: {
       position: "fixed",
       inset: 0,
@@ -655,6 +656,7 @@ function InvoiceEditor({
 }
 function InvoiceSettings({
   store,
+  users,
   onClose
 }) {
   const [L, setL] = React.useState(() => JSON.parse(JSON.stringify(store.issuers)));
@@ -688,6 +690,7 @@ function InvoiceSettings({
     }).catch(() => setBusy(false));
   };
   return ReactDOM.createPortal(React.createElement("div", {
+    className: "sv-rep-noprint",
     style: {
       position: "fixed",
       inset: 0,
@@ -827,6 +830,20 @@ function InvoiceSettings({
     value: x.signer,
     onChange: e => setI(i, "signer", e.target.value)
   })), React.createElement(IvFld, {
+    label: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19 (\u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49)",
+    w: "210px"
+  }, React.createElement("select", {
+    style: IN,
+    value: x.signUser || "",
+    onChange: e => setI(i, "signUser", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u2014 \u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E37\u0E48\u0E2D\u0E15\u0E23\u0E07\u0E01\u0E31\u0E19"), React.createElement("option", {
+    value: "-"
+  }, "\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19"), (users || []).filter(u => u && u.id && u.name).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), React.createElement(IvFld, {
     label: "\u0E42\u0E25\u0E42\u0E01\u0E49\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E1A\u0E19\u0E43\u0E1A",
     w: "150px"
   }, React.createElement("select", {
@@ -867,7 +884,52 @@ function InvoiceSettings({
     style: IN,
     value: b.name || "",
     onChange: e => setB(i, "name", bi, e.target.value)
-  })), React.createElement("button", {
+  })), React.createElement(IvFld, {
+    label: "\u0E42\u0E25\u0E42\u0E01\u0E49\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23",
+    w: "120px"
+  }, React.createElement("label", {
+    style: Object.assign({}, IN, {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: 42,
+      padding: 4,
+      cursor: "pointer"
+    })
+  }, b.logo ? React.createElement("img", {
+    src: b.logo,
+    alt: "",
+    style: {
+      maxHeight: 34,
+      maxWidth: 100,
+      objectFit: "contain"
+    }
+  }) : React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "+ \u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14"), React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      const fl = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (fl && window.resizeImageFile) window.resizeImageFile(fl, 240, 0.9).then(d => setB(i, "logo", bi, d));
+    }
+  })), b.logo && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tint-red-tx)",
+      cursor: "pointer",
+      textAlign: "center",
+      marginTop: 3
+    },
+    onClick: () => setB(i, "logo", bi, "")
+  }, "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01")), React.createElement("button", {
     style: Object.assign(ivBtn(), {
       alignSelf: "flex-end",
       color: "var(--tint-red-tx)"
@@ -895,13 +957,16 @@ function ivPaperColors() {
 function IvPage({
   inv,
   issuers,
-  copy
+  copy,
+  sign
 }) {
   const C = ivPaperColors(),
     x = ivFrom(inv, issuers),
     c = inv.cust || {},
     T = ivTotals(inv);
   const bank = (x.banks || [])[+inv.bank || 0];
+  const curIss = (issuers || []).find(y => y.key === x.key) || {};
+  const bankLogo = bank && (bank.logo || ((curIss.banks || []).find(b => b && b.no === bank.no) || {}).logo);
   const lab = {
     color: IV_INK,
     fontWeight: 700,
@@ -964,7 +1029,7 @@ function IvPage({
     }
   }, body));
   return React.createElement("div", {
-    className: "iv-page",
+    className: "iv-page bl-page",
     style: {
       color: IV_INK,
       fontSize: 11
@@ -1136,11 +1201,18 @@ function IvPage({
       verticalAlign: "top"
     }
   }, ivMoney((+it.qty || 0) * (+it.price || 0))))))), React.createElement("div", {
+    className: "bl-foot",
+    style: {
+      breakInside: "avoid",
+      paddingTop: 16
+    }
+  }, React.createElement("div", {
     style: {
       display: "flex",
       gap: 16,
       padding: "14px 0",
-      breakInside: "avoid"
+      breakInside: "avoid",
+      borderTop: "1px solid " + IV_LINE
     }
   }, React.createElement("div", {
     style: {
@@ -1230,7 +1302,21 @@ function IvPage({
       textAlign: "right",
       fontWeight: 700
     }
-  }, ivMoney(T.pay), " \u0E1A\u0E32\u0E17")))))), bank && sec("", "ชำระเงิน", React.createElement("div", null, React.createElement("div", {
+  }, ivMoney(T.pay), " \u0E1A\u0E32\u0E17")))))), bank && sec("", "ชำระเงิน", React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, bankLogo ? React.createElement("img", {
+    src: bankLogo,
+    alt: "",
+    style: {
+      height: 40,
+      maxWidth: 70,
+      objectFit: "contain"
+    }
+  }) : null, React.createElement("div", null, React.createElement("div", {
     style: {
       fontWeight: 700
     }
@@ -1242,7 +1328,7 @@ function IvPage({
     style: {
       color: IV_SOFT
     }
-  }, bank.name))), inv.note && sec("", "หมายเหตุ", React.createElement("div", {
+  }, bank.name)))), inv.note && sec("", "หมายเหตุ", React.createElement("div", {
     style: {
       whiteSpace: "pre-wrap"
     }
@@ -1260,7 +1346,7 @@ function IvPage({
       fontSize: 11,
       fontWeight: 800
     }
-  }, "\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07"), [["ผู้ออกเอกสาร (ผู้ขาย)", x.signer || x.name, inv.date], ["ผู้รับเอกสาร (ลูกค้า)", c.name, ""]].map(s => React.createElement("div", {
+  }, "\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07"), [["ผู้ออกเอกสาร (ผู้ขาย)", x.signer || x.name, inv.date, sign], ["ผู้รับเอกสาร (ลูกค้า)", c.name, ""]].map(s => React.createElement("div", {
     key: s[0],
     style: {
       flex: 1,
@@ -1270,9 +1356,22 @@ function IvPage({
   }, React.createElement("div", {
     style: {
       fontWeight: 700,
-      marginBottom: 46
+      height: 54,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      alignItems: "center"
     }
-  }, s[0]), React.createElement("div", {
+  }, React.createElement("span", null, s[0]), s[3] ? React.createElement("img", {
+    src: s[3],
+    alt: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+    style: {
+      maxHeight: 36,
+      maxWidth: "70%",
+      objectFit: "contain",
+      marginBottom: -2
+    }
+  }) : null), React.createElement("div", {
     style: {
       borderTop: "1px dotted " + IV_SOFT,
       margin: "0 18px",
@@ -1283,14 +1382,39 @@ function IvPage({
       color: IV_SOFT,
       marginTop: 2
     }
-  }, s[2] ? ivDay(s[2]) : "วันที่ ........................")))));
+  }, s[2] ? ivDay(s[2]) : "วันที่ ........................"))))));
+}
+function ivSignUserId(x, users) {
+  if (!x || x.signUser === "-") return "";
+  if (x.signUser) return x.signUser;
+  const norm = s => String(s || "").replace(/^(นาย|นางสาว|นาง|น\.ส\.|คุณ)\s*/, "").replace(/\s+/g, " ").trim();
+  const want = [x.signer, x.name].map(norm).filter(Boolean);
+  const u = (users || []).find(u => u && u.name && want.indexOf(norm(u.name)) >= 0);
+  return u ? u.id : "";
+}
+function useIvSign(x, users) {
+  const uid = ivSignUserId(x, users);
+  const [img, setImg] = React.useState("");
+  React.useEffect(() => {
+    setImg("");
+    if (!uid || !window.FBDB) return;
+    _ivRef("userSigns/" + uid).once("value").then(s => setImg((s.val() || {}).img || "")).catch(() => {});
+  }, [uid]);
+  return img;
 }
 function InvoicePaper({
   inv,
   issuers,
+  users,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const fromX = ivFrom(inv, issuers),
+    curX = (issuers || []).find(y => y.key === fromX.key);
+  const sign = useIvSign(curX ? Object.assign({}, fromX, {
+    signUser: curX.signUser,
+    signer: fromX.signer || curX.signer
+  }) : fromX, users);
   const [part, setPart] = React.useState("orig");
   if (window.useBlPrintBody) window.useBlPrintBody();
   const doPrint = () => {
@@ -1370,7 +1494,8 @@ function InvoicePaper({
   }, React.createElement(IvPage, {
     inv: inv,
     issuers: issuers,
-    copy: cp
+    copy: cp,
+    sign: sign
   }))), !isMobile && React.createElement("div", {
     style: {
       height: 24
@@ -1379,6 +1504,7 @@ function InvoicePaper({
 }
 function InvoiceView({
   jobs,
+  users,
   role,
   currentUser,
   q
@@ -1557,9 +1683,11 @@ function InvoiceView({
   }), print && React.createElement(InvoicePaper, {
     inv: print,
     issuers: store.issuers,
+    users: users,
     onClose: () => setPrint(null)
   }), setup && React.createElement(InvoiceSettings, {
     store: store,
+    users: users,
     onClose: () => setSetup(false)
   }));
 }

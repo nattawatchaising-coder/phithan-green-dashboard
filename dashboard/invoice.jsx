@@ -145,7 +145,7 @@ function InvoiceEditor({ inv0, store, jobs, onClose, onPrint }) {
   };
   const IN = ivIn();
   return ReactDOM.createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.45)", overflow: "auto", padding: "24px 12px" }}>
+    <div className="sv-rep-noprint" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.45)", overflow: "auto", padding: "24px 12px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto", background: "var(--bg)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-modal)", padding: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 180 }}>
@@ -243,7 +243,7 @@ function InvoiceEditor({ inv0, store, jobs, onClose, onPrint }) {
 }
 
 /* ── หน้าตั้งค่าผู้ออกเอกสาร ── */
-function InvoiceSettings({ store, onClose }) {
+function InvoiceSettings({ store, users, onClose }) {
   const [L, setL] = React.useState(() => JSON.parse(JSON.stringify(store.issuers)));
   const [busy, setBusy] = React.useState(false);
   const setI = (i, k, v) => setL((p) => { const c = p.slice(); c[i] = Object.assign({}, c[i], { [k]: v }); return c; });
@@ -251,7 +251,7 @@ function InvoiceSettings({ store, onClose }) {
   const IN = ivIn();
   const save = () => { setBusy(true); store.saveCfg({ issuers: L }).then(() => { setBusy(false); onClose(); }).catch(() => setBusy(false)); };
   return ReactDOM.createPortal((
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.45)", overflow: "auto", padding: "24px 12px" }}>
+    <div className="sv-rep-noprint" style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.45)", overflow: "auto", padding: "24px 12px" }}>
       <div style={{ maxWidth: 820, margin: "0 auto", background: "var(--bg)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-modal)", padding: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <div style={{ flex: 1, fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>ตั้งค่าผู้ออกเอกสาร</div>
@@ -288,6 +288,13 @@ function InvoiceSettings({ store, onClose }) {
             <IvRow>
               <IvFld label="คำนำหน้าเลขที่" w="130px"><input style={Object.assign({}, IN, { fontFamily: "var(--mono)" })} value={x.prefix} onChange={(e) => setI(i, "prefix", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} /></IvFld>
               <IvFld label="ชื่อผู้ออกเอกสาร (ช่องเซ็น)"><input style={IN} value={x.signer} onChange={(e) => setI(i, "signer", e.target.value)} /></IvFld>
+              <IvFld label="ลายเซ็น (ดึงจากลายเซ็นของผู้ใช้)" w="210px">
+                <select style={IN} value={x.signUser || ""} onChange={(e) => setI(i, "signUser", e.target.value)}>
+                  <option value="">อัตโนมัติ — ผู้ใช้ที่ชื่อตรงกัน</option>
+                  <option value="-">ไม่ใส่ลายเซ็น</option>
+                  {(users || []).filter((u) => u && u.id && u.name).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </IvFld>
               <IvFld label="โลโก้บริษัทบนใบ" w="150px">
                 <select style={IN} value={x.logo ? "1" : "0"} onChange={(e) => setI(i, "logo", e.target.value === "1")}><option value="1">แสดง</option><option value="0">ไม่แสดง</option></select>
               </IvFld>
@@ -298,6 +305,14 @@ function InvoiceSettings({ store, onClose }) {
                 <IvFld label="ธนาคาร"><input style={IN} value={b.bank || ""} onChange={(e) => setB(i, "bank", bi, e.target.value)} placeholder="เช่น ธนาคารกสิกรไทย" /></IvFld>
                 <IvFld label="เลขบัญชี"><input style={Object.assign({}, IN, { fontFamily: "var(--mono)" })} value={b.no || ""} onChange={(e) => setB(i, "no", bi, e.target.value)} /></IvFld>
                 <IvFld label="ชื่อบัญชี"><input style={IN} value={b.name || ""} onChange={(e) => setB(i, "name", bi, e.target.value)} /></IvFld>
+                <IvFld label="โลโก้ธนาคาร" w="120px">
+                  <label style={Object.assign({}, IN, { display: "flex", alignItems: "center", justifyContent: "center", height: 42, padding: 4, cursor: "pointer" })}>
+                    {b.logo ? <img src={b.logo} alt="" style={{ maxHeight: 34, maxWidth: 100, objectFit: "contain" }} /> : <span style={{ fontSize: 12, color: "var(--text-3)" }}>+ อัปโหลด</span>}
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const fl = e.target.files && e.target.files[0]; e.target.value = "";
+                      if (fl && window.resizeImageFile) window.resizeImageFile(fl, 240, 0.9).then((d) => setB(i, "logo", bi, d)); }} />
+                  </label>
+                  {b.logo && <div style={{ fontSize: 11, color: "var(--tint-red-tx)", cursor: "pointer", textAlign: "center", marginTop: 3 }} onClick={() => setB(i, "logo", bi, "")}>เอาออก</div>}
+                </IvFld>
                 <button style={Object.assign(ivBtn(), { alignSelf: "flex-end", color: "var(--tint-red-tx)" })}
                   onClick={() => setI(i, "banks", (x.banks || []).filter((_, k) => k !== bi))}>×</button>
               </IvRow>
@@ -316,9 +331,12 @@ function ivPaperColors() {
   const B = window.BRANDING || {};
   return { deep: B.deep || "#0A4D68", tint: "#E6F2F6" };
 }
-function IvPage({ inv, issuers, copy }) {
+function IvPage({ inv, issuers, copy, sign }) {
   const C = ivPaperColors(), x = ivFrom(inv, issuers), c = inv.cust || {}, T = ivTotals(inv);
   const bank = (x.banks || [])[+inv.bank || 0];
+  /* ใบที่ออกแล้วเก็บสำเนาผู้ออกไว้ — โลโก้ธนาคารที่เพิ่งอัปโหลดทีหลังดึงจากหน้าตั้งค่าตามเลขบัญชี */
+  const curIss = (issuers || []).find((y) => y.key === x.key) || {};
+  const bankLogo = bank && (bank.logo || ((curIss.banks || []).find((b) => b && b.no === bank.no) || {}).logo);
   const lab = { color: IV_INK, fontWeight: 700, whiteSpace: "nowrap", paddingRight: 8, verticalAlign: "top" };
   const party = (rows) => (
     <table style={{ borderCollapse: "collapse", fontSize: 10.5, lineHeight: 1.55 }}><tbody>
@@ -335,7 +353,7 @@ function IvPage({ inv, issuers, copy }) {
     </div>
   );
   return (
-    <div className="iv-page" style={{ color: IV_INK, fontSize: 11 }}>
+    <div className="iv-page bl-page" style={{ color: IV_INK, fontSize: 11 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
         <div style={{ flex: 1 }}>{x.logo && window.BrandDoc ? <window.BrandDoc height={46} name={false} /> : <div style={{ fontSize: 15, fontWeight: 800, color: C.deep }}>{x.name}</div>}</div>
         <div style={{ textAlign: "right" }}>
@@ -388,7 +406,9 @@ function IvPage({ inv, issuers, copy }) {
         </tbody>
       </table>
 
-      <div style={{ display: "flex", gap: 16, padding: "14px 0", breakInside: "avoid" }}>
+      {/* สรุป · ชำระเงิน · หมายเหตุ · ลงชื่อ ชิดขอบล่างกระดาษ (ผู้ใช้ 2026-11-05 "ชิดขอบล่าง") — .bl-page/.bl-foot ใน index.html */}
+      <div className="bl-foot" style={{ breakInside: "avoid", paddingTop: 16 }}>
+      <div style={{ display: "flex", gap: 16, padding: "14px 0", breakInside: "avoid", borderTop: "1px solid " + IV_LINE }}>
         <div style={{ flex: 1, display: "flex", gap: 10 }}>
           <div style={{ width: 92, fontSize: 11, fontWeight: 800 }}>สรุป</div>
           <table style={{ borderCollapse: "collapse", fontSize: 10.5, lineHeight: 1.75 }}><tbody>
@@ -409,25 +429,53 @@ function IvPage({ inv, issuers, copy }) {
         </div>
       </div>
 
-      {bank && sec("", "ชำระเงิน", <div><div style={{ fontWeight: 700 }}>{bank.bank}</div><div>เลขที่บัญชี <b style={{ fontFamily: "var(--mono)" }}>{bank.no}</b></div><div style={{ color: IV_SOFT }}>{bank.name}</div></div>)}
+      {bank && sec("", "ชำระเงิน", <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {bankLogo ? <img src={bankLogo} alt="" style={{ height: 40, maxWidth: 70, objectFit: "contain" }} /> : null}
+        <div><div style={{ fontWeight: 700 }}>{bank.bank}</div><div>เลขที่บัญชี <b style={{ fontFamily: "var(--mono)" }}>{bank.no}</b></div><div style={{ color: IV_SOFT }}>{bank.name}</div></div></div>)}
       {inv.note && sec("", "หมายเหตุ", <div style={{ whiteSpace: "pre-wrap" }}>{inv.note}</div>)}
 
       <div style={{ display: "flex", gap: 24, paddingTop: 14, borderTop: "1px solid " + IV_LINE, breakInside: "avoid" }}>
         <div style={{ width: 92, fontSize: 11, fontWeight: 800 }}>รับรอง</div>
-        {[["ผู้ออกเอกสาร (ผู้ขาย)", x.signer || x.name, inv.date], ["ผู้รับเอกสาร (ลูกค้า)", c.name, ""]].map((s) => (
+        {[["ผู้ออกเอกสาร (ผู้ขาย)", x.signer || x.name, inv.date, sign], ["ผู้รับเอกสาร (ลูกค้า)", c.name, ""]].map((s) => (
           <div key={s[0]} style={{ flex: 1, textAlign: "center", fontSize: 10.5 }}>
-            <div style={{ fontWeight: 700, marginBottom: 46 }}>{s[0]}</div>
+            <div style={{ fontWeight: 700, height: 54, display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{s[0]}</span>
+              {s[3] ? <img src={s[3]} alt="ลายเซ็น" style={{ maxHeight: 36, maxWidth: "70%", objectFit: "contain", marginBottom: -2 }} /> : null}
+            </div>
             <div style={{ borderTop: "1px dotted " + IV_SOFT, margin: "0 18px", paddingTop: 4 }}>{s[1]}</div>
             <div style={{ color: IV_SOFT, marginTop: 2 }}>{s[2] ? ivDay(s[2]) : "วันที่ ........................"}</div>
           </div>
         ))}
       </div>
+      </div>
     </div>
   );
 }
 
-function InvoicePaper({ inv, issuers, onClose }) {
+/* ลายเซ็นผู้ออก = ลายเซ็นประจำตัวผู้ใช้ userSigns/{id}.img (ที่เดียวกับรายงานประจำวัน · ผู้ใช้ 2026-11-05 "เซ็นลายเซ็นชื่อคนนี้ให้ด้วย ดึงมาเลย")
+   ผู้ออกเลือกผู้ใช้ได้ในหน้าตั้งค่า (signUser) · ไม่เลือก = ผู้ใช้ที่ชื่อตรงกับชื่อช่องเซ็น/ชื่อผู้ออก · "-" = ไม่ใส่ */
+function ivSignUserId(x, users) {
+  if (!x || x.signUser === "-") return "";
+  if (x.signUser) return x.signUser;
+  const norm = (s) => String(s || "").replace(/^(นาย|นางสาว|นาง|น\.ส\.|คุณ)\s*/, "").replace(/\s+/g, " ").trim();
+  const want = [x.signer, x.name].map(norm).filter(Boolean);
+  const u = (users || []).find((u) => u && u.name && want.indexOf(norm(u.name)) >= 0);
+  return u ? u.id : "";
+}
+function useIvSign(x, users) {
+  const uid = ivSignUserId(x, users);
+  const [img, setImg] = React.useState("");
+  React.useEffect(() => {
+    setImg("");
+    if (!uid || !window.FBDB) return;
+    _ivRef("userSigns/" + uid).once("value").then((s) => setImg(((s.val() || {}).img) || "")).catch(() => {});
+  }, [uid]);
+  return img;
+}
+function InvoicePaper({ inv, issuers, users, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const fromX = ivFrom(inv, issuers), curX = (issuers || []).find((y) => y.key === fromX.key);
+  const sign = useIvSign(curX ? Object.assign({}, fromX, { signUser: curX.signUser, signer: fromX.signer || curX.signer }) : fromX, users);
   const [part, setPart] = React.useState("orig");
   if (window.useBlPrintBody) window.useBlPrintBody();
   const doPrint = () => {
@@ -454,7 +502,7 @@ function InvoicePaper({ inv, issuers, onClose }) {
       </div>
       {pages.map((cp, i) => (
         <div key={i} className={"sv-rep-paper" + (i ? " bl-sheet" : "")} style={Object.assign({}, paper, { marginTop: i ? 16 : 0 })}>
-          <IvPage inv={inv} issuers={issuers} copy={cp} />
+          <IvPage inv={inv} issuers={issuers} copy={cp} sign={sign} />
         </div>
       ))}
       {!isMobile && <div style={{ height: 24 }} />}
@@ -463,7 +511,7 @@ function InvoicePaper({ inv, issuers, onClose }) {
 }
 
 /* ── หน้ารายการใบแจ้งหนี้ ── */
-function InvoiceView({ jobs, role, currentUser, q }) {
+function InvoiceView({ jobs, users, role, currentUser, q }) {
   const store = useInvoiceStore();
   const admin = window.usePgAdmin ? window.usePgAdmin() : false;
   const [edit, setEdit] = React.useState(null);
@@ -514,8 +562,8 @@ function InvoiceView({ jobs, role, currentUser, q }) {
         })}
       </div>
       {edit && <InvoiceEditor inv0={edit} store={store} jobs={jobs} onClose={() => setEdit(null)} onPrint={(r) => setPrint(r)} />}
-      {print && <InvoicePaper inv={print} issuers={store.issuers} onClose={() => setPrint(null)} />}
-      {setup && <InvoiceSettings store={store} onClose={() => setSetup(false)} />}
+      {print && <InvoicePaper inv={print} issuers={store.issuers} users={users} onClose={() => setPrint(null)} />}
+      {setup && <InvoiceSettings store={store} users={users} onClose={() => setSetup(false)} />}
     </div>
   );
 }

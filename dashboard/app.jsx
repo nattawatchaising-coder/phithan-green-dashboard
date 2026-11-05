@@ -1043,7 +1043,7 @@ function App() {
             onSetup={can(role, "billing") ? (j) => { setBlRow(null); setBlJob(j); } : null}
             onSaveBills={can(role, "billing") ? (id, bills) => store.patch(id, { bills }) : null}
             onSkip={can(role, "billing") && hasRole(role, "admin") ? (id, off) => store.patch(id, { noBill: off ? true : null }) : null} />}
-          {view === "invoice" && window.InvoiceView && <window.InvoiceView jobs={jobs} role={role} currentUser={auth.current} q={search} />}
+          {view === "invoice" && window.InvoiceView && <window.InvoiceView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} q={search} />}
           {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "line" && <window.LineAdminView users={auth.users} currentUser={auth.current} />}
           {view === "guide" && <window.GuideView role={role} currentUser={auth.current} onNav={navTo} />}

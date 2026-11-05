@@ -1406,6 +1406,7 @@ function App() {
     }) : null
   }), view === "invoice" && window.InvoiceView && React.createElement(window.InvoiceView, {
     jobs: jobs,
+    users: auth.users,
     role: role,
     currentUser: auth.current,
     q: search
