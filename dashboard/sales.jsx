@@ -1042,7 +1042,8 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     ".ivh h1{font-size:26px;margin:0;color:#0A4D68;font-weight:700;line-height:1.2}" +
     ".ivr{display:flex;gap:16px;margin-bottom:10px}.ivbt{padding-top:10px;border-top:1px solid #DCE6EA;margin-bottom:14px}" +
     ".ivl{flex:1;display:flex;gap:14px;min-width:0;align-items:flex-start}.ivl>table:first-child{flex:1}" +
-    ".ivbx{width:238px;background:#E6F2F6;border-radius:4px;padding:8px 12px}.ivc{width:238px}" +
+    ".ivtop{display:flex;gap:16px;margin-bottom:14px}.ivlft{flex:1;min-width:0}.ivlft .ivbt{margin-bottom:0}" +
+    ".ivbx{background:#E6F2F6;border-radius:4px;padding:8px 12px}.ivc{width:238px;flex:0 0 238px}.ivref{margin:8px 12px 6px}.ivc .ivch{margin:0 12px 2px}.ivc .ivref+.ivch,.ivc .ivbx+.ivch{margin-top:8px}.ivc>table.ivct:not(.ivref){margin:0 12px}" +
     ".ivch{font-size:10.5px;font-weight:700;margin-bottom:2px}" +
     ".ivkv{width:auto;border-collapse:collapse;font-size:10.5px;line-height:1.6}" +
     ".ivkv td{border:0;padding:0;vertical-align:top}.ivkv .ivk{font-weight:700;white-space:nowrap;padding-right:8px;color:#1F2A33}" +
@@ -1052,7 +1053,7 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     ".ivs{display:flex;gap:16px;padding:14px 0;border-top:1px solid #DCE6EA}" +
     ".ivsl{width:92px;flex:0 0 92px;font-size:11px;font-weight:700}.ivsm{flex:1}" +
     ".ivrt{width:262px;flex:0 0 262px}.ivsum{width:100%;font-size:10.5px;line-height:1.75;margin-bottom:6px}.ivsum td{border:0;padding:0 12px 0 0;white-space:nowrap}.ivsum td.r{padding-right:6px}" +
-    ".ivsm{font-size:10.5px;line-height:1.6}.ivsm .ivb{font-weight:700}.ivsm .ivtx{color:#5B6770}" +
+    ".ivsm{font-size:10.5px;line-height:1.6}.ivsm .ivb{font-weight:700}.ivsm .ivnum{font-family:var(--mono,monospace);color:#0A4D68;margin:0 4px}.ivsm .ivtx{color:#5B6770;margin-top:2px}" +
     ".ivtot{box-sizing:border-box;width:100%;background:#E6F2F6;border-radius:4px;padding:10px 12px;display:flex;align-items:baseline;gap:8px;font-size:10.5px}" +
     ".ivtot span:first-child{flex:1}.ivtot b{font-size:17px;color:#0A4D68}" +
     ".ivsec{display:flex;gap:10px;padding:10px 0;border-top:1px solid #DCE6EA;font-size:11px;break-inside:avoid}.ivsb{flex:1;line-height:1.6}" +
@@ -1130,18 +1131,20 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
        โลโก้ซ้าย หัวขวา · ผู้ขาย + กล่องเลขที่ · ลูกค้า + ติดต่อกลับ · ตารางหัวพื้นอ่อน · สรุป/ยืนราคา/ลงชื่อชิดขอบล่าง (.pgft) */
     '<div class="pg1 ivq' + (quotePageOn(q, "cover") ? " brk" : "") + '">' +
     '<div class="ivh"><div>' + window.brandDocHTML({ height: 56, name: false }) + '</div><h1>ใบเสนอราคา</h1></div>' +
-    '<div class="ivr"><div class="ivl"><table class="ivkv"><tbody>' +
+    /* ซ้าย = ผู้ขาย / ลูกค้า (มีเส้นคั่น) · ขวา = กล่องเลขที่ แล้วอ้างอิง/ขนาดระบบ/ติดต่อกลับใต้กล่อง ไม่มีเส้นคั่นผ่าน
+       (ผู้ใช้ 2026-11-05 ลากย้ายอ้างอิง/ขนาดระบบลงมา แล้วขีดเส้นคั่นฝั่งขวาทิ้ง) */
+    '<div class="ivtop"><div class="ivlft"><div class="ivr"><div class="ivl"><table class="ivkv"><tbody>' +
       ivKv("ผู้ขาย", window.BRANDING.legalTH) + ivKv("ที่อยู่", window.BRANDING.addrTH) +
       ivKv("เลขที่ภาษี", window.BRANDING.taxId ? window.BRANDING.taxId + " (สำนักงานใหญ่)" : "") + "</tbody></table>" +
-      '<table class="ivkv ivct"><tbody>' + ivKv("โทร", window.BRANDING.tel) + ivKv("อีเมล", window.BRANDING.email) + ivKv("เว็บ", window.BRANDING.site) + "</tbody></table></div>" +
-    '<div class="ivbx"><table class="ivkv"><tbody>' +
-      ivKv("เลขที่เอกสาร", q.no, true) + ivKv("วันที่", dsp(q.date), true) +
-      ivKv("ยืนราคาถึง", validTo ? dsp(validTo) : "", true) + ivKv("อ้างอิง", q.refCode, true) +
-      ivKv("ขนาดระบบ", q.kwp ? q.kwp + " kWp" : "", true) + ivKv("ผู้เสนอ", q.ownerName || q.byName, true) + "</tbody></table></div></div>" +
+      '<table class="ivkv ivct"><tbody>' + ivKv("โทร", window.BRANDING.tel) + ivKv("อีเมล", window.BRANDING.email) + ivKv("เว็บ", window.BRANDING.site) + "</tbody></table></div></div>" +
     '<div class="ivr ivbt"><div class="ivl"><table class="ivkv"><tbody>' +
       ivKv("ลูกค้า", c.name || "—") + ivKv("ที่อยู่", (c.address || "") + (c.province ? " " + c.province : "")) +
-      ivKv("เลขที่ภาษี", c.taxId) + "</tbody></table></div>" +
-    '<div class="ivc">' + ((c.contact || c.phone || c.email) ? '<div class="ivch">ติดต่อกลับที่</div><table class="ivkv ivct"><tbody>' +
+      ivKv("เลขที่ภาษี", c.taxId) + "</tbody></table></div></div></div>" +
+    '<div class="ivc"><div class="ivbx"><table class="ivkv"><tbody>' +
+      ivKv("เลขที่เอกสาร", q.no, true) + ivKv("วันที่", dsp(q.date), true) +
+      ivKv("ยืนราคาถึง", validTo ? dsp(validTo) : "", true) + ivKv("ผู้เสนอ", q.ownerName || q.byName, true) + "</tbody></table></div>" +
+      ((q.refCode || q.kwp) ? '<table class="ivkv ivct ivref"><tbody>' + ivKv("อ้างอิง", q.refCode, true) +
+      ivKv("ขนาดระบบ", q.kwp ? q.kwp + " kWp" : "", true) + "</tbody></table>" : "") + ((c.contact || c.phone || c.email) ? '<div class="ivch">ติดต่อกลับที่</div><table class="ivkv ivct"><tbody>' +
       ivKv("ชื่อ", c.contact) + ivKv("โทร", c.phone) + ivKv("อีเมล", c.email) + "</tbody></table>" : "") + "</div></div>" +
     "<table class=\"ivt\"><thead><tr><th>คำอธิบาย</th>" +
     "<th class=\"r\" style=\"width:56px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" +
@@ -1150,7 +1153,9 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     '<div class="pgft">' +
     /* ยอดรวม/ส่วนลด/VAT อยู่ฝั่งขวาเหนือกล่องยอดสุทธิ (ผู้ใช้ 2026-11-05 ลากลูกศรย้ายไปขวา) · ซ้าย = ตัวอักษร */
     '<div class="ivs"><div class="ivsl">สรุป</div><div class="ivsm">' +
-      (L === "th" && window.ecBahtText ? '<div class="ivb">จำนวนเงินทั้งสิ้น (ตัวอักษร)</div><div class="ivtx">' + window.ecBahtText(T.grand) + "</div>" : "") +
+      /* ซ้าย = ตัวเลขยอดสุทธิ แล้วตัวอักษรภาษาไทยไว้บรรทัดล่าง (ผู้ใช้ 2026-11-05) */
+      '<div class="ivb">จำนวนเงินทั้งสิ้น <span class="ivnum">' + sBaht(T.grand) + "</span> บาท</div>" +
+      (L === "th" && window.ecBahtText ? '<div class="ivtx">(' + window.ecBahtText(T.grand) + ")</div>" : "") +
       '</div><div class="ivrt"><table class="ivsum"><tbody>' +
       ivSum("รวมเป็นเงิน", T.sub) +
       (T.disc > 0 ? ivSum(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + ivSum("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
