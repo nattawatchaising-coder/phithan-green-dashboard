@@ -46,7 +46,9 @@ function ivBlank(issuer, user) {
     issuer: issuer.key, from: null, date: today, due: today, ref: "",
     cust: { name: "", addr: "", taxId: "", branch: "", contact: "", tel: "", email: "" },
     items: [ivBlankItem()], vat: !!issuer.vat, vatRate: (window.BOQ && window.BOQ.VAT_RATE) || 7, wht: 0, bank: 0, note: "",
-    jobId: "", createdAt: new Date().toISOString(), by: (user || {}).name || "" };
+    jobId: "", createdAt: new Date().toISOString(), by: (user || {}).name || "",
+    /* แอดมินออก = ซ่อนจากคนที่ไม่ใช่แอดมิน (ผู้ใช้ 2026-11-05 "ถ้าแอดมินออกให้ซ่อนไว้นะ") — แบบเดียวกับงาน/ลูกค้า docs/admin-only.md */
+    adminOnly: window.__pgAdmin ? true : null };
 }
 const ivItems = (inv) => (Array.isArray((inv || {}).items) ? inv.items.filter(Boolean) : []);
 function ivTotals(inv) {
@@ -463,12 +465,13 @@ function InvoicePaper({ inv, issuers, onClose }) {
 /* ── หน้ารายการใบแจ้งหนี้ ── */
 function InvoiceView({ jobs, role, currentUser, q }) {
   const store = useInvoiceStore();
+  const admin = window.usePgAdmin ? window.usePgAdmin() : false;
   const [edit, setEdit] = React.useState(null);
   const [print, setPrint] = React.useState(null);
   const [setup, setSetup] = React.useState(false);
   const canUse = window.can ? window.can(role, "billing") : true;
   const qq = String(q || "").trim().toLowerCase();
-  const rows = (store.list || []).filter((x) => !qq || [x.no, (x.cust || {}).name, x.ref].join(" ").toLowerCase().indexOf(qq) >= 0)
+  const rows = (store.list || []).filter((x) => admin || !x.adminOnly).filter((x) => !qq || [x.no, (x.cust || {}).name, x.ref].join(" ").toLowerCase().indexOf(qq) >= 0)
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.no || "").localeCompare(String(a.no || "")));
   const newInv = () => setEdit(ivBlank(store.issuers[0], currentUser));
   const setStatus = (x, st) => window.askConfirm({ title: (st === "void" ? "ยกเลิกใบ " : "บันทึกรับเงินใบ ") + (x.no || "") + "?", okText: "ยืนยัน", danger: st === "void" })
@@ -491,7 +494,9 @@ function InvoiceView({ jobs, role, currentUser, q }) {
             <div key={x.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "11px 14px", borderTop: i ? "1px solid var(--divider)" : "none", flexWrap: "wrap" }}>
               <div style={{ width: 150, fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", cursor: "pointer" }} onClick={() => canUse && setEdit(x)}>{x.no || "ร่าง"}</div>
               <div style={{ flex: "1 1 200px", minWidth: 0, cursor: "pointer" }} onClick={() => canUse && setEdit(x)}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(x.cust || {}).name || "(ยังไม่มีชื่อลูกค้า)"}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {window.AdminOnlyMark && <window.AdminOnlyMark rec={x} size={13} onClick={admin ? () => window.pgSetHidden(IV_ROOT() + "invoices/" + x.id, (x.cust || {}).name || x.no, false) : null} />}
+                  {(x.cust || {}).name || "(ยังไม่มีชื่อลูกค้า)"}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{ivDay(x.date)} · {fr.name}{x.ref ? " · " + x.ref : ""}</div>
               </div>
               <div style={{ width: 120, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 800, color: "var(--text-1)" }}>{ivMoney(T.total)}</div>
@@ -500,6 +505,8 @@ function InvoiceView({ jobs, role, currentUser, q }) {
                 {x.no && <button style={Object.assign(ivBtn(), { padding: "6px 10px", fontSize: 12 })} onClick={() => setPrint(x)}>พิมพ์</button>}
                 {canUse && x.status === "issued" && <button style={Object.assign(ivBtn(), { padding: "6px 10px", fontSize: 12 })} onClick={() => setStatus(x, "paid")}>รับเงินแล้ว</button>}
                 {canUse && (x.status === "issued" || x.status === "paid") && <button style={Object.assign(ivBtn(), { padding: "6px 10px", fontSize: 12, color: "var(--tint-red-tx)" })} onClick={() => setStatus(x, "void")}>ยกเลิก</button>}
+                {admin && !x.adminOnly && <button title="ซ่อนไว้ให้เห็นเฉพาะแอดมิน" style={Object.assign(ivBtn(), { padding: "6px 10px", fontSize: 12 })}
+                  onClick={() => window.pgSetHidden(IV_ROOT() + "invoices/" + x.id, (x.cust || {}).name || x.no, true)}>ซ่อน</button>}
                 {canUse && x.status === "draft" && <button style={Object.assign(ivBtn(), { padding: "6px 10px", fontSize: 12, color: "var(--tint-red-tx)" })} onClick={() => delDraft(x)}>ลบร่าง</button>}
               </div>
             </div>

@@ -112,7 +112,8 @@ function ivBlank(issuer, user) {
     note: "",
     jobId: "",
     createdAt: new Date().toISOString(),
-    by: (user || {}).name || ""
+    by: (user || {}).name || "",
+    adminOnly: window.__pgAdmin ? true : null
   };
 }
 const ivItems = inv => Array.isArray((inv || {}).items) ? inv.items.filter(Boolean) : [];
@@ -1383,12 +1384,13 @@ function InvoiceView({
   q
 }) {
   const store = useInvoiceStore();
+  const admin = window.usePgAdmin ? window.usePgAdmin() : false;
   const [edit, setEdit] = React.useState(null);
   const [print, setPrint] = React.useState(null);
   const [setup, setSetup] = React.useState(false);
   const canUse = window.can ? window.can(role, "billing") : true;
   const qq = String(q || "").trim().toLowerCase();
-  const rows = (store.list || []).filter(x => !qq || [x.no, (x.cust || {}).name, x.ref].join(" ").toLowerCase().indexOf(qq) >= 0).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.no || "").localeCompare(String(a.no || "")));
+  const rows = (store.list || []).filter(x => admin || !x.adminOnly).filter(x => !qq || [x.no, (x.cust || {}).name, x.ref].join(" ").toLowerCase().indexOf(qq) >= 0).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.no || "").localeCompare(String(a.no || "")));
   const newInv = () => setEdit(ivBlank(store.issuers[0], currentUser));
   const setStatus = (x, st) => window.askConfirm({
     title: (st === "void" ? "ยกเลิกใบ " : "บันทึกรับเงินใบ ") + (x.no || "") + "?",
@@ -1487,7 +1489,11 @@ function InvoiceView({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, (x.cust || {}).name || "(ยังไม่มีชื่อลูกค้า)"), React.createElement("div", {
+    }, window.AdminOnlyMark && React.createElement(window.AdminOnlyMark, {
+      rec: x,
+      size: 13,
+      onClick: admin ? () => window.pgSetHidden(IV_ROOT() + "invoices/" + x.id, (x.cust || {}).name || x.no, false) : null
+    }), (x.cust || {}).name || "(ยังไม่มีชื่อลูกค้า)"), React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--text-3)"
@@ -1527,7 +1533,14 @@ function InvoiceView({
         color: "var(--tint-red-tx)"
       }),
       onClick: () => setStatus(x, "void")
-    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), canUse && x.status === "draft" && React.createElement("button", {
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), admin && !x.adminOnly && React.createElement("button", {
+      title: "\u0E0B\u0E48\u0E2D\u0E19\u0E44\u0E27\u0E49\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E47\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19",
+      style: Object.assign(ivBtn(), {
+        padding: "6px 10px",
+        fontSize: 12
+      }),
+      onClick: () => window.pgSetHidden(IV_ROOT() + "invoices/" + x.id, (x.cust || {}).name || x.no, true)
+    }, "\u0E0B\u0E48\u0E2D\u0E19"), canUse && x.status === "draft" && React.createElement("button", {
       style: Object.assign(ivBtn(), {
         padding: "6px 10px",
         fontSize: 12,
