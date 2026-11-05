@@ -78,7 +78,17 @@ const NAV = [{
   th: "เอกสารงวดงาน",
   en: "Billing",
   icon: "file",
-  perm: "billing"
+  perm: "billing",
+  tab: "งวดงาน"
+}, {
+  sect: "work",
+  key: "invoice",
+  th: "ใบแจ้งหนี้",
+  en: "Invoices",
+  icon: "file",
+  perm: "billing",
+  group: "billing",
+  tab: "ใบแจ้งหนี้"
 }, {
   sect: "work",
   key: "permit",
@@ -149,6 +159,7 @@ const PLAIN_SUB = {
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
+  invoice: "ใบแจ้งหนี้/ใบกำกับภาษี · ออกในนามบริษัทหรือบุคคลธรรมดา",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
@@ -192,7 +203,8 @@ const NAV_IN_BOARD = ["permit"];
 const HDR_SEARCH = {
   board: "ค้นหา",
   table: "ค้นหา",
-  billing: "ค้นหา"
+  billing: "ค้นหา",
+  invoice: "ค้นหา"
 };
 const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId || hasRole(roles, "ee") : !n.perm || can(roles, n.perm)).map((n, i, list) => {
   const orphan = n.group && !list.some(x => x.key === n.group);
@@ -1392,6 +1404,11 @@ function App() {
     onSkip: can(role, "billing") && hasRole(role, "admin") ? (id, off) => store.patch(id, {
       noBill: off ? true : null
     }) : null
+  }), view === "invoice" && window.InvoiceView && React.createElement(window.InvoiceView, {
+    jobs: jobs,
+    role: role,
+    currentUser: auth.current,
+    q: search
   }), view === "attend" && React.createElement(window.AttendView, {
     jobs: jobs,
     users: auth.users,

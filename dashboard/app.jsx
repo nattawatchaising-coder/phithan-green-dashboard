@@ -30,7 +30,9 @@ const NAV = [
   { sect: "work", key: "leads",      th: "งานขาย",           en: "Sales",         icon: "trend",    perm: "leads",   tab: "ลูกค้า" },
   { sect: "work", key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "chart",    perm: "price",   group: "leads", tab: "ยอดขาย" },
   /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
-  { sect: "work", key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
+  { sect: "work", key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing", tab: "งวดงาน" },
+  /* ใบแจ้งหนี้/ใบกำกับภาษีทำเอง (ผู้ใช้ 2026-11-05 · invoice.jsx) — ออกในนามบริษัทหรือบุคคลธรรมดา ไม่ผูกงวดงาน */
+  { sect: "work", key: "invoice",    th: "ใบแจ้งหนี้",       en: "Invoices",     icon: "file",     perm: "billing", group: "billing", tab: "ใบแจ้งหนี้" },
   { sect: "work", key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { sect: "work", key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
@@ -77,6 +79,7 @@ const PLAIN_SUB = {
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
+  invoice: "ใบแจ้งหนี้/ใบกำกับภาษี · ออกในนามบริษัทหรือบุคคลธรรมดา",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
@@ -139,6 +142,7 @@ const HDR_SEARCH = {
   board: "ค้นหา",
   table: "ค้นหา",
   billing: "ค้นหา",
+  invoice: "ค้นหา",
 };
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? (!!techId || hasRole(roles, "ee")) : (!n.perm || can(roles, n.perm))))
@@ -1039,6 +1043,7 @@ function App() {
             onSetup={can(role, "billing") ? (j) => { setBlRow(null); setBlJob(j); } : null}
             onSaveBills={can(role, "billing") ? (id, bills) => store.patch(id, { bills }) : null}
             onSkip={can(role, "billing") && hasRole(role, "admin") ? (id, off) => store.patch(id, { noBill: off ? true : null }) : null} />}
+          {view === "invoice" && window.InvoiceView && <window.InvoiceView jobs={jobs} role={role} currentUser={auth.current} q={search} />}
           {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "line" && <window.LineAdminView users={auth.users} currentUser={auth.current} />}
           {view === "guide" && <window.GuideView role={role} currentUser={auth.current} onNav={navTo} />}
