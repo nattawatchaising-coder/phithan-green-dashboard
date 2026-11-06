@@ -1,7 +1,7 @@
 const PK_W = 1080,
   PK_H = 1350;
 const PK_YIELD = 1400;
-const PK_RATE = 4.5;
+const PK_RATE = 5;
 const PK_VAT = 0.07;
 const PK_WTY_DEF = ["รับประกันงานติดตั้ง 5 ปี", "แผงโซลาร์ 15 ปี", "อินเวอร์เตอร์ 5 ปี", "ฟรีล้างแผง 3 ครั้ง", "สำรวจหน้างานฟรี", "รวมขออนุญาตการไฟฟ้า"];
 const PK_B = typeof BRANDING !== "undefined" && BRANDING || window.BRANDING || {};
@@ -223,6 +223,60 @@ function pkUnwhite(im) {
     return im;
   }
 }
+function pkLogoBg(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width,
+      h = im.naturalHeight || im.height,
+      c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h),
+      p = d.data,
+      seen = new Uint8Array(w * h),
+      st = [];
+    const bg = k => {
+      const r = p[k * 4],
+        gg = p[k * 4 + 1],
+        b = p[k * 4 + 2];
+      return p[k * 4 + 3] < 20 || Math.min(r, gg, b) > 170 && Math.max(r, gg, b) - Math.min(r, gg, b) < 24;
+    };
+    for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
+    for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
+    while (st.length) {
+      const k = st.pop();
+      if (seen[k] || !bg(k)) continue;
+      seen[k] = 1;
+      p[k * 4 + 3] = 0;
+      const x = k % w;
+      if (x > 0) st.push(k - 1);
+      if (x < w - 1) st.push(k + 1);
+      if (k >= w) st.push(k - w);
+      if (k < w * (h - 1)) st.push(k + w);
+    }
+    let x0 = w,
+      y0 = h,
+      x1 = -1,
+      y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (p[(y * w + x) * 4 + 3] > 20) {
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+    if (x1 < 0) return im;
+    g.putImageData(d, 0, 0);
+    const o = document.createElement("canvas");
+    o.width = x1 - x0 + 1;
+    o.height = y1 - y0 + 1;
+    o.getContext("2d").drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o;
+  } catch (e) {
+    return im;
+  }
+}
 function pkBrandKeys(item) {
   if (!item) return [];
   const br = String(item.brand || "").trim(),
@@ -276,7 +330,7 @@ async function pkAssets(sp) {
     bPhoto: pkTrim(bPhoto),
     bSet: pkTrim(bSet || bPhoto),
     hero: hero,
-    mark: mark,
+    mark: pkLogoBg(mark),
     pPhoto: pkTrim(pPhoto),
     iPhoto: pkTrim(iPhoto),
     pLogo: pkUnwhite(pkTrim(pLogo)),
@@ -974,7 +1028,7 @@ function pkDraw(cv, sp, A, o) {
   const kwh = sp.kwp * PK_YIELD,
     saveY = kwh * PK_RATE;
   const ss = [["ผลิตไฟ", "~" + pkFmt(kwh), "หน่วย/ปี"], ["ประหยัดค่าไฟ", "~฿" + pkFmt(saveY / 12), "/เดือน"]];
-  if (sell && saveY) ss.push(["คืนทุน", "~" + Math.round(sell / saveY * 10) / 10, "ปี"]);
+  if (sell && saveY && !sp.bat) ss.push(["คืนทุน", "~" + Math.round(sell / saveY * 10) / 10, "ปี"]);
   const sy = 914,
     sh = 100;
   pkGlass(g, 48, sy, PK_W - 96, sh, 26);
@@ -2098,7 +2152,7 @@ function PkPosterModal({
   React.useEffect(() => {
     let live = true;
     if (co.mark) pkImg(co.mark).then(im => {
-      if (live) setMarkIm(im);
+      if (live) setMarkIm(pkLogoBg(im));
     });else setMarkIm(null);
     return () => {
       live = false;
