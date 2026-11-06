@@ -190,10 +190,16 @@ const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "i
   /* Optimizer Huawei (ผู้ใช้ให้มา ต.ค. 2026): opt = รูปรายอัน · รูปสรุปใช้ทั้ง opt + opt2 */
   "opt:huawei": "dashboard/assets/pkg-opt-huawei.png", "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png",
   /* โลโก้ขาวล้วนสำหรับพื้นมืด (รูป Add-on กลางคืน · ผู้ใช้ให้โลโก้ดำมา ต.ค. 2026 → ตัดขอบ แปลงขาว พื้นโปร่ง) ไม่มี = แปลงจากโลโก้ในคลัง */
-  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
+  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png",
+  /* GoodWe (รูปจาก goodwe.com พื้นโปร่ง · พ.ย. 2026 — รูปในคลังมาจากใบราคา QES เล็ก/มีขอบขาว): แบต = Lynx A G4 (แบต GoodWe ตัวเดียวในคลัง) */
+  "batt:goodwe": "dashboard/assets/pkg-batt-goodwe.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
+/* รูปเฉพาะซีรีส์ — ยี่ห้อที่หน้าตาแต่ละซีรีส์ต่างกันมาก (GoodWe ES/ET/SDT) มาก่อน PK_BRAND_PHOTO · ไม่ตรง = ตามยี่ห้อ/รูปคลัง */
+const PK_MODEL_PHOTO = [{ kind: "inv", brand: "goodwe", re: /-ES-C10$/i, src: "dashboard/assets/pkg-inv-goodwe-es.png" }];
 function pkBrandPhoto(item, kind) {
-  const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
-  return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
+  const b = String((item && item.brand) || "").trim().toLowerCase();
+  const m = PK_MODEL_PHOTO.find((x) => x.kind === kind && x.brand === b && x.re.test(String((item && item.model) || "")));
+  const k = kind + ":" + b;
+  return pkImg((m && m.src) || PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
 }
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;

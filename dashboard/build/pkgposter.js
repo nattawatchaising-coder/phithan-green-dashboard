@@ -244,11 +244,20 @@ const PK_BRAND_PHOTO = {
   "battset:huawei": "dashboard/assets/pkg-batt-huawei-3.png",
   "opt:huawei": "dashboard/assets/pkg-opt-huawei.png",
   "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png",
-  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png"
+  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png",
+  "batt:goodwe": "dashboard/assets/pkg-batt-goodwe.png"
 };
+const PK_MODEL_PHOTO = [{
+  kind: "inv",
+  brand: "goodwe",
+  re: /-ES-C10$/i,
+  src: "dashboard/assets/pkg-inv-goodwe-es.png"
+}];
 function pkBrandPhoto(item, kind) {
-  const k = kind + ":" + String(item && item.brand || "").trim().toLowerCase();
-  return pkImg(PK_BRAND_PHOTO[k] || "");
+  const b = String(item && item.brand || "").trim().toLowerCase();
+  const m = PK_MODEL_PHOTO.find(x => x.kind === kind && x.brand === b && x.re.test(String(item && item.model || "")));
+  const k = kind + ":" + b;
+  return pkImg(m && m.src || PK_BRAND_PHOTO[k] || "");
 }
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
