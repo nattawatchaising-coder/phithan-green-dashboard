@@ -509,7 +509,9 @@ function dsPanelSheet(st, job, media) {
     lab.push({ g, s, hOf, ang, e, d, eLo, eHi, dLo, dHi });
   });
   /* บรรทัดเดียวทุกกลุ่ม ขนาดเท่ากัน = ตามกลุ่มที่แคบสุด (ผู้ใช้ 2026-11-07 "ลดขนาดหัวหนังสือ เพื่อให้เป็นบรรทัดเดียว") · ต่ำสุด 1 มม. */
-  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map((L) => L.hOf(L.s)))) : 2.6;
+  /* ขนาดพอดีกับ scale (ผู้ใช้ 2026-11-07): กลุ่มแคบผิดปกติ (พอดีต่ำกว่า 60% ของค่ากลาง เช่นกลุ่มแถวเดียว) ไม่ลากทั้งแผ่นให้เล็กตาม — ป้ายกลุ่มนั้นล้นขอบกลุ่มได้ */
+  const hFit = lab.map((L) => L.hOf(L.s)), hMed = hFit.slice().sort((a, b) => a - b)[Math.floor(hFit.length / 2)] || 2.6;
+  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, hFit.filter((x) => x >= hMed * 0.6))) : 2.6;
   lab.forEach(({ g, s, hOf, ang, e, d, eLo, eHi, dLo, dHi }) => {
     const L2 = [s], h = hU;
     const nCh = Math.max.apply(null, L2.map((x) => x.length)), lh = h * 1.25;
@@ -519,7 +521,10 @@ function dsPanelSheet(st, job, media) {
     let dm = dHi + hh + 0.8 * k;
     /* ป้ายนอกกลุ่มไปทับแผงกลุ่มอื่น (แถวชิดกัน เช่นแถบ A4) → วางทับกลางกลุ่มตัวเองแทน (ผู้ใช้ 2026-11-07 "เอาทับได้ ตรงจุดนี้") */
     const mine = {}; g.ids.forEach((i) => { mine[i] = 1; });
-    if (panels.some((p, i) => !mine[i] && Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + 0.5 && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + 0.5)) dm = (dLo + dHi) / 2;
+    /* วัดจากขอบแผงจริง + ระยะเผื่อ 0.5 มม.บนกระดาษ — แผ่นแยกอาคารสเกลใหญ่ ป้ายแถบล่าง A4 ตกช่องว่างแคบชิดกลุ่มถัดไป วัดจากจุดกลางแผงไม่เจอ (ผู้ใช้ 2026-11-07 "เหมือนจะขยับนะ") */
+    const gp = 0.5 * k, hit = (p) => { const pe = Math.abs(p.u.x * e.x + p.u.z * e.z) + Math.abs(p.v.x * e.x + p.v.z * e.z), pd = Math.abs(p.u.x * d.x + p.u.z * d.z) + Math.abs(p.v.x * d.x + p.v.z * d.z);
+      return Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd; };
+    if (panels.some((p, i) => !mine[i] && hit(p))) dm = (dLo + dHi) / 2;
     /* จุดที่ฉายบน e = em และบน d = dm (แก้ 2×2 — หลังคาเอียง แกน e กับ d บนผังอาจไม่ตั้งฉาก) */
     const det = e.x * d.z - e.z * d.x || 1e-9, wx = (em * d.z - dm * e.z) / det, wz = (e.x * dm - d.x * em) / det;
     /* พื้นขาวรองตัวเลข ไม่ให้ลายหลังคาขีดทับ (ผู้ใช้ขอ) — สี่เหลี่ยมหมุนตามแนวกลุ่ม */

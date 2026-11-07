@@ -867,7 +867,9 @@ function dsPanelSheet(st, job, media) {
       dHi
     });
   });
-  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map(L => L.hOf(L.s)))) : 2.6;
+  const hFit = lab.map(L => L.hOf(L.s)),
+    hMed = hFit.slice().sort((a, b) => a - b)[Math.floor(hFit.length / 2)] || 2.6;
+  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, hFit.filter(x => x >= hMed * 0.6))) : 2.6;
   lab.forEach(({
     g,
     s,
@@ -895,7 +897,13 @@ function dsPanelSheet(st, job, media) {
     g.ids.forEach(i => {
       mine[i] = 1;
     });
-    if (panels.some((p, i) => !mine[i] && Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + 0.5 && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + 0.5)) dm = (dLo + dHi) / 2;
+    const gp = 0.5 * k,
+      hit = p => {
+        const pe = Math.abs(p.u.x * e.x + p.u.z * e.z) + Math.abs(p.v.x * e.x + p.v.z * e.z),
+          pd = Math.abs(p.u.x * d.x + p.u.z * d.z) + Math.abs(p.v.x * d.x + p.v.z * d.z);
+        return Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd;
+      };
+    if (panels.some((p, i) => !mine[i] && hit(p))) dm = (dLo + dHi) / 2;
     const det = e.x * d.z - e.z * d.x || 1e-9,
       wx = (em * d.z - dm * e.z) / det,
       wz = (e.x * dm - d.x * em) / det;

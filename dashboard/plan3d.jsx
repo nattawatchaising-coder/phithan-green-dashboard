@@ -853,7 +853,7 @@ function p3PlanSpec(st, job, M, SS) {
     ["PV MODULE / INVERTER", perInv + " MODULE"],
     ["STRING", p3StrSum(SS)],
     ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"],
-    ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"],
+    /* แถว COMBINER เอาออก (ผู้ใช้ขีดฆ่า 2026-11-07) */
   ];
 }
 

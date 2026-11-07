@@ -1442,7 +1442,7 @@ function p3PlanSpec(st, job, M, SS) {
   const kwp = Math.round(p3CountAll(st) * (+st.wp || 650) / 10) / 100;
   const I = p3SheetInfo(st, job, {});
   const perInv = Math.round(M.panel.count / Math.max(1, M.units.length) * 10) / 10;
-  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.models && M.inv.models.length > 1 ? M.inv.models.map(x => x.model + " x" + x.count).join(" + ") : M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", p3StrSum(SS)], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"], ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"]];
+  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.models && M.inv.models.length > 1 ? M.inv.models.map(x => x.model + " x" + x.count).join(" + ") : M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", p3StrSum(SS)], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"]];
 }
 function p3AreaRows(st, M, nStr, paths) {
   const wp = +st.wp || 650;
