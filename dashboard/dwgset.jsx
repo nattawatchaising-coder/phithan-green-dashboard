@@ -471,7 +471,7 @@ function dsGroups(panels) {
 const DS_MOD_H = 80;
 function dsPanelSheet(st, job, media) {
   media = media || {};
-  const P = dsPlan(st, job, media, "PANEL", { panels: "full", img: true });   // มีภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
+  const P = dsPlan(st, job, media, media.key || "PANEL", { panels: "full", img: true });   // มีภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
   P.doc.layer("PG-GRP-BG", 255, "CONTINUOUS", 0);   // พื้นขาวรองตัวเลขกลุ่ม
   dsPlanHead(P, "PV MODULE LAYOUT", { top: true });
   const k = P.k, doc = P.doc, panels = P.foot.panels || [];
@@ -1900,6 +1900,46 @@ function dsGroundDetSheet(st, job, media) {
 /* ==================================================================
    รายการแผ่นให้ p3PrepSet — คืน { KEY: { key, label, fn } } เฉพาะแผ่นที่มีข้อมูลรองรับ
    ================================================================== */
+/* ── แยกผังวางแผงแผ่นละอาคาร (ผู้ใช้ 2026-11-07 "แยกเป็นแต่ละอาคารได้ไหม ขยายภาพใหญ่ขึ้น") ──
+   อาคาร = หลังคาที่ตั้งชื่อเดียวกัน · แยกเมื่อมี ≥ 2 อาคารและมีอย่างน้อยหนึ่งอาคารที่มีหลังคาหลายผืน
+   (งานทั่วไปที่ตั้งชื่อหลังคาไม่ซ้ำกันยังเป็นแผ่นเดียวเหมือนเดิม) · คืน [{ name, st }] หรือ null
+   st ย่อย = เฉพาะหลังคาของอาคารนั้น + สิ่งบดบังที่อยู่ในกรอบอาคาร → กรอบมอง (p3PlanView) ซูมเข้าเอง */
+function dsBldSplit(st) {
+  const by = {}, ord = [];
+  (st.roofs || []).forEach((r) => {
+    let n = 0;
+    try { n = p3Foot(r).length; } catch (e) { n = 0; }
+    if (!n) return;
+    const nm = String(r.name || "").trim();
+    if (!nm) return;
+    if (!by[nm]) { by[nm] = []; ord.push(nm); }
+    by[nm].push(r);
+  });
+  if (ord.length < 2 || !ord.some((nm) => by[nm].length > 1)) return null;
+  /* หลังคาไม่มีแผงที่อยู่ในกรอบอาคาร (เช่นหลังคายกกลางอาคาร) ติดไปด้วย ผังจะเห็นครบ */
+  const box = (rs) => { let a = 1e9, b = 1e9, c = -1e9, d = -1e9;
+    rs.forEach((r) => { try { (p3RoofSurf(r) || []).forEach((f) => (f.pts || []).forEach((p) => { a = Math.min(a, p.x); c = Math.max(c, p.x); b = Math.min(b, p.z); d = Math.max(d, p.z); })); } catch (e) { /* ข้าม */ } });
+    return [a - 1, b - 1, c + 1, d + 1]; };
+  const inB = (B, x, z) => x >= B[0] && x <= B[2] && z >= B[1] && z <= B[3];
+  return ord.map((nm) => {
+    const B = box(by[nm]);
+    /* + หลังคาชื่อเดียวกันที่ไม่มีแผง · หลังคาไม่มีชื่ออาคารที่อยู่ในกรอบอาคารนี้ */
+    const extra = (st.roofs || []).filter((r) => {
+      if (by[nm].indexOf(r) >= 0) return false;
+      const n2 = String(r.name || "").trim();
+      if (n2 === nm) return true;
+      if (n2 in by) return false;
+      const b2 = box([r]); return b2[0] >= B[0] && b2[2] <= B[2] && b2[1] >= B[1] && b2[3] <= B[3];
+    });
+    const obs = (st.obstacles || []).filter((o) => {
+      const x = +o.x || 0, z = +o.z || 0;
+      if (Array.isArray(o.pts) && o.pts.length) return o.pts.some((q) => inB(B, x + (+q.x || 0), z + (+q.z || 0)));
+      return inB(B, x, z);
+    });
+    return { name: nm, st: Object.assign({}, st, { roofs: by[nm].concat(extra), obstacles: obs, measures: [] }) };
+  });
+}
+
 function dsSheetDefs(st, job, design, imgs) {
   const D = {};
   const add = (key, label, fn) => { D[key] = { key, label, fn }; };
@@ -1908,7 +1948,12 @@ function dsSheetDefs(st, job, design, imgs) {
   let n = 0;
   try { n = p3CountAll(st); } catch (e) { n = 0; }
   const withImg = (fn) => (o) => fn(st, job, Object.assign({ imgs }, o));
-  if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));   // ภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
+  const bld = n ? dsBldSplit(st) : null;
+  if (bld) D.PANEL = bld.map((b, i) => ({ key: "PANEL" + (i + 1), gk: "PANEL", label: "ผังวางแผง " + b.name,
+    en: "PV MODULE LAYOUT (" + (i + 1) + "/" + bld.length + ")",
+    /* แผ่นย่อยไม่ใส่ภาพพื้นหลัง — ภาพที่เตรียมไว้ตัดพอดีกรอบผังรวม วางในกรอบที่ซูมแล้วจะล้นออกนอกแบบ */
+    fn: (o) => dsPanelSheet(b.st, job, Object.assign({ imgs: [], key: "PANEL" + (i + 1) }, o)) }));
+  else if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));   // ภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", (o) => dsMountSheet(st, job, o));   // ผู้ใช้ 2026-11-02 "เพิ่มหน้านี้ไปหน้า 9 สำหรับงานติดตั้งหลังคาเมทัลชีท"

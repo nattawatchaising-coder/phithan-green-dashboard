@@ -783,7 +783,7 @@ function dsGroups(panels) {
 const DS_MOD_H = 80;
 function dsPanelSheet(st, job, media) {
   media = media || {};
-  const P = dsPlan(st, job, media, "PANEL", {
+  const P = dsPlan(st, job, media, media.key || "PANEL", {
     panels: "full",
     img: true
   });
@@ -2922,6 +2922,70 @@ function dsGroundDetSheet(st, job, media) {
   D.art("G2C", 630, 400, 2.29, E, CL, H);
   return S.doc.build();
 }
+function dsBldSplit(st) {
+  const by = {},
+    ord = [];
+  (st.roofs || []).forEach(r => {
+    let n = 0;
+    try {
+      n = p3Foot(r).length;
+    } catch (e) {
+      n = 0;
+    }
+    if (!n) return;
+    const nm = String(r.name || "").trim();
+    if (!nm) return;
+    if (!by[nm]) {
+      by[nm] = [];
+      ord.push(nm);
+    }
+    by[nm].push(r);
+  });
+  if (ord.length < 2 || !ord.some(nm => by[nm].length > 1)) return null;
+  const box = rs => {
+    let a = 1e9,
+      b = 1e9,
+      c = -1e9,
+      d = -1e9;
+    rs.forEach(r => {
+      try {
+        (p3RoofSurf(r) || []).forEach(f => (f.pts || []).forEach(p => {
+          a = Math.min(a, p.x);
+          c = Math.max(c, p.x);
+          b = Math.min(b, p.z);
+          d = Math.max(d, p.z);
+        }));
+      } catch (e) {}
+    });
+    return [a - 1, b - 1, c + 1, d + 1];
+  };
+  const inB = (B, x, z) => x >= B[0] && x <= B[2] && z >= B[1] && z <= B[3];
+  return ord.map(nm => {
+    const B = box(by[nm]);
+    const extra = (st.roofs || []).filter(r => {
+      if (by[nm].indexOf(r) >= 0) return false;
+      const n2 = String(r.name || "").trim();
+      if (n2 === nm) return true;
+      if (n2 in by) return false;
+      const b2 = box([r]);
+      return b2[0] >= B[0] && b2[2] <= B[2] && b2[1] >= B[1] && b2[3] <= B[3];
+    });
+    const obs = (st.obstacles || []).filter(o => {
+      const x = +o.x || 0,
+        z = +o.z || 0;
+      if (Array.isArray(o.pts) && o.pts.length) return o.pts.some(q => inB(B, x + (+q.x || 0), z + (+q.z || 0)));
+      return inB(B, x, z);
+    });
+    return {
+      name: nm,
+      st: Object.assign({}, st, {
+        roofs: by[nm].concat(extra),
+        obstacles: obs,
+        measures: []
+      })
+    };
+  });
+}
 function dsSheetDefs(st, job, design, imgs) {
   const D = {};
   const add = (key, label, fn) => {
@@ -2942,7 +3006,17 @@ function dsSheetDefs(st, job, design, imgs) {
   const withImg = fn => o => fn(st, job, Object.assign({
     imgs
   }, o));
-  if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));
+  const bld = n ? dsBldSplit(st) : null;
+  if (bld) D.PANEL = bld.map((b, i) => ({
+    key: "PANEL" + (i + 1),
+    gk: "PANEL",
+    label: "ผังวางแผง " + b.name,
+    en: "PV MODULE LAYOUT (" + (i + 1) + "/" + bld.length + ")",
+    fn: o => dsPanelSheet(b.st, job, Object.assign({
+      imgs: [],
+      key: "PANEL" + (i + 1)
+    }, o))
+  }));else if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro") add("STRDET", "รูปการเดินสายสตริง", o => dsStrDetSheet(st, job, o));
   if (dsHasMetal(st)) add("MOUNT", "รายละเอียดติดตั้งเมทัลชีท", o => dsMountSheet(st, job, o));
   if (dsHasMat(st, ["kliplok"])) add("KLIP", "รายละเอียดติดตั้งคลิปล็อก", o => dsKlipSheet(st, job, o));

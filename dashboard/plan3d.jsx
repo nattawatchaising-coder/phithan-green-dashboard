@@ -3711,7 +3711,7 @@ async function p3PrepSet(st, job, photos, design) {
        → ผังสตริง → SLD → รูปการเดินสายสตริง → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
        แผ่นที่ไม่มีข้อมูลรองรับ (ไม่มีราง ฯลฯ) ไม่ขึ้น */
     const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
-    const add = (k) => { if (X[k]) list.push(X[k]); };
+    const add = (k) => { if (Array.isArray(X[k])) X[k].forEach((x) => list.push(x)); else if (X[k]) list.push(X[k]); };   // ผังวางแผงแยกอาคาร = หลายแผ่น
     list.length = 0;
     /* แผ่นรายการประกอบแบบ (NOTES) เอาออกจากชุดไว้ก่อน — ผู้ใช้ 2026-11-02 "เอาออกไปก่อนได้ไหม หน้านี้" · ฟังก์ชัน dsNotesSheet ยังเก็บไว้ */
     add("COVER"); list.push(plan); add("PANEL");

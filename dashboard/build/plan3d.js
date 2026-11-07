@@ -5817,7 +5817,7 @@ async function p3PrepSet(st, job, photos, design) {
   if (design) {
     const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
     const add = k => {
-      if (X[k]) list.push(X[k]);
+      if (Array.isArray(X[k])) X[k].forEach(x => list.push(x));else if (X[k]) list.push(X[k]);
     };
     list.length = 0;
     add("COVER");
