@@ -865,8 +865,7 @@ function dsPanelSheet(st, job, media) {
       dHi
     });
   });
-  const full = lab.map(L => L.hOf(L.s)).filter(h => h >= 1.2);
-  const hU = full.length ? Math.min.apply(null, full) : 2.6;
+  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map(L => L.hOf(L.s)))) : 2.6;
   lab.forEach(({
     s,
     hOf,
@@ -877,10 +876,8 @@ function dsPanelSheet(st, job, media) {
     eHi,
     dHi
   }) => {
-    const two = hOf(s) < hU,
-      L2 = two ? [s.replace(" PANEL", ""), "PANEL"] : [s];
-    const h = Math.min(hU, hOf(two ? "PANEL" : s));
-    if (h < 1.0) return;
+    const L2 = [s],
+      h = hU;
     const nCh = Math.max.apply(null, L2.map(x => x.length)),
       lh = h * 1.25;
     const hw = (nCh * 0.56 * h / 2 + 0.6) * k,

@@ -508,13 +508,10 @@ function dsPanelSheet(st, job, media) {
     const hOf = (t) => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
     lab.push({ s, hOf, ang, e, d, eLo, eHi, dHi });
   });
-  const full = lab.map((L) => L.hOf(L.s)).filter((h) => h >= 1.2);
-  const hU = full.length ? Math.min.apply(null, full) : 2.6;
+  /* บรรทัดเดียวทุกกลุ่ม ขนาดเท่ากัน = ตามกลุ่มที่แคบสุด (ผู้ใช้ 2026-11-07 "ลดขนาดหัวหนังสือ เพื่อให้เป็นบรรทัดเดียว") · ต่ำสุด 1 มม. */
+  const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map((L) => L.hOf(L.s)))) : 2.6;
   lab.forEach(({ s, hOf, ang, e, d, eLo, eHi, dHi }) => {
-    /* กลุ่มแคบ ป้ายบรรทัดเดียวไม่พอ → สองบรรทัด "20" / "PANEL" (ผู้ใช้ 2026-11-07 "อยากได้คำว่า PANEL ด้วย") */
-    const two = hOf(s) < hU, L2 = two ? [s.replace(" PANEL", ""), "PANEL"] : [s];
-    const h = Math.min(hU, hOf(two ? "PANEL" : s));
-    if (h < 1.0) return;
+    const L2 = [s], h = hU;
     const nCh = Math.max.apply(null, L2.map((x) => x.length)), lh = h * 1.25;
     const hw = (nCh * 0.56 * h / 2 + 0.6) * k, hh = ((L2.length - 1) * lh / 2 + h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
     /* จุดกลาง = กลางช่วงแกน e · ห่างขอบล่างกลุ่ม hh + 0.8 มม. ตามแกน d */
