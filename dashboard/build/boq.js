@@ -5151,7 +5151,7 @@ function BOQEditor({
     })).filter(g => g.items.length) : priced.groups;
     if (custPx) {
       const CUST_MAIN_UP = 0.02,
-        MAIN = ["PV MODULE", "INVERTER"];
+        MAIN = ["PV MODULE", "INVERTER", "ระบบแรงสูง (MV)"];
       const S = Math.round(pb.sell * 100) / 100,
         Ctot = priced.grandTotal;
       const FIX = ["ค่าแรงติดตั้ง"],
