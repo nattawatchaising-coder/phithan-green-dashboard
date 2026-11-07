@@ -901,7 +901,7 @@ function dsPanelSheet(st, job, media) {
       hit = p => {
         const pe = Math.abs(p.u.x * e.x + p.u.z * e.z) + Math.abs(p.v.x * e.x + p.v.z * e.z),
           pd = Math.abs(p.u.x * d.x + p.u.z * d.z) + Math.abs(p.v.x * d.x + p.v.z * d.z);
-        return Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd;
+        return Math.abs(p.cx * e.x + p.cz * e.z - em) < Math.max(hw, (eHi - eLo) / 2) + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd;
       };
     if (panels.some((p, i) => !mine[i] && hit(p))) dm = (dLo + dHi) / 2;
     const det = e.x * d.z - e.z * d.x || 1e-9,

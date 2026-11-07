@@ -521,9 +521,9 @@ function dsPanelSheet(st, job, media) {
     let dm = dHi + hh + 0.8 * k;
     /* ป้ายนอกกลุ่มไปทับแผงกลุ่มอื่น (แถวชิดกัน เช่นแถบ A4) → วางทับกลางกลุ่มตัวเองแทน (ผู้ใช้ 2026-11-07 "เอาทับได้ ตรงจุดนี้") */
     const mine = {}; g.ids.forEach((i) => { mine[i] = 1; });
-    /* วัดจากขอบแผงจริง + ระยะเผื่อ 0.5 มม.บนกระดาษ — แผ่นแยกอาคารสเกลใหญ่ ป้ายแถบล่าง A4 ตกช่องว่างแคบชิดกลุ่มถัดไป วัดจากจุดกลางแผงไม่เจอ (ผู้ใช้ 2026-11-07 "เหมือนจะขยับนะ") */
+    /* วัดจากขอบแผงจริง + ระยะเผื่อ 0.5 มม.บนกระดาษ — แผ่นแยกอาคารสเกลใหญ่ ป้ายแถบล่าง A4 ตกช่องว่างแคบชิดกลุ่มถัดไป วัดจากจุดกลางแผงไม่เจอ · ดูตลอดความกว้างกลุ่ม ไม่ใช่แค่ใต้ป้าย (ผู้ใช้ 2026-11-07 "เหมือนจะขยับนะ") */
     const gp = 0.5 * k, hit = (p) => { const pe = Math.abs(p.u.x * e.x + p.u.z * e.z) + Math.abs(p.v.x * e.x + p.v.z * e.z), pd = Math.abs(p.u.x * d.x + p.u.z * d.z) + Math.abs(p.v.x * d.x + p.v.z * d.z);
-      return Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd; };
+      return Math.abs(p.cx * e.x + p.cz * e.z - em) < Math.max(hw, (eHi - eLo) / 2) + pe && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + gp + pd; };
     if (panels.some((p, i) => !mine[i] && hit(p))) dm = (dLo + dHi) / 2;
     /* จุดที่ฉายบน e = em และบน d = dm (แก้ 2×2 — หลังคาเอียง แกน e กับ d บนผังอาจไม่ตั้งฉาก) */
     const det = e.x * d.z - e.z * d.x || 1e-9, wx = (em * d.z - dm * e.z) / det, wz = (e.x * dm - d.x * em) / det;
