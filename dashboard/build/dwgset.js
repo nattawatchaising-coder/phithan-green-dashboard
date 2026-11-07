@@ -897,7 +897,7 @@ function dsPanelSheet(st, job, media) {
     g.ids.forEach(i => {
       mine[i] = 1;
     });
-    const gp = 0.5 * k,
+    const gp = 1.5 * k,
       hit = p => {
         const pe = Math.abs(p.u.x * e.x + p.u.z * e.z) + Math.abs(p.v.x * e.x + p.v.z * e.z),
           pd = Math.abs(p.u.x * d.x + p.u.z * d.z) + Math.abs(p.v.x * d.x + p.v.z * d.z);
