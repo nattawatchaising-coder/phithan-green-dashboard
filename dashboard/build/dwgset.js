@@ -796,6 +796,15 @@ function dsPanelSheet(st, job, media) {
     panels = P.foot.panels || [];
   const G = dsGroups(panels);
   const lab = [];
+  const rNm = {};
+  (st.roofs || []).forEach(r => {
+    rNm[r.id] = (r.name || "").trim() || r.id;
+  });
+  const bCache = {},
+    bldIds = rid => {
+      const nm = rNm[rid] || rid;
+      return bCache[nm] || (bCache[nm] = panels.map((p, i) => (rNm[p.roofId] || p.roofId) === nm ? i : -1).filter(i => i >= 0));
+    };
   G.forEach(g => {
     let s = g.n + " PANEL";
     const nz = w => {
@@ -814,13 +823,13 @@ function dsPanelSheet(st, job, media) {
       x: -V.x,
       z: -V.z
     }];
-    const d = cand.reduce((m, c) => c.z > m.z ? c : m),
-      dv = d === cand[2] || d === cand[3],
+    let d = cand.reduce((m, c) => c.z > m.z ? c : m);
+    const dv = d === cand[2] || d === cand[3],
       e = dv ? U : V;
-    const pr = w => {
+    const pr = (w, ids) => {
       let lo = 1e18,
         hi = -1e18;
-      g.ids.forEach(i => {
+      (ids || g.ids).forEach(i => {
         const p = panels[i];
         [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([su, sv]) => {
           const t = (p.cx + su * p.u.x + sv * p.v.x) * w.x + (p.cz + su * p.u.z + sv * p.v.z) * w.z;
@@ -830,6 +839,15 @@ function dsPanelSheet(st, job, media) {
       });
       return [lo, hi];
     };
+    {
+      const bIds = bldIds(g.roofId),
+        [bLo, bHi] = pr(d, bIds),
+        [gLo, gHi] = pr(d);
+      if ((gLo + gHi) / 2 < (bLo + bHi) / 2 - (bHi - bLo) / 4) d = {
+        x: -d.x,
+        z: -d.z
+      };
+    }
     const [, dHi] = pr(d),
       [eLo, eHi] = pr(e);
     let ang = Math.atan2(-e.z, e.x) / P3_DEG;

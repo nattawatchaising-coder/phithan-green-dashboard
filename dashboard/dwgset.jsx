@@ -479,6 +479,9 @@ function dsPanelSheet(st, job, media) {
   /* ขนาดป้ายเท่ากันทั้งแผ่น (ผู้ใช้ 2026-11-07 "อันนี้ก็ใหญ่กว่าเพื่อน") — เดิมแต่ละกลุ่มขยายเต็มความกว้างตัวเอง กลุ่มกว้างป้ายโต
      → รอบแรกเก็บตำแหน่ง · ขนาดกลาง = ค่าน้อยสุดที่ป้ายเต็มยังพอดี (ไม่ต่ำกว่า 1.2 มม. กลุ่มจิ๋วไม่ลากทุกป้ายให้เล็ก) */
   const lab = [];
+  const rNm = {}; (st.roofs || []).forEach((r) => { rNm[r.id] = (r.name || "").trim() || r.id; });
+  const bCache = {}, bldIds = (rid) => { const nm = rNm[rid] || rid;
+    return bCache[nm] || (bCache[nm] = panels.map((p, i) => ((rNm[p.roofId] || p.roofId) === nm ? i : -1)).filter((i) => i >= 0)); };
   G.forEach((g) => {
     /* ป้าย "10 PANEL" (ผู้ใช้ขอ 2026-11-02 "10 Panel ดีกว่า") · กลุ่มเล็กจนป้ายเต็มไม่พอ = เลขอย่างเดียว */
     let s = g.n + " PANEL";
@@ -487,11 +490,18 @@ function dsPanelSheet(st, job, media) {
     const nz = (w) => { const l = Math.hypot(w.x, w.z) || 1; return { x: w.x / l, z: w.z / l }; };
     const U = nz(g.u), V = nz(g.v);
     const cand = [U, { x: -U.x, z: -U.z }, V, { x: -V.x, z: -V.z }];
-    const d = cand.reduce((m, c) => (c.z > m.z ? c : m)), dv = d === cand[2] || d === cand[3], e = dv ? U : V;
-    const pr = (w) => { let lo = 1e18, hi = -1e18;
-      g.ids.forEach((i) => { const p = panels[i]; [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([su, sv]) => {
+    let d = cand.reduce((m, c) => (c.z > m.z ? c : m));
+    const dv = d === cand[2] || d === cand[3], e = dv ? U : V;
+    const pr = (w, ids) => { let lo = 1e18, hi = -1e18;
+      (ids || g.ids).forEach((i) => { const p = panels[i]; [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([su, sv]) => {
         const t = (p.cx + su * p.u.x + sv * p.v.x) * w.x + (p.cz + su * p.u.z + sv * p.v.z) * w.z; lo = Math.min(lo, t); hi = Math.max(hi, t); }); });
       return [lo, hi]; };
+    /* กลุ่มที่อยู่ครึ่งบนของอาคาร (หลังคาชื่อเดียวกัน) → ป้ายไปขอบนอกด้านบน ไม่ตกกลางอาคาร (ผู้ใช้ 2026-11-07 วาดลูกศร "ย้ายไปอยู่ขอบนอกอาคาร")
+       กลุ่มแถวกลาง (ห่างกลางอาคารไม่ถึง 1/4) คงไว้ด้านล่าง */
+    {
+      const bIds = bldIds(g.roofId), [bLo, bHi] = pr(d, bIds), [gLo, gHi] = pr(d);
+      if ((gLo + gHi) / 2 < (bLo + bHi) / 2 - (bHi - bLo) / 4) d = { x: -d.x, z: -d.z };
+    }
     const [, dHi] = pr(d), [eLo, eHi] = pr(e);
     let ang = Math.atan2(-e.z, e.x) / P3_DEG;
     if (ang > 90) ang -= 180; if (ang <= -90) ang += 180;
