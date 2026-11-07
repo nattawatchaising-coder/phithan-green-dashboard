@@ -5867,7 +5867,7 @@ function BOQEditor({
     });
     const wb = X.utils.book_new();
     X.utils.book_append_sheet(wb, wsA, "ใบถอดวัสดุ");
-    if (hasPrice) {
+    if (hasPrice && !cust) {
       const B2 = mkSheet(3, [{
         wch: 3
       }, {

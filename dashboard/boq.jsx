@@ -2970,8 +2970,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const wb = X.utils.book_new();
     X.utils.book_append_sheet(wb, wsA, "ใบถอดวัสดุ");
 
-    /* ═══ ชีต 2: สรุปราคา ═══ */
-    if (hasPrice) {
+    /* ═══ ชีต 2: สรุปราคา ═══ (ข้อมูลต้นทุน/กำไรภายใน — ฉบับลูกค้าห้ามมี) */
+    if (hasPrice && !cust) {
       const B2 = mkSheet(3, [{ wch: 3 }, { wch: 44 }, { wch: 18 }, { wch: 14 }]);
       const L = 1, V = 2, U = 3; // คอลัมน์ป้าย / จำนวนเงิน / หน่วยเทียบ
       docHead(B2, "สรุปราคาโครงการ  ·  PRICE SUMMARY", jobName + "   ·   " + jobCode + "   ·   " + kwTxt);
