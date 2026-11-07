@@ -859,11 +859,14 @@ function dsPanelSheet(st, job, media) {
     eHi,
     dHi
   }) => {
-    if (hOf(s) < hU) s = s.replace(" PANEL", "");
-    const h = Math.min(hU, hOf(s));
+    const two = hOf(s) < hU,
+      L2 = two ? [s.replace(" PANEL", ""), "PANEL"] : [s];
+    const h = Math.min(hU, hOf(two ? "PANEL" : s));
     if (h < 1.0) return;
-    const hw = (s.length * 0.56 * h / 2 + 0.6) * k,
-      hh = (h / 2 + 0.5) * k,
+    const nCh = Math.max.apply(null, L2.map(x => x.length)),
+      lh = h * 1.25;
+    const hw = (nCh * 0.56 * h / 2 + 0.6) * k,
+      hh = ((L2.length - 1) * lh / 2 + h / 2 + 0.5) * k,
       ra = ang * P3_DEG,
       ca = Math.cos(ra),
       sa = Math.sin(ra);
@@ -876,10 +879,13 @@ function dsPanelSheet(st, job, media) {
       ty = -wz;
     const c = (u, v) => [tx + u * ca - v * sa, ty + u * sa + v * ca];
     doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
-    doc.text(DL("grp"), tx, ty, h * k, s, {
-      align: 1,
-      valign: 2,
-      rot: ang
+    L2.forEach((ln, j) => {
+      const o = c(0, ((L2.length - 1) / 2 - j) * lh * k);
+      doc.text(DL("grp"), o[0], o[1], h * k, ln, {
+        align: 1,
+        valign: 2,
+        rot: ang
+      });
     });
   });
   const RR = p3RotPt(P.V.rot || 0),

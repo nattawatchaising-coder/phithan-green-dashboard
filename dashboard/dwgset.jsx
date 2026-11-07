@@ -501,10 +501,12 @@ function dsPanelSheet(st, job, media) {
   const full = lab.map((L) => L.hOf(L.s)).filter((h) => h >= 1.2);
   const hU = full.length ? Math.min.apply(null, full) : 2.6;
   lab.forEach(({ s, hOf, ang, e, d, eLo, eHi, dHi }) => {
-    if (hOf(s) < hU) s = s.replace(" PANEL", "");
-    const h = Math.min(hU, hOf(s));
+    /* กลุ่มแคบ ป้ายบรรทัดเดียวไม่พอ → สองบรรทัด "20" / "PANEL" (ผู้ใช้ 2026-11-07 "อยากได้คำว่า PANEL ด้วย") */
+    const two = hOf(s) < hU, L2 = two ? [s.replace(" PANEL", ""), "PANEL"] : [s];
+    const h = Math.min(hU, hOf(two ? "PANEL" : s));
     if (h < 1.0) return;
-    const hw = (s.length * 0.56 * h / 2 + 0.6) * k, hh = (h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
+    const nCh = Math.max.apply(null, L2.map((x) => x.length)), lh = h * 1.25;
+    const hw = (nCh * 0.56 * h / 2 + 0.6) * k, hh = ((L2.length - 1) * lh / 2 + h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
     /* จุดกลาง = กลางช่วงแกน e · ห่างขอบล่างกลุ่ม hh + 0.8 มม. ตามแกน d */
     const em = (eLo + eHi) / 2, dm = dHi + hh + 0.8 * k;
     /* จุดที่ฉายบน e = em และบน d = dm (แก้ 2×2 — หลังคาเอียง แกน e กับ d บนผังอาจไม่ตั้งฉาก) */
@@ -513,7 +515,7 @@ function dsPanelSheet(st, job, media) {
     const tx = wx, ty = -wz;
     const c = (u, v) => [tx + u * ca - v * sa, ty + u * sa + v * ca];
     doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
-    doc.text(DL("grp"), tx, ty, h * k, s, { align: 1, valign: 2, rot: ang });
+    L2.forEach((ln, j) => { const o = c(0, ((L2.length - 1) / 2 - j) * lh * k); doc.text(DL("grp"), o[0], o[1], h * k, ln, { align: 1, valign: 2, rot: ang }); });
   });
   /* ชื่อหลังคา: ป้ายใหญ่มีกรอบ + พื้นขาวกันตัวหนังสือจมลายหลังคา อยู่เหนือขอบบนสุดของอาคาร (ผู้ใช้วาดชี้ 2026-11-02)
      วาดบน docRaw ตั้งตรงกระดาษ · พิกัดหลังคาหมุนตามผังก่อน (p3RotPt) จะได้ "บนสุด" ตามที่เห็นบนแผ่น */
