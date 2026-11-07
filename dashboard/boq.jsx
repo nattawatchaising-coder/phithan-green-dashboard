@@ -2682,7 +2682,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         .filter((g) => g.items.length)
       : priced.groups;
     if (custPx) {
-      const CUST_MAIN_UP = 0.02, MAIN = ["PV MODULE", "INVERTER", "ระบบแรงสูง (MV)"];   // MV บวก ≤2% ด้วย (ผู้ใช้ 2026-11-07)
+      const CUST_MAIN_UP = 0.02, MAIN = ["PV MODULE", "INVERTER"];
       const S = Math.round(pb.sell * 100) / 100, Ctot = priced.grandTotal;
       /* ค่าแรงติดตั้ง = ราคาที่ตั้งไว้ ไม่บวกกำไร (ผู้ใช้ 2026-11-07 "ค่าแรง เอาแค่ที่ตั้งไว้ไม่บวกเพิ่ม") */
       const FIX = ["ค่าแรงติดตั้ง"], kind = (g) => MAIN.indexOf(g.group) >= 0 ? "m" : FIX.indexOf(g.group) >= 0 ? "x" : "r";
