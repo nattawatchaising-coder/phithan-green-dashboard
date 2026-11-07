@@ -998,7 +998,7 @@ function dsPanelSheet(st, job, media) {
     }
   })();
   const totS = "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)";
-  dsRight(P, rows, [2.2, 1, 1.1, 1.1], ["ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง", "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp"], [0, 1, 1, 1], {
+  dsRight(P, rows, [2.2, 1, 1.1, 1.1], ["แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp"], [0, 1, 1, 1], {
     noteMid: true,
     stack: true,
     below: DS_MOD_H,

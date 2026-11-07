@@ -589,7 +589,7 @@ function dsPanelSheet(st, job, media) {
   const M0 = (() => { try { return p3SldModel(st, job, media.design); } catch (e) { return null; } })();
   const totS = "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)";
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], [
-    "ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง",   // วงเล็บท้ายเอาออก (ผู้ใช้ขีดฆ่า 2026-11-02)
+    /* ข้อ "ตัวเลขกลางกลุ่ม = แถว x แผงต่อแถว" เอาออก — ป้ายเป็น "N PANEL" แล้ว (ผู้ใช้ขีดฆ่า 2026-11-07) */
     "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp",
     /* ข้อ "ตำแหน่งแผงอ้างอิงแบบ 3D …" เอาออก (ผู้ใช้ขีดฆ่า 2026-11-02) */
   ], [0, 1, 1, 1], { noteMid: true, stack: true, below: DS_MOD_H, wHead: pgTextW(totS, PG_TS.head) });
