@@ -526,15 +526,16 @@ function dsPanelSheet(st, job, media) {
     return out;
   };
   const tagBox = [];
-  const roofTag = (roof, nm, mine) => {
-    let pts = roofPts(roof);
+  /* หลังคาชื่อเดียวกัน = ป้ายเดียว + แถวเดียวในตาราง (ผู้ใช้ 2026-11-07 "แยกเป็น 2 อาคารพอ") */
+  const roofTag = (grp, nm, mine) => {
+    let pts = [].concat.apply([], grp.map(roofPts));
     if (!pts.length) mine.forEach((p) => p.pts.forEach((q) => pts.push(RR(q[0], -q[1]))));
     const xs = pts.map((q) => q[0]), xa = Math.min.apply(null, xs), xb = Math.max.apply(null, xs);
     let cx = (xa + xb) / 2;
     /* เหนือขอบบนสุดของอาคาร — หลังคาผืนอื่นที่ซ้อนแนวเดียวกัน (เช่นครึ่งบนของจั่ว) นับด้วย ป้ายจะไม่ตกกลางอาคาร (ผู้ใช้วาดลูกศรชี้) */
     let y1 = Math.max.apply(null, pts.map((q) => q[1]));
     /* นับเฉพาะผืนที่ต่อกับขอบบนอยู่จริง (ช่องห่าง ≤ 1 ม.) ไล่ขึ้นทีละผืน — ผังหลายอาคาร ป้ายอาคารล่างเคยลอยไปบนอาคารบน (LD-030) */
-    const oth = (st.roofs || []).filter((r2) => r2 !== roof).map((r2) => roofPts(r2).filter((p) => p[0] > xa && p[0] < xb)).filter((q) => q.length);
+    const oth = (st.roofs || []).filter((r2) => grp.indexOf(r2) < 0).map((r2) => roofPts(r2).filter((p) => p[0] > xa && p[0] < xb)).filter((q) => q.length);
     for (let more = true; more;) {
       more = false;
       oth.forEach((q) => { const lo = Math.min.apply(null, q.map((p) => p[1])), hi = Math.max.apply(null, q.map((p) => p[1]));
@@ -549,20 +550,27 @@ function dsPanelSheet(st, job, media) {
       hit = false;
       tagBox.forEach((b) => { if (cx - w / 2 < b[2] && cx + w / 2 > b[0] && yb < b[3] && yb + h > b[1]) { cx = b[2] + w / 2 + 1.5 * k; hit = true; } });
     }
-    tagBox.push([cx - w / 2, yb, cx + w / 2, yb + h]);    const R = P.docRaw;
+    tagBox.push([cx - w / 2, yb, cx + w / 2, yb + h]);
+    const R = P.docRaw;
     R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
     R.rect(DL("tag"), cx - w / 2, yb, w, h);
     R.text(DL("tag"), cx, yb + h / 2, nh * k, nm, { align: 1, valign: 2 });
   };
   const wp = +st.wp || 650, rows = [["ROOF", "GROUP", "MODULE", "kWp"]];
   let tot = 0;
+  const byNm = {}, nmOrd = [];
   (st.roofs || []).forEach((roof, i) => {
-    const mine = panels.filter((p) => p.roofId === roof.id);
-    if (!mine.length) return;
+    if (!panels.some((p) => p.roofId === roof.id)) return;
     const nm = ((roof.name || "").trim() || ("ROOFTOP " + (i + 1))).toUpperCase();
-    roofTag(roof, nm, mine);
+    if (!byNm[nm]) { byNm[nm] = []; nmOrd.push(nm); }
+    byNm[nm].push(roof);
+  });
+  nmOrd.forEach((nm) => {
+    const grp = byNm[nm], ids = grp.map((r) => r.id);
+    const mine = panels.filter((p) => ids.indexOf(p.roofId) >= 0);
+    roofTag(grp, nm, mine);
     tot += mine.length;
-    rows.push([nm, G.filter((g) => g.roofId === roof.id).length, mine.length, (mine.length * wp / 1000).toFixed(2)]);
+    rows.push([nm, G.filter((g) => ids.indexOf(g.roofId) >= 0).length, mine.length, (mine.length * wp / 1000).toFixed(2)]);
   });
   rows.push(["TOTAL", G.length, tot, (tot * wp / 1000).toFixed(2)]);
   const M0 = (() => { try { return p3SldModel(st, job, media.design); } catch (e) { return null; } })();

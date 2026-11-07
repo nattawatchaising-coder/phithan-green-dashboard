@@ -895,15 +895,15 @@ function dsPanelSheet(st, job, media) {
     return out;
   };
   const tagBox = [];
-  const roofTag = (roof, nm, mine) => {
-    let pts = roofPts(roof);
+  const roofTag = (grp, nm, mine) => {
+    let pts = [].concat.apply([], grp.map(roofPts));
     if (!pts.length) mine.forEach(p => p.pts.forEach(q => pts.push(RR(q[0], -q[1]))));
     const xs = pts.map(q => q[0]),
       xa = Math.min.apply(null, xs),
       xb = Math.max.apply(null, xs);
     let cx = (xa + xb) / 2;
     let y1 = Math.max.apply(null, pts.map(q => q[1]));
-    const oth = (st.roofs || []).filter(r2 => r2 !== roof).map(r2 => roofPts(r2).filter(p => p[0] > xa && p[0] < xb)).filter(q => q.length);
+    const oth = (st.roofs || []).filter(r2 => grp.indexOf(r2) < 0).map(r2 => roofPts(r2).filter(p => p[0] > xa && p[0] < xb)).filter(q => q.length);
     for (let more = true; more;) {
       more = false;
       oth.forEach(q => {
@@ -940,13 +940,24 @@ function dsPanelSheet(st, job, media) {
   const wp = +st.wp || 650,
     rows = [["ROOF", "GROUP", "MODULE", "kWp"]];
   let tot = 0;
+  const byNm = {},
+    nmOrd = [];
   (st.roofs || []).forEach((roof, i) => {
-    const mine = panels.filter(p => p.roofId === roof.id);
-    if (!mine.length) return;
+    if (!panels.some(p => p.roofId === roof.id)) return;
     const nm = ((roof.name || "").trim() || "ROOFTOP " + (i + 1)).toUpperCase();
-    roofTag(roof, nm, mine);
+    if (!byNm[nm]) {
+      byNm[nm] = [];
+      nmOrd.push(nm);
+    }
+    byNm[nm].push(roof);
+  });
+  nmOrd.forEach(nm => {
+    const grp = byNm[nm],
+      ids = grp.map(r => r.id);
+    const mine = panels.filter(p => ids.indexOf(p.roofId) >= 0);
+    roofTag(grp, nm, mine);
     tot += mine.length;
-    rows.push([nm, G.filter(g => g.roofId === roof.id).length, mine.length, (mine.length * wp / 1000).toFixed(2)]);
+    rows.push([nm, G.filter(g => ids.indexOf(g.roofId) >= 0).length, mine.length, (mine.length * wp / 1000).toFixed(2)]);
   });
   rows.push(["TOTAL", G.length, tot, (tot * wp / 1000).toFixed(2)]);
   const M0 = (() => {
