@@ -476,6 +476,9 @@ function dsPanelSheet(st, job, media) {
   dsPlanHead(P, "PV MODULE LAYOUT", { top: true });
   const k = P.k, doc = P.doc, panels = P.foot.panels || [];
   const G = dsGroups(panels);
+  /* ขนาดป้ายเท่ากันทั้งแผ่น (ผู้ใช้ 2026-11-07 "อันนี้ก็ใหญ่กว่าเพื่อน") — เดิมแต่ละกลุ่มขยายเต็มความกว้างตัวเอง กลุ่มกว้างป้ายโต
+     → รอบแรกเก็บตำแหน่ง · ขนาดกลาง = ค่าน้อยสุดที่ป้ายเต็มยังพอดี (ไม่ต่ำกว่า 1.2 มม. กลุ่มจิ๋วไม่ลากทุกป้ายให้เล็ก) */
+  const lab = [];
   G.forEach((g) => {
     /* ป้าย "10 PANEL" (ผู้ใช้ขอ 2026-11-02 "10 Panel ดีกว่า") · กลุ่มเล็กจนป้ายเต็มไม่พอ = เลขอย่างเดียว */
     let s = g.n + " PANEL";
@@ -493,8 +496,13 @@ function dsPanelSheet(st, job, media) {
     let ang = Math.atan2(-e.z, e.x) / P3_DEG;
     if (ang > 90) ang -= 180; if (ang <= -90) ang += 180;
     const hOf = (t) => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
-    if (hOf(s) < 1.0) s = String(g.n);
-    const h = hOf(s);
+    lab.push({ s, hOf, ang, e, d, eLo, eHi, dHi });
+  });
+  const full = lab.map((L) => L.hOf(L.s)).filter((h) => h >= 1.2);
+  const hU = full.length ? Math.min.apply(null, full) : 2.6;
+  lab.forEach(({ s, hOf, ang, e, d, eLo, eHi, dHi }) => {
+    if (hOf(s) < hU) s = s.replace(" PANEL", "");
+    const h = Math.min(hU, hOf(s));
     if (h < 1.0) return;
     const hw = (s.length * 0.56 * h / 2 + 0.6) * k, hh = (h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
     /* จุดกลาง = กลางช่วงแกน e · ห่างขอบล่างกลุ่ม hh + 0.8 มม. ตามแกน d */
@@ -524,11 +532,14 @@ function dsPanelSheet(st, job, media) {
     /* เหนือขอบบนสุดของอาคาร — หลังคาผืนอื่นที่ซ้อนแนวเดียวกัน (เช่นครึ่งบนของจั่ว) นับด้วย ป้ายจะไม่ตกกลางอาคาร (ผู้ใช้วาดลูกศรชี้) */
     let y1 = Math.max.apply(null, pts.map((q) => q[1]));
     (st.roofs || []).forEach((r2) => roofPts(r2).forEach((p) => { if (p[0] > xa && p[0] < xb) y1 = Math.max(y1, p[1]); }));
-    const w = (pgTextW(nm, NH) + 4) * k, h = (NH + 2.4) * k, yb = y1 + 2.5 * k;
+    /* ผังใหญ่ (หลังคาหลายผืน · มาตราส่วนเล็ก) ป้าย 4 มม. ล้นเกินหลังคาไปทับกัน (ผู้ใช้ 2026-11-07 "เยอะไป · ใหญ่ด้วย")
+       → ย่อให้ป้ายไม่กว้างเกินหลังคาของมันเอง ต่ำสุด 2 มม. */
+    const nh = Math.max(2, Math.min(NH, NH * ((xb - xa) / k) / (pgTextW(nm, NH) + 4)));
+    const w = (pgTextW(nm, nh) + 4 * nh / NH) * k, h = (nh + 2.4 * nh / NH) * k, yb = y1 + 2.5 * k * nh / NH;
     const R = P.docRaw;
     R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
     R.rect(DL("tag"), cx - w / 2, yb, w, h);
-    R.text(DL("tag"), cx, yb + h / 2, NH * k, nm, { align: 1, valign: 2 });
+    R.text(DL("tag"), cx, yb + h / 2, nh * k, nm, { align: 1, valign: 2 });
   };
   const wp = +st.wp || 650, rows = [["ROOF", "GROUP", "MODULE", "kWp"]];
   let tot = 0;

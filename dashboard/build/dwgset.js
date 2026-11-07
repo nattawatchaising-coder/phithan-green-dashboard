@@ -795,6 +795,7 @@ function dsPanelSheet(st, job, media) {
     doc = P.doc,
     panels = P.foot.panels || [];
   const G = dsGroups(panels);
+  const lab = [];
   G.forEach(g => {
     let s = g.n + " PANEL";
     const nz = w => {
@@ -835,8 +836,31 @@ function dsPanelSheet(st, job, media) {
     if (ang > 90) ang -= 180;
     if (ang <= -90) ang += 180;
     const hOf = t => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
-    if (hOf(s) < 1.0) s = String(g.n);
-    const h = hOf(s);
+    lab.push({
+      s,
+      hOf,
+      ang,
+      e,
+      d,
+      eLo,
+      eHi,
+      dHi
+    });
+  });
+  const full = lab.map(L => L.hOf(L.s)).filter(h => h >= 1.2);
+  const hU = full.length ? Math.min.apply(null, full) : 2.6;
+  lab.forEach(({
+    s,
+    hOf,
+    ang,
+    e,
+    d,
+    eLo,
+    eHi,
+    dHi
+  }) => {
+    if (hOf(s) < hU) s = s.replace(" PANEL", "");
+    const h = Math.min(hU, hOf(s));
     if (h < 1.0) return;
     const hw = (s.length * 0.56 * h / 2 + 0.6) * k,
       hh = (h / 2 + 0.5) * k,
@@ -881,13 +905,14 @@ function dsPanelSheet(st, job, media) {
     (st.roofs || []).forEach(r2 => roofPts(r2).forEach(p => {
       if (p[0] > xa && p[0] < xb) y1 = Math.max(y1, p[1]);
     }));
-    const w = (pgTextW(nm, NH) + 4) * k,
-      h = (NH + 2.4) * k,
-      yb = y1 + 2.5 * k;
+    const nh = Math.max(2, Math.min(NH, NH * ((xb - xa) / k) / (pgTextW(nm, NH) + 4)));
+    const w = (pgTextW(nm, nh) + 4 * nh / NH) * k,
+      h = (nh + 2.4 * nh / NH) * k,
+      yb = y1 + 2.5 * k * nh / NH;
     const R = P.docRaw;
     R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
     R.rect(DL("tag"), cx - w / 2, yb, w, h);
-    R.text(DL("tag"), cx, yb + h / 2, NH * k, nm, {
+    R.text(DL("tag"), cx, yb + h / 2, nh * k, nm, {
       align: 1,
       valign: 2
     });
