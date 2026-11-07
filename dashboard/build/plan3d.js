@@ -1460,7 +1460,15 @@ function p3AreaRows(st, M, nStr, paths) {
       n: n,
       ns: ns
     };
-  }).filter(r => r.n > 0);
+  }).filter(r => r.n > 0).reduce((a, r) => {
+    const k = r.name.toUpperCase(),
+      x = a.find(y => y.name.toUpperCase() === k);
+    if (x) {
+      x.n += r.n;
+      x.ns += r.ns;
+    } else a.push(r);
+    return a;
+  }, []);
   const tot = roofs.reduce((s, r) => s + r.n, 0) || M.panel.count;
   const invOf = n => Math.round(M.units.length * n / Math.max(1, tot));
   roofs.forEach(r => rows.push([r.name.toUpperCase(), r.n, (r.n * wp / 1000).toFixed(2) + " kWp.", invOf(r.n) || "-", r.ns || "-", M.batt ? "YES" : "-", "-"]));

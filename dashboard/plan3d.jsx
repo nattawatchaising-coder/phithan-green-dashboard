@@ -867,7 +867,12 @@ function p3AreaRows(st, M, nStr, paths) {
     try { n = p3Panels(r).count; } catch (e) { n = 0; }
     const ns = (paths || []).filter((q) => q.uids && q.uids[0] && String(q.uids[0]).split("|")[0] === String(r.id)).length;
     return { name: (r.name || "").trim() || ("ROOFTOP " + (i + 1)), n: n, ns: ns };
-  }).filter((r) => r.n > 0);
+  }).filter((r) => r.n > 0).reduce((a, r) => {
+    /* หลังคาชื่อเดียวกัน = อาคารเดียว รวมเป็นแถวเดียว (ผู้ใช้ 2026-11-07 "สรุปแค่ อาคาร 1 กับ 2") */
+    const k = r.name.toUpperCase(), x = a.find((y) => y.name.toUpperCase() === k);
+    if (x) { x.n += r.n; x.ns += r.ns; } else a.push(r);
+    return a;
+  }, []);
   const tot = roofs.reduce((s, r) => s + r.n, 0) || M.panel.count;
   const invOf = (n) => Math.round(M.units.length * n / Math.max(1, tot));
   roofs.forEach((r) => rows.push([r.name.toUpperCase(), r.n, (r.n * wp / 1000).toFixed(2) + " kWp.",
