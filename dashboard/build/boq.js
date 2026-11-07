@@ -10795,7 +10795,8 @@ function BOQEditor({
     }, it.unit));
   })(), (!isMobile || priced.grandTotal > 0) && (() => {
     const editable = canEditPrice && !isService(g.group) && !it.allowancePct && (it.name || "").trim();
-    const editing = editPx && editPx.name === it.name;
+    const rowKey = g.group + "|" + ii;
+    const editing = editPx && editPx.row === rowKey;
     if (editing) return React.createElement("span", {
       style: {
         textAlign: "right"
@@ -10844,6 +10845,7 @@ function BOQEditor({
         cursor: editable ? "pointer" : "default"
       },
       onClick: editable ? () => setEditPx({
+        row: rowKey,
         name: it.name,
         group: g.group,
         unit: it.unit,

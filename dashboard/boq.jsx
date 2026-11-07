@@ -5182,7 +5182,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       })()}
                       {(!isMobile || priced.grandTotal > 0) && (() => {
                         const editable = canEditPrice && !isService(g.group) && !it.allowancePct && (it.name || "").trim();
-                        const editing = editPx && editPx.name === it.name;
+                        /* จับแถวด้วยหมวด+ลำดับ ไม่ใช่ชื่อ — ชื่อซ้ำได้ (เช่น SEAM HOOK อยู่สองหมวด) ช่องกรอกจะโผล่สองช่อง
+                           แย่งโฟกัสกัน → blur → ปิดทันที เหมือนกดไม่ได้ */
+                        const rowKey = g.group + "|" + ii;
+                        const editing = editPx && editPx.row === rowKey;
                         if (editing) return (
                           <span style={{ textAlign: "right" }}>
                             <input autoFocus type="number" min={0} step="any" value={editPx.val}
@@ -5198,7 +5201,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                         return (
                           <span style={{ textAlign: "right", cursor: editable ? "pointer" : "default" }}
                             /* กดได้ทั้งช่อง — เดิมรับแค่ตัว "–" กว้าง 7px ผู้ใช้กดไม่โดน */
-                            onClick={editable ? () => setEditPx({ name: it.name, group: g.group, unit: it.unit, val: it.price > 0 ? String(it.price) : "" }) : undefined}
+                            onClick={editable ? () => setEditPx({ row: rowKey, name: it.name, group: g.group, unit: it.unit, val: it.price > 0 ? String(it.price) : "" }) : undefined}
                             title={editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined}>
                             <span
                               style={{ fontFamily: "var(--mono)", fontSize: editable && !(it.total > 0) ? 11 : 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
