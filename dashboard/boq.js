@@ -1589,6 +1589,7 @@
   const G_TRANSPORT = "ขนส่ง & เครื่องจักร";
   const G_MANAGE = "บริหารจัดการหน้างาน";
   const G_OM = "O&M · ประกัน + ล้างแผง";
+  const G_MV = "ระบบแรงสูง (MV)";
   const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE, G_OM];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
 
   /* ── O&M: ล้างแผง + งาน O&M ──
@@ -2452,7 +2453,10 @@
       { name: panel.model, qty: panelCount, unit: "PANEL" },
     ] });
     // INVERTER
-    groups.push({ group: "INVERTER", items: invItems });
+    /* ระบบแรงสูง (MV) แยกเป็นหมวดของตัวเองต่อจาก INVERTER (ผู้ใช้ 2026-11-07 "ย้ายไปเป็นอีกหมวดหนึ่งเลย") — ราคาดึงตามชื่อ ย้ายหมวดไม่กระทบ */
+    const mvItems = (invItems || []).filter((x) => x.name === MV_ROW.name);
+    groups.push({ group: "INVERTER", items: (invItems || []).filter((x) => x.name !== MV_ROW.name) });
+    if (mvItems.length) groups.push({ group: G_MV, items: mvItems });
     // COMBINER BOX (เฉพาะระบบที่มีตู้ combiner เช่น Huawei)
     if (combItems && combItems.length) groups.push({ group: "COMBINER BOX", items: combItems });
     // MOUNTING

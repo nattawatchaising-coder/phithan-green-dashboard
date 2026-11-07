@@ -5143,11 +5143,54 @@ function BOQEditor({
     }
     const X = window.XLSX;
     const cust = !!(opt && opt.customer);
-    const hasPrice = !cust && priced.grandTotal > 0;
-    const custHide = window.BOQ.SERVICE_GROUPS.concat(["ACCESSORIES"]);
-    const listGroups = cust ? priced.groups.filter(g => custHide.indexOf(g.group) < 0).map(g => Object.assign({}, g, {
+    const custPx = cust && pb.sell > 0 && priced.grandTotal > 0;
+    const hasPrice = cust ? custPx : priced.grandTotal > 0;
+    const custHide = custPx ? ["O&M · ประกัน + ล้างแผง"] : window.BOQ.SERVICE_GROUPS.concat(["ACCESSORIES"]);
+    let listGroups = cust ? priced.groups.filter(g => custHide.indexOf(g.group) < 0).map(g => Object.assign({}, g, {
       items: g.items.filter(it => (+it.qty || 0) > 0)
     })).filter(g => g.items.length) : priced.groups;
+    if (custPx) {
+      const CUST_MAIN_UP = 0.02,
+        MAIN = ["PV MODULE", "INVERTER"];
+      const S = Math.round(pb.sell * 100) / 100,
+        Ctot = priced.grandTotal;
+      const FIX = ["ค่าแรงติดตั้ง"],
+        kind = g => MAIN.indexOf(g.group) >= 0 ? "m" : FIX.indexOf(g.group) >= 0 ? "x" : "r";
+      const sub = k => listGroups.filter(g => kind(g) === k).reduce((s, g) => s + (+g.subtotal || 0), 0);
+      const cm = sub("m"),
+        cx = sub("x"),
+        cr = sub("r");
+      const fm = cr > 0 ? Math.min(1 + CUST_MAIN_UP, (S - cx) / Math.max(1, Ctot - cx)) : (S - cx) / Math.max(1, cm),
+        fr = cr > 0 ? (S - cx - cm * fm) / cr : fm;
+      let sum = 0,
+        abs = null;
+      listGroups = listGroups.map(g => {
+        const f = kind(g) === "m" ? fm : kind(g) === "x" ? 1 : fr;
+        const items = g.items.map(it => {
+          const q = +it.qty || 0,
+            pu = Math.round((+it.price || 0) * f * 100) / 100,
+            x = Object.assign({}, it, {
+              price: pu,
+              total: Math.round(q * pu * 100) / 100
+            });
+          sum += x.total;
+          if (q === 1 && kind(g) === "r" && (!abs || x.total > abs.total)) abs = x;
+          return x;
+        });
+        return Object.assign({}, g, {
+          items: items
+        });
+      });
+      if (abs) {
+        const d = Math.round((S - sum) * 100) / 100;
+        abs.price = Math.round((abs.price + d) * 100) / 100;
+        abs.total = abs.price;
+      }
+      listGroups.forEach(g => {
+        g.subtotal = Math.round(g.items.reduce((s, it) => s + it.total, 0) * 100) / 100;
+      });
+    }
+    const listTotal = custPx ? Math.round(listGroups.reduce((s, g) => s + g.subtotal, 0) * 100) / 100 : priced.grandTotal;
     const C = {
       brand: "1D854B",
       brandDk: "0F5233",
@@ -5464,12 +5507,33 @@ function BOQEditor({
     if (hasPrice) {
       const gsum = 'SUMIF($' + CL(0) + "$" + (bodyStart + 1) + ":$" + CL(0) + "$" + (bodyEnd + 1) + ',"หมวด*",$' + TC + "$" + (bodyStart + 1) + ":$" + TC + "$" + (bodyEnd + 1) + ")";
       const totRow = [];
-      totRow[cName] = "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)";
-      totRow[lastC] = F("ROUND(" + gsum + ",2)", priced.grandTotal);
+      totRow[0] = cust ? pb.discount > 0 ? "ราคารวมก่อนส่วนลด (ก่อน VAT)" : "ราคารวมทั้งระบบ (ก่อน VAT)" : "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)";
+      totRow[lastC] = F("ROUND(" + gsum + ",2)", listTotal);
       const tr = A.push(totRow, "total", 26);
       A.merge(tr, 0, lastC - 1);
     }
-    if (cust) {
+    if (custPx) {
+      const price = pb.discount > 0 ? pb.net : pb.sell,
+        priceVat = pb.discount > 0 ? pb.netVat : pb.sellVat;
+      const totRow = (label, v) => {
+        const c = [];
+        c[0] = label;
+        c[lastC] = v;
+        const r = A.push(c, "total", 24);
+        A.merge(r, 0, lastC - 1);
+      };
+      if (pb.discount > 0) {
+        totRow("ส่วนลด", -pb.discount);
+        totRow("ราคารวมหลังส่วนลด (ก่อน VAT)", price);
+      }
+      totRow("ภาษีมูลค่าเพิ่ม " + pb.vat + "%", Math.round((priceVat - price) * 100) / 100);
+      totRow("ราคารวมทั้งสิ้น", priceVat);
+      if (omC && omC.included > 0) {
+        A.gap(8);
+        const r = A.push(["", "✓  แถมบริการ O&M ฟรี " + omC.o.years + " ปี · ล้างแผงปีละ " + omC.o.perYear + " ครั้ง (รวมในราคาแล้ว)"], "item", 18);
+        A.merge(r, 1, lastC);
+      }
+    } else if (cust) {
       const svc = ["ค่าแรงติดตั้งทั้งระบบ พร้อมทดสอบและเปิดใช้งาน"];
       if (priced.permitTotal > 0) svc.push("ดำเนินการขออนุญาต · เอกสาร · วิศวกรรับรองแบบ");
       if (priced.siteTotal > 0) svc.push("ขนส่งอุปกรณ์และบริหารจัดการหน้างาน");
