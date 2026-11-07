@@ -531,7 +531,13 @@ function dsPanelSheet(st, job, media) {
     const xs = pts.map((q) => q[0]), xa = Math.min.apply(null, xs), xb = Math.max.apply(null, xs), cx = (xa + xb) / 2;
     /* เหนือขอบบนสุดของอาคาร — หลังคาผืนอื่นที่ซ้อนแนวเดียวกัน (เช่นครึ่งบนของจั่ว) นับด้วย ป้ายจะไม่ตกกลางอาคาร (ผู้ใช้วาดลูกศรชี้) */
     let y1 = Math.max.apply(null, pts.map((q) => q[1]));
-    (st.roofs || []).forEach((r2) => roofPts(r2).forEach((p) => { if (p[0] > xa && p[0] < xb) y1 = Math.max(y1, p[1]); }));
+    /* นับเฉพาะผืนที่ต่อกับขอบบนอยู่จริง (ช่องห่าง ≤ 1 ม.) ไล่ขึ้นทีละผืน — ผังหลายอาคาร ป้ายอาคารล่างเคยลอยไปบนอาคารบน (LD-030) */
+    const oth = (st.roofs || []).filter((r2) => r2 !== roof).map((r2) => roofPts(r2).filter((p) => p[0] > xa && p[0] < xb)).filter((q) => q.length);
+    for (let more = true; more;) {
+      more = false;
+      oth.forEach((q) => { const lo = Math.min.apply(null, q.map((p) => p[1])), hi = Math.max.apply(null, q.map((p) => p[1]));
+        if (lo <= y1 + 1 && hi > y1 + 1e-6) { y1 = hi; more = true; } });
+    }
     /* ผังใหญ่ (หลังคาหลายผืน · มาตราส่วนเล็ก) ป้าย 4 มม. ล้นเกินหลังคาไปทับกัน (ผู้ใช้ 2026-11-07 "เยอะไป · ใหญ่ด้วย")
        → ย่อให้ป้ายไม่กว้างเกินหลังคาของมันเอง ต่ำสุด 2 มม. */
     const nh = Math.max(2, Math.min(NH, NH * ((xb - xa) / k) / (pgTextW(nm, NH) + 4)));

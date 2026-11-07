@@ -902,9 +902,18 @@ function dsPanelSheet(st, job, media) {
       xb = Math.max.apply(null, xs),
       cx = (xa + xb) / 2;
     let y1 = Math.max.apply(null, pts.map(q => q[1]));
-    (st.roofs || []).forEach(r2 => roofPts(r2).forEach(p => {
-      if (p[0] > xa && p[0] < xb) y1 = Math.max(y1, p[1]);
-    }));
+    const oth = (st.roofs || []).filter(r2 => r2 !== roof).map(r2 => roofPts(r2).filter(p => p[0] > xa && p[0] < xb)).filter(q => q.length);
+    for (let more = true; more;) {
+      more = false;
+      oth.forEach(q => {
+        const lo = Math.min.apply(null, q.map(p => p[1])),
+          hi = Math.max.apply(null, q.map(p => p[1]));
+        if (lo <= y1 + 1 && hi > y1 + 1e-6) {
+          y1 = hi;
+          more = true;
+        }
+      });
+    }
     const nh = Math.max(2, Math.min(NH, NH * ((xb - xa) / k) / (pgTextW(nm, NH) + 4)));
     const w = (pgTextW(nm, nh) + 4 * nh / NH) * k,
       h = (nh + 2.4 * nh / NH) * k,
