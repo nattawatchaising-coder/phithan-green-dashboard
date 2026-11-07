@@ -525,10 +525,12 @@ function dsPanelSheet(st, job, media) {
     if (!out.length && r.kind === "dome") try { p3DomePlan(r).pts.forEach((p) => out.push(RR(p[0], p[1]))); } catch (e) { /* ข้าม */ }
     return out;
   };
+  const tagBox = [];
   const roofTag = (roof, nm, mine) => {
     let pts = roofPts(roof);
     if (!pts.length) mine.forEach((p) => p.pts.forEach((q) => pts.push(RR(q[0], -q[1]))));
-    const xs = pts.map((q) => q[0]), xa = Math.min.apply(null, xs), xb = Math.max.apply(null, xs), cx = (xa + xb) / 2;
+    const xs = pts.map((q) => q[0]), xa = Math.min.apply(null, xs), xb = Math.max.apply(null, xs);
+    let cx = (xa + xb) / 2;
     /* เหนือขอบบนสุดของอาคาร — หลังคาผืนอื่นที่ซ้อนแนวเดียวกัน (เช่นครึ่งบนของจั่ว) นับด้วย ป้ายจะไม่ตกกลางอาคาร (ผู้ใช้วาดลูกศรชี้) */
     let y1 = Math.max.apply(null, pts.map((q) => q[1]));
     /* นับเฉพาะผืนที่ต่อกับขอบบนอยู่จริง (ช่องห่าง ≤ 1 ม.) ไล่ขึ้นทีละผืน — ผังหลายอาคาร ป้ายอาคารล่างเคยลอยไปบนอาคารบน (LD-030) */
@@ -542,7 +544,12 @@ function dsPanelSheet(st, job, media) {
        → ย่อให้ป้ายไม่กว้างเกินหลังคาของมันเอง ต่ำสุด 2 มม. */
     const nh = Math.max(2, Math.min(NH, NH * ((xb - xa) / k) / (pgTextW(nm, NH) + 4)));
     const w = (pgTextW(nm, nh) + 4 * nh / NH) * k, h = (nh + 2.4 * nh / NH) * k, yb = y1 + 2.5 * k * nh / NH;
-    const R = P.docRaw;
+    /* ป้ายชนป้ายที่วางแล้ว (จั่วสองฝั่งได้ตำแหน่งเดียวกัน) → เลื่อนไปทางขวาจนพ้น */
+    for (let n = 0, hit = true; hit && n < 20; n++) {
+      hit = false;
+      tagBox.forEach((b) => { if (cx - w / 2 < b[2] && cx + w / 2 > b[0] && yb < b[3] && yb + h > b[1]) { cx = b[2] + w / 2 + 1.5 * k; hit = true; } });
+    }
+    tagBox.push([cx - w / 2, yb, cx + w / 2, yb + h]);    const R = P.docRaw;
     R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
     R.rect(DL("tag"), cx - w / 2, yb, w, h);
     R.text(DL("tag"), cx, yb + h / 2, nh * k, nm, { align: 1, valign: 2 });

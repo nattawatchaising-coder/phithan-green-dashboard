@@ -894,13 +894,14 @@ function dsPanelSheet(st, job, media) {
     } catch (e) {}
     return out;
   };
+  const tagBox = [];
   const roofTag = (roof, nm, mine) => {
     let pts = roofPts(roof);
     if (!pts.length) mine.forEach(p => p.pts.forEach(q => pts.push(RR(q[0], -q[1]))));
     const xs = pts.map(q => q[0]),
       xa = Math.min.apply(null, xs),
-      xb = Math.max.apply(null, xs),
-      cx = (xa + xb) / 2;
+      xb = Math.max.apply(null, xs);
+    let cx = (xa + xb) / 2;
     let y1 = Math.max.apply(null, pts.map(q => q[1]));
     const oth = (st.roofs || []).filter(r2 => r2 !== roof).map(r2 => roofPts(r2).filter(p => p[0] > xa && p[0] < xb)).filter(q => q.length);
     for (let more = true; more;) {
@@ -918,6 +919,16 @@ function dsPanelSheet(st, job, media) {
     const w = (pgTextW(nm, nh) + 4 * nh / NH) * k,
       h = (nh + 2.4 * nh / NH) * k,
       yb = y1 + 2.5 * k * nh / NH;
+    for (let n = 0, hit = true; hit && n < 20; n++) {
+      hit = false;
+      tagBox.forEach(b => {
+        if (cx - w / 2 < b[2] && cx + w / 2 > b[0] && yb < b[3] && yb + h > b[1]) {
+          cx = b[2] + w / 2 + 1.5 * k;
+          hit = true;
+        }
+      });
+    }
+    tagBox.push([cx - w / 2, yb, cx + w / 2, yb + h]);
     const R = P.docRaw;
     R.solid("PG-GRP-BG", [cx - w / 2, yb], [cx + w / 2, yb], [cx + w / 2, yb + h], [cx - w / 2, yb + h]);
     R.rect(DL("tag"), cx - w / 2, yb, w, h);
