@@ -502,20 +502,24 @@ function dsPanelSheet(st, job, media) {
       const bIds = bldIds(g.roofId), [bLo, bHi] = pr(d, bIds), [gLo, gHi] = pr(d);
       if ((gLo + gHi) / 2 < (bLo + bHi) / 2 - (bHi - bLo) / 4) d = { x: -d.x, z: -d.z };
     }
-    const [, dHi] = pr(d), [eLo, eHi] = pr(e);
+    const [dLo, dHi] = pr(d), [eLo, eHi] = pr(e);
     let ang = Math.atan2(-e.z, e.x) / P3_DEG;
     if (ang > 90) ang -= 180; if (ang <= -90) ang += 180;
     const hOf = (t) => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
-    lab.push({ s, hOf, ang, e, d, eLo, eHi, dHi });
+    lab.push({ g, s, hOf, ang, e, d, eLo, eHi, dLo, dHi });
   });
   /* บรรทัดเดียวทุกกลุ่ม ขนาดเท่ากัน = ตามกลุ่มที่แคบสุด (ผู้ใช้ 2026-11-07 "ลดขนาดหัวหนังสือ เพื่อให้เป็นบรรทัดเดียว") · ต่ำสุด 1 มม. */
   const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map((L) => L.hOf(L.s)))) : 2.6;
-  lab.forEach(({ s, hOf, ang, e, d, eLo, eHi, dHi }) => {
+  lab.forEach(({ g, s, hOf, ang, e, d, eLo, eHi, dLo, dHi }) => {
     const L2 = [s], h = hU;
     const nCh = Math.max.apply(null, L2.map((x) => x.length)), lh = h * 1.25;
     const hw = (nCh * 0.56 * h / 2 + 0.6) * k, hh = ((L2.length - 1) * lh / 2 + h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
     /* จุดกลาง = กลางช่วงแกน e · ห่างขอบล่างกลุ่ม hh + 0.8 มม. ตามแกน d */
-    const em = (eLo + eHi) / 2, dm = dHi + hh + 0.8 * k;
+    const em = (eLo + eHi) / 2;
+    let dm = dHi + hh + 0.8 * k;
+    /* ป้ายนอกกลุ่มไปทับแผงกลุ่มอื่น (แถวชิดกัน เช่นแถบ A4) → วางทับกลางกลุ่มตัวเองแทน (ผู้ใช้ 2026-11-07 "เอาทับได้ ตรงจุดนี้") */
+    const mine = {}; g.ids.forEach((i) => { mine[i] = 1; });
+    if (panels.some((p, i) => !mine[i] && Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + 0.5 && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + 0.5)) dm = (dLo + dHi) / 2;
     /* จุดที่ฉายบน e = em และบน d = dm (แก้ 2×2 — หลังคาเอียง แกน e กับ d บนผังอาจไม่ตั้งฉาก) */
     const det = e.x * d.z - e.z * d.x || 1e-9, wx = (em * d.z - dm * e.z) / det, wz = (e.x * dm - d.x * em) / det;
     /* พื้นขาวรองตัวเลข ไม่ให้ลายหลังคาขีดทับ (ผู้ใช้ขอ) — สี่เหลี่ยมหมุนตามแนวกลุ่ม */

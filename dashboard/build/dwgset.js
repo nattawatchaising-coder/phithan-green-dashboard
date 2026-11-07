@@ -848,13 +848,14 @@ function dsPanelSheet(st, job, media) {
         z: -d.z
       };
     }
-    const [, dHi] = pr(d),
+    const [dLo, dHi] = pr(d),
       [eLo, eHi] = pr(e);
     let ang = Math.atan2(-e.z, e.x) / P3_DEG;
     if (ang > 90) ang -= 180;
     if (ang <= -90) ang += 180;
     const hOf = t => Math.min(2.6, (eHi - eLo) / k * 0.85 / (t.length * 0.6));
     lab.push({
+      g,
       s,
       hOf,
       ang,
@@ -862,11 +863,13 @@ function dsPanelSheet(st, job, media) {
       d,
       eLo,
       eHi,
+      dLo,
       dHi
     });
   });
   const hU = lab.length ? Math.max(1.0, Math.min.apply(null, lab.map(L => L.hOf(L.s)))) : 2.6;
   lab.forEach(({
+    g,
     s,
     hOf,
     ang,
@@ -874,6 +877,7 @@ function dsPanelSheet(st, job, media) {
     d,
     eLo,
     eHi,
+    dLo,
     dHi
   }) => {
     const L2 = [s],
@@ -885,8 +889,13 @@ function dsPanelSheet(st, job, media) {
       ra = ang * P3_DEG,
       ca = Math.cos(ra),
       sa = Math.sin(ra);
-    const em = (eLo + eHi) / 2,
-      dm = dHi + hh + 0.8 * k;
+    const em = (eLo + eHi) / 2;
+    let dm = dHi + hh + 0.8 * k;
+    const mine = {};
+    g.ids.forEach(i => {
+      mine[i] = 1;
+    });
+    if (panels.some((p, i) => !mine[i] && Math.abs(p.cx * e.x + p.cz * e.z - em) < hw + 0.5 && Math.abs(p.cx * d.x + p.cz * d.z - dm) < hh + 0.5)) dm = (dLo + dHi) / 2;
     const det = e.x * d.z - e.z * d.x || 1e-9,
       wx = (em * d.z - dm * e.z) / det,
       wz = (e.x * dm - d.x * em) / det;
