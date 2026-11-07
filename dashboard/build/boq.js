@@ -10840,26 +10840,26 @@ function BOQEditor({
     }, "\u0E1A\u0E32\u0E17/", it.unit || "หน่วย"));
     return React.createElement("span", {
       style: {
-        textAlign: "right"
-      }
-    }, React.createElement("span", {
+        textAlign: "right",
+        cursor: editable ? "pointer" : "default"
+      },
       onClick: editable ? () => setEditPx({
         name: it.name,
         group: g.group,
         unit: it.unit,
         val: it.price > 0 ? String(it.price) : ""
       }) : undefined,
-      title: editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined,
+      title: editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined
+    }, React.createElement("span", {
       style: {
         fontFamily: "var(--mono)",
-        fontSize: 12.5,
+        fontSize: editable && !(it.total > 0) ? 11 : 12.5,
         fontWeight: 700,
         fontVariantNumeric: "tabular-nums",
-        color: it.total > 0 ? "var(--text-1)" : "var(--text-3)",
-        cursor: editable ? "pointer" : "default",
+        color: it.total > 0 ? "var(--text-1)" : editable ? "var(--primary-dark)" : "var(--text-3)",
         borderBottom: editable ? "1px dashed var(--border-strong)" : "none"
       }
-    }, it.total > 0 ? baht(it.total) : "–"), it.price > 0 ? React.createElement("span", {
+    }, it.total > 0 ? baht(it.total) : editable ? "+ ใส่ราคา" : "–"), it.price > 0 ? React.createElement("span", {
       style: {
         display: "block",
         fontSize: 9.5,

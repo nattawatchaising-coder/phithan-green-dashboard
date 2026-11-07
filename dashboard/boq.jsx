@@ -5196,15 +5196,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                           </span>
                         );
                         return (
-                          <span style={{ textAlign: "right" }}>
+                          <span style={{ textAlign: "right", cursor: editable ? "pointer" : "default" }}
+                            /* กดได้ทั้งช่อง — เดิมรับแค่ตัว "–" กว้าง 7px ผู้ใช้กดไม่โดน */
+                            onClick={editable ? () => setEditPx({ name: it.name, group: g.group, unit: it.unit, val: it.price > 0 ? String(it.price) : "" }) : undefined}
+                            title={editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined}>
                             <span
-                              onClick={editable ? () => setEditPx({ name: it.name, group: g.group, unit: it.unit, val: it.price > 0 ? String(it.price) : "" }) : undefined}
-                              title={editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined}
-                              style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                                color: it.total > 0 ? "var(--text-1)" : "var(--text-3)",
-                                cursor: editable ? "pointer" : "default",
+                              style={{ fontFamily: "var(--mono)", fontSize: editable && !(it.total > 0) ? 11 : 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                                color: it.total > 0 ? "var(--text-1)" : editable ? "var(--primary-dark)" : "var(--text-3)",
                                 borderBottom: editable ? "1px dashed var(--border-strong)" : "none" }}>
-                              {it.total > 0 ? baht(it.total) : "–"}
+                              {it.total > 0 ? baht(it.total) : editable ? "+ ใส่ราคา" : "–"}
                             </span>
                             {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>@{baht(it.price)}</span> : null}
                           </span>
