@@ -2072,7 +2072,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
   const autoSeed = React.useMemo(() => (!isMicro && panel.voc && inv.mpptVmin && foot.panels.length
     ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, dir: strDir, series: userSer, optimizer: optPlan })
     : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan]);
-  const effAssign = isManual ? (S.assign || {}) : autoSeed;
+  /* จัดสตริงเองที่ติดมาจากเวอร์ชันอื่น (คัดลอกแบบแล้วลบหลังคา) อาจชี้แผงที่ไม่มีแล้ว — นับเฉพาะแผงที่มีอยู่จริงในแบบนี้
+     (ผู้ใช้ 2026-11-07 "ทำไมมันยัง 105 อยู่เลย": LD-030 V2 เหลืออาคาร 2 แต่สตริงยังนับครบ 2,704 แผงของ V1) */
+  const effAssign = React.useMemo(() => {
+    if (!isManual) return autoSeed;
+    const a = S.assign || {}, bp = idx.byPanel || {}, out = {};
+    Object.keys(a).forEach((u) => { if (Object.prototype.hasOwnProperty.call(bp, u)) out[u] = a[u]; });
+    return out;
+  }, [isManual, S.assign, autoSeed, idx]);
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
     ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan })
