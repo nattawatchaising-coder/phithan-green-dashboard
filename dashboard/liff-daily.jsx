@@ -44,9 +44,9 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
   /* ตั้งฟอร์มใหม่ทุกครั้งที่เปลี่ยนงานหรือวัน — ของที่ค้างอยู่ในฟอร์มของวันก่อนหน้า
      ต้องไม่ไหลไปทับใบของอีกวัน */
   React.useEffect(() => {
-    setForm(saved ? Object.assign(window.drBlank(job, date, me, prev), saved) : window.drBlank(job, date, me, prev));
+    setForm(saved ? Object.assign(window.drBlank(job, date, me, prev, store.plan), saved) : window.drBlank(job, date, me, prev, store.plan));
     setMsg("");
-  }, [job.id, date, !!saved]);
+  }, [job.id, date, !!saved, !!store.plan]);
 
   if (!form) return null;
 

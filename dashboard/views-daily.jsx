@@ -139,18 +139,66 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
    งานโครงการ: กรอก/เพิ่ม/ลบหัวข้อได้เอง เพราะแผนงานแต่ละโครงการไม่เหมือนกัน */
 function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight, rename }) {
   const list = steps || [];
-  const set = (i, k, v) => onChange(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)));
+  /* ย้อนกลับ — เก็บตารางก่อนแก้แต่ละครั้งไว้ในเครื่อง (ผู้ใช้ขอ 2026-11-10 "เผื่อลบผิด แก้ผิด")
+     พิมพ์ช่องเดิมต่อเนื่องนับเป็นครั้งเดียว ไม่งั้นต้องกดย้อนทีละตัวอักษร
+     ใช้ได้ในใบที่เปิดอยู่เท่านั้น (key ตามวันที่) ปิดฟอร์มแล้วประวัติหาย */
+  const hist = React.useRef([]);
+  const lastKey = React.useRef("");
+  const [, bump] = React.useState(0);
+  const commit = (next, key) => {
+    if (!key || key !== lastKey.current) {
+      hist.current = hist.current.concat([list]).slice(-50);
+      bump((n) => n + 1);
+    }
+    lastKey.current = key || "";
+    onChange(window.drRenumber(next));
+  };
+  const undo = () => {
+    const h = hist.current;
+    if (!h.length) return;
+    hist.current = h.slice(0, -1);
+    lastKey.current = "";
+    bump((n) => n + 1);
+    onChange(window.drRenumber(h[h.length - 1]));
+  };
+  /* แสดงเลขที่คิดจากตำแหน่งเสมอ — ใบเก่าที่เก็บเลขค้างไว้ก็ขึ้นเลขถูก */
+  const rows = window.drRenumber(list);
+  const set = (i, k, v) => commit(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)), i + ":" + k);
+  const del = (i) => commit(list.filter((_, x) => x !== i));
+  /* เพิ่มขั้นย่อยต่อท้ายหัวข้อนั้น (หลังขั้นย่อยตัวสุดท้ายของมัน) */
+  const addSub = (i) => {
+    let j = i + 1;
+    while (j < list.length && list[j] && list[j].head === false) j++;
+    const row = { no: "", th: "", head: false, planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0 };
+    commit(list.slice(0, j).concat([row], list.slice(j)));
+  };
   const cell = { padding: "5px 6px", borderBottom: "1px solid var(--divider)", fontSize: 12 };
+  const can = editable && !disabled;
+  const miniBtn = { width: 24, height: 24, borderRadius: 6, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+    cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" };
+  const pillBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
+    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
+    fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" };
+  const nHist = hist.current.length;
   /* แก้ไม่ได้ก็ไม่ต้องขึ้นเป็นช่องกรอก — งานบ้านมีวันแผนแค่ขั้นติดตั้ง
      ถ้าโชว์ช่องว่างที่กดไม่ได้ทั้งตาราง จะดูเหมือนฟอร์มเสียมากกว่าเป็นข้อมูล */
-  const dateBox = (i, k, r) => (editable && !disabled ? (
+  const dateBox = (i, k, r) => (can ? (
     <input type="date" value={r[k] || ""} onChange={(e) => set(i, k, e.target.value)}
       style={Object.assign({}, DR_INPUT, { padding: "6px 7px", fontSize: 11.5, fontFamily: "var(--mono)", minWidth: 118 })} />
   ) : (
     <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-2)" }}>{r[k] ? window.drShort(r[k]) : "—"}</span>
   ));
+  const undoBtn = (
+    <button type="button" onClick={undo} disabled={!nHist} title="ย้อนการแก้ตารางครั้งล่าสุด"
+      style={Object.assign({}, pillBtn, { color: nHist ? "var(--text-1)" : "var(--text-3)",
+        opacity: nHist ? 1 : 0.5, cursor: nHist ? "pointer" : "default" })}>
+      <Icon name="undo" size={14} /> ย้อนกลับ{nHist ? " (" + nHist + ")" : ""}
+    </button>
+  );
   return (
     <div>
+      {/* ปุ่มย้อนกลับไว้บนหัวตารางด้วย — ตาราง 40 แถว ลบแถวกลางตารางแล้วไม่ต้องเลื่อนลงไปหาปุ่มล่าง */}
+      {can && !!nHist && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>{undoBtn}</div>}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: plan ? 640 : 400, borderCollapse: "collapse" }}>
           <thead>
@@ -161,19 +209,19 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
                 <th key={i} style={{ textAlign: i === a.length - 1 ? "right" : "left", padding: "5px 6px", fontSize: 11,
                   color: "var(--text-3)", fontWeight: 700, borderBottom: "1px solid var(--border-strong)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
-              {editable && !disabled && <th style={{ width: 30, borderBottom: "1px solid var(--border-strong)" }} />}
+              {can && <th style={{ width: rename ? 58 : 30, borderBottom: "1px solid var(--border-strong)" }} />}
             </tr>
           </thead>
           <tbody>
-            {list.map((r, i) => (
+            {rows.map((r, i) => (
               <tr key={i} style={{ background: r.head ? "var(--surface)" : "transparent" }}>
                 <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 500,
                   color: r.head ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap" })}>{r.no}</td>
                 {/* งานบ้านใช้ชุดเนื้องานมาตรฐานชุดเดียวกันทุกหลัง ไม่ต้องมีช่องพิมพ์ชื่อหัวข้อ
                     หน้างานจะได้กรอกแค่น้ำหนักกับ % ไม่ต้องเลี่ยงกดโดนช่องชื่อ */}
-                <td style={Object.assign({}, cell, { minWidth: 190 })}>
-                  {rename && editable && !disabled ? (
-                    <input value={r.th || ""} onChange={(e) => set(i, "th", e.target.value)}
+                <td style={Object.assign({}, cell, { minWidth: 190, width: plan ? "32%" : undefined })}>
+                  {rename && can ? (
+                    <input value={r.th || ""} onChange={(e) => set(i, "th", e.target.value)} placeholder={r.head ? "ชื่อหัวข้อ" : "ชื่อขั้นงาน"}
                       style={Object.assign({}, DR_INPUT, { padding: "6px 8px", fontSize: 12.5, fontWeight: r.head ? 700 : 400 })} />
                   ) : (
                     <span style={{ fontWeight: r.head ? 700 : 400, color: "var(--text-1)" }}>{r.th}</span>
@@ -198,13 +246,18 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
                     style={Object.assign({}, DR_INPUT, { padding: "6px 7px", fontSize: 12, fontFamily: "var(--mono)",
                       textAlign: "right", width: 56, opacity: disabled ? 0.65 : 1 })} />
                 </td>
-                {editable && !disabled && (
+                {can && (
                   <td style={Object.assign({}, cell, { textAlign: "center" })}>
-                    <button type="button" onClick={() => onChange(list.filter((_, x) => x !== i))} title="ลบขั้นนี้"
-                      style={{ width: 24, height: 24, borderRadius: 6, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
-                        cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
-                      <Icon name="trash" size={12} />
-                    </button>
+                    <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
+                      {rename && r.head && (
+                        <button type="button" onClick={() => addSub(i)} title="เพิ่มขั้นย่อยใต้หัวข้อนี้" style={miniBtn}>
+                          <Icon name="plus" size={12} />
+                        </button>
+                      )}
+                      <button type="button" onClick={() => del(i)} title="ลบขั้นนี้ (กดย้อนกลับได้)" style={miniBtn}>
+                        <Icon name="trash" size={12} />
+                      </button>
+                    </div>
                   </td>
                 )}
               </tr>
@@ -223,19 +276,18 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
           </div>
         );
       })()}
-      {editable && !disabled && (
+      {can && (
         <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
-          {rename && <button type="button" onClick={() => onChange(list.concat([{ no: String(list.length + 1), th: "", head: true, pct: 0, w: 0 }]))}
+          {rename && <button type="button" onClick={() => commit(list.concat([{ no: "", th: "", head: true, pct: 0, w: 0 }]))}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
               border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="plus" size={14} /> เพิ่มหัวข้อใหญ่
           </button>}
-          <button type="button" onClick={() => onChange((onReset || window.drWhaSteps)())}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-              border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>
-            <Icon name="undo" size={14} /> คืนชุดมาตรฐาน
+          {/* ย้อนกลับ — ผู้ใช้ขอ 2026-11-10 เผื่อลบผิด/แก้ผิด (รวมกดคืนชุดมาตรฐานพลาด) */}
+          {undoBtn}
+          <button type="button" onClick={() => commit((onReset || window.drWhaSteps)())} style={Object.assign({}, pillBtn, { marginLeft: "auto" })}>
+            คืนชุดมาตรฐาน
           </button>
         </div>
       )}
@@ -427,12 +479,12 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
     if (!job) return;
     /* ใบที่มีอยู่แล้ววางทับใบเปล่า — ใบเก่าจากรายงานรุ่นแรกไม่มี mode/steps
        ถ้าเอาใบเก่ามาตรง ๆ ตารางขั้นงานจะหายและโหมดกลายเป็นว่าง */
-    const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date));
+    const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date), store.plan);
     const rec = saved ? Object.assign(blank, saved) : blank;
     if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
     if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
-  }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
+  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan]);
 
   React.useEffect(() => setDelAsk(false), [date]);
 
@@ -461,7 +513,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
       /* งานบ้าน — % รวมคิดจากน้ำหนักงานเสมอ แก้ตารางแล้วตัวเลขรวมต้องขยับตาม ไม่ค้างค่าเก่า */
       if (next.mode !== "project") next.pct = window.drRollup(next.steps);
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => store.save(date, next), 600);
+      /* แก้ตาราง/แบบฟอร์มในใบล่าสุดของงาน = แก้ตารางของทั้งงานด้วย วันถัดไปจะเริ่มจากชุดนี้
+         ใบย้อนหลังแก้แล้วไม่ไปทับ — ไม่งั้นแก้ใบเก่าแล้วตารางวันนี้ถอยกลับ */
+      const toPlan = ("steps" in fields || "mode" in fields) && date >= (store.dates[0] || date);
+      timer.current = setTimeout(() => { store.save(date, next); if (toPlan) store.savePlan(next.mode, next.steps); }, 600);
       return next;
     });
   };
@@ -532,7 +587,8 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
     <React.Fragment>
       <div style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", zIndex: 150, background: "rgba(8,20,14,.55)", overflow: "auto",
         padding: isMobile ? 0 : "24px 16px" }}>
-        <div style={{ maxWidth: 880, margin: "0 auto", background: "var(--bg)", borderRadius: isMobile ? 0 : 16,
+        {/* แบบจัดเต็มตารางขั้นงานกว้าง (วันแผน/วันจริง 4 ช่อง) — ขยายเต็มจอ ไม่ให้คอลัมน์ทำไปแล้วตกขอบ */}
+        <div style={{ maxWidth: isProject ? 1400 : 880, margin: "0 auto", background: "var(--bg)", borderRadius: isMobile ? 0 : 16,
           minHeight: isMobile ? "calc(100dvh - var(--kb, 0px))" : 0, overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวฟอร์ม */}
@@ -645,7 +701,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
                 {/* งานบ้านไม่มีวันแผน/วันจริงรายหัวข้อ — มีแค่ช่วงวันติดตั้งช่วงเดียวของทั้งงาน
                     เหลือ เนื้องาน · น้ำหนักงาน · ทำไปแล้ว กี่ % กรอกบนมือถือหน้างานได้จริง */}
-                <DrStepTable steps={form.steps} disabled={locked} editable
+                <DrStepTable key={date} steps={form.steps} disabled={locked} editable
                   plan={isProject} dates={isProject} weight={!isProject} rename={isProject}
                   onReset={isProject ? window.drWhaSteps : window.drHomeSteps}
                   onChange={(v) => edit({ steps: v })} />
@@ -913,6 +969,12 @@ const DR_PAPER_I18N = {
   "งานที่ทำวันนี้": ["Work done today", "今日工作"],
   "ปัญหา / อุปสรรค": ["Issues and obstacles", "问题与障碍"],
   "สิ่งที่ต้องทำต่อ": ["Next steps", "后续工作"],
+  "กราฟแผนงาน แผน vs จริง": ["Schedule chart — plan vs actual", "进度图 — 计划与实际"],
+  "กราฟความคืบหน้ารายหัวข้อ": ["Progress by work item", "各项进度"],
+  "แผน": ["Plan", "计划"],
+  "จริง": ["Actual", "实际"],
+  "กำลังทำ": ["In progress", "进行中"],
+  "วันที่รายงาน": ["Report date", "报告日期"],
   "วัสดุเข้าหน้างาน": ["Materials received on site", "进场材料"],
   "รายการวัสดุ": ["Material", "材料名称"],
   "เครื่องจักร / เครื่องมือ": ["Plant and tools", "机械与工具"],
@@ -964,6 +1026,107 @@ const DR_PAPER_I18N = {
   "เก็บงานทั้งหมด": ["Full site clean-up", "全面清场"],
 };
 
+/* ── กราฟขั้นงานในใบรายงาน (ผู้ใช้ขอ 2026-11-10 "เวลาออกรีพอร์ตทำเป็นกราฟให้ด้วย") ──
+   1) แกนต์ แผน vs จริง — เฉพาะแบบจัดเต็มที่กรอกวันไว้แล้ว (แถบอ่อน = แผน · แถบเขียว = จริง · เส้นแดง = วันที่ของรายงาน)
+      ขั้นที่เริ่มแล้วแต่ยังไม่มีวันจบ ลากแถบจริงถึงวันรายงานแบบโปร่ง = กำลังทำอยู่
+   2) แถบ % ทำไปแล้ว รายหัวข้อ — หัวข้อใหญ่ที่มีขั้นย่อยคิด % เฉลี่ยจากขั้นย่อย
+   เป็นใบพิมพ์ ไม่มี hover — ตัวเลขเขียนกำกับไว้ข้างแถบทุกแถว และมีตารางข้างล่างเป็นตัวเลขเต็ม */
+const DR_GANTT_PLAN = "#B9CCD8";
+function drDayNum(iso) { const t = Date.parse(iso + "T00:00:00Z"); return isNaN(t) ? null : Math.round(t / 86400000); }
+
+function DrPaperChart({ steps, isProject, date, T, fmt }) {
+  const list = window.drRenumber(steps || []);
+  /* % รายหัวข้อ */
+  const groups = [];
+  list.forEach((r) => {
+    if (r.head !== false || !groups.length) groups.push({ no: r.no, th: r.th, own: +r.pct || 0, subs: [] });
+    else groups[groups.length - 1].subs.push(Math.max(0, Math.min(100, +r.pct || 0)));
+  });
+  groups.forEach((g) => { g.pct = Math.round(g.subs.length ? g.subs.reduce((a, b) => a + b, 0) / g.subs.length : Math.max(0, Math.min(100, g.own))); });
+
+  /* แกนต์ */
+  const today = drDayNum(date);
+  const gRows = !isProject ? [] : list.map((r) => {
+    const ps = drDayNum(r.planStart), pe = drDayNum(r.planEnd || r.planStart);
+    const as = drDayNum(r.actStart), ae = r.actEnd ? drDayNum(r.actEnd) : null;
+    return { r, ps, pe: ps != null && pe != null ? Math.max(ps, pe) : pe, as, ae };
+  }).filter((x) => x.ps != null || x.as != null);
+  let lo = Infinity, hi = -Infinity;
+  gRows.forEach((x) => [x.ps, x.pe, x.as, x.ae].forEach((v) => { if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  if (gRows.length && today != null && gRows.some((x) => x.as != null && x.ae == null)) hi = Math.max(hi, today);
+  const span = Math.max(1, hi - lo + 1);
+  const X = (d) => ((d - lo) / span) * 100;
+  const W = (a, b) => ((b - a + 1) / span) * 100;
+  const iso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
+
+  const lab = { fontSize: 9.5, color: "var(--paper-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+  const mono = { fontFamily: "var(--mono)", fontSize: 9.5, color: "var(--paper-ink2)" };
+  const sw = (bg, op) => <span style={{ display: "inline-block", width: 14, height: 7, borderRadius: 2, background: bg, opacity: op || 1, marginRight: 4, verticalAlign: "middle" }} />;
+
+  return (
+    <React.Fragment>
+      {gRows.length > 0 && (
+        <DrPBlock title={T("กราฟแผนงาน แผน vs จริง")}>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--paper-ink2)", marginBottom: 6 }}>
+            <span>{sw(DR_GANTT_PLAN)}{T("แผน")}</span>
+            <span>{sw("var(--paper-brand)")}{T("จริง")}</span>
+            <span>{sw("var(--paper-brand)", 0.45)}{T("กำลังทำ")}</span>
+            {today != null && today >= lo && today <= hi && <span><span style={{ display: "inline-block", width: 2, height: 10, background: "#D64545", marginRight: 4, verticalAlign: "middle" }} />{T("วันที่รายงาน")}</span>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 34%) 1fr 34px", columnGap: 8, alignItems: "center" }}>
+            <span />
+            <div style={{ display: "flex", justifyContent: "space-between", ...mono, borderBottom: "1px solid var(--paper-line2)", paddingBottom: 2 }}>
+              <span>{fmt(iso(lo))}</span>{span > 2 && <span>{fmt(iso(lo + Math.floor((span - 1) / 2)))}</span>}<span>{fmt(iso(hi))}</span>
+            </div>
+            <span />
+            {gRows.map((x, i) => {
+              const live = x.as != null && x.ae == null;
+              const ae = live ? Math.max(x.as, today != null ? Math.min(today, hi) : x.as) : x.ae;
+              return (
+                <React.Fragment key={i}>
+                  <div style={{ ...lab, fontWeight: x.r.head ? 700 : 400, padding: "2px 0" }}>
+                    <span style={{ fontFamily: "var(--mono)", color: "var(--paper-mute)", marginRight: 5 }}>{x.r.no}</span>{x.r.th}
+                  </div>
+                  <div style={{ position: "relative", height: 14, background: i % 2 ? "transparent" : "var(--paper-tint)" }}>
+                    {x.ps != null && (
+                      <div style={{ position: "absolute", left: X(x.ps) + "%", width: W(x.ps, x.pe) + "%", top: 1, height: 5, borderRadius: 2, background: DR_GANTT_PLAN }} />
+                    )}
+                    {x.as != null && ae != null && (
+                      <div style={{ position: "absolute", left: X(x.as) + "%", width: W(x.as, ae) + "%", top: 7, height: 6, borderRadius: 2,
+                        background: "var(--paper-brand)", opacity: live ? 0.45 : 1 }} />
+                    )}
+                    {today != null && today >= lo && today <= hi && (
+                      <div style={{ position: "absolute", left: X(today + 0.5) + "%", top: 0, bottom: 0, width: 1.5, background: "#D64545" }} />
+                    )}
+                  </div>
+                  <span style={{ ...mono, textAlign: "right" }}>{+x.r.pct ? x.r.pct + "%" : ""}</span>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </DrPBlock>
+      )}
+      {groups.length > 0 && (
+        <DrPBlock title={T("กราฟความคืบหน้ารายหัวข้อ")} avoid>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 34%) 1fr 34px", columnGap: 8, rowGap: 4, alignItems: "center" }}>
+            {groups.map((g, i) => (
+              <React.Fragment key={i}>
+                <div style={{ ...lab, fontWeight: 700 }}>
+                  <span style={{ fontFamily: "var(--mono)", color: "var(--paper-mute)", marginRight: 5 }}>{g.no}</span>{g.th}
+                </div>
+                <div style={{ height: 9, borderRadius: 3, background: "var(--paper-line3)", overflow: "hidden" }}>
+                  <div style={{ width: g.pct + "%", height: "100%", borderRadius: 3, background: "var(--paper-brand)" }} />
+                </div>
+                <span style={{ ...mono, textAlign: "right", fontWeight: 700, color: "var(--paper-ink)" }}>{g.pct}%</span>
+              </React.Fragment>
+            ))}
+          </div>
+        </DrPBlock>
+      )}
+    </React.Fragment>
+  );
+}
+
 function DailyPaper({ job, rec, date, allDates, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
@@ -988,7 +1151,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
      (งานโครงการยังพิมพ์ครบทุกหัวข้อ เพราะตารางนั้นคือตัวรายงานเอง)
      ถ้ายังไม่ได้กรอกสักแถว พิมพ์ทั้งชุดไปก่อน จะได้ไม่หายไปทั้งหัวข้อ */
   const steps = React.useMemo(() => {
-    const all = rec.steps || [];
+    const all = window.drRenumber(rec.steps || []);
     if (isProject) return all;
     const used = all.filter((r) => r.actStart || r.actEnd || r.planStart || r.planEnd || +r.pct > 0);
     return used.length ? used : all;
@@ -1101,6 +1264,10 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
             </div>
           )}
         </div>
+
+        {/* กราฟขั้นงาน — ใช้ตารางเต็มของใบ (ไม่ใช่ steps ที่กรองแล้ว) */}
+        <DrPaperChart steps={rec.steps} isProject={isProject} date={date} T={T}
+          fmt={(d) => (window.pgShort ? window.pgShort(d, lang) : window.drShort(d))} />
 
         {/* ตารางขั้นงาน */}
         {!!steps.length && (

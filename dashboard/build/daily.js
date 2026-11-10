@@ -244,6 +244,24 @@ const drModeOf = job => (job || {}).type === "project" ? "project" : "home";
 function drStepsFresh(steps) {
   return (steps || []).every(r => !r || !(+r.pct > 0) && !r.planStart && !r.planEnd && !r.actStart && !r.actEnd && !r.note);
 }
+function drRenumber(steps) {
+  let h = 0,
+    k = 0;
+  return (steps || []).filter(Boolean).map(r => {
+    let no;
+    if (r.head !== false) {
+      h += 1;
+      k = 0;
+      no = String(h);
+    } else {
+      k += 1;
+      no = h ? h + "." + k : String(k);
+    }
+    return r.no === no ? r : Object.assign({}, r, {
+      no: no
+    });
+  });
+}
 function drDocNo(job, date, allDates) {
   const code = String((job || {}).code || "JOB").replace(/^SF-/, "");
   const n = (allDates || []).filter(d => d <= date).length || 1;
@@ -269,15 +287,17 @@ function drDeleteDay(jobId, date) {
   _drRef("dailyPhotos/" + jobId + "/" + date).remove();
   _drRef("dailySigns/" + jobId + "/" + date).remove();
 }
-function drBlank(job, date, user, prev) {
-  const mode = drModeOf(job);
+function drBlank(job, date, user, prev, plan) {
+  const pl = plan && plan.steps && plan.steps.length ? plan : null;
+  const prevNewer = pl && prev && prev.steps && prev.steps.length && (prev.updatedAt || "") > (pl.updatedAt || "");
+  const mode = pl && pl.mode || prev && prev.mode || drModeOf(job);
   return {
     date,
     jobId: (job || {}).id || "",
     mode,
     work: "",
     pct: typeof (job || {}).progressPct === "number" ? job.progressPct : 0,
-    steps: prev && prev.steps && prev.steps.length ? prev.steps : mode === "project" ? drWhaSteps() : drHomeSteps(job),
+    steps: drRenumber(pl && !prevNewer ? pl.steps : prev && prev.steps && prev.steps.length ? prev.steps : mode === "project" ? drWhaSteps() : drHomeSteps(job)),
     team: "",
     weatherAm: "",
     weatherPm: "",
@@ -349,13 +369,36 @@ function useDailyReports(jobId) {
     }));
   }, [jobId]);
   const remove = React.useCallback(date => drDeleteDay(jobId, date), [jobId]);
+  const [plan, setPlan] = React.useState(null);
+  React.useEffect(() => {
+    if (!jobId || !_DRFB()) {
+      setPlan(null);
+      return;
+    }
+    const ref = _drRef("dailyPlan/" + jobId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      setPlan(v && typeof v === "object" ? v : null);
+    });
+    return () => ref.off("value", h);
+  }, [jobId]);
+  const savePlan = React.useCallback((mode, steps) => {
+    if (!jobId || !_DRFB() || !steps || !steps.length) return;
+    _drRef("dailyPlan/" + jobId).set({
+      mode: mode || "home",
+      steps: drRenumber(steps),
+      updatedAt: new Date().toISOString()
+    });
+  }, [jobId]);
   return {
     byDate,
     dates,
     loading,
     save,
     patch,
-    remove
+    remove,
+    plan,
+    savePlan
   };
 }
 function useDailyPhotos(jobId, date) {
@@ -865,6 +908,7 @@ Object.assign(window, {
   drHomeSteps,
   drIsBoardSteps,
   drStepsFresh,
+  drRenumber,
   drRollup,
   drWeightSum,
   drModeOf,

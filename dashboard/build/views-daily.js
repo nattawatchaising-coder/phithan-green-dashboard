@@ -298,15 +298,80 @@ function DrStepTable({
   rename
 }) {
   const list = steps || [];
-  const set = (i, k, v) => onChange(list.map((r, x) => x === i ? Object.assign({}, r, {
+  const hist = React.useRef([]);
+  const lastKey = React.useRef("");
+  const [, bump] = React.useState(0);
+  const commit = (next, key) => {
+    if (!key || key !== lastKey.current) {
+      hist.current = hist.current.concat([list]).slice(-50);
+      bump(n => n + 1);
+    }
+    lastKey.current = key || "";
+    onChange(window.drRenumber(next));
+  };
+  const undo = () => {
+    const h = hist.current;
+    if (!h.length) return;
+    hist.current = h.slice(0, -1);
+    lastKey.current = "";
+    bump(n => n + 1);
+    onChange(window.drRenumber(h[h.length - 1]));
+  };
+  const rows = window.drRenumber(list);
+  const set = (i, k, v) => commit(list.map((r, x) => x === i ? Object.assign({}, r, {
     [k]: v
-  }) : r));
+  }) : r), i + ":" + k);
+  const del = i => commit(list.filter((_, x) => x !== i));
+  const addSub = i => {
+    let j = i + 1;
+    while (j < list.length && list[j] && list[j].head === false) j++;
+    const row = {
+      no: "",
+      th: "",
+      head: false,
+      planStart: "",
+      planEnd: "",
+      actStart: "",
+      actEnd: "",
+      pct: 0
+    };
+    commit(list.slice(0, j).concat([row], list.slice(j)));
+  };
   const cell = {
     padding: "5px 6px",
     borderBottom: "1px solid var(--divider)",
     fontSize: 12
   };
-  const dateBox = (i, k, r) => editable && !disabled ? React.createElement("input", {
+  const can = editable && !disabled;
+  const miniBtn = {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    color: "var(--text-3)"
+  };
+  const pillBtn = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 13px",
+    borderRadius: 9,
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "var(--text-3)"
+  };
+  const nHist = hist.current.length;
+  const dateBox = (i, k, r) => can ? React.createElement("input", {
     type: "date",
     value: r[k] || "",
     onChange: e => set(i, k, e.target.value),
@@ -323,7 +388,27 @@ function DrStepTable({
       color: "var(--text-2)"
     }
   }, r[k] ? window.drShort(r[k]) : "—");
-  return React.createElement("div", null, React.createElement("div", {
+  const undoBtn = React.createElement("button", {
+    type: "button",
+    onClick: undo,
+    disabled: !nHist,
+    title: "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E15\u0E32\u0E23\u0E32\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14",
+    style: Object.assign({}, pillBtn, {
+      color: nHist ? "var(--text-1)" : "var(--text-3)",
+      opacity: nHist ? 1 : 0.5,
+      cursor: nHist ? "pointer" : "default"
+    })
+  }, React.createElement(Icon, {
+    name: "undo",
+    size: 14
+  }), " \u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A", nHist ? " (" + nHist + ")" : "");
+  return React.createElement("div", null, can && !!nHist && React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      marginBottom: 6
+    }
+  }, undoBtn), React.createElement("div", {
     style: {
       overflowX: "auto"
     }
@@ -344,12 +429,12 @@ function DrStepTable({
       borderBottom: "1px solid var(--border-strong)",
       whiteSpace: "nowrap"
     }
-  }, h)), editable && !disabled && React.createElement("th", {
+  }, h)), can && React.createElement("th", {
     style: {
-      width: 30,
+      width: rename ? 58 : 30,
       borderBottom: "1px solid var(--border-strong)"
     }
-  }))), React.createElement("tbody", null, list.map((r, i) => React.createElement("tr", {
+  }))), React.createElement("tbody", null, rows.map((r, i) => React.createElement("tr", {
     key: i,
     style: {
       background: r.head ? "var(--surface)" : "transparent"
@@ -363,11 +448,13 @@ function DrStepTable({
     })
   }, r.no), React.createElement("td", {
     style: Object.assign({}, cell, {
-      minWidth: 190
+      minWidth: 190,
+      width: plan ? "32%" : undefined
     })
-  }, rename && editable && !disabled ? React.createElement("input", {
+  }, rename && can ? React.createElement("input", {
     value: r.th || "",
     onChange: e => set(i, "th", e.target.value),
+    placeholder: r.head ? "ชื่อหัวข้อ" : "ชื่อขั้นงาน",
     style: Object.assign({}, DR_INPUT, {
       padding: "6px 8px",
       fontSize: 12.5,
@@ -420,30 +507,33 @@ function DrStepTable({
       width: 56,
       opacity: disabled ? 0.65 : 1
     })
-  })), editable && !disabled && React.createElement("td", {
+  })), can && React.createElement("td", {
     style: Object.assign({}, cell, {
       textAlign: "center"
     })
-  }, React.createElement("button", {
-    type: "button",
-    onClick: () => onChange(list.filter((_, x) => x !== i)),
-    title: "\u0E25\u0E1A\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49",
+  }, React.createElement("div", {
     style: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      color: "var(--text-3)"
+      display: "flex",
+      gap: 5,
+      justifyContent: "flex-end"
     }
+  }, rename && r.head && React.createElement("button", {
+    type: "button",
+    onClick: () => addSub(i),
+    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E31\u0E49\u0E19\u0E22\u0E48\u0E2D\u0E22\u0E43\u0E15\u0E49\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49",
+    style: miniBtn
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 12
+  })), React.createElement("button", {
+    type: "button",
+    onClick: () => del(i),
+    title: "\u0E25\u0E1A\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49 (\u0E01\u0E14\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E14\u0E49)",
+    style: miniBtn
   }, React.createElement(Icon, {
     name: "trash",
     size: 12
-  })))))))), weight && (() => {
+  }))))))))), weight && (() => {
     const sum = window.drWeightSum(list);
     const ok = sum === 100;
     return React.createElement("div", {
@@ -454,7 +544,7 @@ function DrStepTable({
         color: ok ? "var(--text-3)" : "#B45309"
       }
     }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E23\u0E27\u0E21 ", sum, "%", ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้");
-  })(), editable && !disabled && React.createElement("div", {
+  })(), can && React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -463,8 +553,8 @@ function DrStepTable({
     }
   }, rename && React.createElement("button", {
     type: "button",
-    onClick: () => onChange(list.concat([{
-      no: String(list.length + 1),
+    onClick: () => commit(list.concat([{
+      no: "",
       th: "",
       head: true,
       pct: 0,
@@ -487,28 +577,13 @@ function DrStepTable({
   }, React.createElement(Icon, {
     name: "plus",
     size: 14
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E43\u0E2B\u0E0D\u0E48"), React.createElement("button", {
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E43\u0E2B\u0E0D\u0E48"), undoBtn, React.createElement("button", {
     type: "button",
-    onClick: () => onChange((onReset || window.drWhaSteps)()),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "8px 13px",
-      borderRadius: 9,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, React.createElement(Icon, {
-    name: "undo",
-    size: 14
-  }), " \u0E04\u0E37\u0E19\u0E0A\u0E38\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19")));
+    onClick: () => commit((onReset || window.drWhaSteps)()),
+    style: Object.assign({}, pillBtn, {
+      marginLeft: "auto"
+    })
+  }, "\u0E04\u0E37\u0E19\u0E0A\u0E38\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19")));
 }
 function DrPhotoCap({
   value,
@@ -882,12 +957,12 @@ function DailyReportModal({
   const saved = store.byDate[date] || null;
   React.useEffect(() => {
     if (!job) return;
-    const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date));
+    const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date), store.plan);
     const rec = saved ? Object.assign(blank, saved) : blank;
     if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
     if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
-  }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
+  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan]);
   React.useEffect(() => setDelAsk(false), [date]);
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role, job, currentUser, form);
@@ -908,7 +983,11 @@ function DailyReportModal({
       const next = Object.assign({}, f, fields);
       if (next.mode !== "project") next.pct = window.drRollup(next.steps);
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => store.save(date, next), 600);
+      const toPlan = ("steps" in fields || "mode" in fields) && date >= (store.dates[0] || date);
+      timer.current = setTimeout(() => {
+        store.save(date, next);
+        if (toPlan) store.savePlan(next.mode, next.steps);
+      }, 600);
       return next;
     });
   };
@@ -1000,7 +1079,7 @@ function DailyReportModal({
     }
   }, React.createElement("div", {
     style: {
-      maxWidth: 880,
+      maxWidth: isProject ? 1400 : 880,
       margin: "0 auto",
       background: "var(--bg)",
       borderRadius: isMobile ? 0 : 16,
@@ -1301,6 +1380,7 @@ function DailyReportModal({
   }, React.createElement(DrLabel, {
     hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"
   }, isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"), React.createElement(DrStepTable, {
+    key: date,
     steps: form.steps,
     disabled: locked,
     editable: true,
@@ -1949,6 +2029,12 @@ const DR_PAPER_I18N = {
   "งานที่ทำวันนี้": ["Work done today", "今日工作"],
   "ปัญหา / อุปสรรค": ["Issues and obstacles", "问题与障碍"],
   "สิ่งที่ต้องทำต่อ": ["Next steps", "后续工作"],
+  "กราฟแผนงาน แผน vs จริง": ["Schedule chart — plan vs actual", "进度图 — 计划与实际"],
+  "กราฟความคืบหน้ารายหัวข้อ": ["Progress by work item", "各项进度"],
+  "แผน": ["Plan", "计划"],
+  "จริง": ["Actual", "实际"],
+  "กำลังทำ": ["In progress", "进行中"],
+  "วันที่รายงาน": ["Report date", "报告日期"],
   "วัสดุเข้าหน้างาน": ["Materials received on site", "进场材料"],
   "รายการวัสดุ": ["Material", "材料名称"],
   "เครื่องจักร / เครื่องมือ": ["Plant and tools", "机械与工具"],
@@ -1998,6 +2084,223 @@ const DR_PAPER_I18N = {
   "จัดเก็บวัสดุ": ["Materials stored", "材料归位"],
   "เก็บงานทั้งหมด": ["Full site clean-up", "全面清场"]
 };
+const DR_GANTT_PLAN = "#B9CCD8";
+function drDayNum(iso) {
+  const t = Date.parse(iso + "T00:00:00Z");
+  return isNaN(t) ? null : Math.round(t / 86400000);
+}
+function DrPaperChart({
+  steps,
+  isProject,
+  date,
+  T,
+  fmt
+}) {
+  const list = window.drRenumber(steps || []);
+  const groups = [];
+  list.forEach(r => {
+    if (r.head !== false || !groups.length) groups.push({
+      no: r.no,
+      th: r.th,
+      own: +r.pct || 0,
+      subs: []
+    });else groups[groups.length - 1].subs.push(Math.max(0, Math.min(100, +r.pct || 0)));
+  });
+  groups.forEach(g => {
+    g.pct = Math.round(g.subs.length ? g.subs.reduce((a, b) => a + b, 0) / g.subs.length : Math.max(0, Math.min(100, g.own)));
+  });
+  const today = drDayNum(date);
+  const gRows = !isProject ? [] : list.map(r => {
+    const ps = drDayNum(r.planStart),
+      pe = drDayNum(r.planEnd || r.planStart);
+    const as = drDayNum(r.actStart),
+      ae = r.actEnd ? drDayNum(r.actEnd) : null;
+    return {
+      r,
+      ps,
+      pe: ps != null && pe != null ? Math.max(ps, pe) : pe,
+      as,
+      ae
+    };
+  }).filter(x => x.ps != null || x.as != null);
+  let lo = Infinity,
+    hi = -Infinity;
+  gRows.forEach(x => [x.ps, x.pe, x.as, x.ae].forEach(v => {
+    if (v != null) {
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+  }));
+  if (gRows.length && today != null && gRows.some(x => x.as != null && x.ae == null)) hi = Math.max(hi, today);
+  const span = Math.max(1, hi - lo + 1);
+  const X = d => (d - lo) / span * 100;
+  const W = (a, b) => (b - a + 1) / span * 100;
+  const iso = n => new Date(n * 86400000).toISOString().slice(0, 10);
+  const lab = {
+    fontSize: 9.5,
+    color: "var(--paper-ink)",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis"
+  };
+  const mono = {
+    fontFamily: "var(--mono)",
+    fontSize: 9.5,
+    color: "var(--paper-ink2)"
+  };
+  const sw = (bg, op) => React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 14,
+      height: 7,
+      borderRadius: 2,
+      background: bg,
+      opacity: op || 1,
+      marginRight: 4,
+      verticalAlign: "middle"
+    }
+  });
+  return React.createElement(React.Fragment, null, gRows.length > 0 && React.createElement(DrPBlock, {
+    title: T("กราฟแผนงาน แผน vs จริง")
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      fontSize: 9.5,
+      color: "var(--paper-ink2)",
+      marginBottom: 6
+    }
+  }, React.createElement("span", null, sw(DR_GANTT_PLAN), T("แผน")), React.createElement("span", null, sw("var(--paper-brand)"), T("จริง")), React.createElement("span", null, sw("var(--paper-brand)", 0.45), T("กำลังทำ")), today != null && today >= lo && today <= hi && React.createElement("span", null, React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 2,
+      height: 10,
+      background: "#D64545",
+      marginRight: 4,
+      verticalAlign: "middle"
+    }
+  }), T("วันที่รายงาน"))), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(120px, 34%) 1fr 34px",
+      columnGap: 8,
+      alignItems: "center"
+    }
+  }, React.createElement("span", null), React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      ...mono,
+      borderBottom: "1px solid var(--paper-line2)",
+      paddingBottom: 2
+    }
+  }, React.createElement("span", null, fmt(iso(lo))), span > 2 && React.createElement("span", null, fmt(iso(lo + Math.floor((span - 1) / 2)))), React.createElement("span", null, fmt(iso(hi)))), React.createElement("span", null), gRows.map((x, i) => {
+    const live = x.as != null && x.ae == null;
+    const ae = live ? Math.max(x.as, today != null ? Math.min(today, hi) : x.as) : x.ae;
+    return React.createElement(React.Fragment, {
+      key: i
+    }, React.createElement("div", {
+      style: {
+        ...lab,
+        fontWeight: x.r.head ? 700 : 400,
+        padding: "2px 0"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        color: "var(--paper-mute)",
+        marginRight: 5
+      }
+    }, x.r.no), x.r.th), React.createElement("div", {
+      style: {
+        position: "relative",
+        height: 14,
+        background: i % 2 ? "transparent" : "var(--paper-tint)"
+      }
+    }, x.ps != null && React.createElement("div", {
+      style: {
+        position: "absolute",
+        left: X(x.ps) + "%",
+        width: W(x.ps, x.pe) + "%",
+        top: 1,
+        height: 5,
+        borderRadius: 2,
+        background: DR_GANTT_PLAN
+      }
+    }), x.as != null && ae != null && React.createElement("div", {
+      style: {
+        position: "absolute",
+        left: X(x.as) + "%",
+        width: W(x.as, ae) + "%",
+        top: 7,
+        height: 6,
+        borderRadius: 2,
+        background: "var(--paper-brand)",
+        opacity: live ? 0.45 : 1
+      }
+    }), today != null && today >= lo && today <= hi && React.createElement("div", {
+      style: {
+        position: "absolute",
+        left: X(today + 0.5) + "%",
+        top: 0,
+        bottom: 0,
+        width: 1.5,
+        background: "#D64545"
+      }
+    })), React.createElement("span", {
+      style: {
+        ...mono,
+        textAlign: "right"
+      }
+    }, +x.r.pct ? x.r.pct + "%" : ""));
+  }))), groups.length > 0 && React.createElement(DrPBlock, {
+    title: T("กราฟความคืบหน้ารายหัวข้อ"),
+    avoid: true
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(120px, 34%) 1fr 34px",
+      columnGap: 8,
+      rowGap: 4,
+      alignItems: "center"
+    }
+  }, groups.map((g, i) => React.createElement(React.Fragment, {
+    key: i
+  }, React.createElement("div", {
+    style: {
+      ...lab,
+      fontWeight: 700
+    }
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      color: "var(--paper-mute)",
+      marginRight: 5
+    }
+  }, g.no), g.th), React.createElement("div", {
+    style: {
+      height: 9,
+      borderRadius: 3,
+      background: "var(--paper-line3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: g.pct + "%",
+      height: "100%",
+      borderRadius: 3,
+      background: "var(--paper-brand)"
+    }
+  })), React.createElement("span", {
+    style: {
+      ...mono,
+      textAlign: "right",
+      fontWeight: 700,
+      color: "var(--paper-ink)"
+    }
+  }, g.pct, "%"))))));
+}
 function DailyPaper({
   job,
   rec,
@@ -2028,7 +2331,7 @@ function DailyPaper({
   const jsa = (window.DR_JSA || []).find(j => j.key === rec.jsa);
   const pct = +rec.pct || 0;
   const steps = React.useMemo(() => {
-    const all = rec.steps || [];
+    const all = window.drRenumber(rec.steps || []);
     if (isProject) return all;
     const used = all.filter(r => r.actStart || r.actEnd || r.planStart || r.planEnd || +r.pct > 0);
     return used.length ? used : all;
@@ -2343,7 +2646,13 @@ function DailyPaper({
     style: {
       color: "var(--paper-ink)"
     }
-  }, wPm ? T(wPm.th) : "-"))), !!steps.length && React.createElement(DrPBlock, {
+  }, wPm ? T(wPm.th) : "-"))), React.createElement(DrPaperChart, {
+    steps: rec.steps,
+    isProject: isProject,
+    date: date,
+    T: T,
+    fmt: d => window.pgShort ? window.pgShort(d, lang) : window.drShort(d)
+  }), !!steps.length && React.createElement(DrPBlock, {
     title: T(isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว")
   }, React.createElement("table", {
     style: {

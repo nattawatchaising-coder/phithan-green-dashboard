@@ -24,9 +24,9 @@ function LnDailyForm({
   const [msg, setMsg] = React.useState("");
   const [zoom, setZoom] = React.useState(null);
   React.useEffect(() => {
-    setForm(saved ? Object.assign(window.drBlank(job, date, me, prev), saved) : window.drBlank(job, date, me, prev));
+    setForm(saved ? Object.assign(window.drBlank(job, date, me, prev, store.plan), saved) : window.drBlank(job, date, me, prev, store.plan));
     setMsg("");
-  }, [job.id, date, !!saved]);
+  }, [job.id, date, !!saved, !!store.plan]);
   if (!form) return null;
   const locked = form.status === "approved" || form.status === "sent";
   const set = fields => setForm(p => {

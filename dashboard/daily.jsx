@@ -214,6 +214,18 @@ function drStepsFresh(steps) {
   ));
 }
 
+/* เลขขั้นคิดใหม่จากตำแหน่งทุกครั้ง — เดิมเก็บเลขตายตัวในแถว ลบแถวแล้วเลขค้าง (1.1, 1.3, 1.4 …)
+   หัวข้อใหญ่ = 1, 2, 3 · ขั้นย่อยใต้หัวข้อ = 1.1, 1.2 · ขั้นย่อยที่ไม่มีหัวข้อนำหน้านับ 1, 2 ต่อกัน */
+function drRenumber(steps) {
+  let h = 0, k = 0;
+  return (steps || []).filter(Boolean).map((r) => {
+    let no;
+    if (r.head !== false) { h += 1; k = 0; no = String(h); }
+    else { k += 1; no = h ? h + "." + k : String(k); }
+    return r.no === no ? r : Object.assign({}, r, { no: no });
+  });
+}
+
 /* เลขเอกสาร — ระบบยังไม่มีช่องเลขสัญญาแบบ WHA จึงออกเลขของเราเอง
    FS-DR-{รหัสงาน}-{ครั้งที่} · ครั้งที่นับจากจำนวนรายงานที่มีอยู่ก่อนหน้าวันนี้ */
 function drDocNo(job, date, allDates) {
@@ -259,13 +271,18 @@ function drDeleteDay(jobId, date) {
 }
 
 /* ใบเปล่าของวันหนึ่ง — เปิดฟอร์มวันที่ยังไม่เคยเขียนจะได้ไม่ต้องเช็ค null ทุกช่อง */
-function drBlank(job, date, user, prev) {
-  const mode = drModeOf(job);
+/* plan = ตารางขั้นงานของทั้งงาน (dailyPlan/{jobId}) — ผู้ใช้สั่ง 2026-11-10 "บันทึกแล้วให้ใช้ฟอร์มนี้ทั้งโครงการ"
+   วันใหม่จึงเริ่มจากแบบฟอร์ม (ปกติ/จัดเต็ม) และตารางล่าสุดของงาน ไม่ใช่กลับไปเป็นแบบตามประเภทงานทุกวัน */
+function drBlank(job, date, user, prev, plan) {
+  const pl = plan && plan.steps && plan.steps.length ? plan : null;
+  /* ใบก่อนหน้าที่แก้หลังตารางของงาน (เช่น ช่างแก้ % จาก LINE ซึ่งไม่ได้อัปเดตตารางของงาน) ใช้ของใบนั้น — ไม่งั้น % ย้อนกลับ */
+  const prevNewer = pl && prev && prev.steps && prev.steps.length && (prev.updatedAt || "") > (pl.updatedAt || "");
+  const mode = (pl && pl.mode) || (prev && prev.mode) || drModeOf(job);
   return {
     date, jobId: (job || {}).id || "", mode,
     work: "", pct: typeof (job || {}).progressPct === "number" ? job.progressPct : 0,
-    /* ขั้นงานคัดลอกมาจากใบเมื่อวาน ช่างจะได้ไม่ต้องกรอกใหม่ทุกวัน */
-    steps: prev && prev.steps && prev.steps.length ? prev.steps : (mode === "project" ? drWhaSteps() : drHomeSteps(job)),
+    /* ขั้นงานคัดลอกมาจากตารางของงาน (หรือใบก่อนหน้า) ช่างจะได้ไม่ต้องกรอกใหม่ทุกวัน */
+    steps: drRenumber(pl && !prevNewer ? pl.steps : prev && prev.steps && prev.steps.length ? prev.steps : (mode === "project" ? drWhaSteps() : drHomeSteps(job))),
     team: "", weatherAm: "", weatherPm: "",
     problem: "", nextDay: "",
     materials: [], machines: [], manpower: [], certs: [],
@@ -330,7 +347,21 @@ function useDailyReports(jobId) {
 
   const remove = React.useCallback((date) => drDeleteDay(jobId, date), [jobId]);
 
-  return { byDate, dates, loading, save, patch, remove };
+  /* ตารางขั้นงานของทั้งงาน — แยกโหนดจากใบรายวัน (คีย์ใต้ dailyReports/{jobId} ต้องเป็นวันที่เท่านั้น)
+     ใบรายวันแต่ละวันยังเก็บสำเนาตารางของวันนั้นไว้เป็นเอกสาร ตัวนี้แค่บอกว่าวันใหม่ให้เริ่มจากอะไร */
+  const [plan, setPlan] = React.useState(null);
+  React.useEffect(() => {
+    if (!jobId || !_DRFB()) { setPlan(null); return; }
+    const ref = _drRef("dailyPlan/" + jobId);
+    const h = ref.on("value", (s) => { const v = s.val(); setPlan(v && typeof v === "object" ? v : null); });
+    return () => ref.off("value", h);
+  }, [jobId]);
+  const savePlan = React.useCallback((mode, steps) => {
+    if (!jobId || !_DRFB() || !steps || !steps.length) return;
+    _drRef("dailyPlan/" + jobId).set({ mode: mode || "home", steps: drRenumber(steps), updatedAt: new Date().toISOString() });
+  }, [jobId]);
+
+  return { byDate, dates, loading, save, patch, remove, plan, savePlan };
 }
 
 /* รูปของรายงานวันหนึ่ง — แยกโหนดจากตัวรายงาน (ดูหมายเหตุหัวไฟล์) */
@@ -624,7 +655,7 @@ Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailySigns, useDrMySign, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
-  drWhaSteps, drHomeSteps, drIsBoardSteps, drStepsFresh, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
+  drWhaSteps, drHomeSteps, drIsBoardSteps, drStepsFresh, drRenumber, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drNoEe, drEeIsTech, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
   DrSignPad, drTrimSign, DR_ROOT,
 });
