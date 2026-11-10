@@ -45,6 +45,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | Sungrow iSolarCloud (`isolarcloud.mjs` `isolarcloud-probe/mock`) | `docs/isolarcloud.md` |
 | ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 | Huawei FusionSolar · หน้าไซต์ทั้งหมด · ซิงก์ไซต์/อุปกรณ์/ข้อมูลผลิต (`fusionsolar.jsx` `fusionsolar-scene.jsx` `fusionsolar-house.jsx` `api/_lib/fusionsolar.mjs` `api/cron/fusionsolar.mjs`) | `docs/fusionsolar.md` |
+| รายงานประจำวันหน้างาน · ตารางขั้นงาน · กราฟในใบรายงาน (`daily.jsx` `views-daily.jsx` `liff-daily.jsx`) | `docs/daily.md` |
 | ใบแจ้งหนี้/ใบกำกับภาษีทำเอง · ผู้ออกเอกสาร · เลขที่รายเดือน (`invoice.jsx`) | `docs/invoice.md` |
 | แปลงรูปแบบ CAD ที่ผู้ใช้ส่งเป็นเส้นในชุดแบบ (ขอ "เหมือน 100%" · `tools/trace-art.mjs` `D.art` `groundart.js`) | `docs/trace-art.md` |
 
