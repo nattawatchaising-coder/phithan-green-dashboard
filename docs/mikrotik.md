@@ -117,7 +117,8 @@ mt-agent (VPS · systemd) ──ทุก 30 วิ POST /api/mikrotik/site?agen
 - **คำสั่ง**: มีแค่ `reboot` `log` (`MT_CMD_TYPES`) · ลายเซ็น HMAC-SHA256 ของ `id|n|type|ts` · agent ตรวจลายเซ็น + อายุ ≤10 นาที + ไม่เคยทำ (จำ id ใน `/var/lib/mt-agent/done.json`) · กดซ้ำระหว่างรอ = ได้คำสั่งเดิม · ต้องยืนยัน fp ก่อนถึงสั่งได้
 - สถานะบนเว็บ: handshake ≤3 นาที = VPN ติด · agent เงียบ >5 นาที = ข้อมูลเก่า
 - Vercel ถูกเรียก ~2 ครั้ง/นาที (~86k/เดือน) — ปรับรอบได้ที่ `POLL_S` ใน agent.mjs ฝั่งเว็บ
-- **ยังไม่ได้ลองจริง**: `wg show` ใต้ DynamicUser + CAP_NET_ADMIN · REST `POST /rest/system/reboot` · `/rest/log` ของ 7.21.5 — ลองแล้วบันทึกผลที่นี่
+- **✅ ติดตั้งบน VPS จริงแล้ว (2026-11-11 22:44)**: node 18.19.1 จาก apt Ubuntu 24.04 · `wg show` ใต้ DynamicUser + CAP_NET_ADMIN ได้ handshake · ping .1 ~7 ms · Modbus .20 ตอบ · agent เห็น fp SITE01 `987d738d…6802a` ตรงกับตอนตั้งค่า · ติดตั้งครั้งแรกล้มเพราะ `node --check` ไฟล์ `.new` (node 18 ไม่ยอม) แก้เป็น `agent.new.mjs` แล้ว
+- **ยังไม่ได้ลองจริง**: REST หลังยืนยัน fp · `POST /rest/system/reboot` · `/rest/log` ของ 7.21.5 — ลองแล้วบันทึกผลที่นี่
 - ห้ามมีฟังก์ชันแก้ IP/firewall/WireGuard ผ่านเว็บ (ผู้ใช้กำหนด) — ทั้ง API และ agent ไม่มีทางทำได้
 
 ### env เพิ่ม (Vercel · Production) — ค่ามาจากท้าย install.sh บน VPS
