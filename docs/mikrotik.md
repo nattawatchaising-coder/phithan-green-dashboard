@@ -113,7 +113,7 @@ identity + timezone → bridge ether2-5 → DHCP client ether1 → IP LAN (ล�
   - Signed 16 บิต: 248–251 PF L1/L2/L3/รวม ×0.01 · 252–254 Hz ×0.1 · 255–257 มุม I-U ×0.1° · 258 %I load ×0.01 · 259 %P load ×0.01 · 330–335 มุมระหว่างเฟส ×0.1°
   - Float พลังงาน (คู่มือเขียน PLC address ผิดซ้ำตารางแรก ใช้ Modbus address): 261 kW demand block · 263 slide · 265/267 kvar demand · **269 kWh Net · 271 kWh Import · 273 kWh Export** · 275 kWh fundamental · 277–283 kvarh · 285 kVAh · 287 run hour · 289 run hour เดือนนี้ · 291 kWh เดือนนี้ · 293 On-peak · 295 Off-peak · 297 Holiday
   - Coil FC01/FC05: 0–1 relay 1–2 (เขียนได้ — **เว็บห้ามสั่ง**) · 16–25 สถานะ/แจ้งเตือน
-- ลำดับ word ของ float ยังไม่รู้ — ทดสอบด้วย mbpoll ทั้งแบบปกติและ `-B` ตัวที่ได้แรงดัน ~230 V คือตัวถูก
+- **ลำดับ word ของ float = แบบปกติของ mbpoll (word ต่ำมาก่อน · ไม่ใส่ `-B`)** — ผู้ใช้ทดสอบจริง 2026-11-11 ผ่าน VPN: `mbpoll -m tcp -a 1 -t 3:float -r 213 -c 3 -1 10.10.1.20` ได้กระแสตรงหน้าจอ · unit id 1 · ชุดทดสอบไม่ได้ต่อแรงดัน ค่า V จึงเป็น 0
 
 ## เฟส 3 (เผื่อไว้)
 agent ตัวเดียวกันอ่าน PM2200 ที่ `10.10.N.20:502` → `mtMeter/{N}/…` สำหรับ billing
