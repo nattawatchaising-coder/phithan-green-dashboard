@@ -483,20 +483,6 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const bodyRef = React.useRef(null);
   const setTab = (k) => { setTabRaw(k); if (bodyRef.current) bodyRef.current.scrollTop = 0; };
   React.useEffect(() => { setTabRaw("ov"); }, [job ? job.id : null]);
-  /* แท็บข้างเริ่มชิดบนสุดของแผง — แท็บบน ๆ อยู่ข้างหัวแผง (--surface ขาว) แท็บล่างอยู่ข้างเนื้อ (--bg)
-     แท็บที่เลือกต้องสีเดียวกับส่วนของแผงที่มันแตะ ไม่งั้นรอยต่อเห็นเป็นแถบสีต่าง → วัดว่าขอบล่างหัวแผงตัดผ่านแท็บที่ไหน
-     แล้วตั้ง --jd-split (px จากขอบบนแท็บ) + สีมุมเว้าบน/ล่าง ลงบนปุ่มตรง ๆ ทุกครั้งที่วาด (ไม่ผ่าน state — ไม่ต้องวาดซ้ำ) */
-  const hdrRef = React.useRef(null);
-  const stabsRef = React.useRef(null);
-  React.useLayoutEffect(() => {
-    const h = hdrRef.current, box = stabsRef.current;
-    const on = box && box.querySelector(".jd-stab.on");
-    if (!h || !on) return;
-    const v = Math.round(h.offsetHeight - box.offsetTop - on.offsetTop);
-    on.style.setProperty("--jd-split", v + "px");
-    on.style.setProperty("--jd-top", v > 0 ? "var(--surface)" : "var(--bg)");
-    on.style.setProperty("--jd-bot", v >= on.offsetHeight ? "var(--surface)" : "var(--bg)");
-  });
   const [irOpen, setIrOpen] = React.useState(false);            // รายการใบตรวจสอบงาน
   /* อ่านรายการใบตรวจไว้ตั้งแต่เปิดใบงาน เพื่อโชว์จำนวนใบกับผลล่าสุดบนปุ่มโดยไม่ต้องกดเข้าไปดู */
   const inspections = useDrInspections(job ? job.id : null);
@@ -543,7 +529,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
           <React.Fragment>
             {/* แท็บข้าง (จอใหญ่) — ยื่นออกจากขอบซ้ายของแผง เริ่มชิดบนสุดของแผง (ผู้ใช้: "เลื่อนมาชิดด้านบน") จึงอยู่ใต้ aside ตรง ๆ ไม่ใช่ในกรอบเนื้อ */}
             {!isMobile && (
-              <div ref={stabsRef} className="jd-stabs" role="tablist" aria-orientation="vertical">
+              <div className="jd-stabs" role="tablist" aria-orientation="vertical">
                 {TABS.map((t, i) => (
                   <button key={t.k} role="tab" aria-selected={tabNow === t.k} className={"jd-stab" + (tabNow === t.k ? " on" : "")}
                     style={{ zIndex: tabNow === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)} title={t.alert || t.th}>
@@ -558,7 +544,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
             )}
             {/* header */}
-            <div ref={hdrRef} style={{ padding: isMobile ? "15px 16px 10px" : "20px 24px", borderBottom: isMobile ? "none" : "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? "15px 16px 10px" : "20px 24px", borderBottom: isMobile ? "none" : "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>

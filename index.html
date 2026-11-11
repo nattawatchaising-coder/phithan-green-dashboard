@@ -457,11 +457,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* ทุกแท็บชิดขอบแผงพอดี ไม่เว้นช่อง — เคยเว้น 2px เห็นฉากหลังลอดเป็นร่อง (ผู้ใช้: "ไม่แนบติดตัวการ์ด") */
 .jd-stab-tx { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .jd-stab:hover { --tb: color-mix(in oklab, var(--tc) 44%, var(--surface)); }
-/* พื้นแท็บที่เลือก = ขาวช่วงที่อยู่ข้างหัวแผง แล้วเป็น --bg ช่วงข้างเนื้อ (--jd-split วัดจาก drawer.jsx) */
-.jd-stab.on { --tb: var(--bg); background: linear-gradient(var(--surface) var(--jd-split, 0px), var(--bg) var(--jd-split, 0px)); width: 44px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
+/* แท็บที่เลือกขาวทึบ (--surface) สีเดียวทั้งแท็บ — เคยไล่ขาว→เทาตามขอบหัวแผง แท็บที่คร่อมขอบออกมาสองสีครึ่ง ๆ ผู้ใช้: "สีแปลก ๆ" */
+.jd-stab.on { --tb: var(--surface); width: 44px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
 .jd-stab.on::before, .jd-stab.on::after { content: ""; position: absolute; right: 2px; width: 12px; height: 12px; pointer-events: none; }
-.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--jd-top, var(--bg)) 12px); }
-.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--jd-bot, var(--bg)) 12px); }
+.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--surface) 12px); }
+.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--surface) 12px); }
 .jd-stab .ld-tab-n { font-size: 11px; padding: 7px 1px; background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
 .jd-stab.on .ld-tab-n { background: var(--tc); color: #fff; }
 
@@ -1262,7 +1262,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=13"></script>
 <script src="dashboard/build/pm-paper.js?v=13"></script>
 <script src="dashboard/build/pm-form.js?v=19"></script>
-<script src="dashboard/build/drawer.js?v=95"></script>
+<script src="dashboard/build/drawer.js?v=96"></script>
 <script src="dashboard/build/views-overview.js?v=54"></script>
 <script src="dashboard/build/views-board.js?v=46"></script>
 <script src="dashboard/build/views-table.js?v=39"></script>

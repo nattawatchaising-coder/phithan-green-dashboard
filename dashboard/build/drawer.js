@@ -1204,18 +1204,6 @@ function DetailDrawer({
   React.useEffect(() => {
     setTabRaw("ov");
   }, [job ? job.id : null]);
-  const hdrRef = React.useRef(null);
-  const stabsRef = React.useRef(null);
-  React.useLayoutEffect(() => {
-    const h = hdrRef.current,
-      box = stabsRef.current;
-    const on = box && box.querySelector(".jd-stab.on");
-    if (!h || !on) return;
-    const v = Math.round(h.offsetHeight - box.offsetTop - on.offsetTop);
-    on.style.setProperty("--jd-split", v + "px");
-    on.style.setProperty("--jd-top", v > 0 ? "var(--surface)" : "var(--bg)");
-    on.style.setProperty("--jd-bot", v >= on.offsetHeight ? "var(--surface)" : "var(--bg)");
-  });
   const [irOpen, setIrOpen] = React.useState(false);
   const inspections = useDrInspections(job ? job.id : null);
   React.useEffect(() => {
@@ -1292,7 +1280,6 @@ function DetailDrawer({
       flexDirection: "column"
     }
   }, job && React.createElement(React.Fragment, null, !isMobile && React.createElement("div", {
-    ref: stabsRef,
     className: "jd-stabs",
     role: "tablist",
     "aria-orientation": "vertical"
@@ -1313,7 +1300,6 @@ function DetailDrawer({
   }, t.n) : null, t.alert ? React.createElement("span", {
     className: "ld-tab-dot"
   }) : null)))), React.createElement("div", {
-    ref: hdrRef,
     style: {
       padding: isMobile ? "15px 16px 10px" : "20px 24px",
       borderBottom: isMobile ? "none" : "1px solid var(--divider)",
