@@ -8,6 +8,8 @@
 
 **2026-10-10 ผู้ใช้วางกฎขั้น 0 (`$top` read/write true) และ Publish แล้ว** — ตอนนี้ดูดหรือลบทั้งฐานในคำขอเดียวไม่ได้ แต่ช่องโหว่ข้อ 1–6 ยังอยู่จนกว่าจะทำขั้น 1 · ถ้าเว็บ/LINE/cron มี permission denied ให้ย้อนกลับเป็น true/true ที่ราก
 
+**2026-11-12 ผู้ใช้วางกฎชุดพาร์ทเนอร์แล้ว** (ชุดเต็มใน docs/mikrotik.md · ตรวจแล้ว: แอดมินอ่าน users/jobs/mt* ได้ · mtSecrets/mtCmd ถูกปฏิเสธ · ไม่ล็อกอิน 401 · ฝั่งพาร์ทเนอร์ยังไม่ได้ลองด้วยบัญชีจริง) — ข้อความถัดไปคือกฎรุ่นก่อน
+
 **กฎจริงล่าสุด (ผู้ใช้ Publish 2026-11-11):** `$top` auth != null · `userSecrets` `authFails` `mtSecrets` = false/false · `mtSites` read auth != null / write false · **เพิ่ม 2026-11-11 22:5x:** `mtStatus` read auth != null / write false · `mtCmd` false/false (ตรวจแล้ว: ล็อกอินอ่าน mtStatus ได้ · mtCmd ถูกปฏิเสธ) — **ไม่มีแถว fs* ตามตัวอย่างข้างล่าง** (ตัวอย่างขั้น 1 เป็นแผน ไม่ใช่ของจริง) · ตรวจแล้ว: ไม่ล็อกอินอ่าน `mtSites` `mtSecrets` `users` ได้ 401
 
 กติกา: **Claude ห้ามแก้กฎเอง** ผู้ใช้เป็นคนวางใน Console · ห้ามทดลองยิงฐานข้อมูลจริงเพื่อพิสูจน์ช่องโหว่ · ห้ามใส่ค่าลับ (service account, token) ลงไฟล์ใด ๆ ใน repo (repo เป็น public)
