@@ -1204,6 +1204,18 @@ function DetailDrawer({
   React.useEffect(() => {
     setTabRaw("ov");
   }, [job ? job.id : null]);
+  const hdrRef = React.useRef(null);
+  const stabsRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const h = hdrRef.current,
+      box = stabsRef.current;
+    const on = box && box.querySelector(".jd-stab.on");
+    if (!h || !on) return;
+    const v = Math.round(h.offsetHeight - box.offsetTop - on.offsetTop);
+    on.style.setProperty("--jd-split", v + "px");
+    on.style.setProperty("--jd-top", v > 0 ? "var(--surface)" : "var(--bg)");
+    on.style.setProperty("--jd-bot", v >= on.offsetHeight ? "var(--surface)" : "var(--bg)");
+  });
   const [irOpen, setIrOpen] = React.useState(false);
   const inspections = useDrInspections(job ? job.id : null);
   React.useEffect(() => {
@@ -1279,7 +1291,29 @@ function DetailDrawer({
       display: "flex",
       flexDirection: "column"
     }
-  }, job && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, job && React.createElement(React.Fragment, null, !isMobile && React.createElement("div", {
+    ref: stabsRef,
+    className: "jd-stabs",
+    role: "tablist",
+    "aria-orientation": "vertical"
+  }, TABS.map((t, i) => React.createElement("button", {
+    key: t.k,
+    role: "tab",
+    "aria-selected": tabNow === t.k,
+    className: "jd-stab" + (tabNow === t.k ? " on" : ""),
+    style: {
+      zIndex: tabNow === t.k ? 10 : TABS.length - i
+    },
+    onClick: () => setTab(t.k),
+    title: t.alert || t.th
+  }, React.createElement("span", {
+    className: "jd-stab-tx"
+  }, t.th, t.n ? React.createElement("span", {
+    className: "ld-tab-n"
+  }, t.n) : null, t.alert ? React.createElement("span", {
+    className: "ld-tab-dot"
+  }) : null)))), React.createElement("div", {
+    ref: hdrRef,
     style: {
       padding: isMobile ? "15px 16px 10px" : "20px 24px",
       borderBottom: isMobile ? "none" : "1px solid var(--divider)",
@@ -1438,27 +1472,7 @@ function DetailDrawer({
       display: "flex",
       flexDirection: "column"
     }
-  }, !isMobile && React.createElement("div", {
-    className: "jd-stabs",
-    role: "tablist",
-    "aria-orientation": "vertical"
-  }, TABS.map((t, i) => React.createElement("button", {
-    key: t.k,
-    role: "tab",
-    "aria-selected": tabNow === t.k,
-    className: "jd-stab" + (tabNow === t.k ? " on" : ""),
-    style: {
-      zIndex: tabNow === t.k ? 10 : TABS.length - i
-    },
-    onClick: () => setTab(t.k),
-    title: t.alert || t.th
-  }, React.createElement("span", {
-    className: "jd-stab-tx"
-  }, t.th, t.n ? React.createElement("span", {
-    className: "ld-tab-n"
-  }, t.n) : null, t.alert ? React.createElement("span", {
-    className: "ld-tab-dot"
-  }) : null)))), React.createElement("div", {
+  }, React.createElement("div", {
     ref: bodyRef,
     style: {
       overflowY: "auto",

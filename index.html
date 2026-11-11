@@ -446,21 +446,23 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .jd-mtabs .ld-tab.on::after { background: radial-gradient(circle at 100% 0, transparent 11.5px, var(--bg) 12px); }
 /* แท็บข้างของใบงานติดตั้ง (จอใหญ่) — แท็บแฟ้มเดียวกับ .ld-tab แต่หมุนไปยื่นออกขอบซ้ายของแผง
    แท็บที่เลือกพื้น --bg เท่าเนื้อแผง มุดเข้าแผง 2px + มุมเว้าบน/ล่าง (::before/::after) ให้ไหลต่อกับขอบแผงเนียน ๆ */
-.jd-stabs { position: absolute; right: 100%; top: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.jd-stabs { position: absolute; right: 100%; top: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 /* แท็บยาวแนวตั้ง = .ld-tab หมุน 90° — กว้าง 38 (= สูงแท็บบน) แท็บที่เลือก 44 · ตัวหนังสือ vertical-rl + rotate(180) อ่านจากล่างขึ้นบน
    หมุนเฉพาะตัวหนังสือ (.jd-stab-tx) ไม่หมุนทั้งปุ่ม — มุมโค้ง/มุมเว้า/แถบสีจะได้อยู่ฝั่งซ้ายถูกที่ */
-.jd-stab { --tc: var(--primary); --tb: color-mix(in oklab, var(--tc) 18%, var(--surface));
+/* พื้นแท็บที่ไม่ได้เลือก 34% (ไม่ใช่ 18% แบบ .ld-tab) — แท็บข้างลอยบนฉากหลังเบลอ 18% จางจนกลืน (ผู้ใช้: "สีเขียวจางไปไหม") */
+.jd-stab { --tc: var(--primary); --tb: color-mix(in oklab, var(--tc) 34%, var(--surface));
   position: relative; width: 38px; padding: 15px 0; border: none; border-radius: 14px 0 0 14px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; font-family: inherit; font-size: 13px; font-weight: 700;
   background: var(--tb); color: color-mix(in oklab, var(--tc) 72%, #0F2B33); transition: background .18s ease, color .18s ease, width .18s ease, margin-right .18s ease; }
-.jd-stab:not(.on) { margin-right: 2px; }
+/* ทุกแท็บชิดขอบแผงพอดี ไม่เว้นช่อง — เคยเว้น 2px เห็นฉากหลังลอดเป็นร่อง (ผู้ใช้: "ไม่แนบติดตัวการ์ด") */
 .jd-stab-tx { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-.jd-stab:hover { --tb: color-mix(in oklab, var(--tc) 27%, var(--surface)); }
-.jd-stab.on { --tb: var(--bg); width: 44px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
+.jd-stab:hover { --tb: color-mix(in oklab, var(--tc) 44%, var(--surface)); }
+/* พื้นแท็บที่เลือก = ขาวช่วงที่อยู่ข้างหัวแผง แล้วเป็น --bg ช่วงข้างเนื้อ (--jd-split วัดจาก drawer.jsx) */
+.jd-stab.on { --tb: var(--bg); background: linear-gradient(var(--surface) var(--jd-split, 0px), var(--bg) var(--jd-split, 0px)); width: 44px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
 .jd-stab.on::before, .jd-stab.on::after { content: ""; position: absolute; right: 2px; width: 12px; height: 12px; pointer-events: none; }
-.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--bg) 12px); }
-.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--bg) 12px); }
-.jd-stab .ld-tab-n { font-size: 11px; padding: 7px 1px; }
+.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--jd-top, var(--bg)) 12px); }
+.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--jd-bot, var(--bg)) 12px); }
+.jd-stab .ld-tab-n { font-size: 11px; padding: 7px 1px; background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
 .jd-stab.on .ld-tab-n { background: var(--tc); color: #fff; }
 
 /* sidebar overlay backdrop */
@@ -1260,7 +1262,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=13"></script>
 <script src="dashboard/build/pm-paper.js?v=13"></script>
 <script src="dashboard/build/pm-form.js?v=19"></script>
-<script src="dashboard/build/drawer.js?v=93"></script>
+<script src="dashboard/build/drawer.js?v=95"></script>
 <script src="dashboard/build/views-overview.js?v=54"></script>
 <script src="dashboard/build/views-board.js?v=46"></script>
 <script src="dashboard/build/views-table.js?v=39"></script>
