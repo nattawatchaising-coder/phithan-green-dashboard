@@ -213,7 +213,7 @@ function MtMeterCfg({ s }) {
       <select value={model} onChange={(e) => setModel(e.target.value)} style={fld}>
         {Object.keys(MT_MODEL_TH).map((k) => <option key={k} value={k}>{MT_MODEL_TH[k]}</option>)}
       </select>
-      <span style={{ fontSize: 12, color: "var(--text-3)" }}>unit id</span>
+      <span style={{ fontSize: 12, color: "var(--text-3)" }} title="เลขประจำตัวมิเตอร์บนสาย Modbus — ตั้งไว้ที่ตัวมิเตอร์ (LEOS ค่าโรงงาน = 1) · ต่อมิเตอร์ตรง LAN ตัวเดียวใช้ 1 · ผ่าน Waveshare หลายตัวต้องไม่ซ้ำกัน">เลขเครื่อง Modbus (unit id)</span>
       <input value={unit} onChange={(e) => setUnit(e.target.value.replace(/\D/g, ""))} style={Object.assign({}, fld, { width: 60, textAlign: "right" })} />
       <button className="btn btn-sm" disabled={!dirty} onClick={save}>บันทึก</button>
       {msg && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{msg}</span>}
