@@ -101,8 +101,9 @@ test("float จาก 2 register: LEOS word ต่ำมาก่อน · PM220
   const hi = b.readUInt16BE(0), lo = b.readUInt16BE(2);
   assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 200: lo, 201: hi }).v1, 230.5);
   assert.equal(A.decodeMeter(A.METER_PROFILES["pm2200"], { 3027: hi, 3028: lo }).v1, 230.5);
-  /* PF เป็น signed 16 บิต ×0.01 */
-  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 0x10000 - 95 }).pf, -0.95);
+  /* PF เป็น signed 16 บิต ×0.001 (ดิบ 1000 = 1.00 ตามหน้าจอมิเตอร์) */
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 0x10000 - 950 }).pf, -0.95);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 1000 }).pf, 1);
 });
 
 test("โปรไฟล์มิเตอร์: บล็อกครอบทุกช่อง · ไม่เกิน 125 register ต่อครั้ง · ตรงกับรายการรุ่นฝั่งเว็บ", async () => {

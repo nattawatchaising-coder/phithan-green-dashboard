@@ -24,7 +24,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = "3";
+export const VERSION = "4";
 const STATUS_EVERY_MS = 60e3;
 const CMD_TTL_MS = 10 * 60e3;
 const USER = "pg-web";
@@ -173,7 +173,8 @@ export const METER_PROFILES = {
     blocks: [[200, 60], [269, 6]],
     f32: { v1: 200, v2: 202, v3: 204, i1: 212, i2: 214, i3: 216, kw1: 224, kw2: 226, kw3: 228, kw: 230, kvar: 238, kva: 246,
       kwh_net: 269, kwh_imp: 271, kwh_exp: 273 },
-    i16: { pf: [251, 0.01], hz: [252, 0.1] },
+    /* PF ×0.001 (คู่มือเขียน ×0.01 แต่ค่าดิบ 1000 = หน้าจอมิเตอร์ 1 · ผู้ใช้เทียบจริง 2026-11-11) */
+    i16: { pf: [251, 0.001], hz: [252, 0.1] },
   },
   /* Schneider PM2200 (ผ่าน Waveshare) — ตามตารางผู้ผลิต · FC03 · float word สูงมาก่อน · ⚠ ยังไม่ได้ลองกับเครื่องจริง */
   "pm2200": {
