@@ -163,6 +163,7 @@ export function buildRsc(o) {
   const T = MT.TAG, WG = MT.WG_IF, BR = MT.BRIDGE, WAN = MT.WAN;
   const ident = identityOf(n, o.name);
   const S = MT.WG_SERVER;
+  const TOP = "[:pick [/ip firewall filter find dynamic=no] 0]";   // กฎแรกที่ย้ายได้
 
   /* กฎ firewall เรียงตามลำดับที่ต้องการ — เพิ่มไว้ท้ายก่อน แล้วย้ายขึ้นบนสุดทีละข้อจากข้อท้าย (ได้ลำดับเดิม)
      ต้องอยู่เหนือกฎ defconf เพราะ defconf มี "drop all not coming from LAN" ซึ่งจะตัด WireGuard ทิ้ง */
@@ -189,7 +190,9 @@ export function buildRsc(o) {
   const rules = (chain, list, tag) => {
     const out = [];
     list.forEach((r, i) => out.push(`add chain=${chain} action=${r[0]} ${r[1]} comment=${q(T + " " + tag + pad2(i + 1) + " " + r[2])}`));
-    for (let i = list.length; i >= 1; i--) out.push(`move [find comment~${q("^" + T + " " + tag + pad2(i) + " ")}] destination=0`);
+    /* destination=0 ใช้ไม่ได้: 7.21 มีกฎ dynamic ของระบบอยู่บนสุด ("cannot move builtin" เจอจริง 2026-11-11)
+       → ย้ายไปเหนือกฎแรกที่ไม่ใช่ dynamic ซึ่งหลังย้ายข้อแรกไปแล้วก็คือข้อที่เพิ่งย้าย ลำดับจึงเรียงถูก */
+    for (let i = list.length; i >= 1; i--) out.push(`move [find comment~${q("^" + T + " " + tag + pad2(i) + " ")}] destination=${TOP}`);
     return out;
   };
 
@@ -304,7 +307,7 @@ export function buildRsc(o) {
     ...rules("input", input, "in"),
     `# ผู้ใช้ Back To Home เข้ามาทาง interface back-to-home-vpn — ต้องอยู่เหนือ defconf "drop all not coming from LAN"`,
     `# (ยังไม่มี interface นี้ = ข้าม ไม่ทำให้สคริปต์ล้ม)`,
-    `:do { /ip firewall filter add chain=input action=accept in-interface=back-to-home-vpn comment=${q(T + " bth")} ;  /ip firewall filter move [find comment=${q(T + " bth")}] destination=0 } on-error={ :put "skip: back-to-home-vpn interface not found" }`,
+    `:do { /ip firewall filter add chain=input action=accept in-interface=back-to-home-vpn comment=${q(T + " bth")} ;  /ip firewall filter move [find comment=${q(T + " bth")}] destination=${TOP} } on-error={ :put "skip: back-to-home-vpn interface not found" }`,
     `# forward: เซิร์ฟเวอร์เข้า Modbus 502 ที่ .20 · หน้าเว็บที่ .10/.20 · ping · LAN ห้ามเปิดการเชื่อมต่อใหม่ไปฝั่ง WireGuard`,
     ...rules("forward", forward, "fw"),
     ``,

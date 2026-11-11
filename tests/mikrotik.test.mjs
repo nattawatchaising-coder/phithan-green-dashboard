@@ -157,7 +157,8 @@ test("สคริปต์รันซ้ำได้: ของที่มี
 
 test("ลำดับกฎ firewall: ย้ายขึ้นบนสุดจากข้อท้ายไปข้อแรก", () => {
   const r = buildRsc(site());
-  const moves = [...r.matchAll(/^move \[find comment~"\^pg-mt (in|fw)(\d\d) "\] destination=0$/gm)].map((m) => m[1] + m[2]);
+  assert.ok(!r.includes("destination=0"), "7.21 ย้ายไปตำแหน่ง 0 ไม่ได้ (กฎ dynamic ของระบบอยู่บนสุด)");
+  const moves = [...r.matchAll(/^move \[find comment~"\^pg-mt (in|fw)(\d\d) "\] destination=\[:pick \[\/ip firewall filter find dynamic=no\] 0\]$/gm)].map((m) => m[1] + m[2]);
   assert.deepEqual(moves.slice(0, 6), ["in06", "in05", "in04", "in03", "in02", "in01"]);
   assert.deepEqual(moves.slice(6), ["fw09", "fw08", "fw07", "fw06", "fw05", "fw04", "fw03", "fw02", "fw01"]);
 });
