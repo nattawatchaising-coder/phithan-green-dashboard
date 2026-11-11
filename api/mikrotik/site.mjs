@@ -18,7 +18,7 @@
 
 import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbSet, rtdbDelete, rtdbEtag, rtdbSetIf, rolesOf } from "../_lib/line.mjs";
 import { verifyFirebaseIdToken } from "../_lib/gauth.mjs";
-import { MT, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword } from "../_lib/mikrotik.mjs";
+import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword } from "../_lib/mikrotik.mjs";
 import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
 
 const NOTE_MAX = 500;
@@ -105,7 +105,8 @@ export async function POST(request) {
     const url = new URL(request.url).origin + "/api/mikrotik/rsc?t=" + token;
     const tail = " dst-path=pg-setup.rsc; /import file-name=pg-setup.rsc verbose=yes; /file remove pg-setup.rsc";
     return json({
-      ok: true, exp, peer: r.peer,
+      /* host ของ VPS ไว้แสดง ssh root@<host> ในขั้นตอน (แอดมินเท่านั้น — GET สาธารณะไม่บอก) */
+      ok: true, exp, peer: r.peer, server_host: parseEndpoint(MT_ENV.endpoint()).host,
       command: '/tool fetch url="' + url + '" check-certificate=yes-without-crl' + tail,
       /* RouterOS บางรุ่นไม่มีใบรับรอง CA ในเครื่อง → ตรวจ https ไม่ผ่าน · โทเคนยังไม่ถูกใช้ (คำขอไม่ถึงเว็บ) ใช้บรรทัดนี้ต่อได้ */
       command_nocheck: '/tool fetch url="' + url + '" check-certificate=no' + tail,
