@@ -1142,85 +1142,6 @@ function PermitJobSummary({
     value: value
   }))));
 }
-const DR_TOOLS_KEY = "sf_drawer_tools_open";
-function DrToolGroup({
-  alert,
-  children
-}) {
-  const [open, setOpen] = React.useState(() => {
-    try {
-      return window.localStorage.getItem(DR_TOOLS_KEY) !== "0";
-    } catch (e) {
-      return true;
-    }
-  });
-  const n = React.Children.toArray(children).filter(Boolean).length;
-  const toggle = () => setOpen(v => {
-    const next = !v;
-    try {
-      window.localStorage.setItem(DR_TOOLS_KEY, next ? "1" : "0");
-    } catch (e) {}
-    return next;
-  });
-  return React.createElement("div", {
-    style: {
-      marginBottom: open ? 0 : 22
-    }
-  }, React.createElement("button", {
-    onClick: toggle,
-    "aria-expanded": open,
-    style: {
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      marginBottom: open ? 12 : 0,
-      padding: "9px 4px",
-      background: "none",
-      border: "none",
-      borderBottom: "1px solid var(--divider)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
-  }, React.createElement(Icon, {
-    name: open ? "chevronDown" : "chevronRight",
-    size: 14,
-    color: "var(--text-2)"
-  }), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: "var(--text-3)"
-    }
-  }, n, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }), !open && alert ? React.createElement("span", {
-    style: {
-      padding: "3px 9px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--tint-red-bg)",
-      border: "1px solid var(--tint-red-bd)",
-      color: "var(--tint-red-tx)",
-      fontSize: 10.5,
-      fontWeight: 800
-    }
-  }, alert) : React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, open ? "ย่อ" : "กาง")), open && children);
-}
 function DetailDrawer({
   job,
   onClose,
@@ -1274,6 +1195,15 @@ function DetailDrawer({
     ro: !onSaveBOQ
   });
   const [planOpen, setPlanOpen] = React.useState(false);
+  const [tab, setTabRaw] = React.useState("ov");
+  const bodyRef = React.useRef(null);
+  const setTab = k => {
+    setTabRaw(k);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  };
+  React.useEffect(() => {
+    setTabRaw("ov");
+  }, [job ? job.id : null]);
   const [irOpen, setIrOpen] = React.useState(false);
   const inspections = useDrInspections(job ? job.id : null);
   React.useEffect(() => {
@@ -1290,6 +1220,36 @@ function DetailDrawer({
     onAdvance(job.id);
     setTimeout(() => setAdvancing(false), 6000);
   };
+  const TABS = !job ? [] : [{
+    k: "ov",
+    th: "ภาพรวม",
+    ic: "grid"
+  }, (onDaily || onExpense || onSurvey || onHandover || onPermit || onOm && window.OmJobButton || window.InspectionListModal && !roMode) && {
+    k: "site",
+    th: "หน้างาน",
+    ic: "wrench",
+    alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100 ? "ส่งมอบยังไม่ครบ" : ""
+  }, !roMode && {
+    k: "design",
+    th: "ออกแบบ",
+    ic: "panel",
+    n: (dvs.p3List || []).length || null
+  }, !roMode && {
+    k: "mat",
+    th: "วัสดุ",
+    ic: "box",
+    n: job.matReadyPct != null ? job.matReadyPct + "%" : null
+  }, (!roMode || onBilling && window.BlJobCard) && {
+    k: "docs",
+    th: "เอกสาร",
+    ic: "file"
+  }, {
+    k: "chat",
+    th: "รูป & คุย",
+    ic: "camera",
+    n: (media.photos || []).length || null
+  }].filter(Boolean);
+  const tabNow = TABS.some(t => t.k === tab) ? tab : "ov";
   return React.createElement(React.Fragment, null, React.createElement("div", {
     onClick: onClose,
     style: {
@@ -1321,8 +1281,8 @@ function DetailDrawer({
     }
   }, job && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
-      padding: isMobile ? "15px 16px" : "20px 24px",
-      borderBottom: "1px solid var(--divider)",
+      padding: isMobile ? "15px 16px 10px" : "20px 24px",
+      borderBottom: isMobile ? "none" : "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -1447,13 +1407,66 @@ function DetailDrawer({
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, job.progressPct, "%")))), React.createElement("div", {
+  }, job.progressPct, "%")))), isMobile && React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      paddingLeft: 10,
+      flexShrink: 0
+    }
+  }, React.createElement("div", {
+    className: "ld-tabs jd-mtabs",
+    role: "tablist"
+  }, TABS.map((t, i) => React.createElement("button", {
+    key: t.k,
+    role: "tab",
+    "aria-selected": tabNow === t.k,
+    className: "ld-tab" + (tabNow === t.k ? " on" : ""),
+    style: {
+      zIndex: tabNow === t.k ? 10 : TABS.length - i
+    },
+    onClick: () => setTab(t.k)
+  }, t.th, t.n ? React.createElement("span", {
+    className: "ld-tab-n"
+  }, t.n) : null, t.alert ? React.createElement("span", {
+    className: "ld-tab-dot",
+    title: t.alert
+  }) : null)))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      position: "relative",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, !isMobile && React.createElement("div", {
+    className: "jd-stabs",
+    role: "tablist",
+    "aria-orientation": "vertical"
+  }, TABS.map((t, i) => React.createElement("button", {
+    key: t.k,
+    role: "tab",
+    "aria-selected": tabNow === t.k,
+    className: "jd-stab" + (tabNow === t.k ? " on" : ""),
+    style: {
+      zIndex: tabNow === t.k ? 10 : TABS.length - i
+    },
+    onClick: () => setTab(t.k),
+    title: t.alert || t.th
+  }, React.createElement(Icon, {
+    name: t.ic,
+    size: 17
+  }), React.createElement("span", null, t.th), t.n ? React.createElement("span", {
+    className: "ld-tab-n"
+  }, t.n) : null, t.alert ? React.createElement("span", {
+    className: "ld-tab-dot jd-dot"
+  }) : null))), React.createElement("div", {
+    ref: bodyRef,
     style: {
       overflowY: "auto",
       flex: 1,
       padding: isMobile ? "16px 15px" : "22px 24px"
     }
-  }, React.createElement("div", {
+  }, tabNow === "ov" && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1646,9 +1659,7 @@ function DetailDrawer({
     leads: leads,
     onOpenQuote: onOpenQuote,
     card: true
-  }), React.createElement(DrToolGroup, {
-    alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100 ? "ส่งมอบยังไม่ครบ" : ""
-  }, onDaily && React.createElement(DailyJobButton, {
+  })), tabNow === "site" && React.createElement(React.Fragment, null, onDaily && React.createElement(DailyJobButton, {
     job: job,
     onOpen: onDaily
   }), onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {
@@ -1836,7 +1847,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEntry && !roMode && React.createElement(window.DvVerCard, {
+  }))), tabNow === "design" && React.createElement(React.Fragment, null, window.Plan3DEntry && !roMode && React.createElement(window.DvVerCard, {
     kind: "p3",
     dvs: dvs,
     icon: "panel",
@@ -1856,7 +1867,7 @@ function DetailDrawer({
     canNew: !!onSaveBOQ,
     title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
     sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"
-  }), onPermit && (() => {
+  })), tabNow === "site" && React.createElement(React.Fragment, null, onPermit && (() => {
     const pm = job.permit || null;
     const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
     const FLOW = window.PERMIT_FLOW || [];
@@ -2006,7 +2017,7 @@ function DetailDrawer({
         fontWeight: 700
       }
     }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
-  })()), onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
+  })()), tabNow === "docs" && onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
     job: job,
     quotes: quotes,
     leads: leads,
@@ -2015,7 +2026,7 @@ function DetailDrawer({
     readOnly: billRO,
     onOpen: onBilling,
     onSaveBills: onSaveBills
-  }), !roMode && React.createElement("div", {
+  }), tabNow === "mat" && !roMode && React.createElement("div", {
     style: {
       marginBottom: 24
     }
@@ -2123,11 +2134,11 @@ function DetailDrawer({
     }, m.th), React.createElement(MatChip, {
       status: job.mat[m.key]
     }));
-  }))), !roMode && React.createElement(JobMaterialUsage, {
+  }))), tabNow === "mat" && !roMode && React.createElement(JobMaterialUsage, {
     job: job,
     stock: stock,
     currentUser: currentUser
-  }), !roMode && React.createElement("div", {
+  }), tabNow === "ov" && !roMode && React.createElement("div", {
     style: {
       marginBottom: 20
     }
@@ -2147,11 +2158,11 @@ function DetailDrawer({
     color: "var(--text-2)"
   }), " Flow \u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19"), React.createElement(FlowTimeline, {
     job: job
-  })), !roMode && React.createElement(JobFiles, {
+  })), tabNow === "docs" && !roMode && React.createElement(JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage
-  }), React.createElement(JobPhotos, {
+  }), tabNow === "chat" && React.createElement(React.Fragment, null, React.createElement(JobPhotos, {
     media: media,
     currentUser: currentUser,
     canManage: canManage,
@@ -2160,7 +2171,7 @@ function DetailDrawer({
     media: media,
     currentUser: currentUser,
     canManage: canManage
-  }), job.note && React.createElement("div", {
+  })), tabNow === "ov" && job.note && React.createElement("div", {
     style: {
       padding: "12px 14px",
       background: "var(--surface2)",
@@ -2174,7 +2185,7 @@ function DetailDrawer({
     style: {
       color: "var(--text-1)"
     }
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38:"), " ", job.note)), React.createElement("div", {
+  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38:"), " ", job.note))), React.createElement("div", {
     style: {
       padding: isMobile ? "12px 16px" : "14px 24px",
       paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",

@@ -1096,7 +1096,7 @@ function App() {
         onDaily={can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install"
           ? () => setDailyJob(selectedJob) : null}
         /* สมุดตรวจรับและส่งมอบ — เปิดได้ทุกขั้น เพราะข้อมูลทยอยกรอกระหว่างทำงาน ไม่ใช่กรอกทีเดียวตอนจบ
-           ด่านสิทธิ์อยู่ตรงนี้ ไม่ใช่ในดรอว์เออร์ · ส่ง null ไม่ใช่ false เพราะ DrToolGroup นับลูกที่ไม่เป็น falsy */
+           ด่านสิทธิ์อยู่ตรงนี้ ไม่ใช่ในดรอว์เออร์ · ส่ง null = ไม่มีปุ่มนี้ในแท็บหน้างาน */
         onHandover={can(role, "handover") && !permitOnly && selectedJob ? () => setPmJob(selectedJob) : null}
         /* งานบริการหลังการขาย — เปิดได้เมื่อติดตั้งเสร็จแล้ว หรือไซต์นี้ขึ้นทะเบียนบริการไว้แล้ว */
         omSite={selectedJob ? (omLive.sites || []).find((s) => s.id === selectedJob.id) || null : null}

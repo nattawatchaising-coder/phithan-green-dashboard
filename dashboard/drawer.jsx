@@ -462,61 +462,10 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-/* ── แถบย่อขยายกลุ่มเครื่องมือของงาน ──
-   การ์ดเครื่องมือมีสิบกว่าใบเรียงต่อกัน ต้องเลื่อนผ่านทั้งชุดทุกครั้งกว่าจะถึง
-   สถานะวัสดุกับไทม์ไลน์ข้างล่าง ทั้งที่คนส่วนใหญ่เปิดใบงานมาดูข้อมูล
-   ไม่ได้มาใช้เครื่องมือทุกครั้ง
-
-   จำสถานะไว้ในเครื่อง ไม่ใช่รีเซ็ตทุกครั้งที่เปิดใบใหม่ — ถ้าลืมทุกครั้ง
-   คนที่อยากให้หน้าจอเรียบร้อยจะต้องกดพับซ้ำทั้งวัน ซึ่งแย่กว่าไม่มีปุ่มเสียอีก
-   ตั้งต้นเป็น "กาง" เพราะของที่เคยเห็นอยู่ไม่ควรหายไปเองโดยไม่มีใครสั่ง
-   ใครอยากให้เรียบร้อยกดพับครั้งเดียวแล้วอยู่อย่างนั้น
-
-   ⚠ ตอนพับ หัวแถบต้องบอกว่าข้างในมีเรื่องค้างอยู่ ไม่งั้นการพับ = ซ่อนเรื่องด่วน
-     ใบขออนุญาตที่ถูกตีกลับคือเรื่องที่ช่างต้องลงมือแก้ ห้ามหายไปเงียบ ๆ */
-const DR_TOOLS_KEY = "sf_drawer_tools_open";
-
-function DrToolGroup({ alert, children }) {
-  const [open, setOpen] = React.useState(() => {
-    try { return window.localStorage.getItem(DR_TOOLS_KEY) !== "0"; } catch (e) { return true; }
-  });
-  /* นับจาก toArray เพราะลูกหลายตัวเป็น false/null ตามสิทธิ์และสถานะของงาน
-     เอาไปนับอย่างเดียว ไม่เอาผลไปเรนเดอร์ — toArray แจกคีย์ใหม่ ลูกจะถูกสร้างใหม่ทั้งชุด */
-  const n = React.Children.toArray(children).filter(Boolean).length;
-
-  const toggle = () => setOpen((v) => {
-    const next = !v;
-    try { window.localStorage.setItem(DR_TOOLS_KEY, next ? "1" : "0"); } catch (e) {}
-    return next;
-  });
-
-  return (
-    <div style={{ marginBottom: open ? 0 : 22 }}>
-      <button onClick={toggle} aria-expanded={open}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, marginBottom: open ? 12 : 0,
-          padding: "9px 4px", background: "none", border: "none", borderBottom: "1px solid var(--divider)",
-          cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-        <Icon name={open ? "chevronDown" : "chevronRight"} size={14} color="var(--text-2)" />
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
-          เครื่องมือของงานนี้
-        </span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{n} รายการ</span>
-        <span style={{ flex: 1 }} />
-        {/* ป้ายเตือนโผล่เฉพาะตอนพับ — ตอนกางอยู่ การ์ดตัวจริงบอกละเอียดกว่านี้อยู่แล้ว */}
-        {!open && alert ? (
-          <span style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--tint-red-bg)",
-            border: "1px solid var(--tint-red-bd)", color: "var(--tint-red-tx)", fontSize: 10.5, fontWeight: 800 }}>
-            {alert}
-          </span>
-        ) : (
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>{open ? "ย่อ" : "กาง"}</span>
-        )}
-      </button>
-      {open && children}
-    </div>
-  );
-}
-
+/* ── แท็บของใบงาน ──
+   เดิมเครื่องมือของงานเป็นการ์ดเรียงยาวสิบกว่าใบ (มีแถบพับ DrToolGroup) ผู้ใช้: "พวกนี้มันเยอะเกินไปแล้ว ทำเป็นแทบด้านข้างเหมือนงานขาย" (พ.ย. 2026)
+   จอใหญ่: แท็บแฟ้มยื่นออกจากขอบซ้ายของแผง (.jd-stab ใน index.html) · มือถือแผงเต็มจอ ไม่มีที่ข้าง → แท็บแฟ้มเหนือเนื้อ (.ld-tab ชุดลิ้นชักลูกค้า)
+   ⚠ เรื่องด่วนห้ามซ่อนหลังแท็บเงียบ ๆ — ขออนุญาตถูกตีกลับ/ส่งมอบยังไม่ครบ = จุดแดงบนแท็บ "หน้างาน" */
 function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote, onBilling, onSaveBills, billRO, billRole, onHandover }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
@@ -529,6 +478,11 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
     patchActive: onSaveBOQ && job ? (b) => onSaveBOQ(job.id, b) : null, BoqEditor: BOQEditor, editorProps: { priceMap, stock },
     P3Entry: window.Plan3DEntry, ro: !onSaveBOQ });
   const [planOpen, setPlanOpen] = React.useState(false);
+  /* เปลี่ยนงานแล้วกลับไปหน้าภาพรวมเสมอ เหมือนลิ้นชักลูกค้า — ไม่ค้างแท็บของงานก่อน */
+  const [tab, setTabRaw] = React.useState("ov");
+  const bodyRef = React.useRef(null);
+  const setTab = (k) => { setTabRaw(k); if (bodyRef.current) bodyRef.current.scrollTop = 0; };
+  React.useEffect(() => { setTabRaw("ov"); }, [job ? job.id : null]);
   const [irOpen, setIrOpen] = React.useState(false);            // รายการใบตรวจสอบงาน
   /* อ่านรายการใบตรวจไว้ตั้งแต่เปิดใบงาน เพื่อโชว์จำนวนใบกับผลล่าสุดบนปุ่มโดยไม่ต้องกดเข้าไปดู */
   const inspections = useDrInspections(job ? job.id : null);
@@ -546,6 +500,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
     // safety reset: ถ้า Firebase ไม่ตอบใน 6s ให้ปลดล็อกปุ่ม
     setTimeout(() => setAdvancing(false), 6000);
   };
+
+  /* แท็บที่ไม่มีอะไรข้างใน (ตามสิทธิ์/โหมด) ไม่ต้องโชว์ */
+  const TABS = !job ? [] : [
+    { k: "ov", th: "ภาพรวม", ic: "grid" },
+    (onDaily || onExpense || onSurvey || onHandover || onPermit || (onOm && window.OmJobButton) || (window.InspectionListModal && !roMode))
+      && { k: "site", th: "หน้างาน", ic: "wrench",
+        alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ"
+          : (job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100) ? "ส่งมอบยังไม่ครบ" : "" },
+    !roMode && { k: "design", th: "ออกแบบ", ic: "panel", n: (dvs.p3List || []).length || null },
+    !roMode && { k: "mat", th: "วัสดุ", ic: "box", n: job.matReadyPct != null ? job.matReadyPct + "%" : null },
+    (!roMode || (onBilling && window.BlJobCard)) && { k: "docs", th: "เอกสาร", ic: "file" },
+    { k: "chat", th: "รูป & คุย", ic: "camera", n: (media.photos || []).length || null },
+  ].filter(Boolean);
+  const tabNow = TABS.some((t) => t.k === tab) ? tab : "ov";
   return (
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
@@ -560,7 +528,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
         {job && (
           <React.Fragment>
             {/* header */}
-            <div style={{ padding: isMobile ? "15px 16px" : "20px 24px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? "15px 16px 10px" : "20px 24px", borderBottom: isMobile ? "none" : "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -604,8 +572,40 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
             </div>
 
+            {/* แท็บมือถือ — แผงกว้างเต็มจอ ไม่มีที่ยื่นข้าง จึงเป็นแท็บแฟ้มเหนือเนื้อ แท็บที่เลือกสีพื้นเนื้อ (--bg) ต่อเป็นแผ่นเดียว */}
+            {isMobile && (
+              <div style={{ background: "var(--surface)", paddingLeft: 10, flexShrink: 0 }}>
+                <div className="ld-tabs jd-mtabs" role="tablist">
+                  {TABS.map((t, i) => (
+                    <button key={t.k} role="tab" aria-selected={tabNow === t.k} className={"ld-tab" + (tabNow === t.k ? " on" : "")}
+                      style={{ zIndex: tabNow === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)}>
+                      {t.th}
+                      {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
+                      {t.alert ? <span className="ld-tab-dot" title={t.alert} /> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* body */}
-            <div style={{ overflowY: "auto", flex: 1, padding: isMobile ? "16px 15px" : "22px 24px" }}>
+            <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
+            {/* แท็บข้าง (จอใหญ่) — ยื่นออกจากขอบซ้ายของแผง แท็บที่เลือกสีเดียวกับเนื้อ ต่อเป็นแผ่นเดียว */}
+            {!isMobile && (
+              <div className="jd-stabs" role="tablist" aria-orientation="vertical">
+                {TABS.map((t, i) => (
+                  <button key={t.k} role="tab" aria-selected={tabNow === t.k} className={"jd-stab" + (tabNow === t.k ? " on" : "")}
+                    style={{ zIndex: tabNow === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)} title={t.alert || t.th}>
+                    <Icon name={t.ic} size={17} />
+                    <span>{t.th}</span>
+                    {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
+                    {t.alert ? <span className="ld-tab-dot jd-dot" /> : null}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div ref={bodyRef} style={{ overflowY: "auto", flex: 1, padding: isMobile ? "16px 15px" : "22px 24px" }}>
+              {tabNow === "ov" && <React.Fragment>
               {/* customer info */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 18 : 24 }}>
                 <InfoRow label="เบอร์โทร">
@@ -687,9 +687,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 <window.SalesQuoteList job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} card />
               )}
 
-              {/* เครื่องมือของงานนี้ — พับเก็บได้ทั้งชุด (ดู DrToolGroup) */}
-              <DrToolGroup alert={(job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ"
-                : (job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100) ? "ส่งมอบยังไม่ครบ" : ""}>
+              </React.Fragment>}
+
+              {/* แท็บหน้างาน — เครื่องมือที่ช่างใช้ระหว่างทำงาน */}
+              {tabNow === "site" && <React.Fragment>
                 {/* รายงานประจำวันหน้างาน — บันทึกรายวัน + ออกเป็น PDF */}
                 {onDaily && <DailyJobButton job={job} onOpen={onDaily} />}
 
@@ -788,6 +789,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </button>
                 )}
 
+              </React.Fragment>}
+
+              {/* แท็บออกแบบ — แบบ 3D · ห้องอุปกรณ์ · BOQ */}
+              {tabNow === "design" && <React.Fragment>
                 {/* วางแผง 3D — ออกแบบระบบ/ผลผลิต อยู่ในจอนี้ ไม่มีแถวของตัวเอง
                    เพราะมันกินทิศ/มุมของแผงจากผังนั้นตรง ๆ แยกสองทางจึงเป็นสองทางที่ทำเรื่องเดียวกัน
                    กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
@@ -804,6 +809,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 {!roMode && <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
                   title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง" />}
 
+              </React.Fragment>}
+
+              {tabNow === "site" && <React.Fragment>
                 {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
                     วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว
                     แถบความคืบหน้าคิดจากช่องบังคับ + รูปบังคับ ช่างจะได้รู้ว่าเหลืออีกเท่าไรโดยไม่ต้องเปิดเข้าไปดู */}
@@ -876,18 +884,18 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     </div>
                   );
                 })()}
-              </DrToolGroup>
+              </React.Fragment>}
 
               {/* เอกสารงวดงาน · วางบิล — ถอดงวดจากใบเสนอราคาแล้วตามเงินจนจบโปรเจค
                   วางต่อจากงานขออนุญาต เพราะเป็นงานเอกสารหลังบ้านเหมือนกัน ไม่ใช่เครื่องมือหน้างาน
                   ช่างเห็นการ์ดนี้ได้แบบอ่านอย่างเดียว (billRO) — เขาต้องรู้ว่างวดไหนรอเอกสารจากหน้างานอยู่ */}
-              {onBilling && window.BlJobCard && (
+              {tabNow === "docs" && onBilling && window.BlJobCard && (
                 <window.BlJobCard job={job} quotes={quotes} leads={leads} role={billRole || []}
                   currentUser={currentUser} readOnly={billRO} onOpen={onBilling} onSaveBills={onSaveBills} />
               )}
 
               {/* material checklist */}
-              {!roMode && <div style={{ marginBottom: 24 }}>
+              {tabNow === "mat" && !roMode && <div style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
                     <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
@@ -933,10 +941,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>}
 
               {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
-              {!roMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
+              {tabNow === "mat" && !roMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
 
               {/* flow timeline — ขั้นติดตั้ง ฝ่ายขออนุญาตไม่ได้ใช้ (ของเขาอยู่ในบล็อกสรุปด้านบน) */}
-              {!roMode && <div style={{ marginBottom: 20 }}>
+              {tabNow === "ov" && !roMode && <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="flow" size={14} color="var(--text-2)" /> Flow การทำงาน
                 </div>
@@ -944,17 +952,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>}
 
               {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด · โหมดขออนุญาตดูได้จากบล็อกสรุปแล้ว (อ่านอย่างเดียว) */}
-              {!roMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
+              {tabNow === "docs" && !roMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
 
               {/* รูปหน้างาน + พูดคุย/บันทึกงาน — คุยได้ (ต้องบอกช่างว่าติดอะไร) แต่รูปดูอย่างเดียว */}
-              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={roMode} />
-              <JobComments media={media} currentUser={currentUser} canManage={canManage} />
+              {tabNow === "chat" && <React.Fragment>
+                <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={roMode} />
+                <JobComments media={media} currentUser={currentUser} canManage={canManage} />
+              </React.Fragment>}
 
-              {job.note && (
+              {tabNow === "ov" && job.note && (
                 <div style={{ padding: "12px 14px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
                   <strong style={{ color: "var(--text-1)" }}>หมายเหตุ:</strong> {job.note}
                 </div>
               )}
+            </div>
             </div>
 
             {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม

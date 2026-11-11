@@ -440,6 +440,25 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ld-tab.on .ld-tab-n { background: var(--tc); color: #fff; }
 .ld-tab-dot { width: 7px; height: 7px; border-radius: var(--r-pill); background: #EF4444; box-shadow: 0 0 0 2px color-mix(in srgb, #EF4444 22%, transparent); }
 @media (max-width: 560px) { .ld-tab { padding: 0 11px; margin-right: 4px; font-size: 12.5px; gap: 5px; } }
+/* แท็บแฟ้มบนใบงานติดตั้งมือถือ (drawer.jsx) — ชุด .ld-tab แต่ใบข้างใต้พื้น --bg (ไม่ใช่หัวใบ --surface) แท็บที่เลือกจึงย้อมสีพื้นเนื้อแทน */
+.jd-mtabs .ld-tab.on { --tb: var(--bg); }
+.jd-mtabs .ld-tab.on::before { background: radial-gradient(circle at 0 0, transparent 11.5px, var(--bg) 12px); }
+.jd-mtabs .ld-tab.on::after { background: radial-gradient(circle at 100% 0, transparent 11.5px, var(--bg) 12px); }
+/* แท็บข้างของใบงานติดตั้ง (จอใหญ่) — แท็บแฟ้มเดียวกับ .ld-tab แต่หมุนไปยื่นออกขอบซ้ายของแผง
+   แท็บที่เลือกพื้น --bg เท่าเนื้อแผง มุดเข้าแผง 2px + มุมเว้าบน/ล่าง (::before/::after) ให้ไหลต่อกับขอบแผงเนียน ๆ */
+.jd-stabs { position: absolute; right: 100%; top: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.jd-stab { --tc: var(--primary); --tb: color-mix(in oklab, var(--tc) 18%, var(--surface));
+  position: relative; width: 70px; padding: 10px 4px 9px; border: none; border-radius: 14px 0 0 14px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: inherit; font-size: 11.5px; font-weight: 700; line-height: 1.2;
+  background: var(--tb); color: color-mix(in oklab, var(--tc) 72%, #0F2B33); transition: background .18s ease, color .18s ease, width .18s ease; }
+.jd-stab:hover { --tb: color-mix(in oklab, var(--tc) 27%, var(--surface)); }
+.jd-stab.on { --tb: var(--bg); width: 78px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
+.jd-stab.on::before, .jd-stab.on::after { content: ""; position: absolute; right: 2px; width: 12px; height: 12px; pointer-events: none; }
+.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--bg) 12px); }
+.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--bg) 12px); }
+.jd-stab .ld-tab-n { font-size: 10px; padding: 0 6px; }
+.jd-stab.on .ld-tab-n { background: var(--tc); color: #fff; }
+.jd-stab .jd-dot { position: absolute; top: 7px; right: 9px; }
 
 /* sidebar overlay backdrop */
 .sidebar-overlay {
@@ -1238,7 +1257,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=13"></script>
 <script src="dashboard/build/pm-paper.js?v=13"></script>
 <script src="dashboard/build/pm-form.js?v=19"></script>
-<script src="dashboard/build/drawer.js?v=91"></script>
+<script src="dashboard/build/drawer.js?v=92"></script>
 <script src="dashboard/build/views-overview.js?v=54"></script>
 <script src="dashboard/build/views-board.js?v=46"></script>
 <script src="dashboard/build/views-table.js?v=39"></script>
