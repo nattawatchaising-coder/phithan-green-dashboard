@@ -1452,14 +1452,13 @@ function DetailDrawer({
     },
     onClick: () => setTab(t.k),
     title: t.alert || t.th
-  }, React.createElement(Icon, {
-    name: t.ic,
-    size: 17
-  }), React.createElement("span", null, t.th), t.n ? React.createElement("span", {
+  }, React.createElement("span", {
+    className: "jd-stab-tx"
+  }, t.th, t.n ? React.createElement("span", {
     className: "ld-tab-n"
   }, t.n) : null, t.alert ? React.createElement("span", {
-    className: "ld-tab-dot jd-dot"
-  }) : null))), React.createElement("div", {
+    className: "ld-tab-dot"
+  }) : null)))), React.createElement("div", {
     ref: bodyRef,
     style: {
       overflowY: "auto",

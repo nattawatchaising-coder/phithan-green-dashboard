@@ -596,10 +596,12 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 {TABS.map((t, i) => (
                   <button key={t.k} role="tab" aria-selected={tabNow === t.k} className={"jd-stab" + (tabNow === t.k ? " on" : "")}
                     style={{ zIndex: tabNow === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)} title={t.alert || t.th}>
-                    <Icon name={t.ic} size={17} />
-                    <span>{t.th}</span>
-                    {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
-                    {t.alert ? <span className="ld-tab-dot jd-dot" /> : null}
+                    {/* ตัวหนังสือหมุนอ่านจากล่างขึ้นบน = แท็บใบลูกค้าหมุน 90° (ผู้ใช้ส่งรูปตัวอย่าง "อยากได้แทบเป็นแนวยาว") */}
+                    <span className="jd-stab-tx">
+                      {t.th}
+                      {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
+                      {t.alert ? <span className="ld-tab-dot" /> : null}
+                    </span>
                   </button>
                 ))}
               </div>
