@@ -17,7 +17,10 @@
    เฟส 3 (มิเตอร์ · บิลรายเดือน)
      { action: "meter-cfg", n, meter_model, meter_unit }  → รุ่นมิเตอร์ที่ agent อ่าน (leos-ipm310 | pm2200 | none) · unit id
      { action: "bill-cfg", n, cust, addr, rate, reg, vat } → ตั้งค่าบิลของไซต์ (ชื่อ/ที่อยู่ลูกค้า · บาท/kWh · ช่อง kwh_imp|kwh_exp|kwh_net · คิด VAT 7%)
-     { action: "bill-save", n, month, start, end, ... }    → บันทึกบิลเดือน YYYY-MM ลง mtBills/N/YYYYMM (คิด kWh/ยอดเงินใหม่ที่เซิร์ฟเวอร์)
+     { action: "bill-save", n, month, rate? }              → บันทึกบิลเดือน YYYY-MM ลง mtBills/N/YYYYMM — เลขมิเตอร์เซิร์ฟเวอร์อ่านเอง แก้ได้แค่ราคา
+     { action: "site-info", n, info:{cust addr tax ...} }  → ทะเบียนไซต์ (ข้อมูลลูกค้าบนบิล)
+   พาร์ทเนอร์ (api/_lib/mtpartner.mjs) — เรียกได้แค่ company / partner-pin / site-info / bill-cfg / bill-save ของไซต์ตัวเอง
+     { action: "partner-save", id?, name, username, pin?, active, sites:[N] } (แอดมิน) · { action: "company", pid?, company } · { action: "partner-pin", pid?|old, pin }
 
    ข้อมูล
      mtSites/{N}   (พนักงานที่ล็อกอินอ่านได้) n name note wg_pub wg_ip lan created_* updated_* keys_at script_at script_by
@@ -29,7 +32,8 @@ import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbSet, rtdbDelete, rtdbEtag, rt
 import { verifyFirebaseIdToken } from "../_lib/gauth.mjs";
 import crypto from "node:crypto";
 import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword,
-  MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp, MT_METER_MODELS, MT_BILL_REGS, billCalc } from "../_lib/mikrotik.mjs";
+  MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp, MT_METER_MODELS, MT_BILL_REGS, billCalc, billReadings } from "../_lib/mikrotik.mjs";
+import { isPartnerUid, partnerAction, cleanSiteInfo } from "../_lib/mtpartner.mjs";
 import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
 import { agentPOST } from "../_lib/mtagent.mjs";
 
@@ -41,15 +45,23 @@ export async function GET() {
   return json({ configured: missing.length === 0, missing });
 }
 
-async function admin(request) {
+/* ใครเรียก: แอดมิน (อ่าน users/<uid> ล่าสุด ไม่เชื่อ claim) หรือพาร์ทเนอร์ (claim ext + บัญชีใน mtPartners ยังเปิดอยู่) */
+async function who(request) {
   const tok = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
-  const who = await verifyFirebaseIdToken(tok).catch(() => null);
-  if (!who) return { err: json({ error: "ต้องล็อกอินก่อน" }, 401) };
-  const u = await rtdbGet("users/" + who.uid.replace(/[.#$\[\]\/]/g, "")).catch(() => null);
+  const w = await verifyFirebaseIdToken(tok).catch(() => null);
+  if (!w) return { err: json({ error: "ต้องล็อกอินก่อน" }, 401) };
+  if (isPartnerUid(w.uid)) {
+    const p = w.claims && w.claims.ext === true ? await rtdbGet("mtPartners/" + w.uid).catch(() => null) : null;
+    if (!p || p.active === false) return { err: json({ error: "บัญชีถูกปิด" }, 403) };
+    return { partner: p, id: p.id, by: p.name || p.username, kind: "partner" };
+  }
+  const u = await rtdbGet("users/" + w.uid.replace(/[.#$\[\]\/]/g, "")).catch(() => null);
   if (!u || u.active === false) return { err: json({ error: "บัญชีถูกปิด" }, 403) };
   if (!rolesOf(u).includes("admin")) return { err: json({ error: "เฉพาะแอดมิน" }, 403) };
-  return { by: u.name || u.id || who.uid };
+  return { admin: true, id: u.id, by: u.name || u.id || w.uid, kind: "staff" };
 }
+/* action ที่พาร์ทเนอร์ทำได้ (เฉพาะไซต์ที่ตัวเองเป็นเจ้าของ) — นอกนั้นแอดมินเท่านั้น */
+const PARTNER_OK = ["company", "partner-pin", "site-info", "bill-cfg", "bill-save"];
 
 function freshSecrets(n) {
   const kp = wgKeypair();
@@ -64,9 +76,12 @@ export async function POST(request) {
   /* mt-agent บน VPS (Bearer MT_AGENT_KEY ไม่ใช่ล็อกอินพนักงาน) — รวมไว้ไฟล์นี้เพราะ Vercel ฟรีจำกัด 12 ฟังก์ชัน */
   if (new URL(request.url).searchParams.get("agent") === "1") return agentPOST(request);
   if (!ENV.rtdb()) return json({ error: "RTDB_URL not set" }, 503);
-  const a = await admin(request);
+  const a = await who(request);
   if (a.err) return a.err;
   const b = (await body(request)) || {};
+  if (a.partner && !PARTNER_OK.includes(b.action)) return json({ error: "เฉพาะแอดมิน" }, 403);
+  const pr = await partnerAction(a, b, new Date().toISOString());
+  if (pr) return pr;
   /* ข้อมูลประกอบคู่มือ (แอดมินเท่านั้น): IP ของ VPS สำหรับคำสั่ง ssh */
   if (b.action === "info") {
     const ep = parseEndpoint(MT_ENV.endpoint());
@@ -107,6 +122,7 @@ export async function POST(request) {
 
   const site = await rtdbGet(path);
   if (!site) return json({ error: "ไม่พบไซต์ " + n }, 404);
+  if (a.partner && site.owner !== a.id) return json({ error: "ไม่พบไซต์ " + n }, 404);
 
   if (b.action === "edit") {
     const name = String(b.name == null ? site.name : b.name).trim();
@@ -187,28 +203,60 @@ export async function POST(request) {
     await rtdbUpdate(path, { meter_model: model, meter_unit: unit, updated_at: now, updated_by: a.by });
     return json({ ok: true });
   }
+  /* ทะเบียนไซต์ — ข้อมูลลูกค้า/สถานที่ที่ขึ้นบนบิล (แอดมิน หรือพาร์ทเนอร์เจ้าของไซต์) */
+  if (b.action === "site-info") {
+    const info = cleanSiteInfo(b.info);
+    if (info.error) return json({ error: info.error }, 400);
+    await rtdbUpdate(path, { info: Object.assign(info, { at: now, by: a.by }) });
+    return json({ ok: true, info });
+  }
+  /* ตั้งค่าบิล: ราคาต่อหน่วย + VAT · ช่องที่จด (reg) แก้ได้เฉพาะแอดมิน (เรื่องการต่อสาย CT) */
   if (b.action === "bill-cfg") {
+    const old = site.bill || {};
     const rate = Number(b.rate);
-    if (!(rate >= 0 && rate <= 100)) return json({ error: "ราคาต่อหน่วยต้องเป็น 0–100 บาท" }, 400);
-    if (!MT_BILL_REGS.includes(b.reg)) return json({ error: "ช่องคิดเงินต้องเป็น kwh_imp / kwh_exp / kwh_net" }, 400);
-    const bill = { cust: String(b.cust || "").slice(0, 200), addr: String(b.addr || "").slice(0, 300), rate, reg: b.reg, vat: b.vat !== false,
-      note: String(b.note || "").slice(0, 300), at: now, by: a.by };
+    if (b.rate === "" || b.rate == null || !(rate >= 0 && rate <= 100)) return json({ error: "ราคาต่อหน่วยต้องเป็น 0–100 บาท" }, 400);
+    const reg = a.admin && b.reg != null ? b.reg : old.reg || "kwh_imp";
+    if (!MT_BILL_REGS.includes(reg)) return json({ error: "ช่องคิดเงินต้องเป็น kwh_imp / kwh_exp / kwh_net" }, 400);
+    const bill = Object.assign({}, old, { rate, reg, vat: b.vat !== false, at: now, by: a.by });
     await rtdbUpdate(path, { bill });
     return json({ ok: true, bill });
   }
+  /* บันทึกบิล — เลขมิเตอร์เซิร์ฟเวอร์อ่านเองจาก mtMeter (ผู้ใช้สั่ง 2026-11-11 "เลขไม่ต้องให้แก้ แก้แค่ราคาต่อหน่วย")
+     หน้าเว็บส่งแค่เดือน + ราคาต่อหน่วย (ไม่ส่ง = ราคาที่ตั้งไว้) · VAT ตามที่ตั้งของไซต์
+     บันทึกทับเดือนเดิม = เก็บฉบับก่อนไว้ใน hist/<เวลา> (รู้ว่าใครออกบิลไหนเมื่อไหร่ · ผู้ใช้สั่งเก็บผู้ออกบิล) */
   if (b.action === "bill-save") {
-    /* VAT ตามที่ตั้งไว้ของไซต์ (ไม่เชื่อค่าจากหน้าเว็บ) */
-    const r = billCalc(Object.assign({}, b, { vat: !(site.bill && site.bill.vat === false) }));
+    const cfg = site.bill || {};
+    const reg = MT_BILL_REGS.includes(cfg.reg) ? cfg.reg : "kwh_imp";
+    const rate = b.rate == null || b.rate === "" ? Number(cfg.rate) : Number(b.rate);
+    const [days, st] = await Promise.all([rtdbGet("mtMeter/" + n + "/d").catch(() => null), rtdbGet("mtStatus/" + n).catch(() => null)]);
+    const live = st && st.meter && st.meter.modbus && st.meter.modbus.ok && st.meter.v && st.at ? { v: st.meter.v, at: Date.parse(st.at) } : null;
+    const rd = billReadings(days, String(b.month || ""), reg, live);
+    if (rd.error) return json({ error: rd.error }, 400);
+    const r = billCalc(Object.assign({}, rd, { month: b.month, rate, reg, vat: cfg.vat !== false }));
     if (r.error) return json({ error: r.error }, 400);
     const key = r.month.replace("-", "");
-    const rec = Object.assign(r, { n, no: "SITE" + String(n).padStart(2, "0") + "-" + key,
-      cust: String((site.bill && site.bill.cust) || "").slice(0, 200), addr: String((site.bill && site.bill.addr) || "").slice(0, 300),
-      note: String(b.note || "").slice(0, 300), at: now, by: a.by });
+    const info = site.info || {};
+    let issuer = null;
+    if (site.owner) {
+      const p = await rtdbGet("mtPartners/" + site.owner).catch(() => null);
+      const c = (p && p.company) || {};
+      issuer = { pid: site.owner, name: c.name || (p && p.name) || "", addr: c.addr || "", tax: c.tax || "", branch: c.branch || "", phone: c.phone || "", email: c.email || "" };
+    }
+    const prev = await rtdbGet("mtBills/" + n + "/" + key).catch(() => null);
+    const hist = Object.assign({}, (prev && prev.hist) || {});
+    if (prev) { const { hist: _h, ...old } = prev; hist[Date.parse(prev.at) || Date.now()] = old; }
+    const hk = Object.keys(hist).sort();
+    while (hk.length > 20) delete hist[hk.shift()];
+    const rec = Object.assign(r, { n, no: "SITE" + String(n).padStart(2, "0") + "-" + key, partial: rd.partial || null,
+      cust: info.cust || cfg.cust || "", addr: info.addr || cfg.addr || "", cust_tax: info.tax || "", cust_branch: info.branch || "",
+      place: info.place || "", ca: info.ca || "", meter_no: info.meter_no || "", issuer,
+      note: String(b.note || "").slice(0, 300), at: now, by: a.by, by_id: a.id, by_kind: a.kind, hist: hk.length ? hist : null });
     await rtdbSet("mtBills/" + n + "/" + key, rec);
     return json({ ok: true, bill: rec });
   }
 
   if (b.action === "remove") {
+    if (site.owner) await rtdbUpdate("mtPartners/" + site.owner + "/sites", { [n]: null }).catch(() => null);
     await rtdbDelete("mtStatus/" + n).catch(() => null);
     await rtdbDelete("mtSecrets/" + n);
     await rtdbDelete(path);

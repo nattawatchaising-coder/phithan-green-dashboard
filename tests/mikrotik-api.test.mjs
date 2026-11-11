@@ -18,6 +18,7 @@ process.env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({
 
 /* ---------- ฐานข้อมูลปลอม (REST ของ RTDB: GET/PUT/PATCH/DELETE + ETag/if-match) ---------- */
 let db = {};
+let RULES_PLACED = true;
 const calls = [];
 const getAt = (p) => p.split("/").filter(Boolean).reduce((o, k) => (o == null ? null : o[k] ?? null), db);
 function setAt(p, v) {
@@ -35,6 +36,9 @@ globalThis.fetch = async (url, opt = {}) => {
   calls.push(method + " " + url);
   if (url.startsWith("https://oauth2.googleapis.com/token")) return res({ access_token: "fake", expires_in: 3600 });
   if (url.includes("securetoken@system.gserviceaccount.com")) return res({ k1: idKey.publicKey.export({ type: "spki", format: "pem" }) });
+  /* ตรวจกฎตอนพาร์ทเนอร์ล็อกอิน: แลกใบผ่าน → ลองอ่าน users ด้วยสิทธิ์พาร์ทเนอร์ */
+  if (url.startsWith("https://identitytoolkit.googleapis.com/")) return res({ idToken: "partner-id-token" });
+  if (url.startsWith(RTDB) && url.includes("auth=")) return RULES_PLACED ? res({ error: "Permission denied" }, 401) : res({ "u-admin": true });
   if (url.startsWith(RTDB)) {
     const path = decodeURIComponent(url.slice(RTDB.length).replace(/\.json.*$/, ""));
     const h = opt.headers || {};
@@ -53,7 +57,8 @@ globalThis.fetch = async (url, opt = {}) => {
 function idToken(uid) {
   const now = Math.floor(Date.now() / 1000);
   const enc = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-  const head = enc({ alg: "RS256", kid: "k1" }) + "." + enc({ aud: PROJECT, iss: "https://securetoken.google.com/" + PROJECT, sub: uid, iat: now, exp: now + 600 });
+  const extra = /^p-/.test(uid) ? { ext: true, roles: ["partner"] } : {};
+  const head = enc({ alg: "RS256", kid: "k1" }) + "." + enc(Object.assign({ aud: PROJECT, iss: "https://securetoken.google.com/" + PROJECT, sub: uid, iat: now, exp: now + 600 }, extra));
   return head + "." + crypto.createSign("RSA-SHA256").update(head).sign(idKey.privateKey).toString("base64url");
 }
 
@@ -377,33 +382,113 @@ test("thSlot: เวลาไทย · ปัดลงช่อง 5 นาท�
   assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T03:29:00Z")), { day: "20261111", hm: "1025" });
 });
 
-test("meter-cfg / bill-cfg / bill-save: แอดมินเท่านั้น · ตรวจค่า · คิดเงินที่เซิร์ฟเวอร์", async () => {
+/* ข้อมูลมิเตอร์รายวันปลอม: 1 พ.ย. 1000 → 1 ธ.ค. 1250.5 */
+const meterDays = () => ({ d: {
+  "20261101": { first: { t: "0000", kwh_imp: 1000 }, last: { t: "2355", kwh_imp: 1008 } },
+  "20261115": { first: { t: "0000", kwh_imp: 1100 }, last: { t: "2355", kwh_imp: 1110 } },
+  "20261201": { first: { t: "0005", kwh_imp: 1250.5 }, last: { t: "2355", kwh_imp: 1260 } } } });
+
+test("meter-cfg / bill-cfg / bill-save: เลขมิเตอร์เซิร์ฟเวอร์อ่านเอง แก้ได้แค่ราคา · คิดเงินที่เซิร์ฟเวอร์ · เก็บผู้ออกบิล", async () => {
   await call({ action: "create", n: 52, name: "Bill" });
   assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "pm2200", meter_unit: 3 })).status, 200);
   assert.equal(db.mtSites[52].meter_model, "pm2200");
   assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "xx" })).status, 400);
   assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "pm2200" }, "u-tech")).status, 403);
-  assert.equal((await call({ action: "bill-cfg", n: 52, cust: "บจก. ทดสอบ", rate: 3.9, reg: "kwh_imp" })).status, 200);
+  assert.equal((await call({ action: "bill-cfg", n: 52, rate: 3.9, reg: "kwh_imp" })).status, 200);
   assert.equal(db.mtSites[52].bill.rate, 3.9);
   assert.equal((await call({ action: "bill-cfg", n: 52, rate: -1, reg: "kwh_imp" })).status, 400);
-  const r = await call({ action: "bill-save", n: 52, month: "2026-11", start: 1000, end: 1250.5, rate: 3.9, reg: "kwh_imp", amount: 1 });
+  assert.equal((await call({ action: "site-info", n: 52, info: { cust: "บจก. ทดสอบ", addr: "ชลบุรี", tax: "0105551234567", kwp: 500 } })).status, 200);
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11" })).status, 400, "ยังไม่มีข้อมูลมิเตอร์ = บันทึกไม่ได้");
+  db.mtMeter = { 52: meterDays() };
+  /* ส่งเลขมาเองไม่มีผล — ใช้เลขจากมิเตอร์ */
+  const r = await call({ action: "bill-save", n: 52, month: "2026-11", start: 0, end: 99999, amount: 1 });
   assert.equal(r.status, 200);
-  assert.equal(db.mtBills[52]["202611"].kwh, 250.5);
-  assert.equal(db.mtBills[52]["202611"].amount, 976.95, "ยอดเงินคิดใหม่ที่เซิร์ฟเวอร์ ไม่เชื่อค่าที่ส่งมา");
-  assert.equal(db.mtBills[52]["202611"].vat, 68.39);
-  assert.equal(db.mtBills[52]["202611"].total, 1045.34);
-  assert.equal(db.mtBills[52]["202611"].no, "SITE52-202611");
-  /* ปิด VAT ที่ตั้งค่าไซต์ → บิลไม่มี VAT (หน้าเว็บส่ง vat มาเองไม่มีผล) */
-  await call({ action: "bill-cfg", n: 52, cust: "บจก. ทดสอบ", rate: 3.9, reg: "kwh_imp", vat: false });
-  await call({ action: "bill-save", n: 52, month: "2026-11", start: 1000, end: 1250.5, rate: 3.9, reg: "kwh_imp", vat: true, start_at: "2026-11-01 00:00", end_at: "bad" });
-  assert.equal(db.mtBills[52]["202611"].vat, 0);
-  assert.equal(db.mtBills[52]["202611"].total, 976.95);
-  assert.equal(db.mtBills[52]["202611"].start_at, "2026-11-01 00:00");
-  assert.equal(db.mtBills[52]["202611"].end_at, "");
-  assert.equal(db.mtBills[52]["202611"].cust, "บจก. ทดสอบ");
-  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-13", start: 1, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);
-  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11", start: 5, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);
-  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11", start: 1, end: 2, rate: 1, reg: "kwh_imp" }, "u-tech")).status, 403);
+  const B = () => db.mtBills[52]["202611"];
+  assert.deepEqual([B().start, B().end, B().kwh], [1000, 1250.5, 250.5]);
+  assert.deepEqual([B().start_at, B().end_at], ["2026-11-01 00:00", "2026-12-01 00:05"]);
+  assert.equal(B().amount, 976.95);
+  assert.equal(B().vat, 68.39);
+  assert.equal(B().total, 1045.34);
+  assert.equal(B().no, "SITE52-202611");
+  assert.equal(B().cust, "บจก. ทดสอบ");
+  assert.equal(B().cust_tax, "0105551234567");
+  assert.deepEqual([B().by, B().by_id, B().by_kind], ["แอดมิน", "u-admin", "staff"]);
+  /* แก้ราคาตอนออกบิล + ปิด VAT ที่ตั้งค่าไซต์ → บันทึกทับ เก็บฉบับเดิมไว้ใน hist */
+  await call({ action: "bill-cfg", n: 52, rate: 3.9, vat: false });
+  await call({ action: "bill-save", n: 52, month: "2026-11", rate: 4, vat: true });
+  assert.equal(B().rate, 4);
+  assert.equal(B().vat, 0);
+  assert.equal(B().total, 1002);
+  assert.equal(Object.values(B().hist).length, 1);
+  assert.equal(Object.values(B().hist)[0].total, 1045.34);
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-13" })).status, 400);
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11" }, "u-tech")).status, 403);
+});
+
+test("พาร์ทเนอร์: แอดมินสร้าง+มอบไซต์ · ล็อกอินได้เมื่อวางกฎแล้วเท่านั้น · ทำได้แค่ไซต์ตัวเอง", async () => {
+  await call({ action: "create", n: 60, name: "PA" });
+  await call({ action: "create", n: 61, name: "PB" });
+  db.mtMeter = { 60: meterDays(), 61: meterDays() };
+  await call({ action: "bill-cfg", n: 60, rate: 4 });
+  assert.equal((await call({ action: "partner-save", name: "นักลงทุน", username: "inv1", pin: "123", sites: [60] })).status, 400, "รหัสสั้นไป");
+  assert.equal((await call({ action: "partner-save", name: "x", username: "admin", pin: "123456", sites: [] })).status, 409);
+  assert.equal((await call({ action: "partner-save", name: "นักลงทุน", username: "inv1", pin: "secret99", sites: [60] }, "u-tech")).status, 403);
+  const c = await call({ action: "partner-save", name: "นักลงทุน", username: "inv1", pin: "secret99", sites: [60] });
+  assert.equal(c.status, 200);
+  const pid = c.body.id;
+  assert.match(pid, /^p-[0-9a-f]{16}$/);
+  assert.equal(db.mtSites[60].owner, pid);
+  assert.deepEqual(db.mtPartners[pid].sites, { 60: true });
+  assert.ok(!JSON.stringify(db.mtPartners).includes("secret99"), "ไม่เก็บรหัสตรง ๆ");
+  assert.match(db.mtSecrets.partners[pid].pin, /^s1./);
+  assert.equal((await call({ action: "partner-save", name: "ซ้ำ", username: "INV1", pin: "secret99", sites: [] })).status, 409);
+
+  /* ล็อกอินผ่าน /api/auth/login เดิม */
+  const login = await import("../api/auth/login.mjs");
+  const doLogin = async (u, pw) => { const r = await login.POST(new Request("http://x/api/auth/login", { method: "POST", body: JSON.stringify({ username: u, pin: pw }) })); return { status: r.status, body: await r.json() }; };
+  assert.equal((await doLogin("inv1", "wrong")).status, 401);
+  RULES_PLACED = false;
+  const l0 = await doLogin("inv1", "secret99");
+  assert.equal(l0.status, 503, "ยังไม่วางกฎ = ไม่ให้พาร์ทเนอร์เข้า");
+  assert.ok(!l0.body.token);
+  RULES_PLACED = true;
+  const l1 = await doLogin("inv1", "secret99");
+  assert.equal(l1.status, 200);
+  assert.equal(l1.body.partner, true);
+  const claims = JSON.parse(Buffer.from(l1.body.token.split(".")[1], "base64url").toString()).claims;
+  assert.deepEqual(claims, { ext: true, roles: ["partner"] });
+
+  /* พาร์ทเนอร์ทำได้: บริษัท+โลโก้ · ทะเบียนไซต์ · ราคา · บิล ของไซต์ตัวเอง */
+  const logo = "data:image/png;base64," + Buffer.from("png").toString("base64");
+  assert.equal((await call({ action: "company", company: { name: "บจก. พลังแดด", tax: "0105559999999", logo } }, pid)).status, 200);
+  assert.equal(db.mtPartners[pid].company.logo, logo);
+  assert.equal((await call({ action: "company", company: { logo: "data:text/html;base64,PHNjcmlwdD4=" } }, pid)).status, 400);
+  assert.equal((await call({ action: "site-info", n: 60, info: { cust: "โรงงาน ก" } }, pid)).status, 200);
+  assert.equal((await call({ action: "bill-cfg", n: 60, rate: 4.2, reg: "kwh_exp" }, pid)).status, 200);
+  assert.equal(db.mtSites[60].bill.reg, "kwh_imp", "พาร์ทเนอร์เปลี่ยนช่องที่จดไม่ได้");
+  const bs = await call({ action: "bill-save", n: 60, month: "2026-11" }, pid);
+  assert.equal(bs.status, 200);
+  const bill = db.mtBills[60]["202611"];
+  assert.equal(bill.rate, 4.2);
+  assert.equal(bill.issuer.name, "บจก. พลังแดด");
+  assert.equal(bill.issuer.logo, undefined, "ไม่คัดลอกโลโก้ลงทุกบิล");
+  assert.deepEqual([bill.by, bill.by_id, bill.by_kind], ["นักลงทุน", pid, "partner"]);
+  /* ทำไม่ได้: ไซต์คนอื่น · งานแอดมิน · บัญชีถูกปิด */
+  assert.equal((await call({ action: "bill-save", n: 61, month: "2026-11" }, pid)).status, 404);
+  assert.equal((await call({ action: "site-info", n: 61, info: { cust: "x" } }, pid)).status, 404);
+  for (const act of ["cmd", "pin-fp", "meter-cfg", "script", "remove", "edit", "partner-save", "info"])
+    assert.equal((await call({ action: act, n: 60, type: "reboot" }, pid)).status, 403, act);
+  assert.equal((await call({ action: "partner-pin", old: "wrong", pin: "newpass1" }, pid)).status, 403);
+  assert.equal((await call({ action: "partner-pin", old: "secret99", pin: "newpass1" }, pid)).status, 200);
+  assert.equal((await doLogin("inv1", "newpass1")).status, 200);
+  /* ย้ายไซต์ 60 ไปพาร์ทเนอร์ใหม่ → คนเดิมหลุดสิทธิ์ */
+  const c2 = await call({ action: "partner-save", name: "คนที่สอง", username: "inv2", pin: "secret22", sites: [60, 61] });
+  assert.equal(db.mtSites[60].owner, c2.body.id);
+  assert.ok(!(db.mtPartners[pid].sites || {})[60]);
+  assert.equal((await call({ action: "bill-save", n: 60, month: "2026-11" }, pid)).status, 404);
+  await call({ action: "partner-save", id: pid, name: "นักลงทุน", username: "inv1", active: false, sites: [] });
+  assert.equal((await call({ action: "company", company: { name: "x" } }, pid)).status, 403);
+  assert.equal((await doLogin("inv1", "newpass1")).status, 401);
 });
 
 test("agent ได้รุ่นมิเตอร์ของไซต์ไปด้วย", async () => {

@@ -67,7 +67,7 @@ function MtMonRow({ s, st, now, i, onOpen }) {
     <tr className="fs-row" onClick={onOpen} style={{ cursor: "pointer" }}>
       <td style={Object.assign({}, td, { maxWidth: 300 })}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(s.bill && s.bill.cust) || s.name}</span>
+          <span style={{ fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mtCustOf(s).cust || s.name}</span>
           {meterBad && <span title={"มิเตอร์ไม่ตอบ" + (m.error ? " — " + m.error : "")} style={{ display: "flex" }}><Icon name="alert" size={13} color="var(--tint-amber-tx)" /></span>}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 1 }}>{mtIdent(s)} · {MT_MODEL_TH[s.meter_model || "leos-ipm310"].split(" (")[0].split(" —")[0]}</div>
@@ -115,7 +115,7 @@ function MtMonCard({ s, st, now, picked, onPick }) {
         <div style={{ flex: 1 }} />
         {window.MtPill && <window.MtPill state={k} />}
       </div>
-      {s.bill && s.bill.cust && <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: -4 }}>{s.bill.cust}</div>}
+      {mtCustOf(s).cust && <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: -4 }}>{mtCustOf(s).cust}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div><div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>กำลังไฟตอนนี้</div>
           <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "var(--mono)" }}>{mtNum(v.kw, 2)} <span style={{ fontSize: 11, color: "var(--text-3)" }}>kW</span></div></div>
@@ -131,19 +131,21 @@ function MtMonCard({ s, st, now, picked, onPick }) {
 }
 
 /* ---------- รายละเอียดไซต์: แท็บ "มิเตอร์" / "บิลรายเดือน" (บิลกดจากในไซต์เท่านั้น — ผู้ใช้ 2026-11-11) ---------- */
-function MtMonDetail({ s, st, isAdmin, user, onBack }) {
+function MtMonDetail({ s, st, isAdmin, canEdit, onBack }) {
   const [tab, setTab] = React.useState("meter");
-  const opts = [{ value: "meter", label: "มิเตอร์" }, { value: "bill", label: "บิลรายเดือน" }];
+  const opts = [{ value: "meter", label: "มิเตอร์" }, { value: "bill", label: "บิลรายเดือน" }, { value: "info", label: "ข้อมูลไซต์" }];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <button className="btn" onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="chevronLeft" size={14} />ทุกไซต์</button>
-        <div style={{ fontWeight: 700 }}>{(s.bill && s.bill.cust) || mtIdent(s)}</div>
+        <div style={{ fontWeight: 700 }}>{mtCustOf(s).cust || mtIdent(s)}</div>
         <div style={{ flex: 1 }} />
         {window.Segmented ? <window.Segmented value={tab} onChange={setTab} options={opts} />
           : opts.map((o) => <button key={o.value} className={tab === o.value ? "btn btn-pri" : "btn"} onClick={() => setTab(o.value)}>{o.label}</button>)}
       </div>
-      {tab === "bill" ? <MtSiteBill s={s} st={st} isAdmin={isAdmin} user={user} /> : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
+      {tab === "bill" ? <MtSiteBill s={s} st={st} isAdmin={isAdmin} canEdit={canEdit} />
+        : tab === "info" ? <MtSiteInfo key={s.n} s={s} canEdit={canEdit} />
+        : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
     </div>
   );
 }
@@ -241,7 +243,8 @@ function MtMeterCfg({ s }) {
    บิลค่าไฟโซลาร์รายเดือน — แบบใบแจ้งค่าไฟของการไฟฟ้า (ผู้ใช้ 2026-11-11 "ไม่อยากทำเป็นใบแจ้งหนี้ อยากให้เหมือนเรียกเก็บแบบการไฟฟ้า
    ว่าจดยอดก่อนหลังเมื่อไหร่ คิดเป็นเงินเท่าไหร่" · "อยากแค่ให้อยู่ในส่วนนี้" = แสดงในแท็บบิลของไซต์ ไม่ผูกระบบใบแจ้งหนี้)
    จดครั้งก่อน = ค่าแรกของวันแรกที่มีข้อมูลในเดือน · จดครั้งนี้ = ค่าแรกของวันที่ 1 เดือนถัดไป (เดือนยังไม่จบ = ค่าสดตอนนี้)
-   เลขทั้งหมดเป็นเลข kWh สะสมของมิเตอร์จริง · แก้เลขเองได้ (แอดมิน) · บันทึก → mtBills/N/YYYYMM (เซิร์ฟเวอร์คิดเงิน+VAT ใหม่เอง)
+   เลขมิเตอร์แก้ไม่ได้ แก้ได้แค่ราคาต่อหน่วย (ผู้ใช้ 2026-11-11) — ตอนบันทึกเซิร์ฟเวอร์อ่านเลขเองด้วยสูตรเดียวกัน (billReadings ใน api/_lib/mikrotik.mjs)
+   ผู้ออกบิล = บริษัทของพาร์ทเนอร์เจ้าของไซต์ (mtPartners/{owner}/company) · ลูกค้า = ทะเบียนไซต์ (mtSites/N/info)
    ================================================================= */
 function mtMonthKeys(ym) {   // "2026-11" → { pre: "202611", next: "202612" }
   const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
@@ -257,6 +260,12 @@ function mtFmtAt(at) {
   return Number(m[3]) + " " + MT_TH_MON[Number(m[2]) - 1] + " " + (Number(m[1]) + 543) + (m[4] ? " เวลา " + m[4] + ":" + m[5] + " น." : "");
 }
 const mtMonTH = (ym) => MT_TH_MON_FULL[Number(ym.slice(5, 7)) - 1] + " " + (Number(ym.slice(0, 4)) + 543);
+function mtCustOf(s) {   // ทะเบียนไซต์ (info) · ไซต์เก่าที่ยังไม่ลงทะเบียนใช้ชื่อ/ที่อยู่จากตั้งค่าบิลเดิม
+  const o = Object.assign({}, s.info || {});
+  if (!o.cust) o.cust = (s.bill && s.bill.cust) || "";
+  if (!o.addr) o.addr = (s.bill && s.bill.addr) || "";
+  return o;
+}
 
 /* live = { v, at } ค่าสดจาก mtStatus — เดือนที่ยังไม่จบใช้เป็นเลขจดครั้งนี้ */
 function mtBillAuto(days, ym, reg, live) {
@@ -282,50 +291,97 @@ function mtBillAuto(days, ym, reg, live) {
   return out;
 }
 
+/* ---------- พิมพ์บิลที่บันทึกแล้ว (หน้าต่างใหม่ → สั่งพิมพ์/บันทึก PDF) ---------- */
+const mtEsc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function mtBillPrint(bill, s, logo) {
+  const w = window.open("", "_blank");
+  if (!w) return;
+  const iss = bill.issuer || {};
+  const n2 = (v) => mtNum(v, 2), n3 = (v) => mtNum(v, 3);
+  const ym = bill.month || "";
+  const baht = window.ecBahtText ? window.ecBahtText(bill.total) : "";
+  const logoOk = /^data:image\/(png|jpeg|webp);base64,/.test(String(logo || ""));
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + mtEsc(bill.no) + '</title><style>' +
+    'body{font-family:"IBM Plex Sans Thai",Tahoma,sans-serif;color:#111;margin:0;padding:28px;font-size:13px}' +
+    '.top{display:flex;gap:16px;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px}.top img{max-height:70px;max-width:160px}' +
+    'h1{font-size:18px;margin:14px 0 2px}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{padding:7px 8px;border-bottom:1px solid #ddd;text-align:left}' +
+    '.r{text-align:right;font-family:monospace;white-space:nowrap}.box{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.box div{background:#f5f5f5;padding:10px;border-radius:6px}' +
+    '.tot td{font-size:16px;font-weight:800;border-bottom:2px solid #111}.muted{color:#666;font-size:11px}@page{size:A4;margin:14mm}</style></head><body>' +
+    '<div class="top">' + (logoOk ? '<img src="' + logo + '">' : '') + '<div style="flex:1"><div style="font-size:16px;font-weight:800">' + mtEsc(iss.name || "") + '</div>' +
+    '<div>' + mtEsc(iss.addr || "").replace(/\n/g, "<br>") + '</div>' +
+    '<div>' + (iss.tax ? "เลขประจำตัวผู้เสียภาษี " + mtEsc(iss.tax) + (iss.branch ? " (" + mtEsc(iss.branch) + ")" : "") : "") + (iss.phone ? " · โทร " + mtEsc(iss.phone) : "") + '</div></div>' +
+    '<div style="text-align:right">เลขที่<br><b style="font-family:monospace">' + mtEsc(bill.no) + '</b><br>วันที่ออก ' + mtEsc(new Date(bill.at).toLocaleDateString("th-TH", { dateStyle: "long" })) + '</div></div>' +
+    '<h1>ใบแจ้งค่าไฟฟ้า ระบบโซลาร์เซลล์</h1><div>ประจำเดือน ' + mtEsc(mtMonTH(ym)) + '</div>' +
+    '<div class="box"><div><div class="muted">ผู้ใช้ไฟ</div><b>' + mtEsc(bill.cust) + '</b><br>' + mtEsc(bill.addr).replace(/\n/g, "<br>") +
+    (bill.cust_tax ? '<br>เลขประจำตัวผู้เสียภาษี ' + mtEsc(bill.cust_tax) + (bill.cust_branch ? " (" + mtEsc(bill.cust_branch) + ")" : "") : "") + '</div>' +
+    '<div><div class="muted">สถานที่ติดตั้ง / มิเตอร์</div><b>' + mtEsc(bill.place || mtIdent(s)) + '</b>' + (bill.ca ? '<br>เลขที่ผู้ใช้ไฟ ' + mtEsc(bill.ca) : "") +
+    (bill.meter_no ? '<br>เลขมิเตอร์ ' + mtEsc(bill.meter_no) : "") + '<br>' + mtEsc(MT_REG_TH[bill.reg] || "") + '</div></div>' +
+    '<table><tr><th>การจดหน่วย</th><th>วันที่ / เวลาที่จด</th><th class="r">เลขอ่านมิเตอร์ (kWh)</th></tr>' +
+    '<tr><td>จดครั้งก่อน</td><td>' + mtEsc(mtFmtAt(bill.start_at)) + '</td><td class="r">' + n3(bill.start) + '</td></tr>' +
+    '<tr><td>จดครั้งนี้</td><td>' + mtEsc(mtFmtAt(bill.end_at)) + '</td><td class="r">' + n3(bill.end) + '</td></tr>' +
+    '<tr><td colspan="2"><b>หน่วยที่ใช้</b></td><td class="r"><b>' + n3(bill.kwh) + '</b></td></tr></table>' +
+    '<table><tr><td>ค่าพลังงานไฟฟ้า ' + n2(bill.kwh) + ' หน่วย × ' + mtNum(bill.rate, 4) + ' บาท/หน่วย</td><td class="r">' + n2(bill.amount) + '</td></tr>' +
+    '<tr><td>ภาษีมูลค่าเพิ่ม ' + (bill.vat_rate ? bill.vat_rate + "%" : "(ไม่คิด)") + '</td><td class="r">' + n2(bill.vat) + '</td></tr>' +
+    '<tr class="tot"><td>รวมเงินที่ต้องชำระ' + (baht ? '<div style="font-size:12px;font-weight:600">(' + mtEsc(baht) + ')</div>' : "") + '</td><td class="r">' + n2(bill.total) + ' บาท</td></tr></table>' +
+    '<p class="muted">เลขมิเตอร์อ่านอัตโนมัติจากมิเตอร์ของระบบ · ออกบิลโดย ' + mtEsc(bill.by) + '</p>' +
+    '<script>setTimeout(function(){print()},300)<\/script></body></html>');
+  w.document.close();
+}
+
 /* ---------- ใบแจ้งค่าไฟของเดือนเดียว ---------- */
-function MtBillSheet({ s, st, ym, isAdmin, onCfg }) {
+function MtBillSheet({ s, st, ym, canEdit, onCfg }) {
   const days = useMtRef("mtMeter/" + s.n + "/d");
   const saved = useMtRef("mtBills/" + s.n + "/" + ym.replace("-", ""));
+  const owner = useMtRef(s.owner ? "mtPartners/" + s.owner : "");
   const reg = mtRegOf(s);
   const b = s.bill || {};
   const live = st && st.meter && st.meter.modbus && st.meter.modbus.ok && st.meter.v ? { v: st.meter.v, at: Date.parse(st.at) } : null;
   const auto = React.useMemo(() => mtBillAuto(days, ym, reg, live), [days, ym, reg, live && live.v[reg], live && live.at]);
-  const [edit, setEdit] = React.useState(false);
-  const [ov, setOv] = React.useState({});
+  const [recalc, setRecalc] = React.useState(false);
+  const [rateIn, setRateIn] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
-  /* บิลที่บันทึกแล้ว = ค่าทางการ (ไม่เปลี่ยนตามมิเตอร์) · ยังไม่บันทึก/กำลังแก้ = คำนวณจากมิเตอร์ */
-  const useSaved = saved && !edit;
+  /* บิลที่บันทึกแล้ว = ค่าทางการ (ไม่เปลี่ยนตามมิเตอร์) · ยังไม่บันทึก/กดคำนวณใหม่ = คำนวณจากมิเตอร์ */
+  const useSaved = saved && !recalc;
   const src = useSaved ? saved : auto;
-  const num = (k) => (ov[k] != null && ov[k] !== "" ? Number(ov[k]) : src[k] == null ? null : Number(src[k]));
-  const start = num("start"), end = num("end");
-  const rate = useSaved ? Number(saved.rate) : ov.rate != null && ov.rate !== "" ? Number(ov.rate) : b.rate != null ? Number(b.rate) : null;
+  const start = src.start == null ? null : Number(src.start), end = src.end == null ? null : Number(src.end);
+  const rate = useSaved ? Number(saved.rate) : rateIn != null && rateIn !== "" ? Number(rateIn) : b.rate != null ? Number(b.rate) : null;
   const vatRate = useSaved ? Number(saved.vat_rate || 0) : b.vat === false ? 0 : 7;
   const ok = start != null && end != null && isFinite(start) && isFinite(end) && end >= start;
   const kwh = ok ? Math.round((end - start) * 1000) / 1000 : null;
-  const amount = ok && rate != null ? Math.round(kwh * rate * 100) / 100 : null;
+  const amount = ok && rate != null && isFinite(rate) ? Math.round(kwh * rate * 100) / 100 : null;
   const vat = amount != null ? Math.round(amount * vatRate) / 100 : null;
   const total = amount != null ? Math.round((amount + vat) * 100) / 100 : null;
-  const startAt = ov.start != null ? "" : src.start_at, endAt = ov.end != null ? "" : src.end_at;
+  const company = (owner && owner.company) || {};
+  const iss = useSaved ? saved.issuer || null : s.owner ? Object.assign({ name: owner && owner.name }, company) : null;
+  const logo = iss && s.owner && (!useSaved || !saved.issuer || saved.issuer.pid === s.owner) ? company.logo : "";
+  const ci = useSaved ? { cust: saved.cust, addr: saved.addr, tax: saved.cust_tax, branch: saved.cust_branch, place: saved.place, ca: saved.ca, meter_no: saved.meter_no } : mtCustOf(s);
   const save = async () => {
     setBusy(true); setErr("");
     try {
-      await mtCall({ action: "bill-save", n: s.n, month: ym, start, end, rate, reg,
-        start_at: startAt, end_at: endAt, start_src: ov.start != null ? "พิมพ์เอง" : "มิเตอร์", end_src: ov.end != null ? "พิมพ์เอง" : auto.partial ? "ค่าสด" : "มิเตอร์" });
-      setEdit(false); setOv({});
+      await mtCall({ action: "bill-save", n: s.n, month: ym, rate });
+      setRecalc(false); setRateIn(null);
     } catch (e) { setErr(String(e.message || e)); }
     setBusy(false);
   };
-  const inp = (k, v, w) => (
-    <input value={ov[k] != null ? ov[k] : v == null ? "" : String(v)} onChange={(e) => setOv(Object.assign({}, ov, { [k]: e.target.value.replace(/[^\d.]/g, "") }))}
-      style={Object.assign({}, mtField, { width: w || 130, padding: "5px 8px", textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" })} />
-  );
   const L = { fontSize: 12, color: "var(--text-3)", padding: "7px 10px" };
   const V = { fontSize: 13.5, fontFamily: "var(--mono)", textAlign: "right", padding: "7px 10px", whiteSpace: "nowrap" };
   const box = { background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "10px 12px" };
   const baht = window.ecBahtText && total != null ? window.ecBahtText(total) : "";
+  const hist = saved && saved.hist ? Object.keys(saved.hist).sort().reverse().map((k) => saved.hist[k]) : [];
   return (
     <div style={Object.assign({}, mtCard, { gap: 12 })}>
+      {/* ผู้ออกบิล (บริษัทพาร์ทเนอร์เจ้าของไซต์) */}
+      {iss && (iss.name || logo) && (
+        <div style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: 10, borderBottom: "1px solid var(--line, rgba(0,0,0,.08))" }}>
+          {logo && <img src={logo} alt="" style={{ maxHeight: 52, maxWidth: 130, objectFit: "contain" }} />}
+          <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>{iss.name}</div>
+            {iss.addr && <div style={{ whiteSpace: "pre-line" }}>{iss.addr}</div>}
+            {(iss.tax || iss.phone) && <div>{iss.tax ? "เลขประจำตัวผู้เสียภาษี " + iss.tax + (iss.branch ? " (" + iss.branch + ")" : "") : ""}{iss.phone ? " · โทร " + iss.phone : ""}</div>}
+          </div>
+        </div>
+      )}
       {/* หัวใบ */}
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
@@ -336,24 +392,26 @@ function MtBillSheet({ s, st, ym, isAdmin, onCfg }) {
         <div style={{ textAlign: "right", fontSize: 12 }}>
           <div style={{ color: "var(--text-3)" }}>เลขที่</div>
           <div style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{(saved && saved.no) || "SITE" + mtPad(s.n) + "-" + ym.replace("-", "")}</div>
-          {saved ? <div style={{ color: "var(--tint-ok-tx)", fontWeight: 700, marginTop: 2 }}>บันทึกแล้ว {new Date(saved.at).toLocaleDateString("th-TH")}</div>
-            : <div style={{ color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 2 }}>ยังไม่บันทึก</div>}
+          {saved ? <div style={{ color: "var(--tint-ok-tx)", fontWeight: 700, marginTop: 2 }}>ออกบิลแล้ว {new Date(saved.at).toLocaleDateString("th-TH")}</div>
+            : <div style={{ color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 2 }}>ยังไม่ออกบิล</div>}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
         <div style={box}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>ผู้ใช้ไฟ</div>
-          <div style={{ fontSize: 13.5, fontWeight: 700 }}>{(useSaved && saved.cust) || b.cust || <span style={{ color: "var(--tint-amber-tx)" }}>ยังไม่ตั้งชื่อลูกค้า</span>}</div>
-          {((useSaved && saved.addr) || b.addr) && <div style={{ fontSize: 12, color: "var(--text-2)", whiteSpace: "pre-line" }}>{(useSaved && saved.addr) || b.addr}</div>}
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>{ci.cust || <span style={{ color: "var(--tint-amber-tx)" }}>ยังไม่ลงทะเบียนลูกค้า (แท็บข้อมูลไซต์)</span>}</div>
+          {ci.addr && <div style={{ fontSize: 12, color: "var(--text-2)", whiteSpace: "pre-line" }}>{ci.addr}</div>}
+          {ci.tax && <div style={{ fontSize: 12, color: "var(--text-2)" }}>เลขประจำตัวผู้เสียภาษี {ci.tax}{ci.branch ? " (" + ci.branch + ")" : ""}</div>}
         </div>
         <div style={box}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>สถานที่ติดตั้ง / มิเตอร์</div>
-          <div style={{ fontSize: 13, fontFamily: "var(--mono)", fontWeight: 700 }}>{mtIdent(s)}</div>
-          <div style={{ fontSize: 12, color: "var(--text-2)" }}>{MT_MODEL_TH[s.meter_model || "leos-ipm310"].split(" (")[0].split(" —")[0]} · 10.10.{s.n}.20 · {MT_REG_TH[reg]}</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{ci.place || <span style={{ fontFamily: "var(--mono)" }}>{mtIdent(s)}</span>}</div>
+          {(ci.ca || ci.meter_no) && <div style={{ fontSize: 12, color: "var(--text-2)" }}>{ci.ca ? "เลขที่ผู้ใช้ไฟ " + ci.ca : ""}{ci.ca && ci.meter_no ? " · " : ""}{ci.meter_no ? "เลขมิเตอร์ " + ci.meter_no : ""}</div>}
+          <div style={{ fontSize: 12, color: "var(--text-2)" }}>{MT_MODEL_TH[s.meter_model || "leos-ipm310"].split(" (")[0].split(" —")[0]} · {MT_REG_TH[reg]}</div>
         </div>
       </div>
 
-      {/* ตารางจดหน่วย */}
+      {/* ตารางจดหน่วย — เลขจากมิเตอร์ แก้ไม่ได้ */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead><tr>
           <th style={Object.assign({}, L, { textAlign: "left", fontWeight: 700 })}>การจดหน่วย</th>
@@ -363,13 +421,13 @@ function MtBillSheet({ s, st, ym, isAdmin, onCfg }) {
         <tbody>
           <tr style={{ background: "var(--fs-zebra)" }}>
             <td style={Object.assign({}, L, { color: "var(--text-1)" })}>จดครั้งก่อน</td>
-            <td style={Object.assign({}, L, { color: "var(--text-1)" })}>{ov.start != null ? "พิมพ์เอง" : mtFmtAt(startAt)}</td>
-            <td style={V}>{edit ? inp("start", src.start) : mtNum(start, 3)}</td>
+            <td style={Object.assign({}, L, { color: "var(--text-1)" })}>{mtFmtAt(src.start_at)}</td>
+            <td style={V}>{mtNum(start, 3)}</td>
           </tr>
           <tr>
             <td style={Object.assign({}, L, { color: "var(--text-1)" })}>จดครั้งนี้</td>
-            <td style={Object.assign({}, L, { color: "var(--text-1)" })}>{ov.end != null ? "พิมพ์เอง" : mtFmtAt(endAt)}{!useSaved && auto.partial && ov.end == null ? " (ค่าสด)" : ""}</td>
-            <td style={V}>{edit ? inp("end", src.end) : mtNum(end, 3)}</td>
+            <td style={Object.assign({}, L, { color: "var(--text-1)" })}>{mtFmtAt(src.end_at)}{(useSaved ? saved.partial : auto.partial) ? " (ค่าสด)" : ""}</td>
+            <td style={V}>{mtNum(end, 3)}</td>
           </tr>
           <tr style={{ background: "var(--fs-zebra)" }}>
             <td style={Object.assign({}, L, { color: "var(--text-1)", fontWeight: 700 })} colSpan={2}>หน่วยที่ใช้ (ครั้งนี้ − ครั้งก่อน)</td>
@@ -378,14 +436,18 @@ function MtBillSheet({ s, st, ym, isAdmin, onCfg }) {
         </tbody>
       </table>
 
-      {/* ค่าไฟ */}
+      {/* ค่าไฟ — แก้ได้แค่ราคาต่อหน่วย */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <tbody>
           <tr>
             <td style={Object.assign({}, L, { color: "var(--text-1)" })}>
-              ค่าพลังงานไฟฟ้า {mtNum(kwh, 2)} หน่วย × {edit ? inp("rate", rate, 80) : rate == null ? "—" : mtNum(rate, 4)} บาท/หน่วย
+              ค่าพลังงานไฟฟ้า {mtNum(kwh, 2)} หน่วย ×{" "}
+              {!useSaved && canEdit
+                ? <input value={rateIn != null ? rateIn : rate == null ? "" : String(rate)} placeholder="ราคา" onChange={(e) => setRateIn(e.target.value.replace(/[^\d.]/g, ""))}
+                    style={Object.assign({}, mtField, { width: 90, padding: "5px 8px", textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" })} />
+                : rate == null ? "—" : mtNum(rate, 4)}{" "}บาท/หน่วย
             </td>
-            <td style={V}>{rate == null ? (isAdmin ? <button className="btn btn-sm btn-soft" onClick={onCfg} style={{ fontFamily: "inherit" }}>ตั้งราคา/หน่วยก่อน</button> : "—") : mtNum(amount, 2)}</td>
+            <td style={V}>{mtNum(amount, 2)}</td>
           </tr>
           <tr>
             <td style={Object.assign({}, L, { color: "var(--text-1)" })}>ภาษีมูลค่าเพิ่ม {vatRate ? vatRate + "%" : "(ไม่คิด)"}</td>
@@ -401,25 +463,28 @@ function MtBillSheet({ s, st, ym, isAdmin, onCfg }) {
       </table>
 
       {!useSaved && auto.warn.map((w, i) => <div key={i} style={{ fontSize: 11.5, color: "var(--tint-amber-tx)" }}>{w}</div>)}
-      {useSaved && (saved.start_src === "พิมพ์เอง" || saved.end_src === "พิมพ์เอง") && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>มีเลขที่พิมพ์เอง · บันทึกโดย {saved.by}</div>}
-      {useSaved && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เลขในใบนี้คือค่าที่บันทึกไว้ ไม่เปลี่ยนตามมิเตอร์ · บันทึกโดย {saved.by}</div>}
-      {err && <div style={mtErrBox}>{err}</div>}
-      {isAdmin && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button className="btn btn-sm btn-soft" onClick={onCfg}>ตั้งค่าบิล</button>
-          {edit ? <button className="btn btn-sm" onClick={() => { setEdit(false); setOv({}); }}>ยกเลิกแก้</button>
-            : <button className="btn btn-sm" onClick={() => setEdit(true)}>{saved ? "คำนวณใหม่ / แก้เลข" : "แก้เลขเอง"}</button>}
-          {(!useSaved) && <button className="btn btn-sm btn-pri" disabled={!ok || rate == null || busy} onClick={save}>{busy ? "กำลังบันทึก…" : saved ? "บันทึกทับ" : "บันทึกบิล"}</button>}
+      {!useSaved && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เลขมิเตอร์อ่านอัตโนมัติ แก้ไม่ได้ · แก้ได้เฉพาะราคาต่อหน่วย</div>}
+      {useSaved && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ออกบิลโดย <b>{saved.by}</b>{saved.by_kind === "partner" ? " (พาร์ทเนอร์)" : ""} · {mtWhen(saved.at)} · เลขในใบนี้คือค่าที่บันทึกไว้ ไม่เปลี่ยนตามมิเตอร์</div>}
+      {hist.length > 0 && (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+          ฉบับก่อนหน้า (ถูกออกทับ): {hist.map((h, i) => <span key={i}>{i ? " · " : ""}{mtWhen(h.at)} โดย {h.by} = {mtNum(h.total, 2)} บาท</span>)}
         </div>
       )}
+      {err && <div style={mtErrBox}>{err}</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {canEdit && <button className="btn btn-sm btn-soft" onClick={onCfg}>ตั้งค่าบิล</button>}
+        {useSaved && <button className="btn btn-sm" onClick={() => mtBillPrint(saved, s, logo)}>พิมพ์ / PDF</button>}
+        {canEdit && useSaved && <button className="btn btn-sm" onClick={() => setRecalc(true)}>คำนวณใหม่</button>}
+        {canEdit && recalc && <button className="btn btn-sm" onClick={() => { setRecalc(false); setRateIn(null); }}>ยกเลิก</button>}
+        {canEdit && !useSaved && <button className="btn btn-sm btn-pri" disabled={!ok || rate == null || !isFinite(rate) || busy} onClick={save}>{busy ? "กำลังบันทึก…" : saved ? "ออกบิลทับ" : "ออกบิล"}</button>}
+      </div>
     </div>
   );
 }
 
-function MtBillCfg({ s, onClose }) {
+/* ตั้งค่าบิล: ราคาต่อหน่วย + VAT · ช่องที่จดของมิเตอร์แก้ได้เฉพาะแอดมิน */
+function MtBillCfg({ s, isAdmin, onClose }) {
   const b = s.bill || {};
-  const [cust, setCust] = React.useState(b.cust || "");
-  const [addr, setAddr] = React.useState(b.addr || "");
   const [rate, setRate] = React.useState(b.rate == null ? "" : String(b.rate));
   const [reg, setReg] = React.useState(b.reg || "kwh_imp");
   const [vat, setVat] = React.useState(b.vat !== false);
@@ -427,22 +492,20 @@ function MtBillCfg({ s, onClose }) {
   const [busy, setBusy] = React.useState(false);
   const save = async () => {
     setBusy(true); setErr("");
-    try { await mtCall({ action: "bill-cfg", n: s.n, cust, addr, rate: Number(rate), reg, vat }); onClose(); } catch (e) { setErr(String(e.message || e)); }
+    try { await mtCall(Object.assign({ action: "bill-cfg", n: s.n, rate: Number(rate), vat }, isAdmin ? { reg } : {})); onClose(); } catch (e) { setErr(String(e.message || e)); }
     setBusy(false);
   };
   const fld = Object.assign({}, mtField, { background: "var(--surface2)", boxShadow: "var(--shadow-inset)" });
   return (
     <div style={mtCard}>
       <div style={{ fontSize: 13.5, fontWeight: 700 }}>ตั้งค่าบิล {mtIdent(s)}</div>
-      <div><div style={mtLbl}>ชื่อผู้ใช้ไฟ (ลูกค้า)</div><input value={cust} onChange={(e) => setCust(e.target.value)} style={fld} placeholder="เช่น บริษัท ไทยสตีล จำกัด" /></div>
-      <div><div style={mtLbl}>ที่อยู่</div><textarea rows={2} value={addr} onChange={(e) => setAddr(e.target.value)} style={Object.assign({}, fld, { resize: "vertical" })} /></div>
-      <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isAdmin ? "140px 1fr" : "160px", gap: 10 }}>
         <div><div style={mtLbl}>ราคา (บาท/หน่วย)</div><input value={rate} onChange={(e) => setRate(e.target.value.replace(/[^\d.]/g, ""))} style={Object.assign({}, fld, { textAlign: "right", fontFamily: "var(--mono)" })} /></div>
-        <div><div style={mtLbl}>จดหน่วยจากช่องไหนของมิเตอร์</div>
-          <select value={reg} onChange={(e) => setReg(e.target.value)} style={fld}>{Object.keys(MT_REG_TH).map((k) => <option key={k} value={k}>{MT_REG_TH[k]}</option>)}</select></div>
+        {isAdmin && <div><div style={mtLbl}>จดหน่วยจากช่องไหนของมิเตอร์</div>
+          <select value={reg} onChange={(e) => setReg(e.target.value)} style={fld}>{Object.keys(MT_REG_TH).map((k) => <option key={k} value={k}>{MT_REG_TH[k]}</option>)}</select></div>}
       </div>
       <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}><input type="checkbox" checked={vat} onChange={(e) => setVat(e.target.checked)} /> คิดภาษีมูลค่าเพิ่ม 7%</label>
-      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>มิเตอร์วัดไฟโซลาร์จ่ายเข้าโรงงาน ปกติใช้ Import · ถ้าเลขไม่เดินทั้งที่ผลิตอยู่ ให้ลอง Export (ขึ้นกับทิศการต่อ CT)</div>
+      {isAdmin && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>มิเตอร์วัดไฟโซลาร์จ่ายเข้าโรงงาน ปกติใช้ Import · ถ้าเลขไม่เดินทั้งที่ผลิตอยู่ ให้ลอง Export (ขึ้นกับทิศการต่อ CT)</div>}
       {err && <div style={mtErrBox}>{err}</div>}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button className="btn" onClick={onClose} disabled={busy}>ยกเลิก</button>
@@ -452,8 +515,8 @@ function MtBillCfg({ s, onClose }) {
   );
 }
 
-/* ---------- แท็บบิลของไซต์: เลือกเดือน + ใบแจ้งค่าไฟ + ประวัติบิล ---------- */
-function MtSiteBill({ s, st, isAdmin }) {
+/* ---------- แท็บบิลของไซต์: เลือกเดือน + ใบแจ้งค่าไฟ + ประวัติบิล (ใครออก เมื่อไหร่) ---------- */
+function MtSiteBill({ s, st, isAdmin, canEdit }) {
   const cur = (() => { const t = mtThDay(); return t.slice(0, 4) + "-" + t.slice(4, 6); })();
   const prev = (() => { const d = new Date(Date.now() + 7 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); })();
   const days = useMtRef("mtMeter/" + s.n + "/d");
@@ -475,25 +538,29 @@ function MtSiteBill({ s, st, isAdmin }) {
         <input type="month" value={ym} max={cur} onChange={(e) => e.target.value && setYm(e.target.value)}
           style={Object.assign({}, mtField, { width: "auto", padding: "6px 10px", background: "var(--surface)", boxShadow: "var(--shadow-sm)" })} />
       </div>
-      {cfg && <MtBillCfg s={s} onClose={() => setCfg(false)} />}
-      <MtBillSheet key={ym} s={s} st={st} ym={ym} isAdmin={isAdmin} onCfg={() => setCfg(true)} />
+      {cfg && <MtBillCfg s={s} isAdmin={isAdmin} onClose={() => setCfg(false)} />}
+      <MtBillSheet key={ym} s={s} st={st} ym={ym} canEdit={canEdit} onCfg={() => setCfg(true)} />
       {past.length > 0 && (
         <div style={mtCard}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>ประวัติบิล</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>บิลที่ออกแล้ว</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr><th style={th}>เดือน</th><th style={th}>จดครั้งก่อน</th><th style={th}>จดครั้งนี้</th>
-                <th style={Object.assign({}, th, { textAlign: "right" })}>หน่วย</th><th style={Object.assign({}, th, { textAlign: "right" })}>รวมเงิน (บาท)</th></tr></thead>
+              <thead><tr><th style={th}>เดือน</th><th style={th}>เลขที่</th><th style={th}>จดครั้งก่อน</th><th style={th}>จดครั้งนี้</th>
+                <th style={Object.assign({}, th, { textAlign: "right" })}>หน่วย</th><th style={Object.assign({}, th, { textAlign: "right" })}>รวมเงิน (บาท)</th>
+                <th style={th}>ออกบิลโดย</th></tr></thead>
               <tbody>{past.map((k, i) => {
                 const b = bills[k] || {}; const td = { padding: "8px", fontSize: 12.5, background: i % 2 ? "var(--fs-zebra)" : "transparent" };
                 const nm = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
+                const nh = b.hist ? Object.keys(b.hist).length : 0;
                 return (
                   <tr key={k} className="fs-row" onClick={() => setYm(k.slice(0, 4) + "-" + k.slice(4))} style={{ cursor: "pointer" }}>
                     <td style={Object.assign({}, td, { fontWeight: 700 })}>{mtMonTH(k.slice(0, 4) + "-" + k.slice(4))}</td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{b.no}</td>
                     <td style={td}>{mtFmtAt(b.start_at).replace(/ เวลา.*/, "")} · {mtNum(b.start, 1)}</td>
                     <td style={td}>{mtFmtAt(b.end_at).replace(/ เวลา.*/, "")} · {mtNum(b.end, 1)}</td>
                     <td style={nm}>{mtNum(b.kwh, 2)}</td>
                     <td style={Object.assign({}, nm, { fontWeight: 700 })}>{mtNum(b.total != null ? b.total : b.amount, 2)}</td>
+                    <td style={Object.assign({}, td, { whiteSpace: "nowrap" })}>{b.by || "—"} <span style={{ color: "var(--text-3)", fontSize: 11 }}>{mtWhen(b.at)}{nh ? " · ออกทับ " + nh + " ครั้ง" : ""}</span></td>
                   </tr>
                 ); })}</tbody>
             </table>
@@ -504,16 +571,68 @@ function MtSiteBill({ s, st, isAdmin }) {
   );
 }
 
-/* ---------- หน้า MikroTik Monitoring: ตารางทุกไซต์ → กดแถว = รายละเอียดไซต์ (มิเตอร์ / บิล) ---------- */
-function MtMonView({ role, currentUser }) {
-  const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
-  const { list, loading } = useMtSites();
-  const status = window.useMtStatus ? window.useMtStatus() : null;
+/* ---------- ทะเบียนไซต์: ข้อมูลลูกค้า/สถานที่ที่ขึ้นบนบิล (แอดมิน หรือพาร์ทเนอร์เจ้าของไซต์) ---------- */
+const MT_INFO_FIELDS = [
+  ["cust", "ชื่อลูกค้า (ผู้ใช้ไฟ)", "เช่น บริษัท ไทยสตีล จำกัด", 2], ["tax", "เลขประจำตัวผู้เสียภาษีลูกค้า", "13 หลัก", 1], ["branch", "สาขา", "สำนักงานใหญ่ / 00001", 1],
+  ["addr", "ที่อยู่ลูกค้า (ขึ้นบนบิล)", "", 2, true], ["place", "สถานที่ติดตั้ง", "เช่น หลังคาโรงงาน 2 นิคมอมตะซิตี้", 2],
+  ["contact", "ผู้ติดต่อ", "", 1], ["phone", "โทร", "", 1], ["ca", "เลขที่ผู้ใช้ไฟ (การไฟฟ้า)", "", 1], ["meter_no", "เลขมิเตอร์ (S/N)", "", 1],
+  ["kwp", "ขนาดระบบ (kWp)", "", 1], ["cod", "วันเริ่มจ่ายไฟ", "", 1, false, "date"], ["note", "หมายเหตุ", "", 2, true],
+];
+function MtSiteInfo({ s, canEdit }) {
+  const [f, setF] = React.useState(() => { const c = mtCustOf(s); const o = {}; MT_INFO_FIELDS.forEach(([k]) => { o[k] = c[k] == null ? "" : String(c[k]); }); return o; });
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const save = async () => {
+    setBusy(true); setErr(""); setMsg("");
+    try { await mtCall({ action: "site-info", n: s.n, info: f }); setMsg("บันทึกแล้ว"); } catch (e) { setErr(String(e.message || e)); }
+    setBusy(false);
+  };
+  const fld = Object.assign({}, mtField, { background: "var(--surface2)", boxShadow: "var(--shadow-inset)" });
+  return (
+    <div style={mtCard}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>ทะเบียนไซต์</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)" }}>ข้อมูลลูกค้าและสถานที่ที่ขึ้นบนบิล · {mtIdent(s)}</div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+        {MT_INFO_FIELDS.map(([k, label, ph, span, multi, type]) => (
+          <div key={k} style={{ gridColumn: span === 2 ? "1 / -1" : undefined }}>
+            <div style={mtLbl}>{label}</div>
+            {multi ? <textarea rows={2} disabled={!canEdit} value={f[k]} placeholder={ph} onChange={(e) => setF(Object.assign({}, f, { [k]: e.target.value }))} style={Object.assign({}, fld, { resize: "vertical" })} />
+              : <input type={type || "text"} disabled={!canEdit} value={f[k]} placeholder={ph} onChange={(e) => setF(Object.assign({}, f, { [k]: k === "kwp" ? e.target.value.replace(/[^\d.]/g, "") : e.target.value }))} style={fld} />}
+          </div>
+        ))}
+      </div>
+      {s.info && s.info.by && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>แก้ล่าสุดโดย {s.info.by} · {mtWhen(s.info.at)}</div>}
+      {err && <div style={mtErrBox}>{err}</div>}
+      {canEdit && (
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
+          {msg && <span style={{ fontSize: 12.5, color: "var(--tint-ok-tx)", fontWeight: 700 }}>{msg}</span>}
+          <button className="btn btn-pri" disabled={busy} onClick={save}>{busy ? "กำลังบันทึก…" : "บันทึกทะเบียนไซต์"}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- หน้า MikroTik Monitoring: ตารางทุกไซต์ → กดแถว = รายละเอียดไซต์ (มิเตอร์ / บิล / ข้อมูลไซต์) ----------
+   partner = บัญชีพาร์ทเนอร์ (mtPartners/{uid}) → เห็นแค่ไซต์ของตัวเอง อ่านทีละไซต์ (กฎไม่ให้อ่านทั้งโหนด) · ไม่มีเครื่องมือแอดมิน */
+function MtMonView({ role, currentUser, partner }) {
+  const isAdmin = !partner && (window.hasRole ? window.hasRole(role, "admin") : false);
+  const all = partner ? null : useMtSites();
+  const allStatus = partner ? null : (window.useMtStatus ? window.useMtStatus() : null);
+  const mine = partner ? window.useMtPartnerData(partner) : null;
+  const { list, loading } = partner ? mine : all;
+  const status = partner ? mine.status : allStatus;
   const now = useMtNowMon();
   const [pick, setPick] = React.useState(null);
+  const [admin, setAdmin] = React.useState(false);
   const sites = list.filter((s) => s.meter_model !== "none" || (status && status[s.n]));
   const sel = pick == null ? null : sites.find((s) => s.n === pick);
-  if (sel) return <MtMonDetail key={sel.n} s={sel} st={status && status[sel.n]} isAdmin={isAdmin} user={currentUser} onBack={() => setPick(null)} />;
+  const canEdit = (s) => isAdmin || !!(partner && s.owner === partner.id);
+  if (sel) return <MtMonDetail key={sel.n} s={sel} st={status && status[sel.n]} isAdmin={isAdmin} canEdit={canEdit(sel)} onBack={() => setPick(null)} />;
+  if (admin && window.MtPartnerAdmin) return <window.MtPartnerAdmin sites={list} onBack={() => setAdmin(false)} />;
   const online = list.filter((s) => window.mtState && window.mtState(s, status && status[s.n], now).tone === "green").length;
   const kwNow = list.reduce((t, s) => { const v = status && status[s.n] && status[s.n].meter && status[s.n].meter.v; return t + (v && v.kw > 0 ? v.kw : 0); }, 0);
   const ag = status && status._agent;
@@ -522,11 +641,16 @@ function MtMonView({ role, currentUser }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12 }}>
         <MtStat label="ไซต์ออนไลน์" value={online + "/" + list.length} unit="ไซต์" />
         <MtStat label="กำลังไฟรวมตอนนี้" value={mtNum(kwNow, 1)} unit="kW" sub="รวมทุกมิเตอร์" />
-        <MtStat label="agent บน VPS" value={ag ? (now - Date.parse(ag.at || ag.seen) < 5 * 60e3 ? "ปกติ" : "เงียบ") : "—"} unit=""
-          sub={ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") : "ยังไม่ได้ติดตั้ง"} />
+        {!partner && <MtStat label="agent บน VPS" value={ag ? (now - Date.parse(ag.at || ag.seen) < 5 * 60e3 ? "ปกติ" : "เงียบ") : "—"} unit=""
+          sub={ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") : "ยังไม่ได้ติดตั้ง"} />}
       </div>
+      {isAdmin && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn btn-soft" onClick={() => setAdmin(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="user" size={14} />บัญชีพาร์ทเนอร์ / มอบไซต์</button>
+        </div>
+      )}
       {loading ? <div style={{ padding: 18, color: "var(--text-3)", fontSize: 12.5 }}>กำลังโหลด…</div>
-        : !sites.length ? <div style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีไซต์ — เพิ่มที่ ตั้งค่า → ไซต์ MikroTik</div></div>
+        : !sites.length ? <div style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>{partner ? "ยังไม่มีไซต์ที่มอบให้บัญชีนี้ — ติดต่อแอดมิน" : "ยังไม่มีไซต์ — เพิ่มที่ ตั้งค่า → ไซต์ MikroTik"}</div></div>
         : (
           <MtMonTable sites={sites} status={status} now={now} onOpen={setPick} />
         )}
@@ -541,3 +665,4 @@ function useMtNowMon() {
 
 window.MtMonView = MtMonView;
 window.mtBillAuto = mtBillAuto;
+window.MtSiteInfo = MtSiteInfo;

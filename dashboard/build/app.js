@@ -3470,4 +3470,11 @@ function MapModal({
     onOpen: onOpen
   }))));
 }
-(window.FB_AUTH_READY || Promise.resolve()).then(() => ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null)));
+(window.FB_AUTH_READY || Promise.resolve()).then(async u => {
+  let partner = false;
+  try {
+    const cur = window.FBAUTH && window.FBAUTH.currentUser;
+    if (cur && /^p-/.test(cur.uid)) partner = !!(await cur.getIdTokenResult()).claims.ext;
+  } catch (e) {}
+  ReactDOM.createRoot(document.getElementById("root")).render(partner && window.PartnerApp ? React.createElement(window.PartnerApp, null) : React.createElement(App, null));
+});

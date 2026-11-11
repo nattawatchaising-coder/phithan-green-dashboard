@@ -78,6 +78,36 @@ export function billCalc(b) {
   return { month, start: r3(start), end: r3(end), kwh, rate, amount, vat_rate, vat, total: r2(amount + vat), reg: b.reg,
     start_src: src(b.start_src), end_src: src(b.end_src), start_at: at(b.start_at), end_at: at(b.end_at) };
 }
+/* เลขจดครั้งก่อน/ครั้งนี้จากข้อมูลมิเตอร์ที่ agent เก็บ (mtMeter/N/d) — สูตรเดียวกับ mtBillAuto ใน dashboard/mikrotik-mon.jsx
+   ผู้ใช้สั่ง 2026-11-11 "เลขไม่ต้องให้แก้ แก้แค่ราคาต่อหน่วย" → เซิร์ฟเวอร์คิดเลขเองตอนบันทึก ไม่รับเลขจากหน้าเว็บ
+   days = { YYYYMMDD: { first:{t,kwh_*}, last } } · live = { v, at(ms) } ค่าสดจาก mtStatus (เดือนที่ยังไม่จบ) */
+export function thDayKey(ms) {
+  const d = new Date(ms + 7 * 3600e3);
+  return d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, "0") + String(d.getUTCDate()).padStart(2, "0");
+}
+const atOf = (dayKey, hm) => dayKey.slice(0, 4) + "-" + dayKey.slice(4, 6) + "-" + dayKey.slice(6) + " " + String(hm || "0000").slice(0, 2) + ":" + String(hm || "0000").slice(2, 4);
+export function billReadings(days, ym, reg, live) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(ym || ""))) return { error: "เดือนต้องเป็น YYYY-MM" };
+  const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+  const pre = ym.replace("-", ""), next = (m === 12 ? y + 1 : y) + String(m === 12 ? 1 : m + 1).padStart(2, "0");
+  const D = days && typeof days === "object" ? days : {};
+  const inMon = Object.keys(D).sort().filter((k) => k.slice(0, 6) === pre && D[k] && D[k].first && typeof D[k].first[reg] === "number");
+  if (!inMon.length) return { error: "เดือนนี้ยังไม่มีข้อมูลมิเตอร์" };
+  const k0 = inMon[0], f0 = D[k0].first;
+  const out = { start: f0[reg], start_at: atOf(k0, f0.t), start_src: "มิเตอร์", partial: false };
+  const k1 = next + "01";
+  if (D[k1] && D[k1].first && typeof D[k1].first[reg] === "number") {
+    out.end = D[k1].first[reg]; out.end_at = atOf(k1, D[k1].first.t); out.end_src = "มิเตอร์";
+  } else if (live && live.v && typeof live.v[reg] === "number" && thDayKey(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+    const d = new Date(live.at + 7 * 3600e3);
+    out.end = live.v[reg]; out.end_at = atOf(thDayKey(live.at), String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0"));
+    out.end_src = "ค่าสด"; out.partial = true;
+  } else {
+    const kl = inMon[inMon.length - 1], l = D[kl].last || D[kl].first;
+    out.end = l[reg]; out.end_at = atOf(kl, l.t); out.end_src = "มิเตอร์";
+  }
+  return out;
+}
 /* fingerprint SHA-256 ของใบรับรอง → hex ตัวเล็กไม่มี : (แบบที่ RouterOS พิมพ์) · ผิดรูป = "" */
 export function normFp(s) {
   const h = String(s || "").replace(/[:\s]/g, "").toLowerCase();

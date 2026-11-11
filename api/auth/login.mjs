@@ -1,5 +1,5 @@
 /* ============================================================
-   POST /api/auth/login   { username, pin }  →  { token, userId }
+   POST /api/auth/login   { username, pin }  →  { token, userId }  (พาร์ทเนอร์: + partner: true · claim ext)
    GET  /api/auth/login                      →  { configured }
 
    ล็อกอินเว็บ (และหน้า LIFF ที่เปิดนอกแอป LINE) ด้วยชื่อผู้ใช้ + PIN ชุดเดิม
@@ -18,6 +18,7 @@
 import crypto from "node:crypto";
 import { ENV, json, body, rtdbGet, rtdbSet, rtdbDelete, matchCred, rolesOf } from "../_lib/line.mjs";
 import { configured, customToken } from "../_lib/gauth.mjs";
+import { partnerByLogin, partnerToken, rulesBlockPartner } from "../_lib/mtpartner.mjs";
 
 const MAX_FAIL = 8;
 const LOCK_MIN = 15;
@@ -49,8 +50,10 @@ export async function POST(request) {
   let users = null;
   try { users = await rtdbGet("users"); } catch (e) { return json({ error: "db" }, 502); }
   const u = matchCred(users, uname, b.pin);
+  /* ไม่ใช่พนักงาน → ลองบัญชีพาร์ทเนอร์ (mtPartners · docs/mikrotik.md) */
+  const p = u ? null : await partnerByLogin(uname, b.pin).catch(() => null);
 
-  if (!u) {
+  if (!u && !p) {
     /* ล็อกครบเวลาแล้วนับใหม่จากศูนย์ ไม่ใช่ล็อกซ้ำทันทีที่พลาดครั้งถัดไป */
     const n = (lockedUntil ? 0 : (fails && Number(fails.n)) || 0) + 1;
     const rec = { n, at: new Date().toISOString() };
@@ -60,6 +63,13 @@ export async function POST(request) {
   }
 
   if (fails) await rtdbDelete(fk).catch(() => {});
+  if (p) {
+    const token = partnerToken(p);
+    /* ใบผ่านพาร์ทเนอร์ต้องอ่านข้อมูลบริษัทไม่ได้จริงก่อน — ยังไม่ได้วางกฎ = ไม่ให้เข้า (กันข้อมูลรั่วไปคนนอก) */
+    const safe = await rulesBlockPartner(token).catch(() => false);
+    if (!safe) return json({ error: "ระบบพาร์ทเนอร์ยังไม่เปิดใช้ (แอดมินยังไม่ได้วางกฎฐานข้อมูล) — ติดต่อแอดมิน" }, 503);
+    return json({ token, userId: p.id, partner: true });
+  }
   const token = customToken(u.id, { roles: rolesOf(u) });
   return json({ token, userId: u.id });
 }

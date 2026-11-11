@@ -121,6 +121,7 @@
 | ผู้ใช้ | path |
 |---|---|
 | เซิร์ฟเวอร์ MikroTik (`api/mikrotik/site`) | อ่าน `users` · เขียน `mtSites` `mtSecrets` (เว็บอ่าน `mtSites` อย่างเดียว · `mtSecrets` ควรปิด `.read/.write: false` — กฎอยู่ใน docs/mikrotik.md) |
+| พาร์ทเนอร์ภายนอก (`/api/auth/login` → claim `ext` · docs/mikrotik.md "พาร์ทเนอร์") | ล็อกอินได้เฉพาะเมื่อกฎกัน `ext` ออกจาก `$top` แล้ว (เซิร์ฟเวอร์ลองอ่าน `users` ด้วยใบผ่านพาร์ทเนอร์ก่อนให้เข้าทุกครั้ง) · อ่านได้แค่ `mtSites/N` `mtStatus/N` `mtMeter/N` `mtBills/N` ที่ owner = ตัวเอง + `mtPartners/<ตัวเอง>` · เขียนผ่าน API เท่านั้น — กฎชุดเต็มอยู่ใน docs/mikrotik.md |
 | agent MikroTik (`api/mikrotik/site?agent=1` · Bearer `MT_AGENT_KEY`) | เขียน `mtStatus` `mtCmd` `mtMeter` (+ API แอดมินเขียน `mtBills`) · อ่าน `mtSites` `mtSecrets` (ถอดรหัส pg-web ส่งให้ agent) — กฎ `mtStatus` read auth/write false · `mtCmd` false/false ผู้ใช้ต้องวาง (ยังไม่วาง = พนักงานเขียน `mtCmd` ได้ แต่ agent ไม่ทำเพราะไม่มีลายเซ็น HMAC) |
 | เซิร์ฟเวอร์ LINE (`api/line/*`) | อ่าน `users` `rolePerms` `notifications` `config/linePush` `lineLinks` `lineBindFails` `jobs`(ชื่องาน) · เขียน `lineLinks` `lineBindFails` `lnPushLog` `users/*/lineUserId|lineAt` |
 | cron (`api/cron/*`) | อ่าน `users` `tmOt` `tmLeave` `attendDay` `config/linePush` `cronRun` · เขียน `cronRun` `lnPushLog` |

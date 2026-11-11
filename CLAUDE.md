@@ -47,7 +47,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | Huawei FusionSolar · หน้าไซต์ทั้งหมด · ซิงก์ไซต์/อุปกรณ์/ข้อมูลผลิต (`fusionsolar.jsx` `fusionsolar-scene.jsx` `fusionsolar-house.jsx` `api/_lib/fusionsolar.mjs` `api/cron/fusionsolar.mjs`) | `docs/fusionsolar.md` |
 | รายงานประจำวันหน้างาน · ตารางขั้นงาน · กราฟในใบรายงาน (`daily.jsx` `views-daily.jsx` `liff-daily.jsx`) | `docs/daily.md` |
 | ใบแจ้งหนี้/ใบกำกับภาษีทำเอง · ผู้ออกเอกสาร · เลขที่รายเดือน (`invoice.jsx`) | `docs/invoice.md` |
-| ไซต์ MikroTik · WireGuard · สคริปต์ RouterOS · สถานะไซต์ · agent บน VPS · มิเตอร์ PM2200 (`mikrotik*.jsx` `api/_lib/mikrotik.mjs` `api/mikrotik/*` `tools/mt-agent/` · `npm test`) | `docs/mikrotik.md` |
+| ไซต์ MikroTik · WireGuard · สคริปต์ RouterOS · สถานะไซต์ · agent บน VPS · มิเตอร์ · บิลค่าไฟ · **พาร์ทเนอร์ภายนอก** (`mtpartner.jsx` `api/_lib/mtpartner.mjs`) (`mikrotik*.jsx` `api/_lib/mikrotik.mjs` `api/mikrotik/*` `tools/mt-agent/` · `npm test`) | `docs/mikrotik.md` |
 | แปลงรูปแบบ CAD ที่ผู้ใช้ส่งเป็นเส้นในชุดแบบ (ขอ "เหมือน 100%" · `tools/trace-art.mjs` `D.art` `groundart.js`) | `docs/trace-art.md` |
 
 ข้อตกลงใหม่ของเรื่องไหนให้เขียนลงไฟล์ของเรื่องนั้น (ไม่ใช่ที่นี่) · เรื่องใหม่ที่ยังไม่มีไฟล์ = สร้าง `docs/<เรื่อง>.md` แล้วเพิ่มแถวในตารางนี้

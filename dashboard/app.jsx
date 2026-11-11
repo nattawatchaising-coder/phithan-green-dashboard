@@ -1976,4 +1976,12 @@ function MapModal({ jobs, onOpen, onClose }) {
 }
 
 /* รอสถานะล็อกอิน Firebase ก่อน mount — เหตุผลอยู่ใน firebase-config.js */
-(window.FB_AUTH_READY || Promise.resolve()).then(() => ReactDOM.createRoot(document.getElementById("root")).render(<App />));
+/* บัญชีพาร์ทเนอร์ (uid "p-…" + claim ext — docs/mikrotik.md) เห็นแค่หน้า PartnerApp (mtpartner.jsx) ไม่ mount แอปพนักงานเลย */
+(window.FB_AUTH_READY || Promise.resolve()).then(async (u) => {
+  let partner = false;
+  try {
+    const cur = window.FBAUTH && window.FBAUTH.currentUser;
+    if (cur && /^p-/.test(cur.uid)) partner = !!(await cur.getIdTokenResult()).claims.ext;
+  } catch (e) {}
+  ReactDOM.createRoot(document.getElementById("root")).render(partner && window.PartnerApp ? <window.PartnerApp /> : <App />);
+});
