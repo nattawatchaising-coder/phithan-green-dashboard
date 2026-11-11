@@ -347,6 +347,71 @@ function MtMonCard({
 function MtMonDetail({
   s,
   st,
+  isAdmin,
+  user,
+  onBack
+}) {
+  const [tab, setTab] = React.useState("meter");
+  const opts = [{
+    value: "meter",
+    label: "มิเตอร์"
+  }, {
+    value: "bill",
+    label: "บิลรายเดือน"
+  }];
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: onBack,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 14
+  }), "\u0E17\u0E38\u0E01\u0E44\u0E0B\u0E15\u0E4C"), React.createElement("div", {
+    style: {
+      fontWeight: 700
+    }
+  }, s.bill && s.bill.cust || mtIdent(s)), React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), window.Segmented ? React.createElement(window.Segmented, {
+    value: tab,
+    onChange: setTab,
+    options: opts
+  }) : opts.map(o => React.createElement("button", {
+    key: o.value,
+    className: tab === o.value ? "btn btn-pri" : "btn",
+    onClick: () => setTab(o.value)
+  }, o.label))), tab === "bill" ? React.createElement(MtSiteBill, {
+    s: s,
+    isAdmin: isAdmin,
+    user: user
+  }) : React.createElement(MtMonMeter, {
+    s: s,
+    st: st,
+    isAdmin: isAdmin
+  }));
+}
+function MtMonMeter({
+  s,
+  st,
   isAdmin
 }) {
   const [day, setDay] = React.useState(mtThDay());
@@ -614,56 +679,172 @@ function MtMeterCfg({
     }
   }, msg));
 }
+function MtSiteBill({
+  s,
+  isAdmin,
+  user
+}) {
+  const prev = (() => {
+    const d = new Date(Date.now() + 7 * 3600e3);
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - 1);
+    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0");
+  })();
+  const [ym, setYm] = React.useState(prev);
+  const [cfg, setCfg] = React.useState(false);
+  const bills = useMtRef("mtBills/" + s.n);
+  const th = {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "var(--text-3)",
+    textAlign: "left",
+    padding: "6px 8px",
+    whiteSpace: "nowrap"
+  };
+  const past = Object.keys(bills || {}).sort().reverse();
+  return React.createElement(React.Fragment, null, cfg && React.createElement(MtBillCfg, {
+    s: s,
+    onClose: () => setCfg(false)
+  }), React.createElement("div", {
+    style: mtCard
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, "\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E25\u0E02\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19 \u2192 \u0E15\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B \xD7 \u0E23\u0E32\u0E04\u0E32\u0E15\u0E48\u0E2D\u0E2B\u0E19\u0E48\u0E27\u0E22 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21 VAT"), React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("input", {
+    type: "month",
+    value: ym,
+    onChange: e => e.target.value && setYm(e.target.value),
+    style: Object.assign({}, mtField, {
+      width: "auto",
+      padding: "6px 10px",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    })
+  })), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: th
+  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("th", {
+    style: th
+  }, "\u0E40\u0E25\u0E02\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("th", {
+    style: th
+  }, "\u0E40\u0E25\u0E02\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right"
+    })
+  }, "kWh"), React.createElement("th", {
+    style: th
+  }, "\u0E1A\u0E32\u0E17/kWh"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right"
+    })
+  }, "\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19 (\u0E1A\u0E32\u0E17)"), React.createElement("th", {
+    style: th
+  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, React.createElement(MtBillRow, {
+    key: ym,
+    s: s,
+    ym: ym,
+    isAdmin: isAdmin,
+    onCfg: () => setCfg(true),
+    user: user
+  })))), !isAdmin && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E1A\u0E34\u0E25/\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E2B\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19")), past.length > 0 && React.createElement("div", {
+    style: mtCard
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, "\u0E1A\u0E34\u0E25\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27"), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: th
+  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right"
+    })
+  }, "kWh"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right"
+    })
+  }, "\u0E1A\u0E32\u0E17/kWh"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right"
+    })
+  }, "\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19"), React.createElement("th", {
+    style: th
+  }, "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E2B\u0E19\u0E35\u0E49"), React.createElement("th", {
+    style: th
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E42\u0E14\u0E22"))), React.createElement("tbody", null, past.map(k => {
+    const b = bills[k] || {};
+    const td = {
+      padding: "7px 8px",
+      fontSize: 12.5
+    };
+    const nm = Object.assign({}, td, {
+      textAlign: "right",
+      fontFamily: "var(--mono)"
+    });
+    return React.createElement("tr", {
+      key: k,
+      onClick: () => setYm(k.slice(0, 4) + "-" + k.slice(4)),
+      style: {
+        cursor: "pointer"
+      }
+    }, React.createElement("td", {
+      style: td
+    }, MT_TH_MON_FULL[Number(k.slice(4)) - 1], " ", Number(k.slice(0, 4)) + 543), React.createElement("td", {
+      style: nm
+    }, mtNum(b.kwh, 2)), React.createElement("td", {
+      style: nm
+    }, mtNum(b.rate, 2)), React.createElement("td", {
+      style: Object.assign({}, nm, {
+        fontWeight: 700
+      })
+    }, mtNum(b.amount, 2)), React.createElement("td", {
+      style: td
+    }, b.invoice_id ? "สร้างแล้ว" : "—"), React.createElement("td", {
+      style: Object.assign({}, td, {
+        color: "var(--text-3)"
+      })
+    }, b.by, " ", b.at ? new Date(b.at).toLocaleDateString("th-TH") : ""));
+  })))));
+}
 function MtMonView({
   role,
   currentUser
-}) {
-  const [tab, setTab] = React.useState(() => {
-    try {
-      return localStorage.getItem("mtmon.tab") || "mon";
-    } catch (e) {
-      return "mon";
-    }
-  });
-  const pickTab = t => {
-    setTab(t);
-    try {
-      localStorage.setItem("mtmon.tab", t);
-    } catch (e) {}
-  };
-  const opts = [{
-    value: "mon",
-    label: "มิเตอร์ · สถานะ"
-  }, {
-    value: "bill",
-    label: "บิลรายเดือน"
-  }];
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 14
-    }
-  }, React.createElement("div", null, window.Segmented ? React.createElement(window.Segmented, {
-    value: tab,
-    onChange: pickTab,
-    options: opts
-  }) : opts.map(o => React.createElement("button", {
-    key: o.value,
-    className: tab === o.value ? "btn btn-pri" : "btn",
-    onClick: () => pickTab(o.value),
-    style: {
-      marginRight: 6
-    }
-  }, o.label))), tab === "bill" ? React.createElement(MtBillView, {
-    role: role,
-    currentUser: currentUser
-  }) : React.createElement(MtMonPanel, {
-    role: role
-  }));
-}
-function MtMonPanel({
-  role
 }) {
   const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
   const {
@@ -675,29 +856,14 @@ function MtMonPanel({
   const [pick, setPick] = React.useState(null);
   const sites = list.filter(s => s.meter_model !== "none" || status && status[s.n]);
   const sel = pick == null ? null : sites.find(s => s.n === pick);
-  if (sel) return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, React.createElement("div", null, React.createElement("button", {
-    className: "btn",
-    onClick: () => setPick(null),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, React.createElement(Icon, {
-    name: "chevronLeft",
-    size: 14
-  }), "\u0E17\u0E38\u0E01\u0E44\u0E0B\u0E15\u0E4C")), React.createElement(MtMonDetail, {
+  if (sel) return React.createElement(MtMonDetail, {
     key: sel.n,
     s: sel,
     st: status && status[sel.n],
-    isAdmin: isAdmin
-  }));
+    isAdmin: isAdmin,
+    user: currentUser,
+    onBack: () => setPick(null)
+  });
   const online = list.filter(s => window.mtState && window.mtState(s, status && status[s.n], now).tone === "green").length;
   const kwNow = list.reduce((t, s) => {
     const v = status && status[s.n] && status[s.n].meter && status[s.n].meter.v;

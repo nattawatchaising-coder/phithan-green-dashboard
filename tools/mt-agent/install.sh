@@ -9,6 +9,7 @@
 #   1) ติดตั้ง nodejs (ต้อง 18+)
 #   2) ดาวน์โหลด agent.mjs → /opt/mt-agent/
 #   3) สร้าง /etc/mt-agent.env ครั้งแรก: สุ่ม MT_AGENT_KEY + MT_CMD_SECRET (สองค่านี้ต้องไปใส่ Vercel ด้วย)
+#   5) อัปเดตตัวเองทุกวัน 03:30 (timer mt-agent-update)
 #   4) service systemd "mt-agent" (ผู้ใช้ชั่วคราวไม่ใช่ root · มีสิทธิ์แค่อ่าน wg + ping) แล้วเปิดเลย
 # =====================================================================
 set -euo pipefail
@@ -89,8 +90,51 @@ set -a; . /etc/mt-agent.env; set +a
 exec node /opt/mt-agent/agent.mjs --once
 EOF
 chmod 755 /usr/local/sbin/mt-agent-once
+
+# ---------- อัปเดตตัวเองวันละครั้ง (ผู้ใช้ขอ 2026-11-11 — เดิมต้อง ssh มารันสคริปต์นี้ทุกครั้งที่แก้ agent) ----------
+# ดึง agent.mjs จาก master → ตรวจไวยากรณ์ + ต้องเป็นไฟล์ agent จริง → ต่างจากเดิมค่อยสลับแล้ว restart · พังตรงไหน = ใช้ตัวเดิมต่อ
+# (แก้ส่วนอื่นของ install.sh เช่น service/env ยังต้องรันสคริปต์นี้เองเหมือนเดิม)
+cat > /usr/local/sbin/mt-agent-update <<'EOF'
+#!/usr/bin/env bash
+set -uo pipefail
+URL=${MT_REPO_RAW:-https://raw.githubusercontent.com/nattawatchaising-coder/phithan-green-dashboard/master}/tools/mt-agent/agent.mjs
+NEW=/opt/mt-agent/agent.new.mjs CUR=/opt/mt-agent/agent.mjs
+log() { echo "mt-agent-update: $*"; }
+curl -fsSL --max-time 60 "$URL?t=$(date +%s)" -o "$NEW" || { log "ดาวน์โหลดไม่ได้ — ใช้ตัวเดิม"; rm -f "$NEW"; exit 0; }
+grep -q 'export const VERSION' "$NEW" && grep -q 'mt-agent' "$NEW" || { log "ไฟล์ที่ได้ไม่ใช่ agent — ใช้ตัวเดิม"; rm -f "$NEW"; exit 0; }
+node --check "$NEW" || { log "ไฟล์ใหม่ผิดไวยากรณ์ — ใช้ตัวเดิม"; rm -f "$NEW"; exit 0; }
+if cmp -s "$NEW" "$CUR"; then log "ล่าสุดอยู่แล้ว"; rm -f "$NEW"; exit 0; fi
+chmod 644 "$NEW"; mv "$NEW" "$CUR"
+systemctl restart mt-agent && log "อัปเดตแล้ว → $(grep -o 'VERSION = "[0-9]*"' "$CUR")"
+EOF
+chmod 755 /usr/local/sbin/mt-agent-update
+cat > /etc/systemd/system/mt-agent-update.service <<'EOF'
+[Unit]
+Description=mt-agent self update (flash+solar)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mt-agent-update
+EOF
+# ทุกวัน 03:30 เวลาไทย (20:30 UTC) + สุ่มเลื่อน ≤15 นาที · เครื่องปิดอยู่ตอนนั้น = ทำทันทีที่เปิด
+cat > /etc/systemd/system/mt-agent-update.timer <<'EOF'
+[Unit]
+Description=mt-agent self update daily
+
+[Timer]
+OnCalendar=*-*-* 20:30:00 UTC
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable mt-agent >/dev/null 2>&1
+systemctl enable --now mt-agent-update.timer >/dev/null 2>&1
 systemctl restart mt-agent
 
 echo
@@ -99,3 +143,4 @@ echo "เอาสองบรรทัดนี้ไปใส่ Vercel → Se
 grep -E '^MT_(AGENT_KEY|CMD_SECRET)=' "$ENV_FILE" | sed 's/=/  =  /'
 echo
 echo "ดูการทำงาน:  journalctl -u mt-agent -f      ทดสอบรอบเดียว:  sudo mt-agent-once"
+echo "อัปเดต agent เอง: ทุกวัน 03:30 (ดูผล journalctl -u mt-agent-update) · สั่งทันที: sudo mt-agent-update"

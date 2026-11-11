@@ -130,8 +130,24 @@ function MtMonCard({ s, st, now, picked, onPick }) {
   );
 }
 
-/* ---------- รายละเอียดไซต์: กราฟวัน/เดือน + ค่าสด + ตั้งค่ามิเตอร์ ---------- */
-function MtMonDetail({ s, st, isAdmin }) {
+/* ---------- รายละเอียดไซต์: แท็บ "มิเตอร์" / "บิลรายเดือน" (บิลกดจากในไซต์เท่านั้น — ผู้ใช้ 2026-11-11) ---------- */
+function MtMonDetail({ s, st, isAdmin, user, onBack }) {
+  const [tab, setTab] = React.useState("meter");
+  const opts = [{ value: "meter", label: "มิเตอร์" }, { value: "bill", label: "บิลรายเดือน" }];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button className="btn" onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="chevronLeft" size={14} />ทุกไซต์</button>
+        <div style={{ fontWeight: 700 }}>{(s.bill && s.bill.cust) || mtIdent(s)}</div>
+        <div style={{ flex: 1 }} />
+        {window.Segmented ? <window.Segmented value={tab} onChange={setTab} options={opts} />
+          : opts.map((o) => <button key={o.value} className={tab === o.value ? "btn btn-pri" : "btn"} onClick={() => setTab(o.value)}>{o.label}</button>)}
+      </div>
+      {tab === "bill" ? <MtSiteBill s={s} isAdmin={isAdmin} user={user} /> : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
+    </div>
+  );
+}
+function MtMonMeter({ s, st, isAdmin }) {
   const [day, setDay] = React.useState(mtThDay());
   const hist = useMtRef("mtMeter/" + s.n + "/h/" + day);
   const days = useMtRef("mtMeter/" + s.n + "/d");
@@ -221,21 +237,58 @@ function MtMeterCfg({ s }) {
   );
 }
 
-/* ---------- หน้า MikroTik Monitoring ---------- */
-/* หน้าเดียว: แท็บ "มิเตอร์" กับ "บิลรายเดือน" (ผู้ใช้ 2026-11-11 "ให้อยู่หน้านี้หน้าเดียวเลย" — เดิมบิลแยกไปเมนูเอกสารงวดงาน) */
-function MtMonView({ role, currentUser }) {
-  const [tab, setTab] = React.useState(() => { try { return localStorage.getItem("mtmon.tab") || "mon"; } catch (e) { return "mon"; } });
-  const pickTab = (t) => { setTab(t); try { localStorage.setItem("mtmon.tab", t); } catch (e) { /* ไม่มีที่เก็บ */ } };
-  const opts = [{ value: "mon", label: "มิเตอร์ · สถานะ" }, { value: "bill", label: "บิลรายเดือน" }];
+/* ---------- บิลของไซต์เดียว (อยู่ในหน้ารายละเอียดไซต์ — ผู้ใช้ 2026-11-11 "บิลนี้ให้กดผ่านในไซต์ ไม่กดด้านนอก") ---------- */
+function MtSiteBill({ s, isAdmin, user }) {
+  const prev = (() => { const d = new Date(Date.now() + 7 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); })();
+  const [ym, setYm] = React.useState(prev);
+  const [cfg, setCfg] = React.useState(false);
+  const bills = useMtRef("mtBills/" + s.n);
+  const th = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" };
+  const past = Object.keys(bills || {}).sort().reverse();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>{window.Segmented ? <window.Segmented value={tab} onChange={pickTab} options={opts} />
-        : opts.map((o) => <button key={o.value} className={tab === o.value ? "btn btn-pri" : "btn"} onClick={() => pickTab(o.value)} style={{ marginRight: 6 }}>{o.label}</button>)}</div>
-      {tab === "bill" ? <MtBillView role={role} currentUser={currentUser} /> : <MtMonPanel role={role} />}
-    </div>
+    <React.Fragment>
+      {cfg && <MtBillCfg s={s} onClose={() => setCfg(false)} />}
+      <div style={mtCard}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>บิลค่าไฟโซลาร์</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เลขมิเตอร์ต้นเดือน → ต้นเดือนถัดไป × ราคาต่อหน่วย · ยังไม่รวม VAT</div>
+          <div style={{ flex: 1 }} />
+          <input type="month" value={ym} onChange={(e) => e.target.value && setYm(e.target.value)}
+            style={Object.assign({}, mtField, { width: "auto", padding: "6px 10px", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" })} />
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>ลูกค้า</th><th style={th}>เลขเริ่ม</th><th style={th}>เลขสิ้นสุด</th><th style={Object.assign({}, th, { textAlign: "right" })}>kWh</th>
+              <th style={th}>บาท/kWh</th><th style={Object.assign({}, th, { textAlign: "right" })}>ยอดเงิน (บาท)</th><th style={th}>สถานะ</th></tr></thead>
+            <tbody><MtBillRow key={ym} s={s} ym={ym} isAdmin={isAdmin} onCfg={() => setCfg(true)} user={user} /></tbody>
+          </table>
+        </div>
+        {!isAdmin && <div style={{ fontSize: 12, color: "var(--text-3)" }}>บันทึกบิล/ออกใบแจ้งหนี้ได้เฉพาะแอดมิน</div>}
+      </div>
+      {past.length > 0 && (
+        <div style={mtCard}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>บิลที่บันทึกแล้ว</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>เดือน</th><th style={Object.assign({}, th, { textAlign: "right" })}>kWh</th><th style={Object.assign({}, th, { textAlign: "right" })}>บาท/kWh</th>
+              <th style={Object.assign({}, th, { textAlign: "right" })}>ยอดเงิน</th><th style={th}>ใบแจ้งหนี้</th><th style={th}>บันทึกโดย</th></tr></thead>
+            <tbody>{past.map((k) => { const b = bills[k] || {}; const td = { padding: "7px 8px", fontSize: 12.5 }; const nm = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
+              return (
+                <tr key={k} onClick={() => setYm(k.slice(0, 4) + "-" + k.slice(4))} style={{ cursor: "pointer" }}>
+                  <td style={td}>{MT_TH_MON_FULL[Number(k.slice(4)) - 1]} {Number(k.slice(0, 4)) + 543}</td>
+                  <td style={nm}>{mtNum(b.kwh, 2)}</td><td style={nm}>{mtNum(b.rate, 2)}</td><td style={Object.assign({}, nm, { fontWeight: 700 })}>{mtNum(b.amount, 2)}</td>
+                  <td style={td}>{b.invoice_id ? "สร้างแล้ว" : "—"}</td>
+                  <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{b.by} {b.at ? new Date(b.at).toLocaleDateString("th-TH") : ""}</td>
+                </tr>
+              ); })}</tbody>
+          </table>
+        </div>
+      )}
+    </React.Fragment>
   );
 }
-function MtMonPanel({ role }) {
+
+/* ---------- หน้า MikroTik Monitoring: ตารางทุกไซต์ → กดแถว = รายละเอียดไซต์ (มิเตอร์ / บิล) ---------- */
+function MtMonView({ role, currentUser }) {
   const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
   const { list, loading } = useMtSites();
   const status = window.useMtStatus ? window.useMtStatus() : null;
@@ -243,12 +296,7 @@ function MtMonPanel({ role }) {
   const [pick, setPick] = React.useState(null);
   const sites = list.filter((s) => s.meter_model !== "none" || (status && status[s.n]));
   const sel = pick == null ? null : sites.find((s) => s.n === pick);
-  if (sel) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div><button className="btn" onClick={() => setPick(null)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="chevronLeft" size={14} />ทุกไซต์</button></div>
-      <MtMonDetail key={sel.n} s={sel} st={status && status[sel.n]} isAdmin={isAdmin} />
-    </div>
-  );
+  if (sel) return <MtMonDetail key={sel.n} s={sel} st={status && status[sel.n]} isAdmin={isAdmin} user={currentUser} onBack={() => setPick(null)} />;
   const online = list.filter((s) => window.mtState && window.mtState(s, status && status[s.n], now).tone === "green").length;
   const kwNow = list.reduce((t, s) => { const v = status && status[s.n] && status[s.n].meter && status[s.n].meter.v; return t + (v && v.kw > 0 ? v.kw : 0); }, 0);
   const ag = status && status._agent;
