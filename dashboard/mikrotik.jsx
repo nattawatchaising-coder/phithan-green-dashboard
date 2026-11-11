@@ -11,6 +11,8 @@ const MT_N_MAX = 244;
 const MT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,23}$/;
 const mtPad = (n) => String(n).padStart(2, "0");
 const mtIdent = (s) => "SITE" + mtPad(s.n) + "-" + s.name;
+/* localhost (tools/devserver.js) ไม่มี /api/mikrotik — ต้องเปิดบนเว็บจริง */
+const MT_NO_API = "หน้านี้ใช้ได้บนเว็บจริง (flashsolar.vercel.app) เท่านั้น — เครื่องทดสอบ localhost ไม่มี API ไซต์ MikroTik";
 const mtWhen = (iso) => (iso ? new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "—");
 
 async function mtCall(payload) {
@@ -20,6 +22,7 @@ async function mtCall(payload) {
   const r = await fetch("/api/mikrotik/site", { method: "POST",
     headers: { "content-type": "application/json", authorization: "Bearer " + tok }, body: JSON.stringify(payload) });
   const j = await r.json().catch(() => ({}));
+  if (r.status === 404 && !j.error) throw new Error(MT_NO_API);
   if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
   return j;
 }
@@ -44,7 +47,8 @@ function useMtConfig() {
   const [cfg, setCfg] = React.useState(null);
   React.useEffect(() => {
     let alive = true;
-    fetch("/api/mikrotik/site").then((r) => r.json()).then((j) => alive && setCfg(j)).catch(() => alive && setCfg({ configured: false, missing: ["(เรียก /api/mikrotik/site ไม่ได้)"] }));
+    fetch("/api/mikrotik/site").then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((j) => alive && setCfg(j)).catch(() => alive && setCfg({ configured: false, noApi: true, missing: [] }));
     return () => { alive = false; };
   }, []);
   return cfg;
@@ -52,7 +56,7 @@ function useMtConfig() {
 
 function MtSpec({ label, value, mono }) {
   return (
-    <div className="bq-spec" style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "8px 11px", minWidth: 0 }}>
+    <div style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "8px 11px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", fontFamily: mono ? "var(--mono)" : "inherit",
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={String(value)}>{value}</div>
@@ -230,7 +234,8 @@ function MtSitesView({ role }) {
           <div style={{ flex: 1 }} />
           {isAdmin && !form && <button className="btn-add" onClick={() => setForm("new")}><Icon name="plus" size={14} /> เพิ่มไซต์</button>}
         </div>
-        {cfg && !cfg.configured && (
+        {cfg && cfg.noApi && <div style={mtErrBox}>{MT_NO_API}</div>}
+        {cfg && !cfg.configured && !cfg.noApi && (
           <div style={{ fontSize: 12, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "9px 12px", borderRadius: "var(--r-tile)", fontWeight: 600 }}>
             ยังไม่ได้ตั้ง env ใน Vercel: {(cfg.missing || []).join(", ")} — สร้างไซต์/สคริปต์ไม่ได้จนกว่าจะตั้ง (docs/mikrotik.md)
           </div>

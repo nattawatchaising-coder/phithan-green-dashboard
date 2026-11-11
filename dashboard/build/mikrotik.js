@@ -2,6 +2,7 @@ const MT_N_MAX = 244;
 const MT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,23}$/;
 const mtPad = n => String(n).padStart(2, "0");
 const mtIdent = s => "SITE" + mtPad(s.n) + "-" + s.name;
+const MT_NO_API = "หน้านี้ใช้ได้บนเว็บจริง (flashsolar.vercel.app) เท่านั้น — เครื่องทดสอบ localhost ไม่มี API ไซต์ MikroTik";
 const mtWhen = iso => iso ? new Date(iso).toLocaleString("th-TH", {
   dateStyle: "medium",
   timeStyle: "short"
@@ -19,6 +20,7 @@ async function mtCall(payload) {
     body: JSON.stringify(payload)
   });
   const j = await r.json().catch(() => ({}));
+  if (r.status === 404 && !j.error) throw new Error(MT_NO_API);
   if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
   return j;
 }
@@ -52,9 +54,10 @@ function useMtConfig() {
   const [cfg, setCfg] = React.useState(null);
   React.useEffect(() => {
     let alive = true;
-    fetch("/api/mikrotik/site").then(r => r.json()).then(j => alive && setCfg(j)).catch(() => alive && setCfg({
+    fetch("/api/mikrotik/site").then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => alive && setCfg(j)).catch(() => alive && setCfg({
       configured: false,
-      missing: ["(เรียก /api/mikrotik/site ไม่ได้)"]
+      noApi: true,
+      missing: []
     }));
     return () => {
       alive = false;
@@ -68,7 +71,6 @@ function MtSpec({
   mono
 }) {
   return React.createElement("div", {
-    className: "bq-spec",
     style: {
       background: "var(--surface2)",
       borderRadius: "var(--r-tile)",
@@ -556,7 +558,9 @@ function MtSitesView({
   }, React.createElement(Icon, {
     name: "plus",
     size: 14
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C")), cfg && !cfg.configured && React.createElement("div", {
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C")), cfg && cfg.noApi && React.createElement("div", {
+    style: mtErrBox
+  }, MT_NO_API), cfg && !cfg.configured && !cfg.noApi && React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--tint-amber-tx)",
