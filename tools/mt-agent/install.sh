@@ -37,9 +37,9 @@ echo "   node $(node -v)"
 
 echo "== 2) โค้ด agent"
 install -d -m 755 /opt/mt-agent
-curl -fsSL "$REPO_RAW/tools/mt-agent/agent.mjs" -o /opt/mt-agent/agent.mjs.new
-node --check /opt/mt-agent/agent.mjs.new
-mv /opt/mt-agent/agent.mjs.new /opt/mt-agent/agent.mjs
+curl -fsSL "$REPO_RAW/tools/mt-agent/agent.mjs" -o /opt/mt-agent/agent.new.mjs
+node --check /opt/mt-agent/agent.new.mjs
+mv /opt/mt-agent/agent.new.mjs /opt/mt-agent/agent.mjs
 chmod 644 /opt/mt-agent/agent.mjs
 
 echo "== 3) กุญแจ ($ENV_FILE)"
