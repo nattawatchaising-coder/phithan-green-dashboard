@@ -32,6 +32,15 @@ const NAV = [{
   tab: "Monitoring"
 }, {
   sect: "work",
+  key: "mtmon",
+  th: "MikroTik Monitoring",
+  en: "MikroTik Monitoring",
+  icon: "chart",
+  perm: "manageUsers",
+  group: "board",
+  tab: "MikroTik"
+}, {
+  sect: "work",
   key: "calendar",
   th: "ตารางงาน",
   en: "Schedule",
@@ -89,6 +98,15 @@ const NAV = [{
   perm: "billing",
   group: "billing",
   tab: "ใบแจ้งหนี้"
+}, {
+  sect: "work",
+  key: "mtbill",
+  th: "บิลค่าไฟโซลาร์",
+  en: "Solar Bills",
+  icon: "file",
+  perm: "manageUsers",
+  group: "billing",
+  tab: "บิลค่าไฟโซลาร์"
 }, {
   sect: "work",
   key: "permit",
@@ -1388,6 +1406,12 @@ function App() {
     role: role,
     currentUser: auth.current
   }), view === "mikrotik" && window.MtSitesView && React.createElement(window.MtSitesView, {
+    role: role,
+    currentUser: auth.current
+  }), view === "mtmon" && window.MtMonView && React.createElement(window.MtMonView, {
+    role: role,
+    currentUser: auth.current
+  }), view === "mtbill" && window.MtBillView && React.createElement(window.MtBillView, {
     role: role,
     currentUser: auth.current
   }), view === "expense" && React.createElement(window.ExpenseView, {

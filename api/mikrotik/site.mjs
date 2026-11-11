@@ -14,6 +14,10 @@
      { action: "cmd", n, type }            → เข้าคิวคำสั่ง reboot | log (ลงลายเซ็น MT_CMD_SECRET) → { id }
      { action: "cmd-get", id }             → { cmd: { state pending|sent|done|error|expired, error, data } }
      ⚠ ไม่มี action แก้ IP / firewall / WireGuard ของเราเตอร์ — ห้ามเพิ่ม (ผู้ใช้กำหนด)
+   เฟส 3 (มิเตอร์ · บิลรายเดือน)
+     { action: "meter-cfg", n, meter_model, meter_unit }  → รุ่นมิเตอร์ที่ agent อ่าน (leos-ipm310 | pm2200 | none) · unit id
+     { action: "bill-cfg", n, cust, rate, reg }            → ตั้งค่าบิลของไซต์ (ชื่อลูกค้า · บาท/kWh · ช่องที่ใช้คิด kwh_imp|kwh_exp|kwh_net)
+     { action: "bill-save", n, month, start, end, ... }    → บันทึกบิลเดือน YYYY-MM ลง mtBills/N/YYYYMM (คิด kWh/ยอดเงินใหม่ที่เซิร์ฟเวอร์)
 
    ข้อมูล
      mtSites/{N}   (พนักงานที่ล็อกอินอ่านได้) n name note wg_pub wg_ip lan created_* updated_* keys_at script_at script_by
@@ -25,7 +29,7 @@ import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbSet, rtdbDelete, rtdbEtag, rt
 import { verifyFirebaseIdToken } from "../_lib/gauth.mjs";
 import crypto from "node:crypto";
 import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword,
-  MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp } from "../_lib/mikrotik.mjs";
+  MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp, MT_METER_MODELS, MT_BILL_REGS, billCalc } from "../_lib/mikrotik.mjs";
 import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
 import { agentPOST } from "../_lib/mtagent.mjs";
 
@@ -172,6 +176,33 @@ export async function POST(request) {
     const c = { id, n, type: b.type, ts: t };
     await rtdbSet("mtCmd/" + id, Object.assign({}, c, { by: a.by, at: now, state: "pending", sig: cmdSig(c) }));
     return json({ ok: true, id });
+  }
+
+  /* เฟส 3: มิเตอร์และบิล — ตั้งค่าที่ agent/เว็บใช้ ไม่แตะค่าในเราเตอร์ */
+  if (b.action === "meter-cfg") {
+    const model = String(b.meter_model || "");
+    if (!MT_METER_MODELS.includes(model)) return json({ error: "รุ่นมิเตอร์ไม่รู้จัก" }, 400);
+    const unit = Number(b.meter_unit == null ? 1 : b.meter_unit);
+    if (!Number.isInteger(unit) || unit < 0 || unit > 247) return json({ error: "unit id ต้องเป็น 0–247" }, 400);
+    await rtdbUpdate(path, { meter_model: model, meter_unit: unit, updated_at: now, updated_by: a.by });
+    return json({ ok: true });
+  }
+  if (b.action === "bill-cfg") {
+    const rate = Number(b.rate);
+    if (!(rate >= 0 && rate <= 100)) return json({ error: "ราคาต่อหน่วยต้องเป็น 0–100 บาท" }, 400);
+    if (!MT_BILL_REGS.includes(b.reg)) return json({ error: "ช่องคิดเงินต้องเป็น kwh_imp / kwh_exp / kwh_net" }, 400);
+    const bill = { cust: String(b.cust || "").slice(0, 200), rate, reg: b.reg, note: String(b.note || "").slice(0, 300), at: now, by: a.by };
+    await rtdbUpdate(path, { bill });
+    return json({ ok: true, bill });
+  }
+  if (b.action === "bill-save") {
+    const r = billCalc(b);
+    if (r.error) return json({ error: r.error }, 400);
+    const key = r.month.replace("-", "");
+    const rec = Object.assign(r, { n, cust: String(b.cust || (site.bill && site.bill.cust) || "").slice(0, 200),
+      note: String(b.note || "").slice(0, 300), invoice_id: String(b.invoice_id || "").slice(0, 40), at: now, by: a.by });
+    await rtdbSet("mtBills/" + n + "/" + key, rec);
+    return json({ ok: true, bill: rec });
   }
 
   if (b.action === "remove") {

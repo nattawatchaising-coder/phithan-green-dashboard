@@ -16,6 +16,8 @@ const NAV = [
   /* Monitoring ไซต์ที่ติดตั้งแล้ว (Huawei FusionSolar · Sungrow — fusionsolar.jsx · docs/fusionsolar.md) ใช้สิทธิ์เดียวกับ O&M
      เป็นแท็บในงานติดตั้ง ไม่ใช่เมนูแยก (ผู้ใช้สั่ง 2026-10-29 "ย้ายไปอยู่ในงานติดตั้ง") */
   { sect: "work", key: "sites",      th: "Monitoring",        en: "Monitoring",    icon: "sun",      perm: "om", group: "board", tab: "Monitoring" },
+  /* มิเตอร์ไซต์ MikroTik (เฟส 3 · mikrotik-mon.jsx · docs/mikrotik.md) — แอดมิน */
+  { sect: "work", key: "mtmon",      th: "MikroTik Monitoring", en: "MikroTik Monitoring", icon: "chart", perm: "manageUsers", group: "board", tab: "MikroTik" },
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
   /* ตารางงาน — สามหน้านี้เป็นปฏิทินทั้งหมด ต่างกันที่ตัวกรอง (ทุกนัด / เฉพาะนัดสำรวจ / เฉพาะของฉัน)
@@ -33,6 +35,8 @@ const NAV = [
   { sect: "work", key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing", tab: "งวดงาน" },
   /* ใบแจ้งหนี้/ใบกำกับภาษีทำเอง (ผู้ใช้ 2026-11-05 · invoice.jsx) — ออกในนามบริษัทหรือบุคคลธรรมดา ไม่ผูกงวดงาน */
   { sect: "work", key: "invoice",    th: "ใบแจ้งหนี้",       en: "Invoices",     icon: "file",     perm: "billing", group: "billing", tab: "ใบแจ้งหนี้" },
+  /* บิลค่าไฟโซลาร์รายเดือนจากมิเตอร์ไซต์ MikroTik → สร้างร่างใบแจ้งหนี้ (mikrotik-mon.jsx) — แอดมิน */
+  { sect: "work", key: "mtbill",     th: "บิลค่าไฟโซลาร์",   en: "Solar Bills",  icon: "file",     perm: "manageUsers", group: "billing", tab: "บิลค่าไฟโซลาร์" },
   { sect: "work", key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { sect: "work", key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
@@ -1038,6 +1042,8 @@ function App() {
             onOpenJob={(id) => setSelected(id)} onOpenOm={(id) => openOm({ siteId: id })} />}
           {view === "fslog" && window.FsLogView && <window.FsLogView role={role} currentUser={auth.current} />}
           {view === "mikrotik" && window.MtSitesView && <window.MtSitesView role={role} currentUser={auth.current} />}
+          {view === "mtmon" && window.MtMonView && <window.MtMonView role={role} currentUser={auth.current} />}
+          {view === "mtbill" && window.MtBillView && <window.MtBillView role={role} currentUser={auth.current} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
           {/* งวดงานเป็นเรื่องของสัญญาทั้งฉบับ ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น
               onSaveBills เป็น null เมื่อไม่มีสิทธิ์ — กั้นที่จุดต่อสาย หน้าจอจึงเขียนอะไรไม่ได้เลยแม้กดถึงปุ่ม */}

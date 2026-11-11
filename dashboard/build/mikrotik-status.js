@@ -614,5 +614,7 @@ function MtSiteLive({
   }, err));
 }
 window.useMtStatus = useMtStatus;
+window.mtState = mtState;
+window.MtPill = MtPill;
 window.MtStatusPanel = MtStatusPanel;
 window.MtSiteLive = MtSiteLive;

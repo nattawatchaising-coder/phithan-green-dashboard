@@ -43,7 +43,8 @@ globalThis.fetch = async (url, opt = {}) => {
       if (h["if-match"] && h["if-match"] !== etagOf(getAt(path))) return res({ error: "etag" }, 412);
       setAt(path, JSON.parse(opt.body)); return res(JSON.parse(opt.body));
     }
-    if (method === "PATCH") { const cur = getAt(path) || {}; setAt(path, { ...cur, ...JSON.parse(opt.body) }); return res({}); }
+    /* PATCH ของ RTDB: คีย์มี / = อัปเดตหลายที่ · null = ลบ */
+    if (method === "PATCH") { for (const [k, v] of Object.entries(JSON.parse(opt.body))) setAt(path + "/" + k, v); return res({}); }
     if (method === "DELETE") { setAt(path, null); return res(null); }
   }
   throw new Error("fetch ที่ไม่คาดไว้: " + method + " " + url);
@@ -266,7 +267,7 @@ test("pin-fp: รับ fingerprint ได้ทั้งแบบมี : แ�
   assert.equal((await call({ action: "pin-fp", n: 31, fp: "abc" })).status, 400);
   assert.equal((await call({ action: "pin-fp", n: 31, fp: FP }, "u-tech")).status, 403);
   assert.equal((await call({ action: "pin-fp", n: 31, fp: "" })).status, 200);
-  assert.equal(db.mtSites[31].fp, null);
+  assert.equal(db.mtSites[31].fp ?? null, null);
 });
 
 test("cmd: ต้องยืนยันใบรับรองก่อน · มีแค่ reboot/log · กดซ้ำได้คำสั่งเดิม · ลายเซ็นตรงกับที่ agent ตรวจ", async () => {
@@ -349,4 +350,56 @@ test("agent: คำสั่งค้างเกิน 10 นาที = expire
   assert.equal(r.body.cmds.length, 0);
   assert.equal(db.mtCmd.oldpend.state, "expired");
   assert.equal(db.mtCmd.olddone, undefined);
+});
+
+const agentLib2 = await import("../api/_lib/mtagent.mjs");
+/* ---------- เฟส 3: มิเตอร์ · บิลรายเดือน ---------- */
+test("meter: ค่ามิเตอร์ snap → ราย 15 นาที (เวลาไทย) + first/last ของวัน · ไม่ snap = ไม่เก็บประวัติ", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 51, name: "Meter" });
+  const v = { kw: 12.5, kwh_imp: 1000.5, kwh_exp: 2, kwh_net: 998.5, v1: 230.1, junk: 9 };
+  await agentCall({ status: { sites: { 51: { meter: { modbus: { ok: true }, v } } } } });
+  assert.equal(db.mtMeter, undefined, "ไม่มี snap ห้ามเก็บ");
+  await agentCall({ status: { snap: true, sites: { 51: { meter: { modbus: { ok: true }, v } } } } });
+  const { day, hm } = agentLib2.thSlot(Date.now());
+  assert.equal(db.mtMeter[51].h[day][hm].kwh_imp, 1000.5);
+  assert.equal(db.mtMeter[51].h[day][hm].junk, undefined);
+  assert.equal(db.mtMeter[51].d[day].first.kwh_imp, 1000.5);
+  await agentCall({ status: { snap: true, sites: { 51: { meter: { modbus: { ok: true }, v: Object.assign({}, v, { kwh_imp: 1010, kw: 20 }) } } } } });
+  assert.equal(db.mtMeter[51].d[day].first.kwh_imp, 1000.5, "first ของวันไม่ถูกทับ");
+  assert.equal(db.mtMeter[51].d[day].last.kwh_imp, 1010);
+  assert.equal(db.mtMeter[51].d[day].kw_max, 20);
+});
+
+test("thSlot: เวลาไทย · ปัดลงช่อง 15 นาที · ข้ามวันตอน 17:00 UTC", () => {
+  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T16:59:59Z")), { day: "20261111", hm: "2345" });
+  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T17:00:00Z")), { day: "20261112", hm: "0000" });
+  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T03:29:00Z")), { day: "20261111", hm: "1015" });
+});
+
+test("meter-cfg / bill-cfg / bill-save: แอดมินเท่านั้น · ตรวจค่า · คิดเงินที่เซิร์ฟเวอร์", async () => {
+  await call({ action: "create", n: 52, name: "Bill" });
+  assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "pm2200", meter_unit: 3 })).status, 200);
+  assert.equal(db.mtSites[52].meter_model, "pm2200");
+  assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "xx" })).status, 400);
+  assert.equal((await call({ action: "meter-cfg", n: 52, meter_model: "pm2200" }, "u-tech")).status, 403);
+  assert.equal((await call({ action: "bill-cfg", n: 52, cust: "บจก. ทดสอบ", rate: 3.9, reg: "kwh_imp" })).status, 200);
+  assert.equal(db.mtSites[52].bill.rate, 3.9);
+  assert.equal((await call({ action: "bill-cfg", n: 52, rate: -1, reg: "kwh_imp" })).status, 400);
+  const r = await call({ action: "bill-save", n: 52, month: "2026-11", start: 1000, end: 1250.5, rate: 3.9, reg: "kwh_imp", amount: 1 });
+  assert.equal(r.status, 200);
+  assert.equal(db.mtBills[52]["202611"].kwh, 250.5);
+  assert.equal(db.mtBills[52]["202611"].amount, 976.95, "ยอดเงินคิดใหม่ที่เซิร์ฟเวอร์ ไม่เชื่อค่าที่ส่งมา");
+  assert.equal(db.mtBills[52]["202611"].cust, "บจก. ทดสอบ");
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-13", start: 1, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11", start: 5, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);
+  assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11", start: 1, end: 2, rate: 1, reg: "kwh_imp" }, "u-tech")).status, 403);
+});
+
+test("agent ได้รุ่นมิเตอร์ของไซต์ไปด้วย", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 53, name: "Model" });
+  await call({ action: "meter-cfg", n: 53, meter_model: "none", meter_unit: 1 });
+  const r = await agentCall({ peek: true });
+  assert.equal(r.body.sites.find((s) => s.n === 53).meter_model, "none");
 });

@@ -272,5 +272,7 @@ function MtSiteLive({ s, st, isAdmin }) {
 }
 
 window.useMtStatus = useMtStatus;
+window.mtState = mtState;
+window.MtPill = MtPill;
 window.MtStatusPanel = MtStatusPanel;
 window.MtSiteLive = MtSiteLive;

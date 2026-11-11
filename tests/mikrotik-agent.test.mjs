@@ -92,3 +92,62 @@ test("agent ไม่มีโค้ดแก้ค่าเราเตอร�
   assert.deepEqual(paths.filter((p) => !/^\/rest\/(system\/(resource|reboot)|interface|ip\/address|log)$/.test(p)), []);
   assert.deepEqual([...new Set([...src.matchAll(/method:\s*"(\w+)"/g)].map((m) => m[1]))], ["POST"]);
 });
+
+/* ---------- เฟส 3: Modbus ---------- */
+import net from "node:net";
+
+test("float จาก 2 register: LEOS word ต่ำมาก่อน · PM2200 word สูงมาก่อน", () => {
+  const b = Buffer.alloc(4); b.writeFloatBE(230.5, 0);
+  const hi = b.readUInt16BE(0), lo = b.readUInt16BE(2);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 200: lo, 201: hi }).v1, 230.5);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["pm2200"], { 3027: hi, 3028: lo }).v1, 230.5);
+  /* PF เป็น signed 16 บิต ×0.01 */
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 0x10000 - 95 }).pf, -0.95);
+});
+
+test("โปรไฟล์มิเตอร์: บล็อกครอบทุกช่อง · ไม่เกิน 125 register ต่อครั้ง · ตรงกับรายการรุ่นฝั่งเว็บ", async () => {
+  const { MT_METER_MODELS } = await import("../api/_lib/mikrotik.mjs");
+  assert.deepEqual(A.METER_MODELS.concat("none"), MT_METER_MODELS);
+  for (const [name, P] of Object.entries(A.METER_PROFILES)) {
+    const inBlock = (a) => P.blocks.some(([s, q]) => a >= s && a < s + q);
+    for (const [k, a] of Object.entries(P.f32)) assert.ok(inBlock(a) && inBlock(a + 1), name + " " + k);
+    for (const [k, [a]] of Object.entries(P.i16)) assert.ok(inBlock(a), name + " " + k);
+    for (const [, q] of P.blocks) assert.ok(q <= 125);
+  }
+});
+
+test("readMeter กับมิเตอร์ปลอม (Modbus TCP ในเครื่อง): อ่านหลายบล็อก · exception = error", async () => {
+  const regs = {};
+  const put = (a, v, lowFirst) => { const b = Buffer.alloc(4); b.writeFloatBE(v, 0); const hi = b.readUInt16BE(0), lo = b.readUInt16BE(2); regs[a] = lowFirst ? lo : hi; regs[a + 1] = lowFirst ? hi : lo; };
+  put(230, 15.25, true); put(271, 123456.5, true); put(212, 10, true);
+  let fcSeen = [];
+  const srv = net.createServer((s) => {
+    s.on("data", (d) => {
+      for (let o = 0; o + 12 <= d.length; o += 12) {
+        const tid = d.readUInt16BE(o), unit = d.readUInt8(o + 6), fc = d.readUInt8(o + 7), addr = d.readUInt16BE(o + 8), q = d.readUInt16BE(o + 10);
+        fcSeen.push(fc);
+        if (unit === 9) { const e = Buffer.alloc(9); e.writeUInt16BE(tid, 0); e.writeUInt16BE(3, 4); e.writeUInt8(unit, 6); e.writeUInt8(fc | 0x80, 7); e.writeUInt8(2, 8); s.write(e); continue; }
+        const r = Buffer.alloc(9 + q * 2);
+        r.writeUInt16BE(tid, 0); r.writeUInt16BE(3 + q * 2, 4); r.writeUInt8(unit, 6); r.writeUInt8(fc, 7); r.writeUInt8(q * 2, 8);
+        for (let i = 0; i < q; i++) r.writeUInt16BE(regs[addr + i] || 0, 9 + i * 2);
+        s.write(r);
+      }
+    });
+  });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  try {
+    const port = srv.address().port;
+    const r = await A.readMeter("127.0.0.1", "leos-ipm310", 1, { port });
+    assert.equal(r.v.kw, 15.25);
+    assert.equal(r.v.kwh_imp, 123456.5);
+    assert.equal(r.v.i1, 10);
+    assert.deepEqual([...new Set(fcSeen)], [4], "LEOS ต้องใช้ FC04 อย่างเดียว");
+    await assert.rejects(A.readMeter("127.0.0.1", "leos-ipm310", 9, { port }), /exception/);
+  } finally { srv.close(); }
+});
+
+test("agent ไม่มีคำสั่ง Modbus เขียน (FC05/06/15/16)", () => {
+  const src = fs.readFileSync(new URL("../tools/mt-agent/agent.mjs", import.meta.url), "utf8");
+  for (const P of Object.values(A.METER_PROFILES)) assert.ok([3, 4].includes(P.fc));
+  assert.ok(!/fc:\s*(5|6|15|16)\b/.test(src));
+});

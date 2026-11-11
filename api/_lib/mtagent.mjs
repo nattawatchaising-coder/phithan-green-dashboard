@@ -93,6 +93,8 @@ export async function agentPOST(request) {
       st.at = iso;
       patch[n] = st;
       count++;
+      /* เฟส 3: ค่ามิเตอร์ราย 15 นาที (agent ติด snap = ขึ้นช่อง 15 นาทีใหม่) */
+      if (b.status.snap && st.meter && st.meter.v) await saveMeterSnap(n, st.meter.v, now).catch(() => null);
     }
     patch._agent = { at: iso, ver: String(b.ver || "").slice(0, 20), sites: count };
     await rtdbUpdate("mtStatus", patch);
@@ -127,7 +129,8 @@ async function siteList(sites) {
     const s = sites[k];
     const n = Number(k);
     if (!validN(n) || !s) continue;
-    const item = { n, name: String(s.name || ""), fp: String(s.fp || "") };
+    const item = { n, name: String(s.name || ""), fp: String(s.fp || ""),
+      meter_model: String(s.meter_model || "leos-ipm310"), meter_unit: Number(s.meter_unit) || 1 };
     if (item.fp) {
       const sec = await rtdbGet("mtSecrets/" + n).catch(() => null);
       try { item.pass = unseal(sec.web_pass, aad(n, "web_pass")); } catch (e) { item.key_error = true; }
@@ -135,4 +138,30 @@ async function siteList(sites) {
     list.push(item);
   }
   return list;
+}
+
+/* ================================================================
+   เฟส 3 — ค่ามิเตอร์สำหรับ Monitoring/บิล (docs/mikrotik.md)
+   mtMeter/{N}/h/{YYYYMMDD}/{HHMM}  ราย 15 นาที (เวลาไทย) — กราฟ
+   mtMeter/{N}/d/{YYYYMMDD}         first/last ของวัน + kW สูงสุด — บิลรายเดือนใช้ first ของวันที่ 1
+   ================================================================ */
+export const METER_KEEP = ["kw", "kwh_imp", "kwh_exp", "kwh_net", "v1", "v2", "v3", "i1", "i2", "i3", "pf", "hz"];
+export function thSlot(ms) {
+  const d = new Date(ms + 7 * 3600e3);   // เวลาไทย UTC+7 (ไม่มี DST)
+  const p = (x) => String(x).padStart(2, "0");
+  const m = Math.floor(d.getUTCMinutes() / 15) * 15;
+  return { day: d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()), hm: p(d.getUTCHours()) + p(m) };
+}
+export async function saveMeterSnap(n, v, now) {
+  const rec = {};
+  for (const k of METER_KEEP) if (typeof v[k] === "number" && Number.isFinite(v[k])) rec[k] = v[k];
+  if (!Object.keys(rec).length) return;
+  const { day, hm } = thSlot(now);
+  const read = { t: hm };
+  for (const k of ["kwh_imp", "kwh_exp", "kwh_net"]) if (rec[k] != null) read[k] = rec[k];
+  const cur = (await rtdbGet("mtMeter/" + n + "/d/" + day).catch(() => null)) || {};
+  const dayRec = { last: read, kw_max: Math.max(Number(cur.kw_max) || 0, rec.kw || 0) };
+  if (!cur.first) dayRec.first = read;
+  await rtdbUpdate("mtMeter/" + n, { ["h/" + day + "/" + hm]: rec, ["d/" + day + "/last"]: dayRec.last, ["d/" + day + "/kw_max"]: dayRec.kw_max,
+    ...(dayRec.first ? { ["d/" + day + "/first"]: dayRec.first } : {}) });
 }

@@ -24,7 +24,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = "1";
+export const VERSION = "2";
 const STATUS_EVERY_MS = 60e3;
 const CMD_TTL_MS = 10 * 60e3;
 const USER = "pg-web";
@@ -162,6 +162,104 @@ export function pickAddrs(list) {
   }));
 }
 
+/* =====================================================================
+   เฟส 3 — อ่านมิเตอร์ด้วย Modbus TCP (อ่านอย่างเดียว: FC03/FC04 — ไม่มีโค้ดเขียน register/coil)
+   โปรไฟล์ต่อรุ่น: บล็อกที่อ่าน + ช่องค่า (addr = ที่อยู่ Modbus นับจาก 0)
+   ===================================================================== */
+export const METER_PROFILES = {
+  /* LEOS IPM310 — ตารางจากคู่มือ (docs/mikrotik.md) · FC04 · float word ต่ำมาก่อน (ผู้ใช้ทดสอบจริง 2026-11-11) */
+  "leos-ipm310": {
+    fc: 4, lowWordFirst: true,
+    blocks: [[200, 60], [269, 6]],
+    f32: { v1: 200, v2: 202, v3: 204, i1: 212, i2: 214, i3: 216, kw1: 224, kw2: 226, kw3: 228, kw: 230, kvar: 238, kva: 246,
+      kwh_net: 269, kwh_imp: 271, kwh_exp: 273 },
+    i16: { pf: [251, 0.01], hz: [252, 0.1] },
+  },
+  /* Schneider PM2200 (ผ่าน Waveshare) — ตามตารางผู้ผลิต · FC03 · float word สูงมาก่อน · ⚠ ยังไม่ได้ลองกับเครื่องจริง */
+  "pm2200": {
+    fc: 3, lowWordFirst: false,
+    blocks: [[2699, 4], [2999, 62], [3109, 2]],
+    f32: { kwh_imp: 2699, kwh_exp: 2701, i1: 2999, i2: 3001, i3: 3003, v1: 3027, v2: 3029, v3: 3031,
+      kw1: 3053, kw2: 3055, kw3: 3057, kw: 3059, hz: 3109 },
+    i16: {},
+  },
+};
+export const METER_MODELS = Object.keys(METER_PROFILES);
+
+/* คำขอ/คำตอบ Modbus TCP (MBAP) */
+export function mbRequest(tid, unit, fc, addr, qty) {
+  const b = Buffer.alloc(12);
+  b.writeUInt16BE(tid, 0); b.writeUInt16BE(0, 2); b.writeUInt16BE(6, 4); b.writeUInt8(unit, 6);
+  b.writeUInt8(fc, 7); b.writeUInt16BE(addr, 8); b.writeUInt16BE(qty, 10);
+  return b;
+}
+/* คืน { tid, regs: [uint16…] } หรือ throw (exception code) · ไม่ครบ = null (รออ่านต่อ) */
+export function mbParse(buf) {
+  if (buf.length < 9) return null;
+  const len = buf.readUInt16BE(4);
+  if (buf.length < 6 + len) return null;
+  const tid = buf.readUInt16BE(0), fc = buf.readUInt8(7);
+  if (fc & 0x80) throw Object.assign(new Error("มิเตอร์ตอบ exception " + buf.readUInt8(8)), { code: "MB_EXC" });
+  const n = buf.readUInt8(8);
+  const regs = [];
+  for (let i = 0; i < n / 2; i++) regs.push(buf.readUInt16BE(9 + i * 2));
+  return { tid, regs, size: 6 + len };
+}
+export function f32From(hi, lo) {
+  const b = Buffer.alloc(4);
+  b.writeUInt16BE(hi, 0); b.writeUInt16BE(lo, 2);
+  return b.readFloatBE(0);
+}
+/* แปลง register ที่อ่านได้ (map addr → uint16) เป็นค่าตามโปรไฟล์ · ค่าผิดปกติ (NaN/อนันต์) = ไม่ใส่ */
+export function decodeMeter(profile, reg) {
+  const out = {};
+  for (const [k, a] of Object.entries(profile.f32)) {
+    if (reg[a] == null || reg[a + 1] == null) continue;
+    const v = profile.lowWordFirst ? f32From(reg[a + 1], reg[a]) : f32From(reg[a], reg[a + 1]);
+    if (Number.isFinite(v) && Math.abs(v) < 1e12) out[k] = Math.round(v * 1000) / 1000;
+  }
+  for (const [k, [a, scale]] of Object.entries(profile.i16)) {
+    if (reg[a] == null) continue;
+    const s = reg[a] > 0x7fff ? reg[a] - 0x10000 : reg[a];
+    out[k] = Math.round(s * scale * 1000) / 1000;
+  }
+  return out;
+}
+
+/* อ่านทุกบล็อกในการเชื่อมต่อเดียว */
+export function readMeter(host, model, unit = 1, { port = 502, timeout = 4000 } = {}) {
+  const P = METER_PROFILES[model];
+  if (!P) return Promise.reject(new Error("ไม่รู้จักรุ่นมิเตอร์ " + model));
+  return new Promise((resolve, reject) => {
+    const t0 = Date.now();
+    const reg = {};
+    let buf = Buffer.alloc(0), i = 0, done = false;
+    const s = net.connect({ host, port });
+    const fin = (err, v) => { if (done) return; done = true; s.destroy(); err ? reject(err) : resolve(v); };
+    const next = () => {
+      if (i >= P.blocks.length) return fin(null, { ms: Date.now() - t0, v: decodeMeter(P, reg) });
+      const [a, q] = P.blocks[i];
+      s.write(mbRequest(i + 1, unit, P.fc, a, q));
+    };
+    s.setTimeout(timeout, () => fin(Object.assign(new Error("มิเตอร์ไม่ตอบ"), { code: "TIMEOUT" })));
+    s.on("error", (e) => fin(e));
+    s.on("connect", next);
+    s.on("data", (d) => {
+      buf = Buffer.concat([buf, d]);
+      try {
+        const r = mbParse(buf);
+        if (!r) return;
+        buf = buf.subarray(r.size);
+        if (r.tid !== i + 1) return fin(new Error("คำตอบสลับลำดับ"));
+        const a = P.blocks[i][0];
+        r.regs.forEach((x, k) => { reg[a + k] = x; });
+        i++;
+        next();
+      } catch (e) { fin(e); }
+    });
+  });
+}
+
 /* ---------- เช็กสถานะหนึ่งไซต์ ---------- */
 async function checkSite(s, wg) {
   const P = sitePlan(s.n);
@@ -169,11 +267,14 @@ async function checkSite(s, wg) {
   const [hexPing, slPing, slWeb, meter] = await Promise.all([
     ping(P.hex), ping(P.sl),
     tcpCheck(P.sl, 443).then((r) => (r.ok ? r : tcpCheck(P.sl, 80))),
-    tcpCheck(P.meter, 502),
+    s.meter_model === "none" ? Promise.resolve(null)
+      : readMeter(P.meter, METER_PROFILES[s.meter_model] ? s.meter_model : "leos-ipm310", Number(s.meter_unit) || 1)
+        .then((r) => ({ ok: true, ms: r.ms, v: r.v }), (e) => ({ ok: false, error: String(e.message || e).slice(0, 80) })),
   ]);
   st.hex = { ping: hexPing };
   st.sl = { ping: slPing, web: slWeb };
-  st.meter = { modbus: meter };
+  /* มิเตอร์: ค่าที่อ่านได้อยู่ใน st.meter.v (เว็บเก็บราย 15 นาทีเมื่อ st.meter.snap = ช่อง 15 นาทีใหม่) */
+  if (meter) st.meter = { modbus: { ok: meter.ok, ms: meter.ms }, model: s.meter_model || "leos-ipm310", v: meter.v || null, error: meter.error || "" };
   const req = (path, extra) => pinnedRequest(Object.assign({ host: P.hex, pin: s.fp, user: USER, pass: s.pass, path }, extra));
   try {
     if (!s.fp || !s.pass) {
@@ -243,7 +344,7 @@ export async function main(argv = process.argv.slice(2)) {
   }
   const doneFile = (process.env.STATE_DIRECTORY || "/var/lib/mt-agent") + "/done.json";
   const done = loadDone(doneFile);
-  let sites = [], results = [], lastStatus = 0, wait = 30e3, fails = 0;
+  let sites = [], results = [], lastStatus = 0, wait = 30e3, fails = 0, lastSlot = 0;
   const call = async (payload) => {
     const r = await fetch(api, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + key },
       body: JSON.stringify(Object.assign({ ver: VERSION }, payload)), signal: AbortSignal.timeout(20000) });
@@ -268,8 +369,15 @@ export async function main(argv = process.argv.slice(2)) {
     try {
       let status;
       /* รอบแรกยังไม่รู้รายชื่อไซต์ → คุยกับเว็บก่อน รอบถัดไปค่อยส่งสถานะ */
-      if (sites.length && Date.now() - lastStatus >= STATUS_EVERY_MS) { status = await checkAll(); lastStatus = Date.now(); }
+      let slot = 0;
+      if (sites.length && Date.now() - lastStatus >= STATUS_EVERY_MS) {
+        status = await checkAll(); lastStatus = Date.now();
+        /* ขึ้นช่อง 15 นาทีใหม่ = ให้เว็บเก็บค่ามิเตอร์ลงประวัติ (เก็บช่องละครั้ง) */
+        slot = Math.floor(Date.now() / 900e3);
+        if (slot !== lastSlot) status.snap = true;
+      }
       const j = await call({ status, results });
+      if (status && status.snap) lastSlot = slot;
       results = [];
       sites = j.sites || [];
       wait = (Number(j.poll_s) || 30) * 1000;
