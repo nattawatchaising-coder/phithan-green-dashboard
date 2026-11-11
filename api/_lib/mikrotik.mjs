@@ -61,7 +61,8 @@ export function cmdSig(c, secret) {
 export const MT_METER_MODELS = ["leos-ipm310", "pm2200", "none"];   // ต้องตรงกับ METER_PROFILES ใน tools/mt-agent/agent.mjs
 export const MT_BILL_REGS = ["kwh_imp", "kwh_exp", "kwh_net"];
 const r2 = (x) => Math.round(x * 100) / 100, r3 = (x) => Math.round(x * 1000) / 1000;
-/* คิดบิล: kWh = เลขสิ้นสุด − เลขเริ่ม · เงิน = kWh × ราคา (ก่อน VAT — VAT คิดตอนออกใบแจ้งหนี้) */
+/* คิดบิลแบบใบแจ้งค่าไฟการไฟฟ้า: kWh = เลขครั้งนี้ − เลขครั้งก่อน · ค่าไฟ = kWh × ราคา · VAT 7% (ปิดได้ต่อไซต์) · รวม
+   start_at/end_at = เวลาที่จดเลข (ข้อความจากเว็บ เช่น "2026-11-01 00:00") */
 export function billCalc(b) {
   const month = String((b && b.month) || "");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return { error: "เดือนต้องเป็น YYYY-MM" };
@@ -72,7 +73,10 @@ export function billCalc(b) {
   if (!MT_BILL_REGS.includes(b.reg)) return { error: "ช่องคิดเงินไม่ถูกต้อง" };
   const kwh = r3(end - start);
   const src = (x) => String(x || "").slice(0, 80);
-  return { month, start: r3(start), end: r3(end), kwh, rate, amount: r2(kwh * rate), reg: b.reg, start_src: src(b.start_src), end_src: src(b.end_src) };
+  const amount = r2(kwh * rate), vat_rate = b.vat === false ? 0 : 7, vat = r2(amount * vat_rate / 100);
+  const at = (x) => (/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(String(x || "")) ? String(x) : "");
+  return { month, start: r3(start), end: r3(end), kwh, rate, amount, vat_rate, vat, total: r2(amount + vat), reg: b.reg,
+    start_src: src(b.start_src), end_src: src(b.end_src), start_at: at(b.start_at), end_at: at(b.end_at) };
 }
 /* fingerprint SHA-256 ของใบรับรอง → hex ตัวเล็กไม่มี : (แบบที่ RouterOS พิมพ์) · ผิดรูป = "" */
 export function normFp(s) {

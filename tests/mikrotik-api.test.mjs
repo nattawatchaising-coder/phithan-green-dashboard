@@ -390,6 +390,16 @@ test("meter-cfg / bill-cfg / bill-save: แอดมินเท่านั้�
   assert.equal(r.status, 200);
   assert.equal(db.mtBills[52]["202611"].kwh, 250.5);
   assert.equal(db.mtBills[52]["202611"].amount, 976.95, "ยอดเงินคิดใหม่ที่เซิร์ฟเวอร์ ไม่เชื่อค่าที่ส่งมา");
+  assert.equal(db.mtBills[52]["202611"].vat, 68.39);
+  assert.equal(db.mtBills[52]["202611"].total, 1045.34);
+  assert.equal(db.mtBills[52]["202611"].no, "SITE52-202611");
+  /* ปิด VAT ที่ตั้งค่าไซต์ → บิลไม่มี VAT (หน้าเว็บส่ง vat มาเองไม่มีผล) */
+  await call({ action: "bill-cfg", n: 52, cust: "บจก. ทดสอบ", rate: 3.9, reg: "kwh_imp", vat: false });
+  await call({ action: "bill-save", n: 52, month: "2026-11", start: 1000, end: 1250.5, rate: 3.9, reg: "kwh_imp", vat: true, start_at: "2026-11-01 00:00", end_at: "bad" });
+  assert.equal(db.mtBills[52]["202611"].vat, 0);
+  assert.equal(db.mtBills[52]["202611"].total, 976.95);
+  assert.equal(db.mtBills[52]["202611"].start_at, "2026-11-01 00:00");
+  assert.equal(db.mtBills[52]["202611"].end_at, "");
   assert.equal(db.mtBills[52]["202611"].cust, "บจก. ทดสอบ");
   assert.equal((await call({ action: "bill-save", n: 52, month: "2026-13", start: 1, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);
   assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11", start: 5, end: 2, rate: 1, reg: "kwh_imp" })).status, 400);

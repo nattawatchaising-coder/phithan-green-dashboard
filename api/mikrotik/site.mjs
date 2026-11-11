@@ -16,7 +16,7 @@
      ⚠ ไม่มี action แก้ IP / firewall / WireGuard ของเราเตอร์ — ห้ามเพิ่ม (ผู้ใช้กำหนด)
    เฟส 3 (มิเตอร์ · บิลรายเดือน)
      { action: "meter-cfg", n, meter_model, meter_unit }  → รุ่นมิเตอร์ที่ agent อ่าน (leos-ipm310 | pm2200 | none) · unit id
-     { action: "bill-cfg", n, cust, rate, reg }            → ตั้งค่าบิลของไซต์ (ชื่อลูกค้า · บาท/kWh · ช่องที่ใช้คิด kwh_imp|kwh_exp|kwh_net)
+     { action: "bill-cfg", n, cust, addr, rate, reg, vat } → ตั้งค่าบิลของไซต์ (ชื่อ/ที่อยู่ลูกค้า · บาท/kWh · ช่อง kwh_imp|kwh_exp|kwh_net · คิด VAT 7%)
      { action: "bill-save", n, month, start, end, ... }    → บันทึกบิลเดือน YYYY-MM ลง mtBills/N/YYYYMM (คิด kWh/ยอดเงินใหม่ที่เซิร์ฟเวอร์)
 
    ข้อมูล
@@ -191,16 +191,19 @@ export async function POST(request) {
     const rate = Number(b.rate);
     if (!(rate >= 0 && rate <= 100)) return json({ error: "ราคาต่อหน่วยต้องเป็น 0–100 บาท" }, 400);
     if (!MT_BILL_REGS.includes(b.reg)) return json({ error: "ช่องคิดเงินต้องเป็น kwh_imp / kwh_exp / kwh_net" }, 400);
-    const bill = { cust: String(b.cust || "").slice(0, 200), rate, reg: b.reg, note: String(b.note || "").slice(0, 300), at: now, by: a.by };
+    const bill = { cust: String(b.cust || "").slice(0, 200), addr: String(b.addr || "").slice(0, 300), rate, reg: b.reg, vat: b.vat !== false,
+      note: String(b.note || "").slice(0, 300), at: now, by: a.by };
     await rtdbUpdate(path, { bill });
     return json({ ok: true, bill });
   }
   if (b.action === "bill-save") {
-    const r = billCalc(b);
+    /* VAT ตามที่ตั้งไว้ของไซต์ (ไม่เชื่อค่าจากหน้าเว็บ) */
+    const r = billCalc(Object.assign({}, b, { vat: !(site.bill && site.bill.vat === false) }));
     if (r.error) return json({ error: r.error }, 400);
     const key = r.month.replace("-", "");
-    const rec = Object.assign(r, { n, cust: String(b.cust || (site.bill && site.bill.cust) || "").slice(0, 200),
-      note: String(b.note || "").slice(0, 300), invoice_id: String(b.invoice_id || "").slice(0, 40), at: now, by: a.by });
+    const rec = Object.assign(r, { n, no: "SITE" + String(n).padStart(2, "0") + "-" + key,
+      cust: String((site.bill && site.bill.cust) || "").slice(0, 200), addr: String((site.bill && site.bill.addr) || "").slice(0, 300),
+      note: String(b.note || "").slice(0, 300), at: now, by: a.by });
     await rtdbSet("mtBills/" + n + "/" + key, rec);
     return json({ ok: true, bill: rec });
   }
