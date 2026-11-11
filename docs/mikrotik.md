@@ -75,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/nattawatchaising-coder/phithan-gree
 ## เพิ่มไซต์ใหม่
 **ในเว็บ (แอดมิน)** ตั้งค่า → ไซต์ MikroTik → เพิ่มไซต์ (N เสนอเลขว่างถัดไปให้) → "สร้างสคริปต์ .rsc" → ดาวน์โหลด `.rsc` + คัดลอก peer
 
-**เซิร์ฟเวอร์** `sudo mt-peer add` แล้ววาง peer + Ctrl+D
+**เซิร์ฟเวอร์** ก๊อปกล่อง "คำสั่งเพิ่ม peer บนเซิร์ฟเวอร์" (heredoc `sudo mt-peer add <<'EOF' … EOF`) วางใน SSH ทีเดียวจบ — ไม่ต้องกด Ctrl+D เอง (ผู้ใช้เคยกดก่อนวางจนว่าง แล้วหลุด SSH)
 
 **หน้างาน**
 1. hEX ต้องเป็น RouterOS **7.12 ขึ้นไป** (Back To Home) — อัปเดตก่อน

@@ -212,7 +212,8 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
             สคริปต์มีกุญแจลับของไซต์ — ห้ามส่งในแชตกลุ่ม · รันเสร็จลบไฟล์ออกจากเราเตอร์และเครื่องตัวเอง
           </div>
           <MtScriptBox title="สคริปต์ RouterOS" sub="รันที่ hEX ด้วย /import (ต่อ WinBox ทาง MAC)" text={out.rsc} filename={out.filename} />
-          <MtScriptBox title="peer ฝั่งเซิร์ฟเวอร์" sub="บนเซิร์ฟเวอร์: sudo mt-peer add แล้ววางข้อความนี้ + Ctrl+D" text={out.peer} />
+          {/* วางทั้งก้อนใน SSH ทีเดียวจบ (heredoc) — ผู้ใช้เคยกด Ctrl+D ก่อนวาง peer แล้วงง 2026-11-11 */}
+          <MtScriptBox title="คำสั่งเพิ่ม peer บนเซิร์ฟเวอร์" sub="SSH เข้า VPS แล้ววางทั้งก้อน (คลิกขวา) กด Enter" text={"sudo mt-peer add <<'EOF'\n" + out.peer.replace(/\n+$/, "") + "\nEOF\n"} />
         </div>
       )}
     </div>
