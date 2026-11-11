@@ -143,7 +143,7 @@ function MtMonDetail({ s, st, isAdmin, user, onBack }) {
         {window.Segmented ? <window.Segmented value={tab} onChange={setTab} options={opts} />
           : opts.map((o) => <button key={o.value} className={tab === o.value ? "btn btn-pri" : "btn"} onClick={() => setTab(o.value)}>{o.label}</button>)}
       </div>
-      {tab === "bill" ? <MtSiteBill s={s} isAdmin={isAdmin} user={user} /> : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
+      {tab === "bill" ? <MtSiteBill s={s} st={st} isAdmin={isAdmin} user={user} /> : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
     </div>
   );
 }
@@ -238,11 +238,20 @@ function MtMeterCfg({ s }) {
 }
 
 /* ---------- บิลของไซต์เดียว (อยู่ในหน้ารายละเอียดไซต์ — ผู้ใช้ 2026-11-11 "บิลนี้ให้กดผ่านในไซต์ ไม่กดด้านนอก") ---------- */
-function MtSiteBill({ s, isAdmin, user }) {
+function MtSiteBill({ s, st, isAdmin, user }) {
+  const cur = (() => { const t = mtThDay(); return t.slice(0, 4) + "-" + t.slice(4, 6); })();
   const prev = (() => { const d = new Date(Date.now() + 7 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); })();
-  const [ym, setYm] = React.useState(prev);
+  const days = useMtRef("mtMeter/" + s.n + "/d");
+  const [ym, setYmRaw] = React.useState(null);
+  const setYm = (v) => setYmRaw(v);
+  /* เดือนเริ่มต้น: เดือนก่อนถ้ามีข้อมูล (ออกบิลต้นเดือน) ไม่งั้นเดือนนี้ (ยอดถึงตอนนี้) */
+  React.useEffect(() => {
+    if (ym || days === undefined) return;
+    setYmRaw(Object.keys(days || {}).some((k) => k.slice(0, 6) === prev.replace("-", "")) ? prev : cur);
+  }, [days]);
   const [cfg, setCfg] = React.useState(false);
   const bills = useMtRef("mtBills/" + s.n);
+  if (!ym) return <div style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</div></div>;
   const th = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" };
   const past = Object.keys(bills || {}).sort().reverse();
   return (
@@ -260,7 +269,7 @@ function MtSiteBill({ s, isAdmin, user }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr><th style={th}>ลูกค้า</th><th style={th}>เลขเริ่ม</th><th style={th}>เลขสิ้นสุด</th><th style={Object.assign({}, th, { textAlign: "right" })}>kWh</th>
               <th style={th}>บาท/kWh</th><th style={Object.assign({}, th, { textAlign: "right" })}>ยอดเงิน (บาท)</th><th style={th}>สถานะ</th></tr></thead>
-            <tbody><MtBillRow key={ym} s={s} ym={ym} isAdmin={isAdmin} onCfg={() => setCfg(true)} user={user} /></tbody>
+            <tbody><MtBillRow key={ym} s={s} st={st} ym={ym} isAdmin={isAdmin} onCfg={() => setCfg(true)} user={user} /></tbody>
           </table>
         </div>
         {!isAdmin && <div style={{ fontSize: 12, color: "var(--text-3)" }}>บันทึกบิล/ออกใบแจ้งหนี้ได้เฉพาะแอดมิน</div>}
@@ -332,7 +341,8 @@ function mtMonthKeys(ym) {   // "2026-11" → { pre: "202611", next: "202612" }
   const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
   return { pre: ym.replace("-", ""), next: ny + String(nm).padStart(2, "0") };
 }
-function mtBillAuto(days, ym, reg) {
+/* live = { v, at } ค่าสดจาก mtStatus — เดือนที่ยังไม่จบใช้เป็นเลขสิ้นสุด (ผู้ใช้ 2026-11-11 "ต้องเอามาคิดให้เลย ไม่ต้องกรอกเลขเอง") */
+function mtBillAuto(days, ym, reg, live) {
   const { pre, next } = mtMonthKeys(ym);
   const keys = Object.keys(days || {}).sort();
   const inMon = keys.filter((k) => k.slice(0, 6) === pre && days[k] && days[k].first && days[k].first[reg] != null);
@@ -344,19 +354,24 @@ function mtBillAuto(days, ym, reg) {
   const k1 = next + "01";
   if (days[k1] && days[k1].first && days[k1].first[reg] != null) {
     out.end = days[k1].first[reg]; out.end_src = mtDayLabel(k1) + " " + days[k1].first.t.slice(0, 2) + ":" + days[k1].first.t.slice(2);
+  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+    out.end = live.v[reg];
+    out.end_src = "ตอนนี้ " + new Date(live.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) + " (ค่าสด)";
+    out.warn.push("เดือนยังไม่จบ — ยอดถึงตอนนี้ (บันทึกบิลหลังวันที่ 1 เดือนหน้า)");
   } else {
     const kl = inMon[inMon.length - 1], l = days[kl].last || days[kl].first;
     out.end = l[reg]; out.end_src = mtDayLabel(kl) + " " + l.t.slice(0, 2) + ":" + l.t.slice(2) + " (ล่าสุด)";
-    out.warn.push("ยังไม่จบเดือน/ยังไม่มีค่าวันที่ 1 เดือนถัดไป — เลขสิ้นสุดเป็นค่าล่าสุด");
+    out.warn.push("ยังไม่มีค่าวันที่ 1 เดือนถัดไป — เลขสิ้นสุดเป็นค่าล่าสุดที่เก็บได้");
   }
   return out;
 }
 
-function MtBillRow({ s, ym, isAdmin, onCfg, user }) {
+function MtBillRow({ s, st, ym, isAdmin, onCfg, user }) {
   const days = useMtRef("mtMeter/" + s.n + "/d");
   const saved = useMtRef("mtBills/" + s.n + "/" + ym.replace("-", ""));
   const reg = mtRegOf(s);
-  const auto = React.useMemo(() => mtBillAuto(days, ym, reg), [days, ym, reg]);
+  const live = st && st.meter && st.meter.modbus && st.meter.modbus.ok && st.meter.v ? { v: st.meter.v, at: Date.parse(st.at) } : null;
+  const auto = React.useMemo(() => mtBillAuto(days, ym, reg, live), [days, ym, reg, live && live.v[reg], live && live.at]);
   const [ov, setOv] = React.useState({});   // ค่าที่พิมพ์เอง { start, end, rate }
   React.useEffect(() => setOv({}), [ym]);
   const [busy, setBusy] = React.useState("");
@@ -419,7 +434,9 @@ function MtBillRow({ s, ym, isAdmin, onCfg, user }) {
       <td style={cell}>{inp("end", saved ? saved.end : auto.end)}<div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>{ov.end != null ? "พิมพ์เอง" : saved ? saved.end_src : auto.end_src}</div></td>
       <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontWeight: 700, textAlign: "right" })}>{mtNum(kwh, 2)}</td>
       <td style={cell}>{inp("rate", saved ? saved.rate : s.bill ? s.bill.rate : null, 70)}</td>
-      <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontWeight: 800, textAlign: "right", fontSize: 14 })}>{mtNum(amount, 2)}</td>
+      <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontWeight: 800, textAlign: "right", fontSize: 14 })}>
+        {kwh != null && !(rate > 0) && !saved ? (isAdmin ? <button className="btn btn-sm btn-soft" onClick={() => onCfg(s)} style={{ fontFamily: "inherit" }}>ตั้งราคา/หน่วยก่อน</button>
+          : <span style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", fontFamily: "inherit" }}>ยังไม่ตั้งราคา</span>) : mtNum(amount, 2)}</td>
       <td style={Object.assign({}, cell, { minWidth: 190 })}>
         {saved && <div style={{ fontSize: 11, color: "var(--tint-ok-tx)", fontWeight: 700 }}>บันทึกแล้ว · {saved.by} {new Date(saved.at).toLocaleDateString("th-TH")}</div>}
         {saved && saved.invoice_id && <div style={{ fontSize: 11, color: "var(--text-3)" }}>มีร่าง/ใบแจ้งหนี้แล้ว (เอกสารงวดงาน → ใบแจ้งหนี้)</div>}

@@ -401,6 +401,7 @@ function MtMonDetail({
     onClick: () => setTab(o.value)
   }, o.label))), tab === "bill" ? React.createElement(MtSiteBill, {
     s: s,
+    st: st,
     isAdmin: isAdmin,
     user: user
   }) : React.createElement(MtMonMeter, {
@@ -681,18 +682,37 @@ function MtMeterCfg({
 }
 function MtSiteBill({
   s,
+  st,
   isAdmin,
   user
 }) {
+  const cur = (() => {
+    const t = mtThDay();
+    return t.slice(0, 4) + "-" + t.slice(4, 6);
+  })();
   const prev = (() => {
     const d = new Date(Date.now() + 7 * 3600e3);
     d.setUTCDate(1);
     d.setUTCMonth(d.getUTCMonth() - 1);
     return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0");
   })();
-  const [ym, setYm] = React.useState(prev);
+  const days = useMtRef("mtMeter/" + s.n + "/d");
+  const [ym, setYmRaw] = React.useState(null);
+  const setYm = v => setYmRaw(v);
+  React.useEffect(() => {
+    if (ym || days === undefined) return;
+    setYmRaw(Object.keys(days || {}).some(k => k.slice(0, 6) === prev.replace("-", "")) ? prev : cur);
+  }, [days]);
   const [cfg, setCfg] = React.useState(false);
   const bills = useMtRef("mtBills/" + s.n);
+  if (!ym) return React.createElement("div", {
+    style: mtCard
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"));
   const th = {
     fontSize: 10.5,
     fontWeight: 700,
@@ -768,6 +788,7 @@ function MtSiteBill({
   }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, React.createElement(MtBillRow, {
     key: ym,
     s: s,
+    st: st,
     ym: ym,
     isAdmin: isAdmin,
     onCfg: () => setCfg(true),
@@ -934,7 +955,7 @@ function mtMonthKeys(ym) {
     next: ny + String(nm).padStart(2, "0")
   };
 }
-function mtBillAuto(days, ym, reg) {
+function mtBillAuto(days, ym, reg, live) {
   const {
     pre,
     next
@@ -961,17 +982,25 @@ function mtBillAuto(days, ym, reg) {
   if (days[k1] && days[k1].first && days[k1].first[reg] != null) {
     out.end = days[k1].first[reg];
     out.end_src = mtDayLabel(k1) + " " + days[k1].first.t.slice(0, 2) + ":" + days[k1].first.t.slice(2);
+  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+    out.end = live.v[reg];
+    out.end_src = "ตอนนี้ " + new Date(live.at).toLocaleTimeString("th-TH", {
+      hour: "2-digit",
+      minute: "2-digit"
+    }) + " (ค่าสด)";
+    out.warn.push("เดือนยังไม่จบ — ยอดถึงตอนนี้ (บันทึกบิลหลังวันที่ 1 เดือนหน้า)");
   } else {
     const kl = inMon[inMon.length - 1],
       l = days[kl].last || days[kl].first;
     out.end = l[reg];
     out.end_src = mtDayLabel(kl) + " " + l.t.slice(0, 2) + ":" + l.t.slice(2) + " (ล่าสุด)";
-    out.warn.push("ยังไม่จบเดือน/ยังไม่มีค่าวันที่ 1 เดือนถัดไป — เลขสิ้นสุดเป็นค่าล่าสุด");
+    out.warn.push("ยังไม่มีค่าวันที่ 1 เดือนถัดไป — เลขสิ้นสุดเป็นค่าล่าสุดที่เก็บได้");
   }
   return out;
 }
 function MtBillRow({
   s,
+  st,
   ym,
   isAdmin,
   onCfg,
@@ -980,7 +1009,11 @@ function MtBillRow({
   const days = useMtRef("mtMeter/" + s.n + "/d");
   const saved = useMtRef("mtBills/" + s.n + "/" + ym.replace("-", ""));
   const reg = mtRegOf(s);
-  const auto = React.useMemo(() => mtBillAuto(days, ym, reg), [days, ym, reg]);
+  const live = st && st.meter && st.meter.modbus && st.meter.modbus.ok && st.meter.v ? {
+    v: st.meter.v,
+    at: Date.parse(st.at)
+  } : null;
+  const auto = React.useMemo(() => mtBillAuto(days, ym, reg, live), [days, ym, reg, live && live.v[reg], live && live.at]);
   const [ov, setOv] = React.useState({});
   React.useEffect(() => setOv({}), [ym]);
   const [busy, setBusy] = React.useState("");
@@ -1135,7 +1168,19 @@ function MtBillRow({
       textAlign: "right",
       fontSize: 14
     })
-  }, mtNum(amount, 2)), React.createElement("td", {
+  }, kwh != null && !(rate > 0) && !saved ? isAdmin ? React.createElement("button", {
+    className: "btn btn-sm btn-soft",
+    onClick: () => onCfg(s),
+    style: {
+      fontFamily: "inherit"
+    }
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22\u0E01\u0E48\u0E2D\u0E19") : React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--tint-amber-tx)",
+      fontFamily: "inherit"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E49\u0E07\u0E23\u0E32\u0E04\u0E32") : mtNum(amount, 2)), React.createElement("td", {
     style: Object.assign({}, cell, {
       minWidth: 190
     })
