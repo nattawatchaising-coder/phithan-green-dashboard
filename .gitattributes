@@ -5,3 +5,6 @@ dashboard/build/** text eol=lf
 
 # สคริปต์ hook ต้องเป็น LF เสมอ — ถ้ากลายเป็น CRLF บน Windows จะรันไม่ออก (bad interpreter)
 .githooks/** text eol=lf
+
+# สคริปต์ bash ที่รันบนเซิร์ฟเวอร์ Linux — CRLF แล้วรันไม่ได้
+*.sh text eol=lf

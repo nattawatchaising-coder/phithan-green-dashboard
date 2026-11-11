@@ -208,7 +208,7 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
             สคริปต์มีกุญแจลับของไซต์ — ห้ามส่งในแชตกลุ่ม · รันเสร็จลบไฟล์ออกจากเราเตอร์และเครื่องตัวเอง
           </div>
           <MtScriptBox title="สคริปต์ RouterOS" sub="รันที่ hEX ด้วย /import (ต่อ WinBox ทาง MAC)" text={out.rsc} filename={out.filename} />
-          <MtScriptBox title="peer ฝั่งเซิร์ฟเวอร์" sub="ต่อท้าย /etc/wireguard/wg0.conf แล้ว wg syncconf (docs/mikrotik.md)" text={out.peer} />
+          <MtScriptBox title="peer ฝั่งเซิร์ฟเวอร์" sub="บนเซิร์ฟเวอร์: sudo mt-peer add แล้ววางข้อความนี้ + Ctrl+D" text={out.peer} />
         </div>
       )}
     </div>

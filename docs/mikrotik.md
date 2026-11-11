@@ -27,6 +27,7 @@ hEX เป็นฝ่ายต่อเข้าเซิร์ฟเวอร�
 | `api/_lib/mikrotik.mjs` | แผน IP · คีย์ WireGuard (X25519 ด้วย `node:crypto`) · เข้ารหัส AES-256-GCM · `buildRsc` · `buildServerPeer` — ไม่มี dependency |
 | `api/mikrotik/site.mjs` | `GET` = env ครบไหม (บอกแค่ชื่อที่ขาด) · `POST` create / edit / script / rotate / remove — เฉพาะแอดมิน (อ่าน `users/<uid>` ล่าสุด) |
 | `dashboard/mikrotik.jsx` | หน้า "ไซต์ MikroTik" ในเมนูตั้งค่า (สิทธิ์ `manageUsers` · ปุ่มทั้งหมดเซิร์ฟเวอร์ตรวจแอดมินซ้ำ) |
+| `tools/mt-server/setup.sh` | ติดตั้งเซิร์ฟเวอร์ WireGuard บน VPS + คำสั่ง `mt-peer` (LF เสมอ — `.gitattributes`) |
 | `tests/mikrotik*.test.mjs` | `npm test` (node --test ไม่มี dependency · API เทสต์กับฐานปลอมในหน่วยความจำ ไม่ยิง Firebase จริง) · CI build-check รันด้วย |
 
 ## ข้อมูลในฐาน
@@ -56,34 +57,24 @@ private key ของ**เซิร์ฟเวอร์**ไม่อยู่�
 ```
 ยังไม่วาง = พนักงานที่ล็อกอินอ่าน `mtSecrets` ได้ แต่เป็นข้อมูลเข้ารหัส (ไม่มี `MT_ENC_KEY` ถอดไม่ได้)
 
-## ตั้งเซิร์ฟเวอร์ WireGuard (ครั้งเดียว · Ubuntu/Debian)
+## ตั้งเซิร์ฟเวอร์ WireGuard (ครั้งเดียว · VPS Ubuntu 22.04/24.04)
+ผู้ใช้เลือกเช่า VPS (2026-11-11 ดู Hostinger KVM) แทนเปิดคอมค้าง — คอมในออฟฟิศใช้ได้แค่ทดสอบบนโต๊ะ (hEX อยู่วงแลนเดียวกัน endpoint = IP แลนของคอม)
+- ต้องเป็น **VPS (KVM) มี root** ไม่ใช่ web hosting · OS **Ubuntu เปล่า** (ไม่เอา template/panel) · สเปกเล็กสุดพอ · ที่ตั้งใกล้ไทย
+SSH เข้า VPS แล้วรัน (สคริปต์ `tools/mt-server/setup.sh` — รันซ้ำได้ ไม่สร้างคีย์ใหม่ ไม่ลบ peer):
 ```bash
-sudo apt install wireguard
-wg genkey | sudo tee /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
-sudo chmod 600 /etc/wireguard/server.key
+curl -fsSL https://raw.githubusercontent.com/nattawatchaising-coder/phithan-green-dashboard/master/tools/mt-server/setup.sh | sudo bash
 ```
-`/etc/wireguard/wg0.conf`:
-```ini
-[Interface]
-Address = 10.99.0.1/24
-ListenPort = 51820
-PrivateKey = <ค่าใน server.key>
-# peer ของแต่ละไซต์ต่อท้ายไฟล์นี้ (ได้จากหน้าเว็บ)
-```
-```bash
-sudo ufw allow 51820/udp          # และเปิด UDP 51820 ใน firewall ของผู้ให้บริการ VPS
-sudo systemctl enable --now wg-quick@wg0
-```
-เครื่องนี้เป็นปลายทางอย่างเดียว ไม่ต้องเปิด ip_forward · wg-quick เพิ่ม route `10.10.N.0/24` ให้เองจาก AllowedIPs
-เอา `server.pub` ไปใส่ env `MT_WG_SERVER_PUBKEY` · private key ห้ามออกจากเครื่องนี้
+ติดตั้ง wireguard-tools + ufw · สร้างคีย์ `/etc/wireguard/server.key` (ไม่ออกจากเครื่อง) · wg0 = `10.99.0.1/24` UDP 51820 · ufw เปิดแค่ SSH + 51820 · ท้ายสุดพิมพ์ `MT_WG_ENDPOINT` และ `MT_WG_SERVER_PUBKEY` ให้เอาไปใส่ Vercel
+- **เปิด UDP 51820 ใน firewall ของผู้ให้บริการด้วย** (Hostinger: hPanel → VPS → Firewall) ไม่งั้นไซต์ต่อไม่ติดแม้ในเครื่องตั้งถูก
+- **สำรอง `server.key`** — ย้ายเครื่องเซิร์ฟเวอร์ = เอาไฟล์นี้ไปด้วย public key เดิม ที่ hEX แก้แค่ endpoint · หาย = ทุกไซต์ต้องรันสคริปต์ใหม่
+- peer แยกไฟล์ `/etc/wireguard/peers/site-NNN.conf` → `wg0.conf` ประกอบจาก `wg0.head` + peers ทุกไฟล์ (ห้ามแก้ wg0.conf ตรง ๆ)
+- คำสั่ง **`mt-peer`**: `sudo mt-peer add` (วาง peer จากเว็บ แล้ว Ctrl+D · ตรวจ AllowedIPs ตรงแผน · ไซต์เดิม = แทนคีย์) · `sudo mt-peer del N` · `sudo mt-peer list` (handshake ล่าสุด) — ใช้ `wg syncconf` ไม่ตัดไซต์อื่น + เพิ่ม route LAN ไซต์เอง
+- ทดสอบ mt-peer บน Windows (Git Bash) ได้ด้วย env `MT_WG_DIR=<โฟลเดอร์>` = เขียนไฟล์อย่างเดียว ไม่แตะ interface
 
 ## เพิ่มไซต์ใหม่
 **ในเว็บ (แอดมิน)** ตั้งค่า → ไซต์ MikroTik → เพิ่มไซต์ (N เสนอเลขว่างถัดไปให้) → "สร้างสคริปต์ .rsc" → ดาวน์โหลด `.rsc` + คัดลอก peer
 
-**เซิร์ฟเวอร์** ต่อ peer ท้าย `wg0.conf` แล้ว
-```bash
-sudo bash -c 'wg syncconf wg0 <(wg-quick strip wg0)'
-```
+**เซิร์ฟเวอร์** `sudo mt-peer add` แล้ววาง peer + Ctrl+D
 
 **หน้างาน**
 1. hEX ต้องเป็น RouterOS **7.12 ขึ้นไป** (Back To Home) — อัปเดตก่อน
