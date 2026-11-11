@@ -3,7 +3,7 @@
    mt-agent — ตัวเฝ้าไซต์ MikroTik บน VPS เซิร์ฟเวอร์ WireGuard (เฟส 2 · docs/mikrotik.md)
    ติดตั้งด้วย tools/mt-agent/install.sh (systemd: mt-agent) · node 18+ ไม่มี dependency
 
-   ทุก ~30 วิ คุยกับเว็บที่ /api/mikrotik/agent ครั้งเดียว:
+   ทุก ~30 วิ คุยกับเว็บที่ /api/mikrotik/site?agent=1 ครั้งเดียว:
      ส่ง  สถานะไซต์ (ทุก 60 วิ) + ผลคำสั่งที่ทำเสร็จ
      รับ  รายชื่อไซต์ + fingerprint ที่แอดมินยืนยัน + รหัส user pg-web + คำสั่งที่รอ (reboot | log)
 
@@ -238,7 +238,7 @@ export async function main(argv = process.argv.slice(2)) {
   const E = (k, d = "") => (process.env[k] || d).trim();
   const api = E("MT_API_URL"), key = E("MT_AGENT_KEY"), secret = E("MT_CMD_SECRET"), wgIf = E("MT_WG_IF", "wg0");
   if (!/^https:\/\//.test(api) || key.length < 32 || secret.length < 32) {
-    console.error("env ไม่ครบ: ต้องมี MT_API_URL (https://…/api/mikrotik/agent) MT_AGENT_KEY MT_CMD_SECRET — ดู /etc/mt-agent.env");
+    console.error("env ไม่ครบ: ต้องมี MT_API_URL (https://…/api/mikrotik/site?agent=1) MT_AGENT_KEY MT_CMD_SECRET — ดู /etc/mt-agent.env");
     process.exit(2);
   }
   const doneFile = (process.env.STATE_DIRECTORY || "/var/lib/mt-agent") + "/done.json";

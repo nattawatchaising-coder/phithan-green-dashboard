@@ -9,7 +9,7 @@
      { action: "fetch-token", n }          → { command, command_nocheck, peer, exp } คำสั่งบรรทัดเดียวให้ hEX ดึงสคริปต์เอง (ใช้ครั้งเดียว 15 นาที)
      { action: "rotate", n }               → คีย์ WireGuard + รหัส user เว็บชุดใหม่ (ต้องรันสคริปต์ใหม่ + แก้ peer บนเซิร์ฟเวอร์)
      { action: "remove", n }               → ลบ mtSites/N และ mtSecrets/N (+ mtStatus/N)
-   เฟส 2 (สถานะไซต์ — agent บน VPS อ่านเอง ดู api/mikrotik/agent.mjs)
+   เฟส 2 (สถานะไซต์ — agent บน VPS เรียก ?agent=1 ดู api/_lib/mtagent.mjs)
      { action: "pin-fp", n, fp }           → ยืนยัน fingerprint ใบรับรอง https ของ hEX (fp "" = ยกเลิก) · ยังไม่ยืนยัน = agent ไม่ส่งรหัส
      { action: "cmd", n, type }            → เข้าคิวคำสั่ง reboot | log (ลงลายเซ็น MT_CMD_SECRET) → { id }
      { action: "cmd-get", id }             → { cmd: { state pending|sent|done|error|expired, error, data } }
@@ -27,6 +27,7 @@ import crypto from "node:crypto";
 import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword,
   MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp } from "../_lib/mikrotik.mjs";
 import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
+import { agentPOST } from "../_lib/mtagent.mjs";
 
 const NOTE_MAX = 500;
 
@@ -56,6 +57,8 @@ function freshSecrets(n) {
 }
 
 export async function POST(request) {
+  /* mt-agent บน VPS (Bearer MT_AGENT_KEY ไม่ใช่ล็อกอินพนักงาน) — รวมไว้ไฟล์นี้เพราะ Vercel ฟรีจำกัด 12 ฟังก์ชัน */
+  if (new URL(request.url).searchParams.get("agent") === "1") return agentPOST(request);
   if (!ENV.rtdb()) return json({ error: "RTDB_URL not set" }, 503);
   const a = await admin(request);
   if (a.err) return a.err;

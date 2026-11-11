@@ -1,6 +1,6 @@
 /* ============================================================
    ไซต์ MikroTik เฟส 2 — สถานะไซต์ (อ่านอย่างเดียว) · ยืนยันใบรับรอง · ดู log · รีบูต
-   docs/mikrotik.md · ข้อมูลมาจาก mt-agent บน VPS (tools/mt-agent/agent.mjs) ผ่าน /api/mikrotik/agent → mtStatus/{N}
+   docs/mikrotik.md · ข้อมูลมาจาก mt-agent บน VPS (tools/mt-agent/agent.mjs) ผ่าน /api/mikrotik/site?agent=1 → mtStatus/{N}
 
    หน้าเว็บอ่าน mtStatus/ อย่างเดียว · กดยืนยันใบรับรอง/รีบูต/ดู log ผ่าน /api/mikrotik/site (เซิร์ฟเวอร์ตรวจแอดมินซ้ำ)
    ⚠ ห้ามเพิ่มปุ่มแก้ IP / firewall / WireGuard ของเราเตอร์ (ผู้ใช้กำหนด)

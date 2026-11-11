@@ -247,12 +247,12 @@ test("info: บอก IP ของ VPS เฉพาะแอดมิน (ใช
 });
 
 /* ---------- เฟส 2: ยืนยันใบรับรอง · คิวคำสั่ง · ช่องทางของ agent ---------- */
-const agentApi = await import("../api/mikrotik/agent.mjs");
+/* agent เรียกผ่าน site.mjs?agent=1 (Vercel ฟรีจำกัด 12 ฟังก์ชัน) */
 const agentLib = await import("../tools/mt-agent/agent.mjs");
 const AGENT_KEY = "k".repeat(40), CMD_SECRET = "s".repeat(40);
 const FP = "987d738d" + "0".repeat(56);
 const agentCall = async (payload, key = AGENT_KEY) => {
-  const r = await agentApi.POST(new Request("http://x/api/mikrotik/agent", { method: "POST",
+  const r = await api.POST(new Request("http://x/api/mikrotik/site?agent=1", { method: "POST",
     headers: key ? { authorization: "Bearer " + key } : {}, body: JSON.stringify(payload || {}) }));
   return { status: r.status, body: await r.json() };
 };

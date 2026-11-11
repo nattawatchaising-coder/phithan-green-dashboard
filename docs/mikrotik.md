@@ -101,7 +101,7 @@ identity + timezone → bridge ether2-5 → DHCP client ether1 → IP LAN (ล�
 
 ## เฟส 2 — สถานะไซต์ · ดู log · รีบูต (เขียนเสร็จ 2026-11-11 · ยังไม่ได้ลองกับ VPS/hEX จริง)
 ```
-mt-agent (VPS · systemd) ──ทุก 30 วิ POST /api/mikrotik/agent (Bearer MT_AGENT_KEY)──▶ Vercel ──▶ mtStatus/{N} · mtCmd/{id}
+mt-agent (VPS · systemd) ──ทุก 30 วิ POST /api/mikrotik/site?agent=1 (Bearer MT_AGENT_KEY)──▶ Vercel ──▶ mtStatus/{N} · mtCmd/{id}
     │ ทุก 60 วิ: wg show dump · ping .1/.10 · TCP .10:443(80) · TCP .20:502 · REST /system/resource /interface /ip/address
     └──https://10.10.N.1 (pin fingerprint) ผ่าน WireGuard
 เว็บ (แอดมิน) ──/api/mikrotik/site {pin-fp | cmd | cmd-get}──▶ mtSites/{N}.fp · mtCmd/{id} (ลายเซ็น HMAC MT_CMD_SECRET)
@@ -110,7 +110,7 @@ mt-agent (VPS · systemd) ──ทุก 30 วิ POST /api/mikrotik/agent (Be
 |---|---|
 | `tools/mt-agent/agent.mjs` | ตัว agent (node 18+ ไม่มี dependency) · `--once` = เช็กครั้งเดียวพิมพ์ผล (peek ไม่บันทึก ไม่หยิบคำสั่ง) · REST มีแค่ GET resource/interface/ip address/log + POST /system/reboot (เทสต์บังคับ) |
 | `tools/mt-agent/install.sh` | ติดตั้ง/อัปเดตบน VPS: nodejs · `/opt/mt-agent/agent.mjs` · `/etc/mt-agent.env` (สุ่ม `MT_AGENT_KEY` `MT_CMD_SECRET` ครั้งแรก) · service `mt-agent` (DynamicUser + CAP_NET_ADMIN/NET_RAW เท่านั้น) · คำสั่ง `mt-agent-once` |
-| `api/mikrotik/agent.mjs` | ช่องของ agent: รับสถานะ/ผลคำสั่ง · ส่งรายชื่อไซต์ + รหัส pg-web (**เฉพาะไซต์ที่ยืนยัน fp แล้ว**) + คำสั่งที่รอ (ส่งครั้งเดียว state pending→sent) · คำสั่งค้าง >10 นาที = expired · จบแล้ว >1 วัน = เก็บกวาด |
+| `api/_lib/mtagent.mjs` (เรียกผ่าน `site.mjs?agent=1` — **Vercel ฟรีจำกัด 12 ฟังก์ชัน** แยกไฟล์ใน api/ แล้ว deploy ล้ม 2026-11-11) | ช่องของ agent: รับสถานะ/ผลคำสั่ง · ส่งรายชื่อไซต์ + รหัส pg-web (**เฉพาะไซต์ที่ยืนยัน fp แล้ว**) + คำสั่งที่รอ (ส่งครั้งเดียว state pending→sent) · คำสั่งค้าง >10 นาที = expired · จบแล้ว >1 วัน = เก็บกวาด |
 | `dashboard/mikrotik-status.jsx` | ตารางสถานะทุกไซต์บนสุดของหน้า + ส่วนสดในการ์ดไซต์ (ยืนยันใบรับรอง · ดู log · รีบูต ผ่าน `askConfirm`) |
 
 - **pin ใบรับรอง**: agent ต่อ TLS แล้วเทียบ fingerprint SHA-256 ของใบ leaf *ก่อนส่งอะไร* · ไซต์ยังไม่ยืนยัน = อ่านแค่ fp มารายงาน (`mtStatus/N/tls/fp`) ไม่ล็อกอิน · แอดมินเทียบกับบรรทัด `cert fingerprint` ท้ายสคริปต์ (หรือ `/certificate print detail where name=pg-https`) แล้วกดยืนยัน → `mtSites/N.fp` · ไม่ตรง = สถานะ "ใบรับรองไม่ตรง" ไม่คุยต่อ · SITE01-Office ที่ทดสอบ fp ขึ้นต้น `987d738d`

@@ -38,7 +38,7 @@ export const MT_ENV = {
   serverPub: () => (process.env.MT_WG_SERVER_PUBKEY || "").trim(), // public key ของเซิร์ฟเวอร์ (private key อยู่บนเซิร์ฟเวอร์อย่างเดียว)
   encKey: () => (process.env.MT_ENC_KEY || "").trim(),             // กุญแจเข้ารหัส 32 ไบต์ (base64)
   /* เฟส 2 — สร้างบน VPS โดย tools/mt-agent/install.sh แล้วก๊อปมาใส่ Vercel */
-  agentKey: () => (process.env.MT_AGENT_KEY || "").trim(),         // agent ใช้เรียก /api/mikrotik/agent
+  agentKey: () => (process.env.MT_AGENT_KEY || "").trim(),         // agent ใช้เรียก /api/mikrotik/site?agent=1
   cmdSecret: () => (process.env.MT_CMD_SECRET || "").trim(),       // ลายเซ็นคำสั่งรีบูต/ดู log (agent ตรวจซ้ำ)
 };
 export function mtAgentMissingEnv() {

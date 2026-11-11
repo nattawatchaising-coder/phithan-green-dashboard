@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_RAW=${MT_REPO_RAW:-https://raw.githubusercontent.com/nattawatchaising-coder/phithan-green-dashboard/master}
-API_URL=${MT_API_URL:-https://flashsolar.vercel.app/api/mikrotik/agent}
+API_URL=${MT_API_URL:-https://flashsolar.vercel.app/api/mikrotik/site?agent=1}
 ENV_FILE=/etc/mt-agent.env
 
 [ "$(id -u)" = 0 ] || { echo "ต้องรันด้วย root (sudo)"; exit 1; }

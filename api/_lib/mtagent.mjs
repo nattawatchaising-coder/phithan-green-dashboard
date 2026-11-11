@@ -1,8 +1,9 @@
 /* ============================================================
    ไซต์ MikroTik เฟส 2 — ช่องทางของ mt-agent (tools/mt-agent/agent.mjs ที่รันบน VPS เซิร์ฟเวอร์ WireGuard)
    docs/mikrotik.md
+   ⚠ อยู่ใน _lib และเรียกผ่าน site.mjs (?agent=1) — Vercel ฟรีจำกัด 12 ฟังก์ชัน ห้ามแยกเป็นไฟล์ใน api/ เอง
 
-   POST /api/mikrotik/agent   Authorization: Bearer <MT_AGENT_KEY>   (ไม่ใช่ล็อกอินพนักงาน — เป็นกุญแจของ agent ตัวเดียว)
+   POST /api/mikrotik/site?agent=1   Authorization: Bearer <MT_AGENT_KEY>   (ไม่ใช่ล็อกอินพนักงาน — เป็นกุญแจของ agent ตัวเดียว)
      { ver, status?: { sites: { N: {...} } }, results?: [{ id, ok, error, data }], peek? }
      peek = ทดสอบ (mt-agent --once): ขอแค่รายชื่อไซต์ ไม่บันทึกสถานะ ไม่ส่งคำสั่ง
    →  { ok, poll_s, sites: [{ n, name, fp, pass? }], cmds: [{ id, n, type, ts, sig }] }
@@ -15,9 +16,9 @@
    ============================================================ */
 
 import crypto from "node:crypto";
-import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbDelete } from "../_lib/line.mjs";
-import { MT_ENV, mtAgentMissingEnv, validN, unseal, MT_CMD_TYPES, MT_CMD_TTL_MS } from "../_lib/mikrotik.mjs";
-import { aad } from "../_lib/mtstore.mjs";
+import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbDelete } from "./line.mjs";
+import { MT_ENV, mtAgentMissingEnv, validN, unseal, MT_CMD_TYPES, MT_CMD_TTL_MS } from "./mikrotik.mjs";
+import { aad } from "./mtstore.mjs";
 
 export const POLL_S = 30;
 const KEEP_DONE_MS = 24 * 3600e3;     // คำสั่งที่จบแล้วเก็บไว้ 1 วันแล้วเก็บกวาดทิ้ง
@@ -55,7 +56,7 @@ function cleanLog(d) {
   }));
 }
 
-export async function POST(request) {
+export async function agentPOST(request) {
   if (!ENV.rtdb()) return json({ error: "RTDB_URL not set" }, 503);
   const miss = mtAgentMissingEnv();
   if (miss.length) return json({ error: "ยังไม่ได้ตั้ง env: " + miss.join(", ") }, 503);
