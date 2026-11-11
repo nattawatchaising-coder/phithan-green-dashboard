@@ -174,7 +174,7 @@ function MtFetchSteps({ out }) {
       <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>PowerShell พิมพ์ <code>ssh root@{out.server_host || "<IP ของ VPS>"}</code> → ใส่รหัส root → รอจนขึ้น <code>root@wg-server:~#</code> → วางกล่องนี้ (คลิกขวา) → ต้องขึ้น "เพิ่มไซต์ … แล้ว"</div>
       <MtScriptBox title="คำสั่งบน VPS" sub="" text={mtPeerCmd(out.peer)} />
       <div style={mtStep}>2) ตั้งค่า hEX — ether1 ต่อเน็ต · WinBox ต่อทาง MAC → New Terminal → วางบรรทัดนี้ กด Enter</div>
-      <MtScriptBox title="คำสั่งบน hEX" sub="ดึงสคริปต์ → รัน → ลบไฟล์ทิ้งเอง · สร้างกุญแจรอบแรกขึ้น progress 1–2 นาที อย่ากด Q" text={out.command} />
+      <MtScriptBox title="คำสั่งบน hEX" sub="ดึงสคริปต์ → รัน → ลบไฟล์ทิ้งเอง · ขึ้น not allowed by device-mode = ยังไม่ได้เปิด fetch (ดูวิธีตั้งค่าทีละขั้น ข้อ 4)" text={out.command} />
       <details style={{ fontSize: 12, color: "var(--text-2)" }}>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>ถ้าขึ้น error เรื่อง certificate / SSL</summary>
         <div style={{ margin: "8px 0", lineHeight: 1.6 }}>RouterOS บางเครื่องไม่มีใบรับรองกลางสำหรับตรวจ https — ใช้บรรทัดนี้แทน (คำสั่งเดิมยังไม่ถูกใช้ไป) · ใช้ที่ออฟฟิศเท่านั้น เพราะไม่ตรวจว่าคุยกับเว็บตัวจริง</div>
@@ -190,7 +190,7 @@ const MT_HOWTO = [
   ["ลงทะเบียนไซต์ (เว็บ)", ["กด \"เพิ่มไซต์\" → เลข N ระบบเสนอเลขว่างให้ · ชื่อภาษาอังกฤษ (ใช้ตั้งชื่อเราเตอร์) · หมายเหตุใส่ไทยได้", "กด \"สร้างไซต์ + คีย์\""]],
   ["ขอคำสั่ง (เว็บ)", ["ที่การ์ดไซต์กด \"คำสั่งตั้งค่า (บรรทัดเดียว)\" → ได้ 2 กล่อง: คำสั่งบน VPS และคำสั่งบน hEX", "คำสั่งใช้ได้ครั้งเดียวใน 15 นาที — หมดอายุก็กดใหม่ได้เรื่อย ๆ"]],
   ["เพิ่ม peer บน VPS", ["เปิด PowerShell พิมพ์ ssh root@<IP VPS> (IP ขึ้นในขั้นตอนตอนกดคำสั่ง) → ใส่รหัส root (พิมพ์แล้วไม่เห็นตัวอักษร = ปกติ)", "รอจนบรรทัดขึ้นต้น root@wg-server:~# (ถ้ายังเป็น PS C:\… = ยังอยู่บนคอม)", "คลิกขวาวางกล่อง \"คำสั่งบน VPS\" → ต้องขึ้น \"เพิ่มไซต์ N แล้ว\""]],
-  ["ตั้งค่า hEX (ที่ออฟฟิศ)", ["ether1 เสียบเน็ตออฟฟิศ · โน้ตบุ๊กเสียบ ether2–5", "WinBox → แท็บ Neighbors → คลิกช่อง MAC Address (ไม่ใช่ IP) → login", "เมนู New Terminal → คลิกขวาวางกล่อง \"คำสั่งบน hEX\" → Enter", "ขึ้น progress หมุน 1–2 นาที (สร้างกุญแจ) อย่ากด Q · จบต้องขึ้น \"OK - cert fingerprint: …\"", "error เรื่อง certificate/SSL → ใช้บรรทัดสำรองในหัวข้อ \"ถ้าขึ้น error…\""]],
+  ["ตั้งค่า hEX (ที่ออฟฟิศ)", ["ether1 เสียบเน็ตออฟฟิศ · โน้ตบุ๊กเสียบ ether2–5", "WinBox → แท็บ Neighbors → คลิกช่อง MAC Address (ไม่ใช่ IP) → login", "เครื่องใหม่ทำครั้งแรกครั้งเดียว: Terminal พิมพ์ /system device-mode update fetch=yes → ภายใน 5 นาทีกดปุ่ม Reset สั้น ๆ แล้วปล่อย (ห้ามกดค้าง) หรือถอดปลั๊กเสียบใหม่ → เครื่องรีบูต ต่อ WinBox ใหม่", "เมนู New Terminal → คลิกขวาวางกล่อง \"คำสั่งบน hEX\" → Enter", "ขึ้น progress หมุน 1–2 นาที (สร้างกุญแจ) อย่ากด Q · จบต้องขึ้น \"OK - cert fingerprint: …\"", "error เรื่อง certificate/SSL → ใช้บรรทัดสำรองในหัวข้อ \"ถ้าขึ้น error…\""]],
   ["เช็กว่า VPN ติด (บน VPS)", ["mt-peer list → ต้องขึ้น \"ต่อล่าสุด … วินาทีที่แล้ว\"", "ping -c 3 10.10.N.1 → ต้องตอบกลับ"]],
   ["ตั้ง IP อุปกรณ์ในไซต์", ["SmartLogger = 10.10.N.10 · มิเตอร์/Waveshare (Modbus TCP 502) = 10.10.N.20", "mask 255.255.255.0 · gateway 10.10.N.1 ทุกตัว (ไม่ตั้ง gateway = VPN มองไม่เห็น)"]],
   ["ส่งหน้างาน", ["ช่างเสียบ ether1 เข้าเน็ตโรงงาน + อุปกรณ์ที่ ether2–5 แค่นั้น ไม่ต้องตั้งอะไร — VPN ต่อเอง", "เช็กจาก VPS ด้วย mt-peer list อีกครั้งหลังติดตั้ง"]],
@@ -198,6 +198,7 @@ const MT_HOWTO = [
 const MT_TROUBLE = [
   ["ssh ขึ้น Connection timed out", "VPS เพิ่งเปิด/รีบูต รอ 5 นาที · หรือเน็ตบล็อกพอร์ต 22 ลอง hotspot มือถือ"],
   ["mt-peer: not recognized", "พิมพ์บนคอม (PS C:\…) ต้อง ssh เข้า VPS ก่อน"],
+  ["hEX: not allowed by device-mode", "RouterOS 7.17+ ปิด fetch ไว้ → ทำขั้น \"เครื่องใหม่ทำครั้งแรก\" ในข้อ 4 แล้วกดขอคำสั่งใหม่ · หรือใช้ \"ดาวน์โหลด .rsc\" แทน"],
   ["hEX: link expired or already used", "คำสั่งหมดอายุ/ใช้ไปแล้ว → กด \"คำสั่งตั้งค่า (บรรทัดเดียว)\" ใหม่"],
   ["mt-peer list: ยังไม่เคยต่อ", "hEX ยังไม่ได้รันคำสั่ง / ether1 ไม่มีเน็ต / peer บน VPS ไม่ตรงคีย์ (สร้างคีย์ใหม่แล้วต้องวางคำสั่ง VPS ใหม่ด้วย)"],
   ["เปลี่ยนกุญแจ (รหัสหลุด)", "กด \"สร้างคีย์ใหม่\" → ทำขั้น 2–5 ใหม่ทั้งหมด"],
