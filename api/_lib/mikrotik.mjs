@@ -1,0 +1,316 @@
+/* ============================================================
+   ไซต์ MikroTik — ตัวสร้างสคริปต์ RouterOS (.rsc) · คอนฟิก peer ฝั่งเซิร์ฟเวอร์ · คีย์ WireGuard · เข้ารหัส secret
+   อ่าน docs/mikrotik.md ก่อนแก้
+
+   ⚠ ไม่มี dependency (เหมือน line.mjs) — ใช้แค่ node:crypto
+   ⚠ repo เป็น public: ห้ามมีค่าลับในไฟล์นี้ ทุกค่าอ่านจาก env (MT_*) หรือส่งเข้ามาเป็นอาร์กิวเมนต์
+
+   แผน IP (ผู้ใช้กำหนด 2026-11-11)
+     ไซต์ N: LAN 10.10.N.0/24 · hEX .1 · SmartLogger .10 · Waveshare .20 · DHCP .100–.200
+     WireGuard 10.99.0.0/24 · เซิร์ฟเวอร์ 10.99.0.1:51820 · ไซต์ N = 10.99.0.(10+N)
+   ============================================================ */
+
+import crypto from "node:crypto";
+
+/* ---------- ค่าคงที่ของแผน ---------- */
+export const MT = {
+  N_MIN: 1,
+  N_MAX: 244,               // 10+N ต้องไม่เกิน 254
+  WG_NET: "10.99.0",
+  WG_SERVER: "10.99.0.1",
+  WG_PORT: 51820,
+  WG_IF: "wg-pg",           // ชื่อ interface WireGuard บน hEX
+  BRIDGE: "bridge",         // ชื่อ bridge ของค่าตั้งต้น hEX (ไม่มีก็สร้าง)
+  WAN: "ether1",
+  LAN_PORTS: ["ether2", "ether3", "ether4", "ether5"],
+  GROUP: "pg-ro",           // กลุ่มสิทธิ์อ่านอย่างเดียว + รีบูต
+  USER: "pg-web",           // user ที่เว็บ/agent ใช้เรียก REST
+  CERT: "pg-https",
+  TAG: "pg-mt",             // ทุกอย่างที่สคริปต์สร้างมีคอมเมนต์ขึ้นต้นด้วยคำนี้ — ไว้หา/ลบตอนรันซ้ำ
+  KEEPALIVE: 25,
+  NAME_RE: /^[A-Za-z0-9][A-Za-z0-9-]{0,23}$/,
+};
+
+/* ---------- env (ฝั่งเซิร์ฟเวอร์เท่านั้น) ---------- */
+export const MT_ENV = {
+  endpoint: () => (process.env.MT_WG_ENDPOINT || "").trim(),       // host หรือ host:port ของเซิร์ฟเวอร์ WireGuard
+  serverPub: () => (process.env.MT_WG_SERVER_PUBKEY || "").trim(), // public key ของเซิร์ฟเวอร์ (private key อยู่บนเซิร์ฟเวอร์อย่างเดียว)
+  encKey: () => (process.env.MT_ENC_KEY || "").trim(),             // กุญแจเข้ารหัส 32 ไบต์ (base64)
+};
+export function mtMissingEnv() {
+  const miss = [];
+  if (!MT_ENV.endpoint()) miss.push("MT_WG_ENDPOINT");
+  else if (!parseEndpoint(MT_ENV.endpoint())) miss.push("MT_WG_ENDPOINT (รูปแบบผิด)");
+  if (!MT_ENV.serverPub()) miss.push("MT_WG_SERVER_PUBKEY");
+  else if (!isWgKey(MT_ENV.serverPub())) miss.push("MT_WG_SERVER_PUBKEY (ไม่ใช่คีย์ 32 ไบต์)");
+  if (!MT_ENV.encKey()) miss.push("MT_ENC_KEY");
+  else if (!encKeyBuf(MT_ENV.encKey())) miss.push("MT_ENC_KEY (ต้องเป็น base64 ของ 32 ไบต์)");
+  return miss;
+}
+
+/* ---------- แผน IP ของไซต์ N ---------- */
+export function validN(n) {
+  return Number.isInteger(n) && n >= MT.N_MIN && n <= MT.N_MAX;
+}
+export function sitePlan(n) {
+  if (!validN(n)) throw new Error("เลขไซต์ต้องเป็นจำนวนเต็ม " + MT.N_MIN + "–" + MT.N_MAX);
+  const lan = "10.10." + n;
+  return {
+    n,
+    lanNet: lan + ".0/24",
+    router: lan + ".1",
+    smartlogger: lan + ".10",
+    gateway: lan + ".20",        // ตัวแปลง Waveshare (Modbus TCP 502)
+    poolFrom: lan + ".100",
+    poolTo: lan + ".200",
+    wgIp: MT.WG_NET + "." + (10 + n),
+  };
+}
+export const pad2 = (n) => String(n).padStart(2, "0");
+export const identityOf = (n, name) => "SITE" + pad2(n) + "-" + name;
+export function validName(name) {
+  return typeof name === "string" && MT.NAME_RE.test(name);
+}
+
+/* "vpn.example.com:51820" | "1.2.3.4" | "[::1]:51820" → {host, port} · ผิดรูป = null
+   อนุญาตเฉพาะตัวอักษรที่ใส่ในสคริปต์ได้ปลอดภัย (กันการแทรกคำสั่ง RouterOS ผ่าน env) */
+export function parseEndpoint(s) {
+  const m = /^(?:\[([0-9a-fA-F:]+)\]|([A-Za-z0-9.-]+))(?::(\d{1,5}))?$/.exec(String(s || "").trim());
+  if (!m) return null;
+  const port = m[3] ? Number(m[3]) : MT.WG_PORT;
+  if (!(port >= 1 && port <= 65535)) return null;
+  return { host: m[1] || m[2], port };
+}
+
+/* ================================================================
+   คีย์ WireGuard (Curve25519) — base64 มาตรฐาน 44 ตัวอักษร แบบเดียวกับ `wg genkey`
+   ================================================================ */
+const b64u2b64 = (s) => Buffer.from(s, "base64url").toString("base64");
+export function isWgKey(s) {
+  return typeof s === "string" && /^[A-Za-z0-9+/]{43}=$/.test(s) && Buffer.from(s, "base64").length === 32;
+}
+export function wgKeypair() {
+  const { privateKey } = crypto.generateKeyPairSync("x25519");
+  const jwk = privateKey.export({ format: "jwk" });
+  return { privateKey: b64u2b64(jwk.d), publicKey: b64u2b64(jwk.x) };
+}
+/* public key จาก private key (ใช้ในเทสต์ + ตรวจคีย์ที่ถอดรหัสมาว่าเป็นคู่กันจริง) */
+const PKCS8_X25519 = Buffer.from("302e020100300506032b656e04220420", "hex");
+export function wgPublicOf(privB64) {
+  const der = Buffer.concat([PKCS8_X25519, Buffer.from(privB64, "base64")]);
+  const key = crypto.createPrivateKey({ key: der, format: "der", type: "pkcs8" });
+  return b64u2b64(crypto.createPublicKey(key).export({ format: "jwk" }).x);
+}
+
+/* ================================================================
+   เข้ารหัส secret (AES-256-GCM) — เก็บใน mtSecrets/{N} รูป "v1.<iv>.<tag>.<ข้อมูล>" (base64url)
+   aad = ชื่อช่อง+เลขไซต์ → ย้าย ciphertext ไปใส่ไซต์อื่น/ช่องอื่นแล้วถอดไม่ได้
+   ================================================================ */
+function encKeyBuf(k) {
+  try { const b = Buffer.from(String(k || ""), "base64"); return b.length === 32 ? b : null; } catch (e) { return null; }
+}
+export function seal(plain, aad, keyB64) {
+  const key = encKeyBuf(keyB64 === undefined ? MT_ENV.encKey() : keyB64);
+  if (!key) throw new Error("MT_ENC_KEY ไม่ถูกต้อง");
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv("aes-256-gcm", key, iv);
+  c.setAAD(Buffer.from(String(aad)));
+  const ct = Buffer.concat([c.update(String(plain), "utf8"), c.final()]);
+  return ["v1", iv.toString("base64url"), c.getAuthTag().toString("base64url"), ct.toString("base64url")].join(".");
+}
+export function unseal(box, aad, keyB64) {
+  const key = encKeyBuf(keyB64 === undefined ? MT_ENV.encKey() : keyB64);
+  if (!key) throw new Error("MT_ENC_KEY ไม่ถูกต้อง");
+  const p = String(box || "").split(".");
+  if (p.length !== 4 || p[0] !== "v1") throw new Error("ข้อมูลเข้ารหัสผิดรูปแบบ");
+  const d = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(p[1], "base64url"));
+  d.setAAD(Buffer.from(String(aad)));
+  d.setAuthTag(Buffer.from(p[2], "base64url"));
+  return Buffer.concat([d.update(Buffer.from(p[3], "base64url")), d.final()]).toString("utf8");
+}
+
+/* รหัสผ่าน user ของเว็บ — ตัวอักษร/ตัวเลขล้วน (ไม่มี " $ \ ? ที่ต้อง escape ในสคริปต์ RouterOS) */
+export function randomPassword(len = 24) {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const out = [];
+  while (out.length < len) {
+    for (const b of crypto.randomBytes(len * 2)) {
+      if (b < 256 - (256 % abc.length) && out.length < len) out.push(abc[b % abc.length]);
+    }
+  }
+  return out.join("");
+}
+
+/* ================================================================
+   สคริปต์ RouterOS v7 (.rsc)
+   หลักรันซ้ำได้: ของที่มีชื่อ = "มีแล้ว set / ไม่มี add" · ของที่ไม่มีชื่อ (IP, กฎ firewall, NAT, peer)
+   = ลบของเดิมที่คอมเมนต์ขึ้นต้น pg-mt ก่อนแล้วเพิ่มใหม่ — ไม่แตะของที่สคริปต์ไม่ได้สร้าง
+   คอมเมนต์ในตัวคอนฟิก (comment=) เป็นอังกฤษล้วน เพราะ WinBox แสดงไทยไม่ได้ · คำอธิบายไทยอยู่ในบรรทัด #
+   ================================================================ */
+function need(cond, msg) { if (!cond) throw new Error(msg); }
+const q = (s) => '"' + String(s) + '"';   // ค่าที่ส่งเข้ามาผ่านการตรวจตัวอักษรแล้วทั้งหมด
+
+export function buildRsc(o) {
+  const n = o.n;
+  const P = sitePlan(n);
+  need(validName(o.name), "ชื่อไซต์ใช้ได้แค่ A-Z a-z 0-9 และ - (ไม่เกิน 24 ตัว)");
+  need(isWgKey(o.wgPrivateKey), "private key ของไซต์ผิดรูปแบบ");
+  need(isWgKey(o.serverPublicKey), "public key ของเซิร์ฟเวอร์ผิดรูปแบบ");
+  const ep = parseEndpoint(o.endpoint);
+  need(ep, "endpoint ผิดรูปแบบ");
+  need(/^[A-Za-z0-9]{16,64}$/.test(o.webPassword || ""), "รหัสผ่าน user เว็บผิดรูปแบบ");
+  const T = MT.TAG, WG = MT.WG_IF, BR = MT.BRIDGE, WAN = MT.WAN;
+  const ident = identityOf(n, o.name);
+  const S = MT.WG_SERVER;
+
+  /* กฎ firewall เรียงตามลำดับที่ต้องการ — เพิ่มไว้ท้ายก่อน แล้วย้ายขึ้นบนสุดทีละข้อจากข้อท้าย (ได้ลำดับเดิม)
+     ต้องอยู่เหนือกฎ defconf เพราะ defconf มี "drop all not coming from LAN" ซึ่งจะตัด WireGuard ทิ้ง */
+  const input = [
+    ["accept", 'connection-state=established,related,untracked', "established"],
+    ["drop", "connection-state=invalid", "invalid"],
+    ["accept", `in-interface=${WG} src-address=${S} protocol=tcp dst-port=443`, "wg server https"],
+    ["accept", `in-interface=${WG} src-address=${S} protocol=icmp`, "wg server ping"],
+    ["drop", `in-interface=${WG}`, "wg drop rest"],
+    ["drop", `in-interface=${WAN}`, "wan drop all"],
+  ];
+  const forward = [
+    ["accept", "connection-state=established,related,untracked", "established"],
+    ["drop", "connection-state=invalid", "invalid"],
+    ["accept", `in-interface=${WG} src-address=${S} dst-address=${P.gateway} protocol=tcp dst-port=502`, "modbus to gateway"],
+    ["accept", `in-interface=${WG} src-address=${S} dst-address=${P.smartlogger} protocol=tcp dst-port=80,443`, "web to smartlogger"],
+    ["accept", `in-interface=${WG} src-address=${S} dst-address=${P.gateway} protocol=tcp dst-port=80,443`, "web to gateway"],
+    /* dst-address รับได้ทีละ IP (ใส่ลิสต์คั่นจุลภาคไม่ได้) จึงแยกสองข้อ */
+    ["accept", `in-interface=${WG} src-address=${S} dst-address=${P.smartlogger} protocol=icmp`, "ping smartlogger"],
+    ["accept", `in-interface=${WG} src-address=${S} dst-address=${P.gateway} protocol=icmp`, "ping gateway"],
+    ["drop", `in-interface=${WG}`, "wg drop rest"],
+    ["drop", `out-interface=${WG}`, "lan to wg drop"],
+  ];
+  const rules = (chain, list, tag) => {
+    const out = [];
+    list.forEach((r, i) => out.push(`add chain=${chain} action=${r[0]} ${r[1]} comment=${q(T + " " + tag + pad2(i + 1) + " " + r[2])}`));
+    for (let i = list.length; i >= 1; i--) out.push(`move [find comment~${q("^" + T + " " + tag + pad2(i) + " ")}] destination=0`);
+    return out;
+  };
+
+  const L = [
+    `# ===================================================================`,
+    `# ไซต์ ${pad2(n)} · ${ident}  (สร้างจากเว็บ flash+solar — ห้ามแก้มือ ให้สร้างใหม่จากเว็บ)`,
+    `# LAN ${P.lanNet} · hEX ${P.router} · SmartLogger ${P.smartlogger} · Waveshare ${P.gateway}`,
+    `# WireGuard ${P.wgIp} → เซิร์ฟเวอร์ ${S} (${ep.host}:${ep.port})`,
+    `# ต้องการ RouterOS v7.12 ขึ้นไป (Back To Home) · รันซ้ำได้ ไม่สร้างของซ้ำ`,
+    `# วิธีรัน: ต่อ WinBox ด้วย MAC address (ไม่ใช่ IP — IP ฝั่ง LAN จะเปลี่ยนกลางทาง)`,
+    `#   ลากไฟล์ใส่ Files แล้วพิมพ์  /import file-name=${ident}.rsc verbose=yes`,
+    `# ⚠ ไฟล์นี้มีกุญแจลับของไซต์ — ใช้เสร็จลบออกจาก Files ของเราเตอร์และเครื่องตัวเอง`,
+    `# ===================================================================`,
+    ``,
+    `# ---------- 1) ชื่อเราเตอร์ + เวลา ----------`,
+    `/system identity set name=${q(ident)}`,
+    `/system clock set time-zone-name=Asia/Bangkok`,
+    ``,
+    `# ---------- 2) bridge ฝั่ง LAN (ether2-5) ----------`,
+    `# ใช้ bridge ของค่าตั้งต้นถ้ามี ไม่มีก็สร้าง · ย้ายพอร์ต LAN มาอยู่ใน bridge นี้`,
+    `/interface bridge`,
+    `:if ([:len [find name=${q(BR)}]] = 0) do={ add name=${q(BR)} comment=${q(T + " lan bridge")} }`,
+    `/interface bridge port`,
+    `:foreach p in={${MT.LAN_PORTS.map(q).join(";")}} do={`,
+    `  :if ([:len [find interface=$p]] = 0) do={ add bridge=${q(BR)} interface=$p comment=${q(T)} } else={ set [find interface=$p] bridge=${q(BR)} }`,
+    `}`,
+    ``,
+    `# ---------- 3) ฝั่ง WAN: ether1 รับ IP จาก DHCP ของโรงงาน ----------`,
+    `/ip dhcp-client`,
+    `:if ([:len [find interface=${WAN}]] = 0) do={ add interface=${WAN} disabled=no comment=${q(T + " wan")} } else={ set [find interface=${WAN}] disabled=no }`,
+    ``,
+    `# ---------- 4) IP ฝั่ง LAN ----------`,
+    `# ลบ IP เดิมที่สคริปต์เคยใส่ + IP ค่าตั้งต้น 192.168.88.1 แล้วใส่ ${P.router}/24`,
+    `/ip address`,
+    `remove [find comment~${q("^" + T + " lan")}]`,
+    `remove [find address="192.168.88.1/24"]`,
+    `add address=${P.router}/24 interface=${q(BR)} comment=${q(T + " lan")}`,
+    ``,
+    `# ---------- 5) DHCP แจก IP ในวง LAN (${P.poolFrom}-${P.poolTo}) ----------`,
+    `# SmartLogger (.10) และ Waveshare (.20) ตั้ง IP คงที่ที่ตัวอุปกรณ์ · gateway = ${P.router}`,
+    `/ip pool`,
+    `:if ([:len [find name="pg-pool"]] = 0) do={ add name="pg-pool" ranges=${P.poolFrom}-${P.poolTo} comment=${q(T)} } else={ set [find name="pg-pool"] ranges=${P.poolFrom}-${P.poolTo} }`,
+    `/ip dhcp-server`,
+    `# DHCP ค่าตั้งต้น (defconf) ชนกับตัวใหม่บน bridge เดียวกัน — ลบทิ้ง`,
+    `remove [find interface=${q(BR)} name!="pg-dhcp"]`,
+    `:if ([:len [find name="pg-dhcp"]] = 0) do={ add name="pg-dhcp" interface=${q(BR)} address-pool="pg-pool" lease-time=1d disabled=no comment=${q(T)} } else={ set [find name="pg-dhcp"] interface=${q(BR)} address-pool="pg-pool" disabled=no }`,
+    `/ip dhcp-server network`,
+    `remove [find comment~${q("^" + T)}]`,
+    `remove [find address="192.168.88.0/24"]`,
+    `add address=${P.lanNet} gateway=${P.router} dns-server=${P.router} comment=${q(T)}`,
+    `/ip dns set allow-remote-requests=yes`,
+    ``,
+    `# ---------- 6) NAT: เครื่องใน LAN ออกเน็ตผ่าน ether1 ----------`,
+    `/ip firewall nat`,
+    `remove [find comment~${q("^" + T)}]`,
+    `add chain=srcnat action=masquerade out-interface=${WAN} comment=${q(T + " masquerade")}`,
+    ``,
+    `# ---------- 7) WireGuard: hEX เป็นฝ่ายต่อเข้าเซิร์ฟเวอร์ (โรงงานไม่มี public IP) ----------`,
+    `/interface wireguard`,
+    `:if ([:len [find name=${q(WG)}]] = 0) do={ add name=${q(WG)} listen-port=13231 private-key=${q(o.wgPrivateKey)} comment=${q(T)} } else={ set [find name=${q(WG)}] private-key=${q(o.wgPrivateKey)} }`,
+    `/interface wireguard peers`,
+    `remove [find interface=${q(WG)}]`,
+    `add interface=${q(WG)} public-key=${q(o.serverPublicKey)} endpoint-address=${q(ep.host)} endpoint-port=${ep.port} allowed-address=${S}/32 persistent-keepalive=${MT.KEEPALIVE}s comment=${q(T + " server")}`,
+    `/ip address`,
+    `remove [find comment~${q("^" + T + " wg")}]`,
+    `add address=${P.wgIp}/24 interface=${q(WG)} comment=${q(T + " wg")}`,
+    ``,
+    `# ---------- 8) ใบรับรอง self-signed สำหรับ HTTPS (สร้างครั้งเดียว รันซ้ำไม่สร้างใหม่ fingerprint จึงไม่เปลี่ยน) ----------`,
+    `/certificate`,
+    `:if ([:len [find name=${q(MT.CERT)}]] = 0) do={`,
+    `  add name=${q(MT.CERT)} common-name=${q(P.router)} subject-alt-name=${q("IP:" + P.router)} days-valid=3650 key-size=2048 key-usage=digital-signature,key-encipherment,tls-server`,
+    `  sign ${q(MT.CERT)}`,
+    `  :delay 3s`,
+    `}`,
+    ``,
+    `# ---------- 9) บริการจัดการ: เปิด www-ssl อย่างเดียว ปิดตัวที่ไม่เข้ารหัส ----------`,
+    `# winbox/ssh ยังเปิด (ช่างใช้หน้างานผ่าน LAN) — ฝั่ง WAN/WireGuard ถูก firewall ข้อ 11 กันไว้`,
+    `/ip service`,
+    `set www disabled=yes`,
+    `set telnet disabled=yes`,
+    `set ftp disabled=yes`,
+    `set api disabled=yes`,
+    `set api-ssl disabled=yes`,
+    `set www-ssl disabled=no certificate=${q(MT.CERT)}`,
+    ``,
+    `# ---------- 10) user สำหรับเว็บ: อ่านอย่างเดียว + รีบูต (ไม่มี write) · เข้าได้จากเซิร์ฟเวอร์ WireGuard เท่านั้น ----------`,
+    `/user group`,
+    `:if ([:len [find name=${q(MT.GROUP)}]] = 0) do={ add name=${q(MT.GROUP)} policy=read,api,rest-api,test,reboot comment=${q(T)} } else={ set [find name=${q(MT.GROUP)}] policy=read,api,rest-api,test,reboot }`,
+    `/user`,
+    `:if ([:len [find name=${q(MT.USER)}]] = 0) do={ add name=${q(MT.USER)} group=${q(MT.GROUP)} password=${q(o.webPassword)} address=${S}/32 comment=${q(T)} } else={ set [find name=${q(MT.USER)}] group=${q(MT.GROUP)} password=${q(o.webPassword)} address=${S}/32 }`,
+    ``,
+    `# ---------- 11) Back To Home + DDNS (ให้เจ้าของเข้าไซต์เองผ่านแอป WireGuard) ----------`,
+    `/ip cloud set ddns-enabled=yes back-to-home-vpn=enabled`,
+    ``,
+    `# ---------- 12) firewall: ย้ายกฎชุดนี้ขึ้นบนสุดของแต่ละ chain ----------`,
+    `# input: จากเซิร์ฟเวอร์ ${S} เปิดแค่ 443 + ping · ที่เหลือจาก WireGuard/WAN ตัดทิ้งหมด`,
+    `/ip firewall filter`,
+    `remove [find comment~${q("^" + T)}]`,
+    ...rules("input", input, "in"),
+    `# ผู้ใช้ Back To Home เข้ามาทาง interface back-to-home-vpn — ต้องอยู่เหนือ defconf "drop all not coming from LAN"`,
+    `# (ยังไม่มี interface นี้ = ข้าม ไม่ทำให้สคริปต์ล้ม)`,
+    `:do { /ip firewall filter add chain=input action=accept in-interface=back-to-home-vpn comment=${q(T + " bth")} ;  /ip firewall filter move [find comment=${q(T + " bth")}] destination=0 } on-error={ :put "skip: back-to-home-vpn interface not found" }`,
+    `# forward: เซิร์ฟเวอร์เข้า Modbus 502 ที่ .20 · หน้าเว็บที่ .10/.20 · ping · LAN ห้ามเปิดการเชื่อมต่อใหม่ไปฝั่ง WireGuard`,
+    ...rules("forward", forward, "fw"),
+    ``,
+    `# ---------- เสร็จ: จด fingerprint ใบรับรองนี้ไว้ (เว็บใช้ตรวจว่าคุยกับเราเตอร์ตัวจริง) ----------`,
+    `:put ("${ident} OK - cert fingerprint: " . [/certificate get [find name=${q(MT.CERT)}] fingerprint])`,
+    ``,
+  ];
+  return L.join("\r\n");
+}
+
+/* peer ฝั่งเซิร์ฟเวอร์ (wg-quick) — ต่อท้าย /etc/wireguard/wg0.conf */
+export function buildServerPeer(o) {
+  const P = sitePlan(o.n);
+  need(validName(o.name), "ชื่อไซต์ผิดรูปแบบ");
+  need(isWgKey(o.publicKey), "public key ของไซต์ผิดรูปแบบ");
+  return [
+    `# ไซต์ ${pad2(o.n)} · ${identityOf(o.n, o.name)}`,
+    `[Peer]`,
+    `PublicKey = ${o.publicKey}`,
+    `AllowedIPs = ${P.wgIp}/32, ${P.lanNet}`,
+    ``,
+  ].join("\n");
+}

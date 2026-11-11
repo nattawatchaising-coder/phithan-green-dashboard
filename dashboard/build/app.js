@@ -153,6 +153,13 @@ const NAV = [{
   icon: "history",
   perm: "manageUsers",
   inSettings: true
+}, {
+  key: "mikrotik",
+  th: "ไซต์ MikroTik",
+  en: "MikroTik Sites",
+  icon: "shield",
+  perm: "manageUsers",
+  inSettings: true
 }];
 const PLAIN_SUB = {
   om: "",
@@ -164,7 +171,8 @@ const PLAIN_SUB = {
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
   sites: "ไซต์จาก Huawei FusionSolar และไซต์ที่เพิ่มเอง · การผลิต · อุปกรณ์ · งานที่ผูก",
-  fslog: "ผลการซิงก์แต่ละรอบ · ทดลองก่อนบันทึก · ซิงก์ตอนนี้"
+  fslog: "ผลการซิงก์แต่ละรอบ · ทดลองก่อนบันทึก · ซิงก์ตอนนี้",
+  mikrotik: "ลงทะเบียนไซต์ · สร้างสคริปต์ตั้งค่า hEX และ peer WireGuard"
 };
 const NAV_BADGE_TONE = {
   stock: "warn",
@@ -1377,6 +1385,9 @@ function App() {
       siteId: id
     })
   }), view === "fslog" && window.FsLogView && React.createElement(window.FsLogView, {
+    role: role,
+    currentUser: auth.current
+  }), view === "mikrotik" && window.MtSitesView && React.createElement(window.MtSitesView, {
     role: role,
     currentUser: auth.current
   }), view === "expense" && React.createElement(window.ExpenseView, {

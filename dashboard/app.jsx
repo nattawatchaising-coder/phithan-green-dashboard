@@ -60,6 +60,8 @@ const NAV = [
   { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "book",     inSettings: true },
   /* ผลซิงก์ FusionSolar แต่ละรอบ + ปุ่มซิงก์ตอนนี้ — แอดมินกดได้ (เซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำ) */
   { key: "fslog",      th: "API Monitoring",    en: "API Monitoring",  icon: "history",  perm: "manageUsers", inSettings: true },
+  /* ไซต์ MikroTik — ลงทะเบียนไซต์ + สร้างสคริปต์ RouterOS/WireGuard (mikrotik.jsx · docs/mikrotik.md) เซิร์ฟเวอร์ตรวจแอดมินซ้ำ */
+  { key: "mikrotik",   th: "ไซต์ MikroTik",     en: "MikroTik Sites",  icon: "shield",   perm: "manageUsers", inSettings: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -85,6 +87,7 @@ const PLAIN_SUB = {
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
   sites: "ไซต์จาก Huawei FusionSolar และไซต์ที่เพิ่มเอง · การผลิต · อุปกรณ์ · งานที่ผูก",
   fslog: "ผลการซิงก์แต่ละรอบ · ทดลองก่อนบันทึก · ซิงก์ตอนนี้",
+  mikrotik: "ลงทะเบียนไซต์ · สร้างสคริปต์ตั้งค่า hEX และ peer WireGuard",
 };
 const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
 /* ความด่วนของโทนเลขท้ายเมนู — เลขรวมบนแถวแม่ต้องใช้โทนของเรื่องที่ด่วนที่สุดที่ยังค้างอยู่
@@ -1034,6 +1037,7 @@ function App() {
           {view === "sites" && window.FsSitesView && <window.FsSitesView jobs={jobs} role={role} currentUser={auth.current}
             onOpenJob={(id) => setSelected(id)} onOpenOm={(id) => openOm({ siteId: id })} />}
           {view === "fslog" && window.FsLogView && <window.FsLogView role={role} currentUser={auth.current} />}
+          {view === "mikrotik" && window.MtSitesView && <window.MtSitesView role={role} currentUser={auth.current} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
           {/* งวดงานเป็นเรื่องของสัญญาทั้งฉบับ ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น
               onSaveBills เป็น null เมื่อไม่มีสิทธิ์ — กั้นที่จุดต่อสาย หน้าจอจึงเขียนอะไรไม่ได้เลยแม้กดถึงปุ่ม */}

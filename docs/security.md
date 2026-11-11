@@ -118,6 +118,7 @@
 
 | ผู้ใช้ | path |
 |---|---|
+| เซิร์ฟเวอร์ MikroTik (`api/mikrotik/site`) | อ่าน `users` · เขียน `mtSites` `mtSecrets` (เว็บอ่าน `mtSites` อย่างเดียว · `mtSecrets` ควรปิด `.read/.write: false` — กฎอยู่ใน docs/mikrotik.md) |
 | เซิร์ฟเวอร์ LINE (`api/line/*`) | อ่าน `users` `rolePerms` `notifications` `config/linePush` `lineLinks` `lineBindFails` `jobs`(ชื่องาน) · เขียน `lineLinks` `lineBindFails` `lnPushLog` `users/*/lineUserId|lineAt` |
 | cron (`api/cron/*`) | อ่าน `users` `tmOt` `tmLeave` `attendDay` `config/linePush` `cronRun` · เขียน `cronRun` `lnPushLog` |
 | เว็บ + LIFF | ทุกกลุ่มที่เหลือ: งาน/สำรวจ/แบบ (`jobs` `surveyLeads` `surveyAppointments` `surveyPhotos` `surveyPlans` `plan3d` `plan3dVers` `boqVers` `eroom` `quotes` `quotePics` `quotePicData` `jobFiles` `jobFileFlags` `jobPhotos` `jobComments` `permitDocs` `permitPhotos` `inspections` `inspectionPhotos` `roofHandover` `roofPhotos` `handover*`) · คลัง (`stock` `stockCats` `stockDoc` `stockImg` `moves` `brands` `boqPrices` `boqRules` `cableAmpacity` `conduitDefaults`) · บุคคล (`users` `userAvatars` `userSigns` `rolePerms` `techs` `attend` `attendDay` `attendVoid` `tmOt` `tmLeave` `leaveQuota`) · เงิน/รายงาน (`ec*` `daily*` `billPhotos`) · O&M (`om*`) · อื่น ๆ (`notifications` `annStickers` `config/*` `meta` `lnPushFail` `_sandbox`) |
