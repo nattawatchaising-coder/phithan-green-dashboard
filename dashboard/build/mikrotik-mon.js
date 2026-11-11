@@ -82,6 +82,170 @@ function MtStat({
     }
   }, sub));
 }
+const MT_TONE_DOT = {
+  green: "var(--tint-ok-tx)",
+  amber: "var(--tint-amber-tx)",
+  red: "var(--tint-red-tx)",
+  gray: "var(--text-3)"
+};
+function MtMonRow({
+  s,
+  st,
+  now,
+  i,
+  onOpen
+}) {
+  const days = useMtRef("mtMeter/" + s.n + "/d");
+  const k = window.mtState ? window.mtState(s, st, now) : {
+    label: "",
+    tone: "gray"
+  };
+  const m = st && st.meter,
+    v = m && m.v || {};
+  const reg = mtRegOf(s),
+    today = mtThDay(now),
+    mon = today.slice(0, 6);
+  const dayKwh = mtDayKwh(days && days[today], reg);
+  const monKeys = Object.keys(days || {}).filter(x => x.slice(0, 6) === mon);
+  const monKwh = monKeys.length ? monKeys.reduce((t, x) => t + (mtDayKwh(days[x], reg) || 0), 0) : null;
+  const td = {
+    padding: "11px 14px",
+    verticalAlign: "middle",
+    background: i % 2 ? "var(--fs-zebra)" : "transparent"
+  };
+  const nm = Object.assign({}, td, {
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums",
+    whiteSpace: "nowrap"
+  });
+  const meterBad = m && !(m.modbus && m.modbus.ok);
+  return React.createElement("tr", {
+    className: "fs-row",
+    onClick: onOpen,
+    style: {
+      cursor: "pointer"
+    }
+  }, React.createElement("td", {
+    style: Object.assign({}, td, {
+      maxWidth: 300
+    })
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "var(--text-1)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.bill && s.bill.cust || s.name), meterBad && React.createElement("span", {
+    title: "มิเตอร์ไม่ตอบ" + (m.error ? " — " + m.error : ""),
+    style: {
+      display: "flex"
+    }
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 13,
+    color: "var(--tint-amber-tx)"
+  }))), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      fontFamily: "var(--mono)",
+      marginTop: 1
+    }
+  }, mtIdent(s), " \xB7 ", MT_MODEL_TH[s.meter_model || "leos-ipm310"].split(" (")[0].split(" —")[0])), React.createElement("td", {
+    style: Object.assign({}, td, {
+      whiteSpace: "nowrap"
+    }),
+    title: k.why
+  }, React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: MT_TONE_DOT[k.tone]
+    }
+  }), k.label)), React.createElement("td", {
+    style: Object.assign({}, nm, {
+      fontWeight: 700
+    })
+  }, mtNum(v.kw, 1)), React.createElement("td", {
+    style: Object.assign({}, nm, {
+      fontWeight: 700
+    })
+  }, mtNum(dayKwh, 1)), React.createElement("td", {
+    style: nm
+  }, mtNum(monKwh, 0)), React.createElement("td", {
+    style: nm
+  }, mtNum(v[reg] != null ? v[reg] / 1000 : null, 2)), React.createElement("td", {
+    style: Object.assign({}, td, {
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      fontSize: 12
+    })
+  }, st && st.at ? window.mtAgo ? window.mtAgo(now - Date.parse(st.at)) : new Date(st.at).toLocaleTimeString("th-TH") : "—"));
+}
+function MtMonTable({
+  sites,
+  status,
+  now,
+  onOpen
+}) {
+  const cols = [["ไซต์"], ["สถานะ"], ["ตอนนี้", "kW", 1], ["วันนี้", "kWh", 1], ["เดือนนี้", "kWh", 1], ["เลขมิเตอร์", "MWh", 1], ["อัปเดต"]];
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-card)",
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "separate",
+      borderSpacing: 0,
+      fontSize: 13
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, cols.map(([t, u, num]) => React.createElement("th", {
+    key: t,
+    style: {
+      padding: "12px 14px 10px",
+      textAlign: num ? "right" : "left",
+      fontSize: 11.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      color: "var(--text-3)",
+      boxShadow: "inset 0 -1px 0 var(--divider)"
+    }
+  }, t, u && React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      marginLeft: 4
+    }
+  }, u))))), React.createElement("tbody", null, sites.map((s, i) => React.createElement(MtMonRow, {
+    key: s.n,
+    s: s,
+    st: status && status[s.n],
+    now: now,
+    i: i,
+    onOpen: () => onOpen(s.n)
+  })))));
+}
 function MtMonCard({
   s,
   st,
@@ -509,7 +673,30 @@ function MtMonPanel({
   const now = useMtNowMon();
   const [pick, setPick] = React.useState(null);
   const sites = list.filter(s => s.meter_model !== "none" || status && status[s.n]);
-  const sel = sites.find(s => s.n === pick) || sites[0];
+  const sel = pick == null ? null : sites.find(s => s.n === pick);
+  if (sel) return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", null, React.createElement("button", {
+    className: "btn",
+    onClick: () => setPick(null),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 14
+  }), "\u0E17\u0E38\u0E01\u0E44\u0E0B\u0E15\u0E4C")), React.createElement(MtMonDetail, {
+    key: sel.n,
+    s: sel,
+    st: status && status[sel.n],
+    isAdmin: isAdmin
+  }));
   const online = list.filter(s => window.mtState && window.mtState(s, status && status[s.n], now).tone === "green").length;
   const kwNow = list.reduce((t, s) => {
     const v = status && status[s.n] && status[s.n].meter && status[s.n].meter.v;
@@ -555,25 +742,12 @@ function MtMonPanel({
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E17\u0E35\u0E48 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E44\u0E0B\u0E15\u0E4C MikroTik")) : React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-      gap: 12
-    }
-  }, sites.map(s => React.createElement(MtMonCard, {
-    key: s.n,
-    s: s,
-    st: status && status[s.n],
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E17\u0E35\u0E48 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E44\u0E0B\u0E15\u0E4C MikroTik")) : React.createElement(MtMonTable, {
+    sites: sites,
+    status: status,
     now: now,
-    picked: sel && sel.n === s.n,
-    onPick: () => setPick(s.n)
-  }))), sel && React.createElement(MtMonDetail, {
-    key: sel.n,
-    s: sel,
-    st: status && status[sel.n],
-    isAdmin: isAdmin
-  })));
+    onOpen: setPick
+  }));
 }
 function useMtNowMon() {
   const [now, setNow] = React.useState(Date.now());
