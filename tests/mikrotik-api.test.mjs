@@ -237,3 +237,11 @@ test("fetch-token เก็บกวาดโทเคนหมดอายุ",
   assert.deepEqual(Object.keys(db.mtSecrets.fetch).filter((k) => k.startsWith("old")), []);
   assert.equal(Object.keys(db.mtSecrets.fetch).length, 1);
 });
+
+test("info: บอก IP ของ VPS เฉพาะแอดมิน (ใช้เติมคำสั่ง ssh ในคู่มือ)", async () => {
+  const r = await call({ action: "info" });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.server_host, "vpn.example.com");
+  assert.equal((await call({ action: "info" }, "u-tech")).status, 403);
+  assert.equal((await call({ action: "info" }, null)).status, 401);
+});

@@ -27,6 +27,7 @@ hEX เป็นฝ่ายต่อเข้าเซิร์ฟเวอร�
 | `api/_lib/mikrotik.mjs` | แผน IP · คีย์ WireGuard (X25519 ด้วย `node:crypto`) · เข้ารหัส AES-256-GCM · `buildRsc` · `buildServerPeer` — ไม่มี dependency |
 | `api/mikrotik/site.mjs` | `GET` = env ครบไหม (บอกแค่ชื่อที่ขาด) · `POST` create / edit / script / rotate / remove — เฉพาะแอดมิน (อ่าน `users/<uid>` ล่าสุด) |
 | `dashboard/mikrotik.jsx` | หน้า "ไซต์ MikroTik" ในเมนูตั้งค่า (สิทธิ์ `manageUsers` · ปุ่มทั้งหมดเซิร์ฟเวอร์ตรวจแอดมินซ้ำ) |
+| `dashboard/mikrotik-guide.jsx` | **คู่มือสำหรับคนไม่เคยทำ** ในหน้าไซต์ MikroTik (ผู้ใช้ขอ 2026-11-11) — เลือกไซต์แล้วคำสั่ง/IP เติมเลขให้ · ssh root@<IP VPS> ขอจาก `{action:"info"}` (แอดมิน) · ขั้นตอนเปลี่ยน = แก้ที่ไฟล์นี้ · ส่วน SmartLogger/Waveshare ยังไม่ได้ลองเครื่องจริง (มีป้ายบอก) |
 | `tools/mt-server/setup.sh` | ติดตั้งเซิร์ฟเวอร์ WireGuard บน VPS + คำสั่ง `mt-peer` (LF เสมอ — `.gitattributes`) |
 | `tests/mikrotik*.test.mjs` | `npm test` (node --test ไม่มี dependency · API เทสต์กับฐานปลอมในหน่วยความจำ ไม่ยิง Firebase จริง) · CI build-check รันด้วย |
 

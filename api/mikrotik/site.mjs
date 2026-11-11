@@ -53,6 +53,11 @@ export async function POST(request) {
   const a = await admin(request);
   if (a.err) return a.err;
   const b = (await body(request)) || {};
+  /* ข้อมูลประกอบคู่มือ (แอดมินเท่านั้น): IP ของ VPS สำหรับคำสั่ง ssh */
+  if (b.action === "info") {
+    const ep = parseEndpoint(MT_ENV.endpoint());
+    return json({ ok: true, server_host: ep ? ep.host : "" });
+  }
   const n = Number(b.n);
   if (!validN(n)) return json({ error: "เลขไซต์ต้องเป็นจำนวนเต็ม " + MT.N_MIN + "–" + MT.N_MAX }, 400);
   const miss = mtMissingEnv();
