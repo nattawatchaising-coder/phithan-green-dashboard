@@ -73,6 +73,8 @@ curl -fsSL https://raw.githubusercontent.com/nattawatchaising-coder/phithan-gree
 - ทดสอบ mt-peer บน Windows (Git Bash) ได้ด้วย env `MT_WG_DIR=<โฟลเดอร์>` = เขียนไฟล์อย่างเดียว ไม่แตะ interface
 
 ## เพิ่มไซต์ใหม่
+**ทางหลัก (2026-11-11 ผู้ใช้ตั้ง hEX เองที่ออฟฟิศแล้วส่งไปหน้างาน): ปุ่ม "คำสั่งตั้งค่า (บรรทัดเดียว)"** — เว็บออกโทเคนสุ่ม 256 บิต ใช้ครั้งเดียว 15 นาที (`api/_lib/mtstore.mjs` เก็บแค่ SHA-256 ใน `mtSecrets/fetch/<hash>`) → hEX วาง `/tool fetch url="…/api/mikrotik/rsc?t=…" check-certificate=yes-without-crl dst-path=pg-setup.rsc; /import …; /file remove pg-setup.rsc` · `api/mikrotik/rsc.mjs` ไม่มีล็อกอิน · โทเคนผิด/หมด/ใช้แล้ว = 404 ตอบเป็น `:error` · ตรวจ https ไม่ผ่าน (RouterOS ไม่มี CA) มีบรรทัดสำรอง `check-certificate=no` ใช้ที่ออฟฟิศเท่านั้น (**ยังไม่ได้ลองบน hEX จริง**) · ดาวน์โหลด .rsc เป็นทางสำรองเมื่อ hEX ไม่มีเน็ต
+
 **ในเว็บ (แอดมิน)** ตั้งค่า → ไซต์ MikroTik → เพิ่มไซต์ (N เสนอเลขว่างถัดไปให้) → "สร้างสคริปต์ .rsc" → ดาวน์โหลด `.rsc` + คัดลอก peer
 
 **เซิร์ฟเวอร์** ก๊อปกล่อง "คำสั่งเพิ่ม peer บนเซิร์ฟเวอร์" (heredoc `sudo mt-peer add <<'EOF' … EOF`) วางใน SSH ทีเดียวจบ — ไม่ต้องกด Ctrl+D เอง (ผู้ใช้เคยกดก่อนวางจนว่าง แล้วหลุด SSH)

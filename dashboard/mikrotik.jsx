@@ -155,6 +155,35 @@ function MtScriptBox({ title, sub, text, filename }) {
   );
 }
 
+const mtPeerCmd = (peer) => "sudo mt-peer add <<'EOF'\n" + peer.replace(/\n+$/, "") + "\nEOF\n";
+const mtStep = { fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" };
+
+/* คำสั่งบรรทัดเดียว (api/mikrotik/rsc.mjs) — โทเคนในคำสั่งใช้ได้ครั้งเดียว 15 นาที ไม่มีไฟล์กุญแจค้างในคอม */
+function MtFetchSteps({ out }) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => { const t = setInterval(() => setNow(Date.now()), 15e3); return () => clearInterval(t); }, []);
+  const left = Math.max(0, Math.ceil((out.exp - now) / 60e3));
+  const until = new Date(out.exp).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, padding: "9px 12px", borderRadius: "var(--r-tile)",
+        color: left ? "var(--tint-amber-tx)" : "var(--tint-red-tx)", background: left ? "var(--tint-amber-bg)" : "var(--tint-red-bg)" }}>
+        {left ? "คำสั่งใช้ได้ครั้งเดียว ภายในเวลา " + until + " น. (อีก " + left + " นาที) — ห้ามส่งในแชต" : "คำสั่งหมดอายุแล้ว — กด \"คำสั่งตั้งค่า (บรรทัดเดียว)\" ใหม่"}
+      </div>
+      <div style={mtStep}>1) เพิ่ม peer บนเซิร์ฟเวอร์ (ทำก่อนหรือหลังข้อ 2 ก็ได้)</div>
+      <MtScriptBox title="คำสั่งบน VPS" sub="ssh เข้า VPS แล้ววางทั้งก้อน (คลิกขวา) กด Enter" text={mtPeerCmd(out.peer)} />
+      <div style={mtStep}>2) ตั้งค่า hEX — ether1 ต่อเน็ต · WinBox ต่อทาง MAC → New Terminal → วางบรรทัดนี้ กด Enter</div>
+      <MtScriptBox title="คำสั่งบน hEX" sub="ดึงสคริปต์ → รัน → ลบไฟล์ทิ้งเอง · สร้างกุญแจรอบแรกขึ้น progress 1–2 นาที อย่ากด Q" text={out.command} />
+      <details style={{ fontSize: 12, color: "var(--text-2)" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>ถ้าขึ้น error เรื่อง certificate / SSL</summary>
+        <div style={{ margin: "8px 0", lineHeight: 1.6 }}>RouterOS บางเครื่องไม่มีใบรับรองกลางสำหรับตรวจ https — ใช้บรรทัดนี้แทน (คำสั่งเดิมยังไม่ถูกใช้ไป) · ใช้ที่ออฟฟิศเท่านั้น เพราะไม่ตรวจว่าคุยกับเว็บตัวจริง</div>
+        <MtScriptBox title="ไม่ตรวจใบรับรอง" sub="" text={out.command_nocheck} />
+      </details>
+      <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>3) เสร็จแล้วบรรทัดท้ายต้องขึ้น <b>OK - cert fingerprint</b> · เช็กบน VPS: <code>mt-peer list</code></div>
+    </div>
+  );
+}
+
 function MtSiteCard({ s, isAdmin, onEdit }) {
   const [busy, setBusy] = React.useState("");
   const [err, setErr] = React.useState("");
@@ -175,7 +204,7 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
     setBusy(kind); setErr("");
     try {
       const r = await mtCall({ action: kind, n: s.n });
-      if (kind === "script") setOut(r); else setOut(null);
+      if (kind === "script" || kind === "fetch-token") setOut(Object.assign({ kind }, r)); else setOut(null);
     } catch (e) { setErr(String(e.message || e)); }
     setBusy("");
   };
@@ -196,8 +225,12 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
       </div>
       {isAdmin && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn btn-soft" disabled={!!busy} onClick={() => (out ? setOut(null) : act("script"))}>
-            {busy === "script" ? "กำลังสร้าง…" : out ? "ซ่อนสคริปต์" : "สร้างสคริปต์ .rsc"}
+          {/* ทางหลัก (ผู้ใช้ตั้ง hEX เองที่ออฟฟิศ 2026-11-11): คำสั่งบรรทัดเดียว hEX ดึงสคริปต์เอง · ดาวน์โหลด .rsc เป็นทางสำรอง (hEX ไม่มีเน็ต) */}
+          <button className="btn btn-pri" disabled={!!busy} onClick={() => (out && out.kind === "fetch-token" ? setOut(null) : act("fetch-token"))}>
+            {busy === "fetch-token" ? "กำลังสร้าง…" : out && out.kind === "fetch-token" ? "ซ่อนคำสั่ง" : "คำสั่งตั้งค่า (บรรทัดเดียว)"}
+          </button>
+          <button className="btn" disabled={!!busy} onClick={() => (out && out.kind === "script" ? setOut(null) : act("script"))}>
+            {busy === "script" ? "กำลังสร้าง…" : out && out.kind === "script" ? "ซ่อนสคริปต์" : "ดาวน์โหลด .rsc"}
           </button>
           <button className="btn" disabled={!!busy} onClick={() => onEdit(s)}>แก้ชื่อ/หมายเหตุ</button>
           <div style={{ flex: 1 }} />
@@ -206,7 +239,8 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
         </div>
       )}
       {err && <div style={mtErrBox}>{err}</div>}
-      {out && (
+      {out && out.kind === "fetch-token" && <MtFetchSteps out={out} />}
+      {out && out.kind === "script" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
           <div style={{ fontSize: 12, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "9px 12px", borderRadius: "var(--r-tile)", fontWeight: 600 }}>
             สคริปต์มีกุญแจลับของไซต์ — ห้ามส่งในแชตกลุ่ม · รันเสร็จลบไฟล์ออกจากเราเตอร์และเครื่องตัวเอง

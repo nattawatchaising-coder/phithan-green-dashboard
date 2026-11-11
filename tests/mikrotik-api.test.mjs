@@ -180,3 +180,60 @@ test("แก้ชื่อ/หมายเหตุ ไม่แตะคีย
 test("ไม่มีการยิงออกไปที่อื่นนอกจาก Google token/certs และฐานข้อมูลปลอม", () => {
   for (const c of calls) assert.match(c, /oauth2\.googleapis\.com|securetoken|mt-test\.example\.firebaseio\.com/);
 });
+
+/* ---------- คำสั่งบรรทัดเดียว: โทเคนใช้ครั้งเดียว → hEX ดึงสคริปต์เอง ---------- */
+const rscApi = await import("../api/mikrotik/rsc.mjs");
+const fetchRsc = async (t) => {
+  const r = await rscApi.GET(new Request("https://flashsolar.vercel.app/api/mikrotik/rsc?t=" + encodeURIComponent(t)));
+  return { status: r.status, text: await r.text() };
+};
+const tokenOf = (cmd) => /[?&]t=([A-Za-z0-9_-]+)"/.exec(cmd)[1];
+
+test("fetch-token: ได้คำสั่ง /tool fetch + /import + ลบไฟล์ · เก็บแค่ hash ของโทเคน", async () => {
+  await call({ action: "create", n: 21, name: "Fetch" });
+  const r = await call({ action: "fetch-token", n: 21 });
+  assert.equal(r.status, 200);
+  const t = tokenOf(r.body.command);
+  assert.match(r.body.command, /^\/tool fetch url="http:\/\/x\/api\/mikrotik\/rsc\?t=[A-Za-z0-9_-]{43}" check-certificate=yes-without-crl dst-path=pg-setup\.rsc; \/import file-name=pg-setup\.rsc verbose=yes; \/file remove pg-setup\.rsc$/);
+  assert.ok(r.body.command_nocheck.includes("check-certificate=no"));
+  assert.ok(r.body.peer.includes("AllowedIPs = 10.99.0.31/32, 10.10.21.0/24"));
+  assert.ok(r.body.exp > Date.now() + 14 * 60e3 && r.body.exp <= Date.now() + 15 * 60e3);
+  assert.ok(!JSON.stringify(db).includes(t), "ห้ามเก็บโทเคนตัวจริงในฐาน");
+  assert.equal(Object.keys(db.mtSecrets.fetch).length, 1);
+  assert.equal((await call({ action: "fetch-token", n: 21 }, "u-tech")).status, 403);
+});
+
+test("rsc: โทเคนถูก = ได้สคริปต์ครั้งเดียว · ใช้ซ้ำ/ผิด = 404 :error", async () => {
+  await call({ action: "create", n: 22, name: "Once" });
+  const t = tokenOf((await call({ action: "fetch-token", n: 22 })).body.command);
+  const a = await fetchRsc(t);
+  assert.equal(a.status, 200);
+  assert.ok(a.text.includes('/system identity set name="SITE22-Once"'));
+  const priv = unseal(db.mtSecrets[22].wg_priv, "mt/22/wg_priv", ENC);
+  assert.ok(a.text.includes(priv));
+  assert.equal(db.mtSites[22].script_by, "hEX fetch");
+  const b = await fetchRsc(t);
+  assert.equal(b.status, 404);
+  assert.match(b.text, /^:error "/);
+  assert.ok(!b.text.includes(priv));
+  for (const bad of ["", "x", t.slice(0, -1) + (t.endsWith("A") ? "B" : "A"), "../../users"]) assert.equal((await fetchRsc(bad)).status, 404, bad);
+});
+
+test("rsc: หมดอายุ 15 นาที = 404 · ไซต์ถูกลบ = 404", async () => {
+  await call({ action: "create", n: 23, name: "Old" });
+  const t = tokenOf((await call({ action: "fetch-token", n: 23 })).body.command);
+  const h = Object.keys(db.mtSecrets.fetch)[0];
+  db.mtSecrets.fetch[h].exp = Date.now() - 1;
+  assert.equal((await fetchRsc(t)).status, 404);
+  const t2 = tokenOf((await call({ action: "fetch-token", n: 23 })).body.command);
+  await call({ action: "remove", n: 23 });
+  assert.equal((await fetchRsc(t2)).status, 404);
+});
+
+test("fetch-token เก็บกวาดโทเคนหมดอายุ", async () => {
+  await call({ action: "create", n: 24, name: "Gc" });
+  db.mtSecrets.fetch = { old1: { n: 24, exp: Date.now() - 1000 }, old2: { n: 24, exp: 0 } };
+  await call({ action: "fetch-token", n: 24 });
+  assert.deepEqual(Object.keys(db.mtSecrets.fetch).filter((k) => k.startsWith("old")), []);
+  assert.equal(Object.keys(db.mtSecrets.fetch).length, 1);
+});

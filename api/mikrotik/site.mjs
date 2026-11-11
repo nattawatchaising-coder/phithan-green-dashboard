@@ -6,6 +6,7 @@
      { action: "create", n, name, note }   → สร้างไซต์ + คู่คีย์ WireGuard + รหัส user เว็บ (เลข N ซ้ำ = 409)
      { action: "edit",   n, name, note }   → แก้ชื่อ/หมายเหตุ (คีย์ไม่เปลี่ยน — ต้องสร้างสคริปต์ใหม่ไปรันถ้าเปลี่ยนชื่อ)
      { action: "script", n }               → { rsc, peer, filename } ถอดรหัสแล้วประกอบสคริปต์ (ไม่เก็บสคริปต์ไว้ที่ไหน)
+     { action: "fetch-token", n }          → { command, command_nocheck, peer, exp } คำสั่งบรรทัดเดียวให้ hEX ดึงสคริปต์เอง (ใช้ครั้งเดียว 15 นาที)
      { action: "rotate", n }               → คีย์ WireGuard + รหัส user เว็บชุดใหม่ (ต้องรันสคริปต์ใหม่ + แก้ peer บนเซิร์ฟเวอร์)
      { action: "remove", n }               → ลบ mtSites/N และ mtSecrets/N
 
@@ -17,13 +18,10 @@
 
 import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbSet, rtdbDelete, rtdbEtag, rtdbSetIf, rolesOf } from "../_lib/line.mjs";
 import { verifyFirebaseIdToken } from "../_lib/gauth.mjs";
-import {
-  MT, MT_ENV, mtMissingEnv, validN, validName, sitePlan, identityOf,
-  wgKeypair, wgPublicOf, seal, unseal, randomPassword, buildRsc, buildServerPeer,
-} from "../_lib/mikrotik.mjs";
+import { MT, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword } from "../_lib/mikrotik.mjs";
+import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
 
 const NOTE_MAX = 500;
-const aad = (n, field) => "mt/" + n + "/" + field;
 
 export async function GET() {
   const missing = mtMissingEnv();
@@ -92,21 +90,26 @@ export async function POST(request) {
   }
 
   if (b.action === "script") {
-    if (miss.length) return json({ error: "ยังไม่ได้ตั้ง env: " + miss.join(", "), need_env: true }, 503);
-    const sec = await rtdbGet("mtSecrets/" + n);
-    if (!sec || !sec.wg_priv || !sec.web_pass) return json({ error: "ไม่พบกุญแจของไซต์นี้ — กด \"สร้างคีย์ใหม่\"" }, 409);
-    let priv, pass;
-    try {
-      priv = unseal(sec.wg_priv, aad(n, "wg_priv"));
-      pass = unseal(sec.web_pass, aad(n, "web_pass"));
-    } catch (e) {
-      return json({ error: "ถอดรหัสกุญแจไม่ได้ — MT_ENC_KEY ถูกเปลี่ยน? (กด \"สร้างคีย์ใหม่\" ถ้าตั้งใจเปลี่ยน)" }, 409);
-    }
-    if (wgPublicOf(priv) !== site.wg_pub) return json({ error: "กุญแจที่เก็บไว้ไม่ตรงกับ public key ของไซต์ — กด \"สร้างคีย์ใหม่\"" }, 409);
-    const rsc = buildRsc({ n, name: site.name, wgPrivateKey: priv, serverPublicKey: MT_ENV.serverPub(), endpoint: MT_ENV.endpoint(), webPassword: pass });
-    const peer = buildServerPeer({ n, name: site.name, publicKey: site.wg_pub });
+    const r = await scriptFor(n, site);
+    if (r.error) return json({ error: r.error, need_env: r.need_env }, r.status);
     await rtdbUpdate(path, { script_at: now, script_by: a.by }).catch(() => null);
-    return json({ ok: true, rsc, peer, filename: identityOf(n, site.name) + ".rsc" });
+    return json({ ok: true, rsc: r.rsc, peer: r.peer, filename: r.filename });
+  }
+
+  /* คำสั่งบรรทัดเดียว: hEX ดึงสคริปต์เองด้วยโทเคนใช้ครั้งเดียว 15 นาที (api/mikrotik/rsc.mjs)
+     ลองสร้างสคริปต์ก่อนออกโทเคน — กุญแจ/env เสียจะได้รู้ที่เว็บ ไม่ใช่ไปรู้ที่เราเตอร์ */
+  if (b.action === "fetch-token") {
+    const r = await scriptFor(n, site);
+    if (r.error) return json({ error: r.error, need_env: r.need_env }, r.status);
+    const { token, exp } = await issueFetchToken(n, a.by);
+    const url = new URL(request.url).origin + "/api/mikrotik/rsc?t=" + token;
+    const tail = " dst-path=pg-setup.rsc; /import file-name=pg-setup.rsc verbose=yes; /file remove pg-setup.rsc";
+    return json({
+      ok: true, exp, peer: r.peer,
+      command: '/tool fetch url="' + url + '" check-certificate=yes-without-crl' + tail,
+      /* RouterOS บางรุ่นไม่มีใบรับรอง CA ในเครื่อง → ตรวจ https ไม่ผ่าน · โทเคนยังไม่ถูกใช้ (คำขอไม่ถึงเว็บ) ใช้บรรทัดนี้ต่อได้ */
+      command_nocheck: '/tool fetch url="' + url + '" check-certificate=no' + tail,
+    });
   }
 
   if (b.action === "rotate") {

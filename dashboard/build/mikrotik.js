@@ -340,6 +340,80 @@ function MtScriptBox({
     })
   }));
 }
+const mtPeerCmd = peer => "sudo mt-peer add <<'EOF'\n" + peer.replace(/\n+$/, "") + "\nEOF\n";
+const mtStep = {
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: "var(--text-1)"
+};
+function MtFetchSteps({
+  out
+}) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 15e3);
+    return () => clearInterval(t);
+  }, []);
+  const left = Math.max(0, Math.ceil((out.exp - now) / 60e3));
+  const until = new Date(out.exp).toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      paddingTop: 4
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "9px 12px",
+      borderRadius: "var(--r-tile)",
+      color: left ? "var(--tint-amber-tx)" : "var(--tint-red-tx)",
+      background: left ? "var(--tint-amber-bg)" : "var(--tint-red-bg)"
+    }
+  }, left ? "คำสั่งใช้ได้ครั้งเดียว ภายในเวลา " + until + " น. (อีก " + left + " นาที) — ห้ามส่งในแชต" : "คำสั่งหมดอายุแล้ว — กด \"คำสั่งตั้งค่า (บรรทัดเดียว)\" ใหม่"), React.createElement("div", {
+    style: mtStep
+  }, "1) \u0E40\u0E1E\u0E34\u0E48\u0E21 peer \u0E1A\u0E19\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C (\u0E17\u0E33\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E2B\u0E25\u0E31\u0E07\u0E02\u0E49\u0E2D 2 \u0E01\u0E47\u0E44\u0E14\u0E49)"), React.createElement(MtScriptBox, {
+    title: "\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E1A\u0E19 VPS",
+    sub: "ssh \u0E40\u0E02\u0E49\u0E32 VPS \u0E41\u0E25\u0E49\u0E27\u0E27\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E01\u0E49\u0E2D\u0E19 (\u0E04\u0E25\u0E34\u0E01\u0E02\u0E27\u0E32) \u0E01\u0E14 Enter",
+    text: mtPeerCmd(out.peer)
+  }), React.createElement("div", {
+    style: mtStep
+  }, "2) \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 hEX \u2014 ether1 \u0E15\u0E48\u0E2D\u0E40\u0E19\u0E47\u0E15 \xB7 WinBox \u0E15\u0E48\u0E2D\u0E17\u0E32\u0E07 MAC \u2192 New Terminal \u2192 \u0E27\u0E32\u0E07\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E19\u0E35\u0E49 \u0E01\u0E14 Enter"), React.createElement(MtScriptBox, {
+    title: "\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E1A\u0E19 hEX",
+    sub: "\u0E14\u0E36\u0E07\u0E2A\u0E04\u0E23\u0E34\u0E1B\u0E15\u0E4C \u2192 \u0E23\u0E31\u0E19 \u2192 \u0E25\u0E1A\u0E44\u0E1F\u0E25\u0E4C\u0E17\u0E34\u0E49\u0E07\u0E40\u0E2D\u0E07 \xB7 \u0E2A\u0E23\u0E49\u0E32\u0E07\u0E01\u0E38\u0E0D\u0E41\u0E08\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01\u0E02\u0E36\u0E49\u0E19 progress 1\u20132 \u0E19\u0E32\u0E17\u0E35 \u0E2D\u0E22\u0E48\u0E32\u0E01\u0E14 Q",
+    text: out.command
+  }), React.createElement("details", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("summary", {
+    style: {
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\u0E16\u0E49\u0E32\u0E02\u0E36\u0E49\u0E19 error \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07 certificate / SSL"), React.createElement("div", {
+    style: {
+      margin: "8px 0",
+      lineHeight: 1.6
+    }
+  }, "RouterOS \u0E1A\u0E32\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E15\u0E23\u0E27\u0E08 https \u2014 \u0E43\u0E0A\u0E49\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E19\u0E35\u0E49\u0E41\u0E17\u0E19 (\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E40\u0E14\u0E34\u0E21\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E43\u0E0A\u0E49\u0E44\u0E1B) \xB7 \u0E43\u0E0A\u0E49\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E44\u0E21\u0E48\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E04\u0E38\u0E22\u0E01\u0E31\u0E1A\u0E40\u0E27\u0E47\u0E1A\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07"), React.createElement(MtScriptBox, {
+    title: "\u0E44\u0E21\u0E48\u0E15\u0E23\u0E27\u0E08\u0E43\u0E1A\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07",
+    sub: "",
+    text: out.command_nocheck
+  })), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.6
+    }
+  }, "3) \u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E49\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E02\u0E36\u0E49\u0E19 ", React.createElement("b", null, "OK - cert fingerprint"), " \xB7 \u0E40\u0E0A\u0E47\u0E01\u0E1A\u0E19 VPS: ", React.createElement("code", null, "mt-peer list")));
+}
 function MtSiteCard({
   s,
   isAdmin,
@@ -376,7 +450,9 @@ function MtSiteCard({
         action: kind,
         n: s.n
       });
-      if (kind === "script") setOut(r);else setOut(null);
+      if (kind === "script" || kind === "fetch-token") setOut(Object.assign({
+        kind
+      }, r));else setOut(null);
     } catch (e) {
       setErr(String(e.message || e));
     }
@@ -456,10 +532,14 @@ function MtSiteCard({
       flexWrap: "wrap"
     }
   }, React.createElement("button", {
-    className: "btn btn-soft",
+    className: "btn btn-pri",
     disabled: !!busy,
-    onClick: () => out ? setOut(null) : act("script")
-  }, busy === "script" ? "กำลังสร้าง…" : out ? "ซ่อนสคริปต์" : "สร้างสคริปต์ .rsc"), React.createElement("button", {
+    onClick: () => out && out.kind === "fetch-token" ? setOut(null) : act("fetch-token")
+  }, busy === "fetch-token" ? "กำลังสร้าง…" : out && out.kind === "fetch-token" ? "ซ่อนคำสั่ง" : "คำสั่งตั้งค่า (บรรทัดเดียว)"), React.createElement("button", {
+    className: "btn",
+    disabled: !!busy,
+    onClick: () => out && out.kind === "script" ? setOut(null) : act("script")
+  }, busy === "script" ? "กำลังสร้าง…" : out && out.kind === "script" ? "ซ่อนสคริปต์" : "ดาวน์โหลด .rsc"), React.createElement("button", {
     className: "btn",
     disabled: !!busy,
     onClick: () => onEdit(s)
@@ -477,7 +557,9 @@ function MtSiteCard({
     onClick: () => act("remove")
   }, busy === "remove" ? "กำลังลบ…" : "ลบไซต์")), err && React.createElement("div", {
     style: mtErrBox
-  }, err), out && React.createElement("div", {
+  }, err), out && out.kind === "fetch-token" && React.createElement(MtFetchSteps, {
+    out: out
+  }), out && out.kind === "script" && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
