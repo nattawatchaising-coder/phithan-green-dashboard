@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'   # 22+ รองรับ glob ใน node --test (npm test) — 20 หาไฟล์เทสต์ไม่เจอ CI แดงตั้งแต่ 3783f3b
           cache: npm
 
       - run: npm ci
