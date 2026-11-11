@@ -354,7 +354,7 @@ test("agent: คำสั่งค้างเกิน 10 นาที = expire
 
 const agentLib2 = await import("../api/_lib/mtagent.mjs");
 /* ---------- เฟส 3: มิเตอร์ · บิลรายเดือน ---------- */
-test("meter: ค่ามิเตอร์ snap → ราย 15 นาที (เวลาไทย) + first/last ของวัน · ไม่ snap = ไม่เก็บประวัติ", async () => {
+test("meter: ค่ามิเตอร์ snap → ราย 5 นาที (เวลาไทย) + first/last ของวัน · ไม่ snap = ไม่เก็บประวัติ", async () => {
   withAgentEnv();
   await call({ action: "create", n: 51, name: "Meter" });
   const v = { kw: 12.5, kwh_imp: 1000.5, kwh_exp: 2, kwh_net: 998.5, v1: 230.1, junk: 9 };
@@ -371,10 +371,10 @@ test("meter: ค่ามิเตอร์ snap → ราย 15 นาที (
   assert.equal(db.mtMeter[51].d[day].kw_max, 20);
 });
 
-test("thSlot: เวลาไทย · ปัดลงช่อง 15 นาที · ข้ามวันตอน 17:00 UTC", () => {
-  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T16:59:59Z")), { day: "20261111", hm: "2345" });
+test("thSlot: เวลาไทย · ปัดลงช่อง 5 นาที · ข้ามวันตอน 17:00 UTC", () => {
+  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T16:59:59Z")), { day: "20261111", hm: "2355" });
   assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T17:00:00Z")), { day: "20261112", hm: "0000" });
-  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T03:29:00Z")), { day: "20261111", hm: "1015" });
+  assert.deepEqual(agentLib2.thSlot(Date.parse("2026-11-11T03:29:00Z")), { day: "20261111", hm: "1025" });
 });
 
 test("meter-cfg / bill-cfg / bill-save: แอดมินเท่านั้น · ตรวจค่า · คิดเงินที่เซิร์ฟเวอร์", async () => {

@@ -5,7 +5,7 @@
 
    ข้อมูล (agent บน VPS → /api/mikrotik/site?agent=1)
      mtStatus/{N}/meter/v          ค่าสดทุก 1 นาที
-     mtMeter/{N}/h/{YYYYMMDD}/{HHMM} ราย 15 นาที (เวลาไทย)
+     mtMeter/{N}/h/{YYYYMMDD}/{HHMM} ราย 5 นาที (เวลาไทย · ข้อมูลแรก ๆ เป็นราย 15 นาที)
      mtMeter/{N}/d/{YYYYMMDD}      first/last ของวัน + kw_max
      mtBills/{N}/{YYYYMM}          บิลที่บันทึกแล้ว (เขียนผ่าน API bill-save เท่านั้น)
    หน้าเว็บเขียนเองแค่ร่างใบแจ้งหนี้ invoices/<id> (ระบบใบแจ้งหนี้เดิม invoice.jsx)
@@ -115,9 +115,9 @@ function MtMonDetail({ s, st, isAdmin }) {
         <input type="date" value={dayIso} max={(() => { const t = mtThDay(); return t.slice(0, 4) + "-" + t.slice(4, 6) + "-" + t.slice(6); })()}
           onChange={(e) => e.target.value && setDay(e.target.value.replace(/-/g, ""))} style={Object.assign({}, mtField, { width: "auto", padding: "6px 10px", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" })} />
       </div>
-      <div style={{ fontSize: 12.5, fontWeight: 700 }}>กำลังไฟ {mtDayLabel(day)} (ราย 15 นาที)</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700 }}>กำลังไฟ {mtDayLabel(day)} (ราย 5 นาที)</div>
       {C ? <C mode="time" t0={0} t1={1440} bars={dayBars.some((b) => b.value != null) ? dayBars : []} unit="kW" height={200}
-        empty={hist === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูลของวันนี้ — agent เก็บทุก 15 นาที"} /> : null}
+        empty={hist === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูลของวันนี้ — agent เก็บทุก 5 นาที"} /> : null}
       <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
         <div style={{ fontSize: 12.5, fontWeight: 700 }}>พลังงานรายวัน เดือน{MT_TH_MON_FULL[Number(month.slice(4)) - 1]}</div>
         <div style={{ fontSize: 12, color: "var(--text-3)" }}>รวม {mtNum(monSum, 1)} kWh</div>

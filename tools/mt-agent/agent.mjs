@@ -24,7 +24,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = "2";
+export const VERSION = "3";
 const STATUS_EVERY_MS = 60e3;
 const CMD_TTL_MS = 10 * 60e3;
 const USER = "pg-web";
@@ -273,7 +273,7 @@ async function checkSite(s, wg) {
   ]);
   st.hex = { ping: hexPing };
   st.sl = { ping: slPing, web: slWeb };
-  /* มิเตอร์: ค่าที่อ่านได้อยู่ใน st.meter.v (เว็บเก็บราย 15 นาทีเมื่อ st.meter.snap = ช่อง 15 นาทีใหม่) */
+  /* มิเตอร์: ค่าที่อ่านได้อยู่ใน st.meter.v (เว็บเก็บราย 5 นาทีเมื่อ status.snap = ช่อง 5 นาทีใหม่) */
   if (meter) st.meter = { modbus: { ok: meter.ok, ms: meter.ms }, model: s.meter_model || "leos-ipm310", v: meter.v || null, error: meter.error || "" };
   const req = (path, extra) => pinnedRequest(Object.assign({ host: P.hex, pin: s.fp, user: USER, pass: s.pass, path }, extra));
   try {
@@ -372,8 +372,8 @@ export async function main(argv = process.argv.slice(2)) {
       let slot = 0;
       if (sites.length && Date.now() - lastStatus >= STATUS_EVERY_MS) {
         status = await checkAll(); lastStatus = Date.now();
-        /* ขึ้นช่อง 15 นาทีใหม่ = ให้เว็บเก็บค่ามิเตอร์ลงประวัติ (เก็บช่องละครั้ง) */
-        slot = Math.floor(Date.now() / 900e3);
+        /* ขึ้นช่อง 5 นาทีใหม่ = ให้เว็บเก็บค่ามิเตอร์ลงประวัติ (เก็บช่องละครั้ง · ผู้ใช้ขอ 2026-11-11 จากเดิม 15 นาที) */
+        slot = Math.floor(Date.now() / 300e3);
         if (slot !== lastSlot) status.snap = true;
       }
       const j = await call({ status, results });

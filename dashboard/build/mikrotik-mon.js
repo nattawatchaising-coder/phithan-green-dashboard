@@ -279,14 +279,14 @@ function MtMonDetail({
       fontSize: 12.5,
       fontWeight: 700
     }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E44\u0E1F ", mtDayLabel(day), " (\u0E23\u0E32\u0E22 15 \u0E19\u0E32\u0E17\u0E35)"), C ? React.createElement(C, {
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E44\u0E1F ", mtDayLabel(day), " (\u0E23\u0E32\u0E22 5 \u0E19\u0E32\u0E17\u0E35)"), C ? React.createElement(C, {
     mode: "time",
     t0: 0,
     t1: 1440,
     bars: dayBars.some(b => b.value != null) ? dayBars : [],
     unit: "kW",
     height: 200,
-    empty: hist === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูลของวันนี้ — agent เก็บทุก 15 นาที"
+    empty: hist === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูลของวันนี้ — agent เก็บทุก 5 นาที"
   }) : null, React.createElement("div", {
     style: {
       display: "flex",

@@ -93,7 +93,7 @@ export async function agentPOST(request) {
       st.at = iso;
       patch[n] = st;
       count++;
-      /* เฟส 3: ค่ามิเตอร์ราย 15 นาที (agent ติด snap = ขึ้นช่อง 15 นาทีใหม่) */
+      /* เฟส 3: ค่ามิเตอร์ราย 5 นาที (agent ติด snap = ขึ้นช่อง 5 นาทีใหม่) */
       if (b.status.snap && st.meter && st.meter.v) await saveMeterSnap(n, st.meter.v, now).catch(() => null);
     }
     patch._agent = { at: iso, ver: String(b.ver || "").slice(0, 20), sites: count };
@@ -142,14 +142,15 @@ async function siteList(sites) {
 
 /* ================================================================
    เฟส 3 — ค่ามิเตอร์สำหรับ Monitoring/บิล (docs/mikrotik.md)
-   mtMeter/{N}/h/{YYYYMMDD}/{HHMM}  ราย 15 นาที (เวลาไทย) — กราฟ
+   mtMeter/{N}/h/{YYYYMMDD}/{HHMM}  ราย 5 นาที (เวลาไทย · ก่อน 2026-11-11 23:xx เป็น 15 นาที) — กราฟ
    mtMeter/{N}/d/{YYYYMMDD}         first/last ของวัน + kW สูงสุด — บิลรายเดือนใช้ first ของวันที่ 1
    ================================================================ */
 export const METER_KEEP = ["kw", "kwh_imp", "kwh_exp", "kwh_net", "v1", "v2", "v3", "i1", "i2", "i3", "pf", "hz"];
+export const MT_SNAP_MIN = 5;   // ต้องตรงกับรอบ snap ของ agent (300 วิ)
 export function thSlot(ms) {
   const d = new Date(ms + 7 * 3600e3);   // เวลาไทย UTC+7 (ไม่มี DST)
   const p = (x) => String(x).padStart(2, "0");
-  const m = Math.floor(d.getUTCMinutes() / 15) * 15;
+  const m = Math.floor(d.getUTCMinutes() / MT_SNAP_MIN) * MT_SNAP_MIN;
   return { day: d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()), hm: p(d.getUTCHours()) + p(m) };
 }
 export async function saveMeterSnap(n, v, now) {
