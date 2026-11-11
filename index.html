@@ -453,15 +453,16 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .jd-stab { --tc: var(--primary); --tb: color-mix(in oklab, var(--tc) 34%, var(--surface));
   position: relative; width: 38px; padding: 15px 0; border: none; border-radius: 14px 0 0 14px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; font-family: inherit; font-size: 13px; font-weight: 700;
-  background: var(--tb); color: color-mix(in oklab, var(--tc) 72%, #0F2B33); transition: background .18s ease, color .18s ease, width .18s ease, margin-right .18s ease; }
+  /* วางสีแท็บทับพื้น --bg ทึบ — ธีมกระจก (skin-glass.js) ทำ --surface โปร่งแสง แท็บเคยเห็นทะลุฉากหลัง (ผู้ใช้: "สีจางมองทะลุด้านหลัง") */
+  background: linear-gradient(var(--tb), var(--tb)), var(--bg); color: color-mix(in oklab, var(--tc) 72%, #0F2B33); transition: color .18s ease, width .18s ease, margin-right .18s ease; }
 /* ทุกแท็บชิดขอบแผงพอดี ไม่เว้นช่อง — เคยเว้น 2px เห็นฉากหลังลอดเป็นร่อง (ผู้ใช้: "ไม่แนบติดตัวการ์ด") */
 .jd-stab-tx { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .jd-stab:hover { --tb: color-mix(in oklab, var(--tc) 44%, var(--surface)); }
 /* แท็บที่เลือกขาวทึบ (--surface) สีเดียวทั้งแท็บ — เคยไล่ขาว→เทาตามขอบหัวแผง แท็บที่คร่อมขอบออกมาสองสีครึ่ง ๆ ผู้ใช้: "สีแปลก ๆ" */
 .jd-stab.on { --tb: var(--surface); width: 44px; margin-right: -2px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33); box-shadow: inset 3px 0 0 var(--tc); }
 .jd-stab.on::before, .jd-stab.on::after { content: ""; position: absolute; right: 2px; width: 12px; height: 12px; pointer-events: none; }
-.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--surface) 12px); }
-.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--surface) 12px); }
+.jd-stab.on::before { top: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--surface) 12px), radial-gradient(circle at 0 0, transparent 11.5px, var(--bg) 12px); }
+.jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--surface) 12px), radial-gradient(circle at 0 100%, transparent 11.5px, var(--bg) 12px); }
 .jd-stab .ld-tab-n { font-size: 11px; padding: 7px 1px; background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
 .jd-stab.on .ld-tab-n { background: var(--tc); color: #fff; }
 
@@ -1262,7 +1263,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=13"></script>
 <script src="dashboard/build/pm-paper.js?v=13"></script>
 <script src="dashboard/build/pm-form.js?v=19"></script>
-<script src="dashboard/build/drawer.js?v=96"></script>
+<script src="dashboard/build/drawer.js?v=97"></script>
 <script src="dashboard/build/views-overview.js?v=54"></script>
 <script src="dashboard/build/views-board.js?v=46"></script>
 <script src="dashboard/build/views-table.js?v=39"></script>
@@ -1294,6 +1295,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/fusionsolar-charts.js?v=12"></script>
 <script src="dashboard/build/fusionsolar-house.js?v=33"></script>
 <script src="dashboard/build/fusionsolar.js?v=58"></script>
+<script src="dashboard/build/mikrotik.js?v=1"></script>
 <script src="dashboard/build/om-ticket.js?v=26"></script>
 <script src="dashboard/build/om-paper.js?v=17"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
@@ -1310,6 +1312,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=18"></script>
 <script src="dashboard/build/views-line.js?v=9"></script>
 <script src="dashboard/build/guide.js?v=12"></script>
-<script src="dashboard/build/app.js?v=240"></script>
+<script src="dashboard/build/app.js?v=241"></script>
 </body>
 </html>
