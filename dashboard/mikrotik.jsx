@@ -1,5 +1,5 @@
 /* ============================================================
-   ไซต์ MikroTik (เฟส 1) — ลงทะเบียนไซต์ · สร้างสคริปต์ RouterOS (.rsc) + peer ฝั่งเซิร์ฟเวอร์ WireGuard
+   ไซต์ MikroTik (เฟส 1 + สถานะเฟส 2 ใน mikrotik-status.jsx) — ลงทะเบียนไซต์ · สร้างสคริปต์ RouterOS (.rsc) + peer ฝั่งเซิร์ฟเวอร์ WireGuard
    อ่าน docs/mikrotik.md ก่อนแก้
 
    หน้าเว็บอ่าน mtSites/ อย่างเดียว — สร้าง/แก้/ลบ/ขอสคริปต์ผ่าน /api/mikrotik/site เท่านั้น
@@ -185,7 +185,7 @@ function MtFetchSteps({ out }) {
   );
 }
 
-function MtSiteCard({ s, isAdmin, onEdit }) {
+function MtSiteCard({ s, st, isAdmin, onEdit }) {
   const [busy, setBusy] = React.useState("");
   const [err, setErr] = React.useState("");
   const [out, setOut] = React.useState(null);
@@ -226,6 +226,8 @@ function MtSiteCard({ s, isAdmin, onEdit }) {
         <MtSpec label="คีย์ชุดนี้สร้างเมื่อ" value={mtWhen(s.keys_at)} />
         <MtSpec label="ขอสคริปต์ล่าสุด" value={s.script_at ? mtWhen(s.script_at) + (s.script_by ? " · " + s.script_by : "") : "ยังไม่เคย"} />
       </div>
+      {/* เฟส 2: สถานะสด + ยืนยันใบรับรอง + ดู log/รีบูต (dashboard/mikrotik-status.jsx) */}
+      {window.MtSiteLive && <window.MtSiteLive s={s} st={st} isAdmin={isAdmin} />}
       {isAdmin && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {/* ทางหลัก (ผู้ใช้ตั้ง hEX เองที่ออฟฟิศ 2026-11-11): คำสั่งบรรทัดเดียว hEX ดึงสคริปต์เอง · ดาวน์โหลด .rsc เป็นทางสำรอง (hEX ไม่มีเน็ต) */}
@@ -261,6 +263,7 @@ function MtSitesView({ role }) {
   const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
   const { list, loading } = useMtSites();
   const cfg = useMtConfig();
+  const status = window.useMtStatus ? window.useMtStatus() : null;
   /* IP ของ VPS ไว้เติมคำสั่ง ssh ในคู่มือ — ขอจาก API แบบแอดมิน (GET สาธารณะไม่บอก) */
   const [host, setHost] = React.useState("");
   React.useEffect(() => { if (isAdmin && cfg && cfg.configured) mtCall({ action: "info" }).then((j) => setHost(j.server_host || "")).catch(() => {}); }, [isAdmin, cfg && cfg.configured]);
@@ -285,11 +288,13 @@ function MtSitesView({ role }) {
         {isAdmin && window.MtGuide && <window.MtGuide sites={list} serverHost={host} />}
       </div>
 
+      {isAdmin && window.MtStatusPanel && list.length > 0 && <window.MtStatusPanel sites={list} status={status} />}
+
       {form && <MtSiteForm site={form === "new" ? null : form} used={used} onCancel={() => setForm(null)} onDone={() => setForm(null)} />}
 
       {loading ? <div style={{ padding: 18, color: "var(--text-3)", fontSize: 12.5 }}>กำลังโหลด…</div>
         : !list.length ? <div style={{ padding: 18, color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีไซต์</div>
-        : list.map((s) => <MtSiteCard key={s.n} s={s} isAdmin={isAdmin} onEdit={(x) => setForm(x)} />)}
+        : list.map((s) => <MtSiteCard key={s.n} s={s} st={status && status[s.n]} isAdmin={isAdmin} onEdit={(x) => setForm(x)} />)}
     </div>
   );
 }

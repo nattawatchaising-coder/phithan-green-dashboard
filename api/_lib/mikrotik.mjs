@@ -37,7 +37,31 @@ export const MT_ENV = {
   endpoint: () => (process.env.MT_WG_ENDPOINT || "").trim(),       // host หรือ host:port ของเซิร์ฟเวอร์ WireGuard
   serverPub: () => (process.env.MT_WG_SERVER_PUBKEY || "").trim(), // public key ของเซิร์ฟเวอร์ (private key อยู่บนเซิร์ฟเวอร์อย่างเดียว)
   encKey: () => (process.env.MT_ENC_KEY || "").trim(),             // กุญแจเข้ารหัส 32 ไบต์ (base64)
+  /* เฟส 2 — สร้างบน VPS โดย tools/mt-agent/install.sh แล้วก๊อปมาใส่ Vercel */
+  agentKey: () => (process.env.MT_AGENT_KEY || "").trim(),         // agent ใช้เรียก /api/mikrotik/agent
+  cmdSecret: () => (process.env.MT_CMD_SECRET || "").trim(),       // ลายเซ็นคำสั่งรีบูต/ดู log (agent ตรวจซ้ำ)
 };
+export function mtAgentMissingEnv() {
+  const miss = [];
+  if (MT_ENV.agentKey().length < 32) miss.push("MT_AGENT_KEY");
+  if (MT_ENV.cmdSecret().length < 32) miss.push("MT_CMD_SECRET");
+  if (!encKeyBuf(MT_ENV.encKey())) miss.push("MT_ENC_KEY");
+  return miss;
+}
+
+/* ---------- เฟส 2: คำสั่งที่เว็บสั่ง agent ได้ (อ่านอย่างเดียว + รีบูต — ห้ามมีคำสั่งแก้ IP/firewall/WireGuard) ---------- */
+export const MT_CMD_TYPES = ["reboot", "log"];
+export const MT_CMD_TTL_MS = 10 * 60e3;   // คำสั่งค้างเกิน 10 นาที = ทิ้ง (agent ก็ปฏิเสธเองด้วย)
+/* ข้อความที่เซ็น — tools/mt-agent/agent.mjs มีสูตรเดียวกัน (เทสต์เทียบให้) */
+export const cmdPayload = (c) => [c.id, c.n, c.type, c.ts].join("|");
+export function cmdSig(c, secret) {
+  return crypto.createHmac("sha256", secret || MT_ENV.cmdSecret()).update(cmdPayload(c)).digest("base64url");
+}
+/* fingerprint SHA-256 ของใบรับรอง → hex ตัวเล็กไม่มี : (แบบที่ RouterOS พิมพ์) · ผิดรูป = "" */
+export function normFp(s) {
+  const h = String(s || "").replace(/[:\s]/g, "").toLowerCase();
+  return /^[0-9a-f]{64}$/.test(h) ? h : "";
+}
 export function mtMissingEnv() {
   const miss = [];
   if (!MT_ENV.endpoint()) miss.push("MT_WG_ENDPOINT");

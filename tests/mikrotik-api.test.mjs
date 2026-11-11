@@ -245,3 +245,108 @@ test("info: บอก IP ของ VPS เฉพาะแอดมิน (ใช
   assert.equal((await call({ action: "info" }, "u-tech")).status, 403);
   assert.equal((await call({ action: "info" }, null)).status, 401);
 });
+
+/* ---------- เฟส 2: ยืนยันใบรับรอง · คิวคำสั่ง · ช่องทางของ agent ---------- */
+const agentApi = await import("../api/mikrotik/agent.mjs");
+const agentLib = await import("../tools/mt-agent/agent.mjs");
+const AGENT_KEY = "k".repeat(40), CMD_SECRET = "s".repeat(40);
+const FP = "987d738d" + "0".repeat(56);
+const agentCall = async (payload, key = AGENT_KEY) => {
+  const r = await agentApi.POST(new Request("http://x/api/mikrotik/agent", { method: "POST",
+    headers: key ? { authorization: "Bearer " + key } : {}, body: JSON.stringify(payload || {}) }));
+  return { status: r.status, body: await r.json() };
+};
+const withAgentEnv = () => { process.env.MT_AGENT_KEY = AGENT_KEY; process.env.MT_CMD_SECRET = CMD_SECRET; };
+
+test("pin-fp: รับ fingerprint ได้ทั้งแบบมี : และตัวใหญ่ · ผิดรูป 400 · ว่าง = ยกเลิก · ช่างทำไม่ได้", async () => {
+  await call({ action: "create", n: 31, name: "Pin" });
+  const withColon = FP.toUpperCase().match(/../g).join(":");
+  assert.equal((await call({ action: "pin-fp", n: 31, fp: withColon })).status, 200);
+  assert.equal(db.mtSites[31].fp, FP);
+  assert.equal((await call({ action: "pin-fp", n: 31, fp: "abc" })).status, 400);
+  assert.equal((await call({ action: "pin-fp", n: 31, fp: FP }, "u-tech")).status, 403);
+  assert.equal((await call({ action: "pin-fp", n: 31, fp: "" })).status, 200);
+  assert.equal(db.mtSites[31].fp, null);
+});
+
+test("cmd: ต้องยืนยันใบรับรองก่อน · มีแค่ reboot/log · กดซ้ำได้คำสั่งเดิม · ลายเซ็นตรงกับที่ agent ตรวจ", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 32, name: "Cmd" });
+  assert.equal((await call({ action: "cmd", n: 32, type: "reboot" })).status, 409);
+  await call({ action: "pin-fp", n: 32, fp: FP });
+  for (const type of ["set-ip", "firewall", "wireguard", "script", ""]) assert.equal((await call({ action: "cmd", n: 32, type })).status, 400, type);
+  assert.equal((await call({ action: "cmd", n: 32, type: "reboot" }, "u-tech")).status, 403);
+  const r = await call({ action: "cmd", n: 32, type: "reboot" });
+  assert.equal(r.status, 200);
+  const again = await call({ action: "cmd", n: 32, type: "reboot" });
+  assert.equal(again.body.id, r.body.id);
+  const c = db.mtCmd[r.body.id];
+  assert.equal(c.state, "pending");
+  assert.equal(agentLib.cmdOk(c, CMD_SECRET, new Set()), "", "agent ต้องยอมรับลายเซ็นจากเว็บ");
+  assert.equal(agentLib.cmdOk(c, "x".repeat(40), new Set()), "ลายเซ็นไม่ถูก");
+  assert.equal(agentLib.cmdOk(Object.assign({}, c, { type: "log" }), CMD_SECRET, new Set()), "ลายเซ็นไม่ถูก");
+  assert.equal(agentLib.cmdOk(Object.assign({}, c, { n: 33 }), CMD_SECRET, new Set()), "ลายเซ็นไม่ถูก");
+  assert.equal(agentLib.cmdOk(c, CMD_SECRET, new Set([c.id])), "ทำไปแล้ว");
+  assert.equal(agentLib.cmdOk(c, CMD_SECRET, new Set(), c.ts + 11 * 60e3), "คำสั่งหมดอายุ");
+  const g = await call({ action: "cmd-get", id: r.body.id });
+  assert.equal(g.body.cmd.state, "pending");
+  assert.equal(g.body.cmd.sig, undefined, "ไม่ส่งลายเซ็นให้เบราว์เซอร์");
+});
+
+test("agent: ต้องมี MT_AGENT_KEY ถูก · env ไม่ครบ = 503", async () => {
+  delete process.env.MT_AGENT_KEY;
+  assert.equal((await agentCall({})).status, 503);
+  withAgentEnv();
+  assert.equal((await agentCall({}, null)).status, 401);
+  assert.equal((await agentCall({}, "k".repeat(39) + "x")).status, 401);
+  assert.equal((await agentCall({})).status, 200);
+});
+
+test("agent: รหัสส่งเฉพาะไซต์ที่ยืนยันใบรับรอง · สถานะลง mtStatus · คำสั่งส่งครั้งเดียว · ผล log ลง mtCmd", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 41, name: "Pinned" });
+  await call({ action: "create", n: 42, name: "NotYet" });
+  await call({ action: "pin-fp", n: 41, fp: FP });
+  const pass41 = unseal(db.mtSecrets[41].web_pass, "mt/41/web_pass", ENC);
+  const id = (await call({ action: "cmd", n: 41, type: "log" })).body.id;
+
+  const peek = await agentCall({ peek: true });
+  assert.deepEqual(peek.body.cmds, []);
+  assert.equal(db.mtCmd[id].state, "pending", "peek ห้ามหยิบคำสั่ง");
+
+  const a = await agentCall({ status: { sites: { 41: { wg: { hs: 1 }, "bad.key": 1, res: { cpu: 3 } }, 42: { tls: { fp: FP } }, 99: { x: 1 } } } });
+  assert.equal(a.status, 200);
+  const s41 = a.body.sites.find((s) => s.n === 41), s42 = a.body.sites.find((s) => s.n === 42);
+  assert.equal(s41.pass, pass41);
+  assert.equal(s41.fp, FP);
+  assert.equal(s42.pass, undefined, "ยังไม่ยืนยันใบรับรอง ห้ามส่งรหัส");
+  assert.equal(db.mtStatus[41].res.cpu, 3);
+  assert.equal(db.mtStatus[41]["bad.key"], undefined);
+  assert.equal(db.mtStatus[99], undefined, "ไซต์ที่ไม่มีในทะเบียนไม่บันทึก");
+  assert.ok(db.mtStatus._agent.at);
+  assert.equal(a.body.cmds.length, 1);
+  assert.equal(a.body.cmds[0].id, id);
+  assert.equal(db.mtCmd[id].state, "sent");
+  assert.equal((await agentCall({})).body.cmds.length, 0, "คำสั่งเดียวกันห้ามส่งซ้ำ");
+
+  await agentCall({ results: [{ id, ok: true, data: [{ time: "10:00", topics: "system,info", message: "hello" }] }] });
+  assert.equal(db.mtCmd[id].state, "done");
+  assert.equal(db.mtCmd[id].data[0].message, "hello");
+  /* ผลซ้ำ/ผลของคำสั่งที่ไม่ได้ส่ง = ไม่สนใจ */
+  await agentCall({ results: [{ id, ok: false, error: "x" }] });
+  assert.equal(db.mtCmd[id].state, "done");
+  /* ลบไซต์ = ลบสถานะด้วย */
+  await call({ action: "remove", n: 41 });
+  assert.equal(db.mtStatus[41], undefined);
+});
+
+test("agent: คำสั่งค้างเกิน 10 นาที = expired ไม่ส่ง · จบเกิน 1 วัน = เก็บกวาด", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 43, name: "Old" });
+  db.mtCmd = { oldpend: { n: 43, type: "reboot", ts: Date.now() - 11 * 60e3, state: "pending" },
+    olddone: { n: 43, type: "log", ts: Date.now() - 25 * 3600e3, state: "done" } };
+  const r = await agentCall({});
+  assert.equal(r.body.cmds.length, 0);
+  assert.equal(db.mtCmd.oldpend.state, "expired");
+  assert.equal(db.mtCmd.olddone, undefined);
+});

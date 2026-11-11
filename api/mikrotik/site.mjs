@@ -8,7 +8,12 @@
      { action: "script", n }               → { rsc, peer, filename } ถอดรหัสแล้วประกอบสคริปต์ (ไม่เก็บสคริปต์ไว้ที่ไหน)
      { action: "fetch-token", n }          → { command, command_nocheck, peer, exp } คำสั่งบรรทัดเดียวให้ hEX ดึงสคริปต์เอง (ใช้ครั้งเดียว 15 นาที)
      { action: "rotate", n }               → คีย์ WireGuard + รหัส user เว็บชุดใหม่ (ต้องรันสคริปต์ใหม่ + แก้ peer บนเซิร์ฟเวอร์)
-     { action: "remove", n }               → ลบ mtSites/N และ mtSecrets/N
+     { action: "remove", n }               → ลบ mtSites/N และ mtSecrets/N (+ mtStatus/N)
+   เฟส 2 (สถานะไซต์ — agent บน VPS อ่านเอง ดู api/mikrotik/agent.mjs)
+     { action: "pin-fp", n, fp }           → ยืนยัน fingerprint ใบรับรอง https ของ hEX (fp "" = ยกเลิก) · ยังไม่ยืนยัน = agent ไม่ส่งรหัส
+     { action: "cmd", n, type }            → เข้าคิวคำสั่ง reboot | log (ลงลายเซ็น MT_CMD_SECRET) → { id }
+     { action: "cmd-get", id }             → { cmd: { state pending|sent|done|error|expired, error, data } }
+     ⚠ ไม่มี action แก้ IP / firewall / WireGuard ของเราเตอร์ — ห้ามเพิ่ม (ผู้ใช้กำหนด)
 
    ข้อมูล
      mtSites/{N}   (พนักงานที่ล็อกอินอ่านได้) n name note wg_pub wg_ip lan created_* updated_* keys_at script_at script_by
@@ -18,7 +23,9 @@
 
 import { ENV, json, body, rtdbGet, rtdbUpdate, rtdbSet, rtdbDelete, rtdbEtag, rtdbSetIf, rolesOf } from "../_lib/line.mjs";
 import { verifyFirebaseIdToken } from "../_lib/gauth.mjs";
-import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword } from "../_lib/mikrotik.mjs";
+import crypto from "node:crypto";
+import { MT, MT_ENV, parseEndpoint, mtMissingEnv, validN, validName, sitePlan, wgKeypair, seal, randomPassword,
+  MT_CMD_TYPES, MT_CMD_TTL_MS, cmdSig, normFp } from "../_lib/mikrotik.mjs";
 import { aad, scriptFor, issueFetchToken } from "../_lib/mtstore.mjs";
 
 const NOTE_MAX = 500;
@@ -57,6 +64,14 @@ export async function POST(request) {
   if (b.action === "info") {
     const ep = parseEndpoint(MT_ENV.endpoint());
     return json({ ok: true, server_host: ep ? ep.host : "" });
+  }
+  if (b.action === "cmd-get") {
+    const id = String(b.id || "");
+    if (!/^[A-Za-z0-9_-]{6,40}$/.test(id)) return json({ error: "id ผิด" }, 400);
+    const c = await rtdbGet("mtCmd/" + id);
+    if (!c) return json({ error: "ไม่พบคำสั่ง" }, 404);
+    const { sig, ...pub } = c;
+    return json({ ok: true, cmd: pub });
   }
   const n = Number(b.n);
   if (!validN(n)) return json({ error: "เลขไซต์ต้องเป็นจำนวนเต็ม " + MT.N_MIN + "–" + MT.N_MAX }, 400);
@@ -127,7 +142,37 @@ export async function POST(request) {
     return json({ ok: true, site: Object.assign({}, site, patch) });
   }
 
+  /* ยืนยันใบรับรอง: เทียบกับบรรทัด "cert fingerprint" ท้ายสคริปต์ หรือค่าที่ agent เห็น (mtStatus/N/tls/fp) */
+  if (b.action === "pin-fp") {
+    const raw = String(b.fp == null ? "" : b.fp).trim();
+    const fp = normFp(raw);
+    if (raw && !fp) return json({ error: "fingerprint ต้องเป็น SHA-256 (ตัวเลขฐาน 16 จำนวน 64 ตัว)" }, 400);
+    const patch = fp ? { fp, fp_at: now, fp_by: a.by } : { fp: null, fp_at: null, fp_by: null };
+    await rtdbUpdate(path, patch);
+    return json({ ok: true, fp });
+  }
+
+  /* คำสั่งไปเราเตอร์ — มีแค่รีบูต/ดู log (อ่านอย่างเดียว) · agent ทำภายในรอบถัดไป (~30 วิ) */
+  if (b.action === "cmd") {
+    if (!MT_CMD_TYPES.includes(b.type)) return json({ error: "คำสั่งไม่รู้จัก" }, 400);
+    if (MT_ENV.cmdSecret().length < 32) return json({ error: "ยังไม่ได้ตั้ง env: MT_CMD_SECRET", need_env: true }, 503);
+    if (!site.fp) return json({ error: "ยังไม่ได้ยืนยันใบรับรองของไซต์นี้ — agent ยังไม่เข้าเราเตอร์" }, 409);
+    /* กดซ้ำระหว่างรอ = ได้คำสั่งเดิม (กันรีบูตซ้ำสองรอบ) */
+    const all = (await rtdbGet("mtCmd").catch(() => null)) || {};
+    const t = Date.now();
+    for (const id of Object.keys(all)) {
+      const c = all[id];
+      if (c && Number(c.n) === n && c.type === b.type && (c.state === "pending" || c.state === "sent") && t - Number(c.ts) < MT_CMD_TTL_MS)
+        return json({ ok: true, id, again: true });
+    }
+    const id = t.toString(36) + crypto.randomBytes(6).toString("base64url");
+    const c = { id, n, type: b.type, ts: t };
+    await rtdbSet("mtCmd/" + id, Object.assign({}, c, { by: a.by, at: now, state: "pending", sig: cmdSig(c) }));
+    return json({ ok: true, id });
+  }
+
   if (b.action === "remove") {
+    await rtdbDelete("mtStatus/" + n).catch(() => null);
     await rtdbDelete("mtSecrets/" + n);
     await rtdbDelete(path);
     return json({ ok: true });

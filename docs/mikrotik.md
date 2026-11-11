@@ -1,6 +1,6 @@
 # ไซต์ MikroTik — VPN · สคริปต์ตั้งค่า · สถานะไซต์
 
-เริ่ม 2026-11-11 · **เฟส 1 เสร็จ + ทดสอบกับ hEX จริงผ่าน (SITE01-Office บนโต๊ะ)** (ลงทะเบียนไซต์ + สร้างสคริปต์) · เฟส 2 แดชบอร์ดสถานะ = ยังไม่ทำ · เฟส 3 อ่านมิเตอร์ PM2200 = เผื่อโครงไว้
+เริ่ม 2026-11-11 · **เฟส 1 เสร็จ + ทดสอบกับ hEX จริงผ่าน (SITE01-Office บนโต๊ะ)** (ลงทะเบียนไซต์ + สร้างสคริปต์) · **เฟส 2 แดชบอร์ดสถานะ = เขียนเสร็จ 2026-11-11 รอติดตั้ง agent บน VPS + ทดสอบกับ hEX จริง** · เฟส 3 อ่านมิเตอร์ PM2200 = เผื่อโครงไว้
 
 แต่ละไซต์อยู่ในเน็ตโรงงาน (แก้เราเตอร์โรงงานไม่ได้ ไม่มี public IP) อุปกรณ์:
 hEX refresh E50UG (RouterOS v7, ether1 = WAN DHCP, ether2-5 = LAN) · Huawei SmartLogger · Waveshare RS485→ETH (Modbus TCP 502) ต่อมิเตอร์ Schneider PM2200
@@ -99,11 +99,38 @@ identity + timezone → bridge ether2-5 → DHCP client ether1 → IP LAN (ล�
 - **✅ รันผ่านทั้งสคริปต์บน hEX จริง RouterOS 7.21.5 (2026-11-11 SITE01-Office รอบที่ 4)** — ปัญหาที่เจอระหว่างทางด้านล่าง แก้ในตัวสร้างแล้ว (มีเทสต์กันถอย) · ทดสอบปลายทางจาก VPS ผ่าน: handshake · `ping 10.10.1.1` ~7 ms · `curl -sk https://10.10.1.1/rest/system/resource -u pg-web` ได้ JSON (board-name hEX · 7.21.5) = เฟส 2 ใช้ REST ผ่าน VPN ได้จริง
 - **รันจริงครั้งแรก 2026-11-11 (SITE01-Office บนโต๊ะ):** ล้มที่ข้อ 4 "already have such address" — hEX มี `10.10.1.1/24` ป้ายดีฟอลต์ค้างบน bridge อยู่แล้ว → สคริปต์ลบ IP เดียวกัน (`dynamic=no`) และ dhcp network วงเดียวกันก่อน add · เพิ่มตัวกัน ether1 ได้ IP ในวง LAN ไซต์ = `:error` หยุดก่อนแก้ต่อ · รอบสองล้มข้อ 8 "CA not found" (RouterOS 7.21.5 เซ็นใบ tls-server ด้วยตัวเองไม่ได้) → สร้าง CA `pg-ca` แล้ว `sign pg-https ca=pg-ca` · ใบที่ค้างแบบไม่มี private key ลบก่อนสร้าง · รอบสามล้มข้อ 12 "cannot move builtin" (7.21 มีกฎ dynamic ของระบบบนสุด) → `move … destination=[:pick [/ip firewall filter find dynamic=no] 0]` แทน `destination=0` · สร้างกุญแจบน hEX ใช้ ~30 วิ–2 นาที/ใบ (ขึ้น progress อย่ากด Q)
 
-## เฟส 2 (ยังไม่ทำ — แผนที่อนุมัติแล้ว)
-- `tools/mt-agent/` รันบนเซิร์ฟเวอร์ WireGuard (systemd · node ไม่มี dependency) อ่าน `/rest/system/resource` `/rest/interface` `/rest/ip/address` + TCP `.10:80` `.20:502` → เขียน `mtStatus/{N}`
-- pin ใบรับรองต่อไซต์ (fingerprint SHA-256 ครั้งแรกรอแอดมินยืนยัน · ไม่ตรง = ปฏิเสธ) ไม่ปิด TLS verify ทั้งหมด
-- รีบูต/ดู log: เว็บ → API (แอดมิน) เขียนคิว `mtCmd/` พร้อมลายเซ็น HMAC (`MT_CMD_SECRET`) → agent ทำเฉพาะคำสั่งที่ลายเซ็นถูก
-- ห้ามมีฟังก์ชันแก้ IP/firewall/WireGuard ผ่านเว็บ
+## เฟส 2 — สถานะไซต์ · ดู log · รีบูต (เขียนเสร็จ 2026-11-11 · ยังไม่ได้ลองกับ VPS/hEX จริง)
+```
+mt-agent (VPS · systemd) ──ทุก 30 วิ POST /api/mikrotik/agent (Bearer MT_AGENT_KEY)──▶ Vercel ──▶ mtStatus/{N} · mtCmd/{id}
+    │ ทุก 60 วิ: wg show dump · ping .1/.10 · TCP .10:443(80) · TCP .20:502 · REST /system/resource /interface /ip/address
+    └──https://10.10.N.1 (pin fingerprint) ผ่าน WireGuard
+เว็บ (แอดมิน) ──/api/mikrotik/site {pin-fp | cmd | cmd-get}──▶ mtSites/{N}.fp · mtCmd/{id} (ลายเซ็น HMAC MT_CMD_SECRET)
+```
+| ไฟล์ | หน้าที่ |
+|---|---|
+| `tools/mt-agent/agent.mjs` | ตัว agent (node 18+ ไม่มี dependency) · `--once` = เช็กครั้งเดียวพิมพ์ผล (peek ไม่บันทึก ไม่หยิบคำสั่ง) · REST มีแค่ GET resource/interface/ip address/log + POST /system/reboot (เทสต์บังคับ) |
+| `tools/mt-agent/install.sh` | ติดตั้ง/อัปเดตบน VPS: nodejs · `/opt/mt-agent/agent.mjs` · `/etc/mt-agent.env` (สุ่ม `MT_AGENT_KEY` `MT_CMD_SECRET` ครั้งแรก) · service `mt-agent` (DynamicUser + CAP_NET_ADMIN/NET_RAW เท่านั้น) · คำสั่ง `mt-agent-once` |
+| `api/mikrotik/agent.mjs` | ช่องของ agent: รับสถานะ/ผลคำสั่ง · ส่งรายชื่อไซต์ + รหัส pg-web (**เฉพาะไซต์ที่ยืนยัน fp แล้ว**) + คำสั่งที่รอ (ส่งครั้งเดียว state pending→sent) · คำสั่งค้าง >10 นาที = expired · จบแล้ว >1 วัน = เก็บกวาด |
+| `dashboard/mikrotik-status.jsx` | ตารางสถานะทุกไซต์บนสุดของหน้า + ส่วนสดในการ์ดไซต์ (ยืนยันใบรับรอง · ดู log · รีบูต ผ่าน `askConfirm`) |
+
+- **pin ใบรับรอง**: agent ต่อ TLS แล้วเทียบ fingerprint SHA-256 ของใบ leaf *ก่อนส่งอะไร* · ไซต์ยังไม่ยืนยัน = อ่านแค่ fp มารายงาน (`mtStatus/N/tls/fp`) ไม่ล็อกอิน · แอดมินเทียบกับบรรทัด `cert fingerprint` ท้ายสคริปต์ (หรือ `/certificate print detail where name=pg-https`) แล้วกดยืนยัน → `mtSites/N.fp` · ไม่ตรง = สถานะ "ใบรับรองไม่ตรง" ไม่คุยต่อ · SITE01-Office ที่ทดสอบ fp ขึ้นต้น `987d738d`
+- **คำสั่ง**: มีแค่ `reboot` `log` (`MT_CMD_TYPES`) · ลายเซ็น HMAC-SHA256 ของ `id|n|type|ts` · agent ตรวจลายเซ็น + อายุ ≤10 นาที + ไม่เคยทำ (จำ id ใน `/var/lib/mt-agent/done.json`) · กดซ้ำระหว่างรอ = ได้คำสั่งเดิม · ต้องยืนยัน fp ก่อนถึงสั่งได้
+- สถานะบนเว็บ: handshake ≤3 นาที = VPN ติด · agent เงียบ >5 นาที = ข้อมูลเก่า
+- Vercel ถูกเรียก ~2 ครั้ง/นาที (~86k/เดือน) — ปรับรอบได้ที่ `POLL_S` ใน agent.mjs ฝั่งเว็บ
+- **ยังไม่ได้ลองจริง**: `wg show` ใต้ DynamicUser + CAP_NET_ADMIN · REST `POST /rest/system/reboot` · `/rest/log` ของ 7.21.5 — ลองแล้วบันทึกผลที่นี่
+- ห้ามมีฟังก์ชันแก้ IP/firewall/WireGuard ผ่านเว็บ (ผู้ใช้กำหนด) — ทั้ง API และ agent ไม่มีทางทำได้
+
+### env เพิ่ม (Vercel · Production) — ค่ามาจากท้าย install.sh บน VPS
+| ชื่อ | ค่า |
+|---|---|
+| `MT_AGENT_KEY` | กุญแจของ agent (≥32 ตัว) · ต้องตรงกับ `/etc/mt-agent.env` |
+| `MT_CMD_SECRET` | กุญแจลายเซ็นคำสั่ง (≥32 ตัว) · ต้องตรงกับ `/etc/mt-agent.env` |
+
+### กฎฐานข้อมูลเพิ่ม (ผู้ใช้วางเอง)
+```json
+"mtStatus": { ".read": "auth != null", ".write": false },
+"mtCmd":    { ".read": false, ".write": false }
+```
 ## มิเตอร์ LEOS IPM310 (IP Power Meter · ผู้ใช้ทดสอบ 2026-11-11 แทน Waveshare+PM2200)
 มี Modbus TCP ในตัว (พอร์ต 502 · ต่อพร้อมกันได้ 6) + HTTP + FTP → ตั้งเป็น `10.10.N.20` ได้เลย (firewall เปิด 502/80/443 ให้ .20 อยู่แล้ว)
 - ค่าตั้งต้นโรงงาน: IP `192.168.0.244` /24 · gateway 192.168.0.1 · DHCP = no · หน้าเว็บ user `admin`

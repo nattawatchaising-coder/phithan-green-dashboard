@@ -422,6 +422,7 @@ function MtFetchSteps({
 }
 function MtSiteCard({
   s,
+  st,
   isAdmin,
   onEdit
 }) {
@@ -539,7 +540,11 @@ function MtSiteCard({
   }), React.createElement(MtSpec, {
     label: "\u0E02\u0E2D\u0E2A\u0E04\u0E23\u0E34\u0E1B\u0E15\u0E4C\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14",
     value: s.script_at ? mtWhen(s.script_at) + (s.script_by ? " · " + s.script_by : "") : "ยังไม่เคย"
-  })), isAdmin && React.createElement("div", {
+  })), window.MtSiteLive && React.createElement(window.MtSiteLive, {
+    s: s,
+    st: st,
+    isAdmin: isAdmin
+  }), isAdmin && React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -609,6 +614,7 @@ function MtSitesView({
     loading
   } = useMtSites();
   const cfg = useMtConfig();
+  const status = window.useMtStatus ? window.useMtStatus() : null;
   const [host, setHost] = React.useState("");
   React.useEffect(() => {
     if (isAdmin && cfg && cfg.configured) mtCall({
@@ -679,7 +685,10 @@ function MtSitesView({
   }, "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E44\u0E0B\u0E15\u0E4C\u0E41\u0E25\u0E30\u0E2A\u0E04\u0E23\u0E34\u0E1B\u0E15\u0E4C\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19"), isAdmin && window.MtGuide && React.createElement(window.MtGuide, {
     sites: list,
     serverHost: host
-  })), form && React.createElement(MtSiteForm, {
+  })), isAdmin && window.MtStatusPanel && list.length > 0 && React.createElement(window.MtStatusPanel, {
+    sites: list,
+    status: status
+  }), form && React.createElement(MtSiteForm, {
     site: form === "new" ? null : form,
     used: used,
     onCancel: () => setForm(null),
@@ -699,6 +708,7 @@ function MtSitesView({
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C") : list.map(s => React.createElement(MtSiteCard, {
     key: s.n,
     s: s,
+    st: status && status[s.n],
     isAdmin: isAdmin,
     onEdit: x => setForm(x)
   })));
