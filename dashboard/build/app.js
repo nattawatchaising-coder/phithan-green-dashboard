@@ -100,15 +100,6 @@ const NAV = [{
   tab: "ใบแจ้งหนี้"
 }, {
   sect: "work",
-  key: "mtbill",
-  th: "บิลค่าไฟโซลาร์",
-  en: "Solar Bills",
-  icon: "file",
-  perm: "manageUsers",
-  group: "billing",
-  tab: "บิลค่าไฟโซลาร์"
-}, {
-  sect: "work",
   key: "permit",
   th: "ขออนุญาตการไฟฟ้า",
   en: "Permit",
@@ -1409,9 +1400,6 @@ function App() {
     role: role,
     currentUser: auth.current
   }), view === "mtmon" && window.MtMonView && React.createElement(window.MtMonView, {
-    role: role,
-    currentUser: auth.current
-  }), view === "mtbill" && window.MtBillView && React.createElement(window.MtBillView, {
     role: role,
     currentUser: auth.current
   }), view === "expense" && React.createElement(window.ExpenseView, {

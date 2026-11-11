@@ -450,6 +450,54 @@ function MtMeterCfg({
   }, msg));
 }
 function MtMonView({
+  role,
+  currentUser
+}) {
+  const [tab, setTab] = React.useState(() => {
+    try {
+      return localStorage.getItem("mtmon.tab") || "mon";
+    } catch (e) {
+      return "mon";
+    }
+  });
+  const pickTab = t => {
+    setTab(t);
+    try {
+      localStorage.setItem("mtmon.tab", t);
+    } catch (e) {}
+  };
+  const opts = [{
+    value: "mon",
+    label: "มิเตอร์ · สถานะ"
+  }, {
+    value: "bill",
+    label: "บิลรายเดือน"
+  }];
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, React.createElement("div", null, window.Segmented ? React.createElement(window.Segmented, {
+    value: tab,
+    onChange: pickTab,
+    options: opts
+  }) : opts.map(o => React.createElement("button", {
+    key: o.value,
+    className: tab === o.value ? "btn btn-pri" : "btn",
+    onClick: () => pickTab(o.value),
+    style: {
+      marginRight: 6
+    }
+  }, o.label))), tab === "bill" ? React.createElement(MtBillView, {
+    role: role,
+    currentUser: currentUser
+  }) : React.createElement(MtMonPanel, {
+    role: role
+  }));
+}
+function MtMonPanel({
   role
 }) {
   const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
