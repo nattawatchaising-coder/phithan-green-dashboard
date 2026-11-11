@@ -100,6 +100,9 @@ test("สคริปต์ .rsc มีครบทุกส่วนที่�
   has("add address=10.10.5.0/24 gateway=10.10.5.1 dns-server=10.10.5.1");
   has("add chain=srcnat action=masquerade out-interface=ether1");
   has("interface=ether1"); // dhcp-client WAN
+  has('remove [find address="10.10.5.1/24" dynamic=no]'); // IP ค้างจากรอบก่อน
+  has("($ip in 10.10.5.0/24)");
+  has('remove [find address="10.10.5.0/24"]'); // dhcp network วงเดียวกันที่ค้าง (defconf) // กัน WAN ชน LAN ไซต์
   // WireGuard
   has(`private-key="${o.wgPrivateKey}"`);
   has(`public-key="${o.serverPublicKey}" endpoint-address="vpn.example.com" endpoint-port=51820 allowed-address=10.99.0.1/32 persistent-keepalive=25s`);
