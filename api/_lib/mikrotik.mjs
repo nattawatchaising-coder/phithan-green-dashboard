@@ -26,6 +26,7 @@ export const MT = {
   GROUP: "pg-ro",           // กลุ่มสิทธิ์อ่านอย่างเดียว + รีบูต
   USER: "pg-web",           // user ที่เว็บ/agent ใช้เรียก REST
   CERT: "pg-https",
+  CA: "pg-ca",              // CA ของเครื่องที่ใช้เซ็น pg-https
   TAG: "pg-mt",             // ทุกอย่างที่สคริปต์สร้างมีคอมเมนต์ขึ้นต้นด้วยคำนี้ — ไว้หา/ลบตอนรันซ้ำ
   KEEPALIVE: 25,
   NAME_RE: /^[A-Za-z0-9][A-Za-z0-9-]{0,23}$/,
@@ -262,10 +263,18 @@ export function buildRsc(o) {
     `add address=${P.wgIp}/24 interface=${q(WG)} comment=${q(T + " wg")}`,
     ``,
     `# ---------- 8) ใบรับรอง self-signed สำหรับ HTTPS (สร้างครั้งเดียว รันซ้ำไม่สร้างใหม่ fingerprint จึงไม่เปลี่ยน) ----------`,
+    `# RouterOS 7.21 เซ็นใบ tls-server ด้วยตัวเองไม่ได้ ("CA not found" เจอจริง 2026-11-11) → สร้าง CA ของเครื่อง (pg-ca) แล้วใช้เซ็น`,
+    `# ใบที่ค้างแบบยังไม่เซ็น (ไม่มี private key — รันรอบก่อนล้มกลางทาง) ลบทิ้งก่อน ไม่งั้นรอบนี้จะข้ามการสร้าง`,
     `/certificate`,
+    `:foreach c in=[find where (name=${q(MT.CA)} or name=${q(MT.CERT)})] do={ :do { :if ([get $c private-key] != true) do={ remove $c } } on-error={} }`,  /* อ่าน private-key ไม่ได้ = ไม่ลบ (ลบใบดีทุกรอบ fingerprint จะเปลี่ยนตลอด) */
+    `:if ([:len [find name=${q(MT.CA)}]] = 0) do={`,
+    `  add name=${q(MT.CA)} common-name=${q("pg-ca-" + ident)} days-valid=3650 key-size=2048 key-usage=key-cert-sign,crl-sign`,
+    `  sign ${q(MT.CA)}`,
+    `  :delay 3s`,
+    `}`,
     `:if ([:len [find name=${q(MT.CERT)}]] = 0) do={`,
     `  add name=${q(MT.CERT)} common-name=${q(P.router)} subject-alt-name=${q("IP:" + P.router)} days-valid=3650 key-size=2048 key-usage=digital-signature,key-encipherment,tls-server`,
-    `  sign ${q(MT.CERT)}`,
+    `  sign ${q(MT.CERT)} ca=${q(MT.CA)}`,
     `  :delay 3s`,
     `}`,
     ``,

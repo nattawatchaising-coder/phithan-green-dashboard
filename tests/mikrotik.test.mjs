@@ -123,7 +123,9 @@ test("สคริปต์ .rsc มีครบทุกส่วนที่�
   assert.ok(!/action=accept[^\r\n]*in-interface=ether1/.test(r));
   // certificate + services
   has('add name="pg-https" common-name="10.10.5.1"');
-  has('sign "pg-https"');
+  has('sign "pg-https" ca="pg-ca"'); // 7.21 เซ็นตัวเองไม่ได้ (CA not found)
+  has("key-usage=key-cert-sign,crl-sign");
+  has("[get $c private-key] != true"); // ลบใบที่ค้างแบบยังไม่เซ็น
   for (const s of ["www", "telnet", "ftp", "api", "api-ssl"]) has(`set ${s} disabled=yes`);
   has('set www-ssl disabled=no certificate="pg-https"');
   // user group / user
@@ -146,7 +148,7 @@ test("สคริปต์รันซ้ำได้: ของที่มี
     if (/^add /.test(line)) assert.ok(removed.has(section), "add ไม่มี remove ก่อน ใน " + section + ": " + line);
   }
   // ของที่มีชื่อ = :if [:len [find name=...]] = 0
-  for (const name of ["bridge", "pg-pool", "pg-dhcp", "wg-pg", "pg-https", "pg-ro", "pg-web"]) {
+  for (const name of ["bridge", "pg-pool", "pg-dhcp", "wg-pg", "pg-ca", "pg-https", "pg-ro", "pg-web"]) {
     assert.ok(r.some((l) => l.includes(`:if ([:len [find name="${name}"]] = 0)`)), "ไม่เช็กก่อนเพิ่ม: " + name);
   }
   // ใบรับรองไม่สร้างใหม่ถ้ามีแล้ว (fingerprint คงเดิม)
