@@ -1315,7 +1315,7 @@ function suReportHTML(D) {
   addSec(P.load, "การใช้ไฟ แบตเตอรี่ และการขายคืน", loadSec, DS ? "ผลิตแล้วได้ใช้เอง " + DS.selfPct + "%" + (DS.on ? " · แบต " + (D.battS ? D.battS.cap : "") + " kWh" : "") : "");
   addSec(P.roi, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "");
   const fontStack = window.pgFontStack ? window.pgFontStack(lang) : "'IBM Plex Sans Thai',sans-serif";
-  const doc = '<!doctype html><html lang="' + lang + '"><head><meta charset="utf-8">' + "<title>รายงานระบบโซลาร์ " + RP_ESC(job.code || "") + "</title>" + '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(lang) : "") + "<style>" + RP_CSS + " body{font-family:" + fontStack + "}</style></head><body>" + cover + summary + secs.join("") + '<footer class="foot">' + "<p><b>หมายเหตุการใช้งานตัวเลขในรายงานนี้</b> — ผลผลิตคำนวณจากแบบจำลองท้องฟ้าและสถิติอากาศรายเดือนของประเทศไทย " + "ผลจริงขึ้นกับสภาพอากาศแต่ละปี เงาที่เปลี่ยนไปตามฤดู และการบำรุงรักษา · " + "ผลตรวจวัด I-V เป็นค่าที่ชดเชยกลับสู่สภาวะมาตรฐานแล้ว ความแม่นยำขึ้นกับความแม่นของเครื่องวัดความเข้มแสงและอุณหภูมิหน้างาน · " + "ตัวเลขผลตอบแทนเป็นการประมาณการตามสมมติฐานที่ระบุไว้ ไม่ใช่การรับประกันผลตอบแทน</p>" + "<p class='sig'>ผู้ออกแบบ / ผู้ตรวจวัด _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________&nbsp;&nbsp;&nbsp;&nbsp; " + "ผู้รับมอบงาน _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________</p>" + "</footer></body></html>";
+  const doc = '<!doctype html><html lang="' + lang + '"><head><meta charset="utf-8">' + "<title>" + RP_ESC(rpFileName(job)) + "</title>" + '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(lang) : "") + "<style>" + RP_CSS + " body{font-family:" + fontStack + "}</style></head><body>" + cover + summary + secs.join("") + '<footer class="foot">' + "<p><b>หมายเหตุการใช้งานตัวเลขในรายงานนี้</b> — ผลผลิตคำนวณจากแบบจำลองท้องฟ้าและสถิติอากาศรายเดือนของประเทศไทย " + "ผลจริงขึ้นกับสภาพอากาศแต่ละปี เงาที่เปลี่ยนไปตามฤดู และการบำรุงรักษา · " + "ผลตรวจวัด I-V เป็นค่าที่ชดเชยกลับสู่สภาวะมาตรฐานแล้ว ความแม่นยำขึ้นกับความแม่นของเครื่องวัดความเข้มแสงและอุณหภูมิหน้างาน · " + "ตัวเลขผลตอบแทนเป็นการประมาณการตามสมมติฐานที่ระบุไว้ ไม่ใช่การรับประกันผลตอบแทน</p>" + "<p class='sig'>ผู้ออกแบบ / ผู้ตรวจวัด _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________&nbsp;&nbsp;&nbsp;&nbsp; " + "ผู้รับมอบงาน _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________</p>" + "</footer></body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, lang, RP_I18N) : doc;
 }
 const RP_CSS = `
@@ -1488,6 +1488,13 @@ ul.find li i{color:var(--paper-mute)}
   @page{size:A4;margin:14mm 13mm}
 }
 `;
+function rpFileName(job) {
+  job = job || {};
+  const d = new Date(),
+    p2 = n => String(n).padStart(2, "0");
+  const clean = x => String(x == null ? "" : x).replace(/[\\/:*?"<>|\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+  return ["DS", clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
+}
 function suPrintReport(D) {
   const html = suReportHTML(D);
   const w = window.open("", "_blank");
@@ -1542,12 +1549,17 @@ function SuReportView({
   const doPrint = () => {
     const w = ref.current && ref.current.contentWindow;
     if (!w) return;
+    const t0 = document.title;
+    if (w.document && w.document.title) document.title = w.document.title;
     try {
       w.focus();
       w.print();
     } catch (e) {
       alert("สั่งพิมพ์ไม่สำเร็จ: " + e.message);
     }
+    setTimeout(() => {
+      document.title = t0;
+    }, 1500);
   };
   return React.createElement("div", {
     style: {

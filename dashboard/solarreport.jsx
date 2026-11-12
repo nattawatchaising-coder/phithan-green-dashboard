@@ -1791,7 +1791,7 @@ function suReportHTML(D) {
   /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
   const fontStack = window.pgFontStack ? window.pgFontStack(lang) : "'IBM Plex Sans Thai',sans-serif";
   const doc = '<!doctype html><html lang="' + lang + '"><head><meta charset="utf-8">' +
-    "<title>รายงานระบบโซลาร์ " + RP_ESC(job.code || "") + "</title>" +
+    "<title>" + RP_ESC(rpFileName(job)) + "</title>" +
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
     (window.pgFontLink ? window.pgFontLink(lang) : "") +
@@ -1979,6 +1979,15 @@ ul.find li i{color:var(--paper-mute)}
 }
 `;
 
+/* ชื่อไฟล์ PDF (= <title> ที่เบราว์เซอร์ใช้ตั้งชื่อตอนบันทึก) — DS_รหัสโครงการ_ชื่อโครงการ_วัน-เดือน-ปี (ค.ศ.) ที่ออกเอกสาร
+   (ผู้ใช้สั่ง พ.ย. 2026) · ตัดอักขระที่ชื่อไฟล์ใช้ไม่ได้ออก */
+function rpFileName(job) {
+  job = job || {};
+  const d = new Date(), p2 = (n) => String(n).padStart(2, "0");
+  const clean = (x) => String(x == null ? "" : x).replace(/[\\/:*?"<>|\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+  return ["DS", clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
+}
+
 /* เปิดหน้าต่างใหม่ → ใส่รายงาน → เรียกกล่องพิมพ์ (เลือก "บันทึกเป็น PDF" ได้เลย) */
 function suPrintReport(D) {
   const html = suReportHTML(D);
@@ -2031,7 +2040,11 @@ function SuReportView({ html, title, onClose }) {
   const doPrint = () => {
     const w = ref.current && ref.current.contentWindow;
     if (!w) return;
+    /* พิมพ์จาก iframe — Chrome ตั้งชื่อไฟล์ตาม title ของหน้าหลัก จึงยืมชื่อจากรายงานชั่วคราวแล้วคืน */
+    const t0 = document.title;
+    if (w.document && w.document.title) document.title = w.document.title;
     try { w.focus(); w.print(); } catch (e) { alert("สั่งพิมพ์ไม่สำเร็จ: " + e.message); }
+    setTimeout(() => { document.title = t0; }, 1500);
   };
 
   return (
