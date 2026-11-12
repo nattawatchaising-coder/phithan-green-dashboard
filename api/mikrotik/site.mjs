@@ -19,6 +19,7 @@
      { action: "bill-cfg", n, cust, addr, rate, reg, vat } → ตั้งค่าบิลของไซต์ (ชื่อ/ที่อยู่ลูกค้า · บาท/kWh · ช่อง kwh_imp|kwh_exp|kwh_net · คิด VAT 7%)
      { action: "bill-save", n, month, rate? }              → บันทึกบิลเดือน YYYY-MM ลง mtBills/N/YYYYMM — เลขมิเตอร์เซิร์ฟเวอร์อ่านเอง แก้ได้แค่ราคา
      { action: "site-info", n, info:{cust addr tax ...} }  → ทะเบียนไซต์ (ข้อมูลลูกค้าบนบิล)
+     { action: "bill-del", n, month }                      → ลบบิล (แอดมิน · สำเนาไป mtSecrets/billTrash)
    พาร์ทเนอร์ (api/_lib/mtpartner.mjs) — เรียกได้แค่ company / partner-pin / site-info / bill-cfg / bill-save ของไซต์ตัวเอง
      { action: "partner-save", id?, name, username, pin?, active, sites:[N] } (แอดมิน) · { action: "company", pid?, company } · { action: "partner-pin", pid?|old, pin }
 
@@ -253,6 +254,17 @@ export async function POST(request) {
       note: String(b.note || "").slice(0, 300), at: now, by: a.by, by_id: a.id, by_kind: a.kind, hist: hk.length ? hist : null });
     await rtdbSet("mtBills/" + n + "/" + key, rec);
     return json({ ok: true, bill: rec });
+  }
+
+  /* ลบบิลที่ออกแล้ว (แอดมินกดเองในเว็บ · ผู้ใช้ขอลบบิลทดสอบ 2026-11-12) — เก็บสำเนาไว้ใน mtSecrets/billTrash (ปิดอ่าน) เผื่อกู้ */
+  if (b.action === "bill-del") {
+    const key = String(b.month || "").replace("-", "");
+    if (!/^\d{4}(0[1-9]|1[0-2])$/.test(key)) return json({ error: "เดือนต้องเป็น YYYY-MM" }, 400);
+    const prev = await rtdbGet("mtBills/" + n + "/" + key);
+    if (!prev) return json({ error: "ไม่พบบิล" }, 404);
+    await rtdbSet("mtSecrets/billTrash/" + n + "-" + key + "-" + Date.now(), Object.assign({}, prev, { deleted_at: now, deleted_by: a.by }));
+    await rtdbDelete("mtBills/" + n + "/" + key);
+    return json({ ok: true });
   }
 
   if (b.action === "remove") {

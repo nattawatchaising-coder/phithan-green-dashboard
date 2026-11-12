@@ -89,6 +89,8 @@ export async function agentPOST(request) {
       const n = Number(k);
       if (!validN(n) || !sites[n]) continue;
       const st = cleanStatus(src[k]) || {};
+      /* LEOS เก็บ kWh Export เป็นค่าติดลบ — เก็บเป็นค่าบวกเสมอ (ผู้ใช้ 2026-11-12 "kWh Export ติดลบ") */
+      if (st.meter && st.meter.v && typeof st.meter.v.kwh_exp === "number") st.meter.v.kwh_exp = Math.abs(st.meter.v.kwh_exp);
       if (JSON.stringify(st).length > MAX_SITE_JSON) continue;
       st.at = iso;
       patch[n] = st;

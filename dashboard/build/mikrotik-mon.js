@@ -20,7 +20,7 @@ const mtNum = (v, d) => v == null || !isFinite(v) ? "—" : Number(v).toLocaleSt
   maximumFractionDigits: d == null ? 2 : d
 });
 const mtRegOf = s => s && s.bill && s.bill.reg || "kwh_imp";
-const mtDayKwh = (d, reg) => d && d.first && d.last && d.first[reg] != null && d.last[reg] != null ? Math.max(0, d.last[reg] - d.first[reg]) : null;
+const mtDayKwh = (d, reg) => d && d.first && d.last && d.first[reg] != null && d.last[reg] != null ? Math.max(0, Math.abs(d.last[reg]) - Math.abs(d.first[reg])) : null;
 function useMtRef(path) {
   const [val, setVal] = React.useState(undefined);
   React.useEffect(() => {
@@ -606,7 +606,7 @@ function MtMonMeter({
     mono: true
   }), React.createElement(MtSpec, {
     label: "kWh Export",
-    value: mtNum(v.kwh_exp, 1),
+    value: mtNum(v.kwh_exp == null ? null : Math.abs(v.kwh_exp), 1),
     mono: true
   }), React.createElement(MtSpec, {
     label: "kWh Net",
@@ -614,7 +614,181 @@ function MtMonMeter({
     mono: true
   })), isAdmin && React.createElement(MtMeterCfg, {
     s: s
+  }), React.createElement(MtMeterReport, {
+    s: s,
+    days: days,
+    month: month,
+    reg: reg
   }));
+}
+function MtMeterReport({
+  s,
+  days,
+  month,
+  reg
+}) {
+  const [mode, setMode] = React.useState("day");
+  const D = days || {};
+  const keys = Object.keys(D).sort();
+  const val = r => r && r[reg] != null ? Math.abs(r[reg]) : null;
+  const dayRows = keys.filter(k => k.slice(0, 6) === month).map(k => {
+    const d = D[k] || {};
+    return {
+      k,
+      label: mtDayLabel(k) + " " + (Number(k.slice(0, 4)) + 543),
+      first: val(d.first),
+      last: val(d.last),
+      kwh: mtDayKwh(d, reg),
+      kwmax: d.kw_max
+    };
+  });
+  const mons = {};
+  keys.forEach(k => {
+    const m = k.slice(0, 6),
+      d = D[k] || {},
+      e = mons[m] || (mons[m] = {
+        k: m,
+        days: 0,
+        kwh: 0,
+        kwmax: 0,
+        first: null,
+        last: null
+      });
+    const x = mtDayKwh(d, reg);
+    e.days++;
+    e.kwh += x || 0;
+    e.kwmax = Math.max(e.kwmax, Number(d.kw_max) || 0);
+    if (e.first == null) e.first = val(d.first);
+    e.last = val(d.last) != null ? val(d.last) : e.last;
+  });
+  const monRows = Object.values(mons).sort((a, b) => a.k < b.k ? 1 : -1).map(e => Object.assign(e, {
+    label: mtMonTH(e.k.slice(0, 4) + "-" + e.k.slice(4))
+  }));
+  const rows = mode === "day" ? dayRows : monRows;
+  const total = rows.reduce((t, r) => t + (r.kwh || 0), 0);
+  const csv = () => {
+    const head = mode === "day" ? ["วันที่", "เลขต้นวัน kWh", "เลขท้ายวัน kWh", "พลังงาน kWh", "kW สูงสุด"] : ["เดือน", "วันที่มีข้อมูล", "เลขต้นเดือน kWh", "เลขล่าสุด kWh", "พลังงาน kWh", "kW สูงสุด"];
+    const body = rows.map(r => (mode === "day" ? [r.k.slice(0, 4) + "-" + r.k.slice(4, 6) + "-" + r.k.slice(6), r.first, r.last, r.kwh, r.kwmax] : [r.k.slice(0, 4) + "-" + r.k.slice(4), r.days, r.first, r.last, Math.round(r.kwh * 1000) / 1000, r.kwmax]).map(x => x == null ? "" : x).join(","));
+    mtDownload("\ufeff" + [head.join(",")].concat(body).join("\n"), "SITE" + mtPad(s.n) + "-" + (mode === "day" ? "daily-" + month : "monthly") + ".csv");
+  };
+  const th = {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "var(--text-3)",
+    textAlign: "right",
+    padding: "6px 8px",
+    whiteSpace: "nowrap"
+  };
+  const opts = [{
+    value: "day",
+    label: "รายวัน"
+  }, {
+    value: "month",
+    label: "รายเดือน"
+  }];
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      paddingTop: 6
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19", mode === "day" ? "รายวัน เดือน" + MT_TH_MON_FULL[Number(month.slice(4)) - 1] : "รายเดือน"), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E23\u0E27\u0E21 ", mtNum(total, 1), " kWh \xB7 ", MT_REG_TH[reg]), React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), window.Segmented ? React.createElement(window.Segmented, {
+    value: mode,
+    onChange: setMode,
+    options: opts
+  }) : null, React.createElement("button", {
+    className: "btn btn-sm",
+    disabled: !rows.length,
+    onClick: csv,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 13
+  }), "CSV")), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "left"
+    })
+  }, mode === "day" ? "วันที่" : "เดือน"), mode === "month" && React.createElement("th", {
+    style: th
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"), React.createElement("th", {
+    style: th
+  }, mode === "day" ? "เลขต้นวัน" : "เลขต้นเดือน", " (kWh)"), React.createElement("th", {
+    style: th
+  }, mode === "day" ? "เลขท้ายวัน" : "เลขล่าสุด", " (kWh)"), React.createElement("th", {
+    style: th
+  }, "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19 (kWh)"), React.createElement("th", {
+    style: th
+  }, "kW \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14"))), React.createElement("tbody", null, rows.map((r, i) => {
+    const td = {
+      padding: "7px 8px",
+      fontSize: 12.5,
+      textAlign: "right",
+      fontFamily: "var(--mono)",
+      background: i % 2 ? "var(--fs-zebra)" : "transparent"
+    };
+    return React.createElement("tr", {
+      key: r.k
+    }, React.createElement("td", {
+      style: Object.assign({}, td, {
+        textAlign: "left",
+        fontFamily: "inherit",
+        fontWeight: 600
+      })
+    }, r.label), mode === "month" && React.createElement("td", {
+      style: td
+    }, r.days), React.createElement("td", {
+      style: td
+    }, mtNum(r.first, 1)), React.createElement("td", {
+      style: td
+    }, mtNum(r.last, 1)), React.createElement("td", {
+      style: Object.assign({}, td, {
+        fontWeight: 700
+      })
+    }, mtNum(r.kwh, 1)), React.createElement("td", {
+      style: td
+    }, mtNum(r.kwmax, 1)));
+  }))), !rows.length && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      padding: 8
+    }
+  }, days === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูล")));
 }
 function MtMeterCfg({
   s
@@ -738,11 +912,23 @@ function mtBillAuto(days, ym, reg, live) {
   out.start = f0[reg];
   out.start_at = mtAtOf(k0, f0.t);
   if (!k0.endsWith("01") || f0.t !== "0000") out.warn.push("เดือนแรกที่เก็บข้อมูล — จดครั้งก่อนเป็นค่าแรกที่มี ไม่ใช่ต้นเดือนพอดี");
+  const resetAt = k => {
+    out.start = 0;
+    out.start_at = k.length === 8 ? k.slice(0, 4) + "-" + k.slice(4, 6) + "-" + k.slice(6) : k;
+    out.reset = true;
+  };
+  let prev = null;
+  inMon.forEach(k => {
+    const f = days[k].first[reg],
+      l = days[k].last && days[k].last[reg] != null ? days[k].last[reg] : f;
+    if (prev != null && f < prev - 0.5 || l < f - 0.5) resetAt(k);
+    prev = l;
+  });
   const k1 = next + "01";
   if (days[k1] && days[k1].first && days[k1].first[reg] != null) {
     out.end = days[k1].first[reg];
     out.end_at = mtAtOf(k1, days[k1].first.t);
-  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre) {
     out.end = live.v[reg];
     out.end_at = mtAtOfMs(live.at);
     out.partial = true;
@@ -754,6 +940,8 @@ function mtBillAuto(days, ym, reg, live) {
     out.end_at = mtAtOf(kl, l.t);
     out.warn.push("ยังไม่มีค่าวันที่ 1 เดือนถัดไป — จดครั้งนี้เป็นค่าล่าสุดที่เก็บได้");
   }
+  if (out.end != null && out.end < out.start - 0.5) resetAt(out.end_at.slice(0, 10));
+  if (out.reset) out.warn.push("มิเตอร์ถูกรีเซ็ตในเดือนนี้ — จดครั้งก่อนนับจาก 0 ตั้งแต่วันที่รีเซ็ต");
   return out;
 }
 const mtEsc = x => String(x == null ? "" : x).replace(/[&<>"']/g, c => ({
@@ -1303,6 +1491,27 @@ function MtSiteBill({
     padding: "6px 8px",
     whiteSpace: "nowrap"
   };
+  const [delErr, setDelErr] = React.useState("");
+  const delBill = async (k, b) => {
+    const ok = await window.askConfirm({
+      title: "ลบบิล " + (b.no || k) + "?",
+      body: mtMonTH(k.slice(0, 4) + "-" + k.slice(4)) + " · " + mtNum(b.total != null ? b.total : b.amount, 2) + " บาท · ออกโดย " + (b.by || "—") + " — บิลจะหายจากหน้าเว็บ (ระบบเก็บสำเนาไว้หลังบ้าน)",
+      ok: "ลบบิล",
+      danger: true,
+      icon: "trash"
+    });
+    if (!ok) return;
+    setDelErr("");
+    try {
+      await mtCall({
+        action: "bill-del",
+        n: s.n,
+        month: k.slice(0, 4) + "-" + k.slice(4)
+      });
+    } catch (e) {
+      setDelErr(String(e.message || e));
+    }
+  };
   if (!ym) return React.createElement("div", {
     style: mtCard
   }, React.createElement("div", {
@@ -1352,7 +1561,9 @@ function MtSiteBill({
       fontSize: 13,
       fontWeight: 700
     }
-  }, "\u0E1A\u0E34\u0E25\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27"), React.createElement("div", {
+  }, "\u0E1A\u0E34\u0E25\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27"), delErr && React.createElement("div", {
+    style: mtErrBox
+  }, delErr), React.createElement("div", {
     style: {
       overflowX: "auto"
     }
@@ -1379,7 +1590,9 @@ function MtSiteBill({
     })
   }, "\u0E23\u0E27\u0E21\u0E40\u0E07\u0E34\u0E19 (\u0E1A\u0E32\u0E17)"), React.createElement("th", {
     style: th
-  }, "\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25\u0E42\u0E14\u0E22"))), React.createElement("tbody", null, past.map((k, i) => {
+  }, "\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25\u0E42\u0E14\u0E22"), isAdmin && React.createElement("th", {
+    style: th
+  }))), React.createElement("tbody", null, past.map((k, i) => {
     const b = bills[k] || {};
     const td = {
       padding: "8px",
@@ -1425,7 +1638,22 @@ function MtSiteBill({
         color: "var(--text-3)",
         fontSize: 11
       }
-    }, mtWhen(b.at), nh ? " · ออกทับ " + nh + " ครั้ง" : "")));
+    }, mtWhen(b.at), nh ? " · ออกทับ " + nh + " ครั้ง" : "")), isAdmin && React.createElement("td", {
+      style: td
+    }, React.createElement("button", {
+      className: "btn btn-sm",
+      title: "\u0E25\u0E1A\u0E1A\u0E34\u0E25\u0E19\u0E35\u0E49",
+      onClick: e => {
+        e.stopPropagation();
+        delBill(k, b);
+      },
+      style: {
+        color: "var(--tint-red-tx)"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 13
+    }))));
   }))))));
 }
 const MT_INFO_FIELDS = [["cust", "ชื่อลูกค้า (ผู้ใช้ไฟ)", "เช่น บริษัท ไทยสตีล จำกัด", 2], ["tax", "เลขประจำตัวผู้เสียภาษีลูกค้า", "13 หลัก", 1], ["branch", "สาขา", "สำนักงานใหญ่ / 00001", 1], ["addr", "ที่อยู่ลูกค้า (ขึ้นบนบิล)", "", 2, true], ["place", "สถานที่ติดตั้ง", "เช่น หลังคาโรงงาน 2 นิคมอมตะซิตี้", 2], ["contact", "ผู้ติดต่อ", "", 1], ["phone", "โทร", "", 1], ["ca", "เลขที่ผู้ใช้ไฟ (การไฟฟ้า)", "", 1], ["meter_no", "เลขมิเตอร์ (S/N)", "", 1], ["kwp", "ขนาดระบบ (kWp)", "", 1], ["cod", "วันเริ่มจ่ายไฟ", "", 1, false, "date"], ["note", "หมายเหตุ", "", 2, true]];

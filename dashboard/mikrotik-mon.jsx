@@ -24,7 +24,7 @@ function mtThDay(ms) {
 const mtDayLabel = (k) => Number(k.slice(6, 8)) + " " + MT_TH_MON[Number(k.slice(4, 6)) - 1];
 const mtNum = (v, d) => (v == null || !isFinite(v) ? "—" : Number(v).toLocaleString("th-TH", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 2 : d }));
 const mtRegOf = (s) => (s && s.bill && s.bill.reg) || "kwh_imp";
-const mtDayKwh = (d, reg) => (d && d.first && d.last && d.first[reg] != null && d.last[reg] != null ? Math.max(0, d.last[reg] - d.first[reg]) : null);
+const mtDayKwh = (d, reg) => (d && d.first && d.last && d.first[reg] != null && d.last[reg] != null ? Math.max(0, Math.abs(d.last[reg]) - Math.abs(d.first[reg])) : null);
 
 /* อ่านโหนดเดียวแบบสด · path ว่าง = ไม่อ่าน */
 function useMtRef(path) {
@@ -206,10 +206,75 @@ function MtMonMeter({ s, st, isAdmin }) {
         <MtSpec label="PF" value={mtNum(v.pf, 2)} mono />
         <MtSpec label="ความถี่ (Hz)" value={mtNum(v.hz, 1)} mono />
         <MtSpec label="kWh Import" value={mtNum(v.kwh_imp, 1)} mono />
-        <MtSpec label="kWh Export" value={mtNum(v.kwh_exp, 1)} mono />
+        <MtSpec label="kWh Export" value={mtNum(v.kwh_exp == null ? null : Math.abs(v.kwh_exp), 1)} mono />
         <MtSpec label="kWh Net" value={mtNum(v.kwh_net, 1)} mono />
       </div>
       {isAdmin && <MtMeterCfg s={s} />}
+      <MtMeterReport s={s} days={days} month={month} reg={reg} />
+    </div>
+  );
+}
+
+/* ---------- รายงานรายวัน / รายเดือน (ผู้ใช้ 2026-11-12 "meter มี daily report กับ monthly report เอามาแสดงได้ไหม")
+   คิดจากเลขที่ agent เก็บเอง (mtMeter/N/d first/last/kw_max) — ตัวเลขเดียวกับในมิเตอร์ · ดาวน์โหลด CSV ได้ ---------- */
+function MtMeterReport({ s, days, month, reg }) {
+  const [mode, setMode] = React.useState("day");
+  const D = days || {};
+  const keys = Object.keys(D).sort();
+  const val = (r) => (r && r[reg] != null ? Math.abs(r[reg]) : null);
+  const dayRows = keys.filter((k) => k.slice(0, 6) === month).map((k) => {
+    const d = D[k] || {};
+    return { k, label: mtDayLabel(k) + " " + (Number(k.slice(0, 4)) + 543), first: val(d.first), last: val(d.last), kwh: mtDayKwh(d, reg), kwmax: d.kw_max };
+  });
+  const mons = {};
+  keys.forEach((k) => {
+    const m = k.slice(0, 6), d = D[k] || {}, e = mons[m] || (mons[m] = { k: m, days: 0, kwh: 0, kwmax: 0, first: null, last: null });
+    const x = mtDayKwh(d, reg);
+    e.days++; e.kwh += x || 0; e.kwmax = Math.max(e.kwmax, Number(d.kw_max) || 0);
+    if (e.first == null) e.first = val(d.first);
+    e.last = val(d.last) != null ? val(d.last) : e.last;
+  });
+  const monRows = Object.values(mons).sort((a, b) => (a.k < b.k ? 1 : -1)).map((e) => Object.assign(e, { label: mtMonTH(e.k.slice(0, 4) + "-" + e.k.slice(4)) }));
+  const rows = mode === "day" ? dayRows : monRows;
+  const total = rows.reduce((t, r) => t + (r.kwh || 0), 0);
+  const csv = () => {
+    const head = mode === "day" ? ["วันที่", "เลขต้นวัน kWh", "เลขท้ายวัน kWh", "พลังงาน kWh", "kW สูงสุด"] : ["เดือน", "วันที่มีข้อมูล", "เลขต้นเดือน kWh", "เลขล่าสุด kWh", "พลังงาน kWh", "kW สูงสุด"];
+    const body = rows.map((r) => (mode === "day" ? [r.k.slice(0, 4) + "-" + r.k.slice(4, 6) + "-" + r.k.slice(6), r.first, r.last, r.kwh, r.kwmax]
+      : [r.k.slice(0, 4) + "-" + r.k.slice(4), r.days, r.first, r.last, Math.round(r.kwh * 1000) / 1000, r.kwmax]).map((x) => (x == null ? "" : x)).join(","));
+    mtDownload("\ufeff" + [head.join(",")].concat(body).join("\n"), "SITE" + mtPad(s.n) + "-" + (mode === "day" ? "daily-" + month : "monthly") + ".csv");
+  };
+  const th = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", textAlign: "right", padding: "6px 8px", whiteSpace: "nowrap" };
+  const opts = [{ value: "day", label: "รายวัน" }, { value: "month", label: "รายเดือน" }];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 6 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700 }}>รายงาน{mode === "day" ? "รายวัน เดือน" + MT_TH_MON_FULL[Number(month.slice(4)) - 1] : "รายเดือน"}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)" }}>รวม {mtNum(total, 1)} kWh · {MT_REG_TH[reg]}</div>
+        <div style={{ flex: 1 }} />
+        {window.Segmented ? <window.Segmented value={mode} onChange={setMode} options={opts} /> : null}
+        <button className="btn btn-sm" disabled={!rows.length} onClick={csv} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="download" size={13} />CSV</button>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={Object.assign({}, th, { textAlign: "left" })}>{mode === "day" ? "วันที่" : "เดือน"}</th>
+            {mode === "month" && <th style={th}>วันที่มีข้อมูล</th>}
+            <th style={th}>{mode === "day" ? "เลขต้นวัน" : "เลขต้นเดือน"} (kWh)</th><th style={th}>{mode === "day" ? "เลขท้ายวัน" : "เลขล่าสุด"} (kWh)</th>
+            <th style={th}>พลังงาน (kWh)</th><th style={th}>kW สูงสุด</th>
+          </tr></thead>
+          <tbody>{rows.map((r, i) => {
+            const td = { padding: "7px 8px", fontSize: 12.5, textAlign: "right", fontFamily: "var(--mono)", background: i % 2 ? "var(--fs-zebra)" : "transparent" };
+            return (
+              <tr key={r.k}>
+                <td style={Object.assign({}, td, { textAlign: "left", fontFamily: "inherit", fontWeight: 600 })}>{r.label}</td>
+                {mode === "month" && <td style={td}>{r.days}</td>}
+                <td style={td}>{mtNum(r.first, 1)}</td><td style={td}>{mtNum(r.last, 1)}</td>
+                <td style={Object.assign({}, td, { fontWeight: 700 })}>{mtNum(r.kwh, 1)}</td><td style={td}>{mtNum(r.kwmax, 1)}</td>
+              </tr>
+            ); })}</tbody>
+        </table>
+        {!rows.length && <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: 8 }}>{days === undefined ? "กำลังโหลด…" : "ยังไม่มีข้อมูล"}</div>}
+      </div>
     </div>
   );
 }
@@ -277,10 +342,18 @@ function mtBillAuto(days, ym, reg, live) {
   const k0 = inMon[0], f0 = days[k0].first;
   out.start = f0[reg]; out.start_at = mtAtOf(k0, f0.t);
   if (!k0.endsWith("01") || f0.t !== "0000") out.warn.push("เดือนแรกที่เก็บข้อมูล — จดครั้งก่อนเป็นค่าแรกที่มี ไม่ใช่ต้นเดือนพอดี");
+  /* มิเตอร์ถูกรีเซ็ต (เลขกระโดดลง) → นับจาก 0 ตั้งแต่วันนั้น — สูตรเดียวกับ billReadings ฝั่งเซิร์ฟเวอร์ */
+  const resetAt = (k) => { out.start = 0; out.start_at = k.length === 8 ? k.slice(0, 4) + "-" + k.slice(4, 6) + "-" + k.slice(6) : k; out.reset = true; };
+  let prev = null;
+  inMon.forEach((k) => {
+    const f = days[k].first[reg], l = days[k].last && days[k].last[reg] != null ? days[k].last[reg] : f;
+    if ((prev != null && f < prev - 0.5) || l < f - 0.5) resetAt(k);
+    prev = l;
+  });
   const k1 = next + "01";
   if (days[k1] && days[k1].first && days[k1].first[reg] != null) {
     out.end = days[k1].first[reg]; out.end_at = mtAtOf(k1, days[k1].first.t);
-  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+  } else if (live && live.v && live.v[reg] != null && mtThDay(live.at).slice(0, 6) === pre) {
     out.end = live.v[reg]; out.end_at = mtAtOfMs(live.at); out.partial = true;
     out.warn.push("เดือนยังไม่จบ — เป็นยอดถึงตอนนี้ ค่าเปลี่ยนตามมิเตอร์ (บันทึกบิลหลังวันที่ 1 เดือนหน้า)");
   } else {
@@ -288,6 +361,8 @@ function mtBillAuto(days, ym, reg, live) {
     out.end = l[reg]; out.end_at = mtAtOf(kl, l.t);
     out.warn.push("ยังไม่มีค่าวันที่ 1 เดือนถัดไป — จดครั้งนี้เป็นค่าล่าสุดที่เก็บได้");
   }
+  if (out.end != null && out.end < out.start - 0.5) resetAt(out.end_at.slice(0, 10));
+  if (out.reset) out.warn.push("มิเตอร์ถูกรีเซ็ตในเดือนนี้ — จดครั้งก่อนนับจาก 0 ตั้งแต่วันที่รีเซ็ต");
   return out;
 }
 
@@ -530,6 +605,15 @@ function MtSiteBill({ s, st, isAdmin, canEdit }) {
   }, [days]);
   const past = Object.keys(bills || {}).sort().reverse();
   const th = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", textAlign: "left", padding: "6px 8px", whiteSpace: "nowrap" };
+  const [delErr, setDelErr] = React.useState("");
+  const delBill = async (k, b) => {
+    const ok = await window.askConfirm({ title: "ลบบิล " + (b.no || k) + "?",
+      body: mtMonTH(k.slice(0, 4) + "-" + k.slice(4)) + " · " + mtNum(b.total != null ? b.total : b.amount, 2) + " บาท · ออกโดย " + (b.by || "—") + " — บิลจะหายจากหน้าเว็บ (ระบบเก็บสำเนาไว้หลังบ้าน)",
+      ok: "ลบบิล", danger: true, icon: "trash" });
+    if (!ok) return;
+    setDelErr("");
+    try { await mtCall({ action: "bill-del", n: s.n, month: k.slice(0, 4) + "-" + k.slice(4) }); } catch (e) { setDelErr(String(e.message || e)); }
+  };
   if (!ym) return <div style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</div></div>;
   return (
     <React.Fragment>
@@ -543,11 +627,12 @@ function MtSiteBill({ s, st, isAdmin, canEdit }) {
       {past.length > 0 && (
         <div style={mtCard}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>บิลที่ออกแล้ว</div>
+          {delErr && <div style={mtErrBox}>{delErr}</div>}
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr><th style={th}>เดือน</th><th style={th}>เลขที่</th><th style={th}>จดครั้งก่อน</th><th style={th}>จดครั้งนี้</th>
                 <th style={Object.assign({}, th, { textAlign: "right" })}>หน่วย</th><th style={Object.assign({}, th, { textAlign: "right" })}>รวมเงิน (บาท)</th>
-                <th style={th}>ออกบิลโดย</th></tr></thead>
+                <th style={th}>ออกบิลโดย</th>{isAdmin && <th style={th} />}</tr></thead>
               <tbody>{past.map((k, i) => {
                 const b = bills[k] || {}; const td = { padding: "8px", fontSize: 12.5, background: i % 2 ? "var(--fs-zebra)" : "transparent" };
                 const nm = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
@@ -561,6 +646,7 @@ function MtSiteBill({ s, st, isAdmin, canEdit }) {
                     <td style={nm}>{mtNum(b.kwh, 2)}</td>
                     <td style={Object.assign({}, nm, { fontWeight: 700 })}>{mtNum(b.total != null ? b.total : b.amount, 2)}</td>
                     <td style={Object.assign({}, td, { whiteSpace: "nowrap" })}>{b.by || "—"} <span style={{ color: "var(--text-3)", fontSize: 11 }}>{mtWhen(b.at)}{nh ? " · ออกทับ " + nh + " ครั้ง" : ""}</span></td>
+                    {isAdmin && <td style={td}><button className="btn btn-sm" title="ลบบิลนี้" onClick={(e) => { e.stopPropagation(); delBill(k, b); }} style={{ color: "var(--tint-red-tx)" }}><Icon name="trash" size={13} /></button></td>}
                   </tr>
                 ); })}</tbody>
             </table>

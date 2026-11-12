@@ -94,17 +94,31 @@ export function billReadings(days, ym, reg, live) {
   const inMon = Object.keys(D).sort().filter((k) => k.slice(0, 6) === pre && D[k] && D[k].first && typeof D[k].first[reg] === "number");
   if (!inMon.length) return { error: "เดือนนี้ยังไม่มีข้อมูลมิเตอร์" };
   const k0 = inMon[0], f0 = D[k0].first;
-  const out = { start: f0[reg], start_at: atOf(k0, f0.t), start_src: "มิเตอร์", partial: false };
+  const out = { start: f0[reg], start_at: atOf(k0, f0.t), start_src: "มิเตอร์", partial: false, reset: false };
+  /* มิเตอร์ถูกรีเซ็ต (เลขกระโดดลง) กลางเดือน → นับเดือนนี้จาก 0 ตั้งแต่วันที่รีเซ็ต (ผู้ใช้ล้างค่าในมิเตอร์ 2026-11-12) */
+  const RESET_DROP = 0.5;
+  let prev = null;
+  for (const k of inMon) {
+    const f = D[k].first[reg], l = D[k].last && typeof D[k].last[reg] === "number" ? D[k].last[reg] : f;
+    if ((prev != null && f < prev - RESET_DROP) || l < f - RESET_DROP) {
+      out.start = 0; out.start_at = k.slice(0, 4) + "-" + k.slice(4, 6) + "-" + k.slice(6); out.start_src = "รีเซ็ตมิเตอร์"; out.reset = true;
+    }
+    prev = l;
+  }
   const k1 = next + "01";
   if (D[k1] && D[k1].first && typeof D[k1].first[reg] === "number") {
     out.end = D[k1].first[reg]; out.end_at = atOf(k1, D[k1].first.t); out.end_src = "มิเตอร์";
-  } else if (live && live.v && typeof live.v[reg] === "number" && thDayKey(live.at).slice(0, 6) === pre && live.v[reg] >= out.start) {
+  } else if (live && live.v && typeof live.v[reg] === "number" && thDayKey(live.at).slice(0, 6) === pre) {
     const d = new Date(live.at + 7 * 3600e3);
     out.end = live.v[reg]; out.end_at = atOf(thDayKey(live.at), String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0"));
     out.end_src = "ค่าสด"; out.partial = true;
   } else {
     const kl = inMon[inMon.length - 1], l = D[kl].last || D[kl].first;
     out.end = l[reg]; out.end_at = atOf(kl, l.t); out.end_src = "มิเตอร์";
+  }
+  /* เลขครั้งนี้น้อยกว่าครั้งก่อน = รีเซ็ตหลังค่าล่าสุดที่เก็บ → นับจาก 0 */
+  if (typeof out.end === "number" && out.end < out.start - RESET_DROP) {
+    out.start = 0; out.start_at = out.end_at.slice(0, 10); out.start_src = "รีเซ็ตมิเตอร์"; out.reset = true;
   }
   return out;
 }

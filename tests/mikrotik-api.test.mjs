@@ -425,6 +425,51 @@ test("meter-cfg / bill-cfg / bill-save: เลขมิเตอร์เซิ�
   assert.equal((await call({ action: "bill-save", n: 52, month: "2026-11" }, "u-tech")).status, 403);
 });
 
+test("bill-del: แอดมินลบบิลได้ (สำเนาไป mtSecrets/billTrash) · ช่าง/พาร์ทเนอร์ลบไม่ได้", async () => {
+  await call({ action: "create", n: 53, name: "Del" });
+  await call({ action: "bill-cfg", n: 53, rate: 4, reg: "kwh_imp" });
+  db.mtMeter = { 53: meterDays() };
+  assert.equal((await call({ action: "bill-save", n: 53, month: "2026-11" })).status, 200);
+  assert.equal((await call({ action: "bill-del", n: 53, month: "2026-11" }, "u-tech")).status, 403);
+  assert.equal((await call({ action: "bill-del", n: 53, month: "2026-10" })).status, 404);
+  assert.equal((await call({ action: "bill-del", n: 53, month: "x" })).status, 400);
+  assert.ok(db.mtBills[53]["202611"], "ยังอยู่");
+  assert.equal((await call({ action: "bill-del", n: 53, month: "2026-11" })).status, 200);
+  assert.equal((db.mtBills[53] || {})["202611"], undefined);
+  const t = Object.entries(db.mtSecrets.billTrash);
+  assert.equal(t.length, 1);
+  assert.match(t[0][0], /^53-202611-\d+$/);
+  assert.equal(t[0][1].kwh, 250.5);
+  assert.equal(t[0][1].deleted_by, "แอดมิน");
+});
+
+test("billReadings: มิเตอร์ถูกรีเซ็ตกลางเดือน → นับจาก 0 ตั้งแต่วันรีเซ็ต", async () => {
+  const { billReadings } = await import("../api/_lib/mikrotik.mjs");
+  /* ปกติ ไม่รีเซ็ต */
+  const a = billReadings(meterDays().d, "2026-11", "kwh_imp", null);
+  assert.deepEqual([a.start, a.end, a.reset], [1000, 1250.5, false]);
+  /* รีเซ็ตระหว่างวัน (12 พ.ย.: first 20456 → last 3) */
+  const d1 = { "20261111": { first: { t: "0900", kwh_imp: 20400 }, last: { t: "2355", kwh_imp: 20450 } },
+    "20261112": { first: { t: "0000", kwh_imp: 20450 }, last: { t: "2355", kwh_imp: 3 } },
+    "20261130": { first: { t: "0000", kwh_imp: 200 }, last: { t: "2355", kwh_imp: 210 } } };
+  const b = billReadings(d1, "2026-11", "kwh_imp", null);
+  assert.deepEqual([b.start, b.end, b.reset, b.start_src, b.start_at], [0, 210, true, "รีเซ็ตมิเตอร์", "2026-11-12"]);
+  /* รีเซ็ตข้ามคืน (วันถัดไป first ต่ำกว่า last วันก่อน) */
+  const d2 = { "20261111": { first: { t: "0900", kwh_imp: 20400 }, last: { t: "2355", kwh_imp: 20450 } },
+    "20261113": { first: { t: "0000", kwh_imp: 1 }, last: { t: "2355", kwh_imp: 9 } } };
+  const c = billReadings(d2, "2026-11", "kwh_imp", null);
+  assert.deepEqual([c.start, c.end, c.reset, c.start_at], [0, 9, true, "2026-11-13"]);
+});
+
+test("agent: kWh Export ติดลบจากมิเตอร์ → เก็บเป็นค่าบวก", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 54, name: "Exp" });
+  await agentCall({ status: { snap: true, sites: { 54: { meter: { modbus: { ok: true }, v: { kwh_imp: 10, kwh_exp: -969.709 } } } } } });
+  assert.equal(db.mtStatus[54].meter.v.kwh_exp, 969.709);
+  const { day } = agentLib2.thSlot(Date.now());
+  assert.equal(db.mtMeter[54].d[day].first.kwh_exp, 969.709);
+});
+
 test("พาร์ทเนอร์: แอดมินสร้าง+มอบไซต์ · ล็อกอินได้เมื่อวางกฎแล้วเท่านั้น · ทำได้แค่ไซต์ตัวเอง", async () => {
   await call({ action: "create", n: 60, name: "PA" });
   await call({ action: "create", n: 61, name: "PB" });
