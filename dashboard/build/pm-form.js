@@ -869,6 +869,52 @@ function PmSignRow({
     }
   }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E2D\u0E2D\u0E01\u0E21\u0E32\u0E22\u0E31\u0E07\u0E40\u0E27\u0E49\u0E19\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E14\u0E49\u0E27\u0E22\u0E1B\u0E32\u0E01\u0E01\u0E32\u0E44\u0E27\u0E49\u0E40\u0E2A\u0E21\u0E2D"));
 }
+const PM_GROUPS = [{
+  key: "info",
+  th: "ข้อมูล · เอกสาร",
+  secs: ["sum", "docs", "reg"]
+}, {
+  key: "elec",
+  th: "ทดสอบไฟฟ้า",
+  secs: ["a1", "b1", "b3", "b4", "c1", "c2"]
+}, {
+  key: "therm",
+  th: "ภาพความร้อน",
+  secs: ["d1", "d2", "d3"]
+}, {
+  key: "mech",
+  th: "แรงขัน · ล้างแผง · รูปทดสอบ",
+  secs: ["e1", "e2", "w1", "pac", "pgnd"]
+}, {
+  key: "close",
+  th: "ลงนาม · รูปประกอบ",
+  secs: ["sign", "photo"]
+}];
+function pmGroupsFor(secs) {
+  const have = {};
+  (secs || []).forEach(x => {
+    have[x.key] = true;
+  });
+  const used = {
+    photo: true
+  };
+  const out = PM_GROUPS.map(g => {
+    const list = g.secs.filter(k => k === "photo" || have[k]);
+    list.forEach(k => {
+      used[k] = true;
+    });
+    return Object.assign({}, g, {
+      secs: list
+    });
+  });
+  const rest = (secs || []).filter(x => !used[x.key]).map(x => x.key);
+  if (rest.length) out.splice(out.length - 1, 0, {
+    key: "other",
+    th: "อื่น ๆ",
+    secs: rest
+  });
+  return out.filter(g => g.secs.length);
+}
 function PmHandoverModal({
   job,
   currentUser,
@@ -1028,44 +1074,42 @@ function PmHandoverModal({
   };
   const secs = window.PM_SECTIONS;
   const cur = window.PM_SEC_BY[tab];
-  const tabBtn = sec => {
-    const st = prog.bySection[sec.key] || {
-      pct: 0,
-      state: "empty",
-      done: 0,
-      total: 0
-    };
-    const on = tab === sec.key;
-    return React.createElement("button", {
-      key: sec.key,
-      onClick: () => setTab(sec.key),
-      style: {
-        flexShrink: 0,
-        padding: "8px 13px",
-        borderRadius: "var(--r-pill)",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        border: "none",
-        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-        background: on ? "var(--primary-soft)" : "var(--surface)",
-        textAlign: "left"
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: on ? "var(--primary-dark)" : "var(--text-1)"
-      }
-    }, sec.th), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: PM_STATE_COLOR[st.state] || "var(--text-3)"
-      }
-    }, st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่มีรายการบังคับ"));
+  const groups = pmGroupsFor(secs);
+  const groupOf = k => groups.find(g => g.secs.indexOf(k) >= 0) || null;
+  const curGroup = tab === "home" ? null : groupOf(tab);
+  const secSt = k => k === "photo" ? null : prog.bySection[k] || {
+    pct: 0,
+    state: "empty",
+    done: 0,
+    total: 0
   };
+  const secTh = k => k === "photo" ? "รูปประกอบ" : (window.PM_SEC_BY[k] || {}).th || k;
+  const grpSt = g => {
+    let d = 0,
+      t = 0;
+    g.secs.forEach(k => {
+      const st = secSt(k);
+      if (st) {
+        d += st.done || 0;
+        t += st.total || 0;
+      }
+    });
+    return {
+      done: d,
+      total: t,
+      pct: t ? Math.round(d * 100 / t) : 0,
+      state: !t ? "na" : d >= t ? "done" : d > 0 ? "partial" : "empty"
+    };
+  };
+  const openGroup = g => {
+    const todo = g.secs.find(k => {
+      const st = secSt(k);
+      return st && st.total && st.done < st.total;
+    });
+    setTab(todo || g.secs[0]);
+  };
+  const nextSec = prog.missing.length ? prog.missing[0].section : null;
+  const signed = !!(rec && rec.meta && rec.meta.status === "signed");
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       position: "fixed",
@@ -1274,67 +1318,105 @@ function PmHandoverModal({
   }, "\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E41\u0E1A\u0E1A\u0E1F\u0E2D\u0E23\u0E4C\u0E21")) : null, React.createElement("div", {
     style: {
       flexShrink: 0,
-      display: "flex",
-      gap: 8,
       padding: "10px 16px",
-      overflowX: "auto",
       borderBottom: "1px solid var(--divider)"
     }
-  }, React.createElement("button", {
-    onClick: () => setTab("home"),
+  }, React.createElement("div", {
     style: {
-      flexShrink: 0,
-      padding: "8px 13px",
-      borderRadius: "var(--r-pill)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      border: "none",
-      boxShadow: tab === "home" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-      background: tab === "home" ? "var(--primary-soft)" : "var(--surface)",
-      textAlign: "left"
+      display: "flex",
+      gap: 7,
+      overflowX: "auto",
+      paddingBottom: 2
     }
-  }, React.createElement("span", {
+  }, [{
+    key: "home",
+    th: "ภาพรวม"
+  }].concat(groups).map(g => {
+    const isHome = g.key === "home";
+    const on = isHome ? tab === "home" : !!(curGroup && curGroup.key === g.key);
+    const st = isHome ? {
+      done: prog.done,
+      total: prog.total,
+      pct: prog.pct,
+      state: prog.pct >= 100 ? "done" : "partial"
+    } : grpSt(g);
+    const photoOnly = !isHome && !st.total && g.secs.indexOf("photo") >= 0;
+    return React.createElement("button", {
+      key: g.key,
+      onClick: () => isHome ? setTab("home") : openGroup(g),
+      style: {
+        flexShrink: 0,
+        padding: "7px 12px",
+        borderRadius: "var(--r-pill)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: on ? "var(--primary-dark)" : "var(--text-1)",
+        whiteSpace: "nowrap"
+      }
+    }, g.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: PM_STATE_COLOR[st.state] || "var(--text-3)"
+      }
+    }, st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : photoOnly ? genPhotos.length + " รูป" : "ไม่บังคับ"));
+  })), curGroup && curGroup.secs.length > 1 && React.createElement("div", {
     style: {
-      display: "block",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: tab === "home" ? "var(--primary-dark)" : "var(--text-1)"
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      marginTop: 8,
+      paddingBottom: 2
     }
-  }, "\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: PM_STATE_COLOR[prog.pct >= 100 ? "done" : "partial"]
-    }
-  }, prog.done, "/", prog.total, " \xB7 ", prog.pct, "%")), secs.map(tabBtn), React.createElement("button", {
-    onClick: () => setTab("photo"),
-    style: {
-      flexShrink: 0,
-      padding: "8px 13px",
-      borderRadius: "var(--r-pill)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      border: "none",
-      boxShadow: tab === "photo" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-      background: tab === "photo" ? "var(--primary-soft)" : "var(--surface)",
-      textAlign: "left"
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: tab === "photo" ? "var(--primary-dark)" : "var(--text-1)"
-    }
-  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, genPhotos.length, " \u0E23\u0E39\u0E1B"))), React.createElement("div", {
+  }, curGroup.secs.map(k => {
+    const st = secSt(k);
+    const on = tab === k;
+    return React.createElement("button", {
+      key: k,
+      onClick: () => setTab(k),
+      style: {
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "5px 10px",
+        borderRadius: "var(--r-pill)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        border: "none",
+        background: on ? "var(--surface)" : "transparent",
+        boxShadow: on ? "var(--shadow-sm)" : "none",
+        color: on ? "var(--text-1)" : "var(--text-2)"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        flexShrink: 0,
+        background: st ? PM_STATE_COLOR[st.total ? st.state : "na"] || "var(--border-strong)" : "var(--border-strong)"
+      }
+    }), secTh(k), st && st.total ? React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        color: "var(--text-3)"
+      }
+    }, st.done, "/", st.total) : null);
+  }))), React.createElement("div", {
     style: {
       padding: 16,
       overflowY: "auto",
@@ -1346,108 +1428,122 @@ function PmHandoverModal({
       fontSize: 12.5,
       color: "var(--text-2)",
       lineHeight: 1.7,
-      marginBottom: 13
+      marginBottom: 12
     }
-  }, "\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E21\u0E38\u0E14\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", {
+  }, "\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", {
     style: {
       color: "var(--text-1)"
     }
-  }, prog.pct, "%"), " ", "(", prog.done, " \u0E08\u0E32\u0E01 ", prog.total, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)", prog.missing.length ? React.createElement("span", null, " \xB7 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", null, " \xB7 \u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27")), secs.map(sec => {
-    const st = prog.bySection[sec.key] || {
-      pct: 0,
-      done: 0,
-      total: 0,
-      state: "empty"
-    };
-    return React.createElement("button", {
-      key: sec.key,
-      onClick: () => setTab(sec.key),
+  }, prog.pct, "%"), " ", "(", prog.done, " \u0E08\u0E32\u0E01 ", prog.total, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)", prog.missing.length ? React.createElement("span", null, " \xB7 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", null, " \xB7 \u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27")), nextSec && !signed ? React.createElement("button", {
+    className: "btn btn-pri",
+    onClick: () => setTab(nextSec),
+    style: {
+      width: "100%",
+      marginBottom: 16,
+      fontSize: 13.5
+    }
+  }, "\u0E17\u0E33\u0E15\u0E48\u0E2D \xB7 ", secTh(nextSec), " ", React.createElement(Icon, {
+    name: "arrowRight",
+    size: 15,
+    color: "#fff"
+  })) : null, groups.map(g => {
+    const gs = grpSt(g);
+    return React.createElement("div", {
+      key: g.key,
       style: {
-        display: "block",
-        width: "100%",
-        textAlign: "left",
-        marginBottom: 9,
-        padding: "11px 13px",
-        borderRadius: "var(--r-chip)",
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
-        cursor: "pointer",
-        fontFamily: "inherit"
+        marginBottom: 14
       }
     }, React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "baseline",
-        gap: 9
+        gap: 8,
+        marginBottom: 6,
+        padding: "0 2px"
       }
     }, React.createElement("span", {
       style: {
         flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 13,
-        fontWeight: 800,
-        color: "var(--text-1)"
-      }
-    }, sec.th), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11,
+        minWidth: 0,
+        fontSize: 11.5,
+        fontWeight: 700,
         color: "var(--text-3)"
       }
-    }, sec.en)), React.createElement("span", {
+    }, g.th), gs.total ? React.createElement("span", {
       style: {
-        flexShrink: 0,
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: 800,
-        color: PM_STATE_COLOR[st.state] || "var(--text-3)"
+        color: PM_STATE_COLOR[gs.state] || "var(--text-3)"
       }
-    }, st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่บังคับ")), st.total ? React.createElement("div", {
+    }, gs.done, "/", gs.total) : null), React.createElement("div", {
       style: {
-        height: 5,
-        borderRadius: "var(--r-pill)",
-        background: "var(--border)",
-        overflow: "hidden",
-        marginTop: 8
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
+        overflow: "hidden"
       }
-    }, React.createElement("div", {
-      style: {
-        width: st.pct + "%",
-        height: "100%",
-        borderRadius: "var(--r-pill)",
-        background: PM_STATE_COLOR[st.state] || "var(--border-strong)"
-      }
-    })) : null);
-  }), React.createElement("button", {
-    onClick: () => setTab("photo"),
-    style: {
-      display: "block",
-      width: "100%",
-      textAlign: "left",
-      padding: "11px 13px",
-      borderRadius: "var(--r-chip)",
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, "Photos \xB7 ", genPhotos.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
+    }, g.secs.map((k, i) => {
+      const st = secSt(k);
+      return React.createElement("button", {
+        key: k,
+        onClick: () => setTab(k),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          textAlign: "left",
+          padding: "10px 13px",
+          border: "none",
+          borderTop: i ? "1px solid var(--divider)" : "none",
+          background: "none",
+          cursor: "pointer",
+          fontFamily: "inherit"
+        }
+      }, React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13,
+          fontWeight: 700,
+          color: "var(--text-1)"
+        }
+      }, secTh(k)), st && st.total ? React.createElement("span", {
+        style: {
+          display: "block",
+          height: 4,
+          borderRadius: "var(--r-pill)",
+          background: "var(--border)",
+          overflow: "hidden",
+          marginTop: 6,
+          maxWidth: 220
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          width: st.pct + "%",
+          height: "100%",
+          borderRadius: "var(--r-pill)",
+          background: PM_STATE_COLOR[st.state] || "var(--border-strong)"
+        }
+      })) : null), React.createElement("span", {
+        style: {
+          flexShrink: 0,
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: st ? PM_STATE_COLOR[st.total ? st.state : "na"] || "var(--text-3)" : "var(--text-3)"
+        }
+      }, st ? st.total ? st.done + "/" + st.total : "ไม่บังคับ" : genPhotos.length + " รูป"), React.createElement(Icon, {
+        name: "chevronRight",
+        size: 14,
+        color: "var(--text-3)"
+      }));
+    })));
+  })) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
     key: g.key,
     style: {
       marginBottom: 18

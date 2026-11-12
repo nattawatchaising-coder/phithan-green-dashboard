@@ -433,7 +433,13 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
   });
   const [paper, setPaper] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [headOpen, setHeadOpen] = React.useState(false);
   const tally = irItemTally(f.items);
+  /* บรรทัดสรุปหัวใบตอนพับ — ช่องที่ยังว่างบอกว่า "ยังไม่ใส่" แทนการซ่อนเงียบ ๆ */
+  const signN = ["issueBy", "inspectedBy", "approvedBy", "clientBy"].filter((k) => String(f[k] || "").trim()).length;
+  const atTH = f.inspAt ? (window.drDateTH ? window.drDateTH(f.inspAt) : f.inspAt.slice(0, 10)) + (f.inspAt.length > 10 ? " " + f.inspAt.slice(11, 16) : "") : "";
+  const headLine = [f.no || "ไม่มีเลขที่", f.to ? "เรียน " + f.to : "ยังไม่ใส่ผู้รับ", atTH ? "ตรวจ " + atTH : "ยังไม่ใส่วันตรวจ",
+    f.reqBy ? "ขอโดย " + f.reqBy : "", "ลงนาม " + signN + "/4"].filter(Boolean).join(" · ");
 
   const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setSaved(false); };
   const fillPreset = () => set("items", irPresetItems(f.kind).map((n) => irNewItem(n)));
@@ -486,41 +492,6 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 })}
               </div>
               <input value={f.kind} onChange={(e) => set("kind", e.target.value)} placeholder="หรือพิมพ์ประเภทเอง" style={inp} />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-              <IrField label="Report No." thai="เลขที่ใบ" lbl={lbl} sub={sub}>
-                <input value={f.no} onChange={(e) => set("no", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="To" thai="เรียน" lbl={lbl} sub={sub}>
-                <input value={f.to} onChange={(e) => set("to", e.target.value)} placeholder="ชื่อผู้รับ / เจ้าของอาคาร" style={inp} />
-              </IrField>
-              <IrField label="Project Name" thai="ชื่อโครงการ" lbl={lbl} sub={sub}>
-                <input value={f.project} onChange={(e) => set("project", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="Contractor" thai="ผู้รับเหมา" lbl={lbl} sub={sub}>
-                <input value={f.contractor} onChange={(e) => set("contractor", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="Request Date" thai="วันที่ขอ" lbl={lbl} sub={sub}>
-                <input type="date" value={f.reqDate} onChange={(e) => set("reqDate", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="Inspection Date and Time" thai="วันและเวลาที่ตรวจสอบ" lbl={lbl} sub={sub}>
-                <input type="datetime-local" value={f.inspAt} onChange={(e) => set("inspAt", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="Request to inspect" thai="หัวข้อการตรวจสอบ" wide lbl={lbl} sub={sub}>
-                <textarea value={f.reqItems} onChange={(e) => set("reqItems", e.target.value)} rows={2}
-                  placeholder="เขียนให้ชัดว่าขอให้ตรวจอะไรบ้าง"
-                  style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
-              </IrField>
-              <IrField label="Ref IR No." thai="อ้างอิงจาก IR เลขที่" lbl={lbl} sub={sub}>
-                <input value={f.refIr} onChange={(e) => set("refIr", e.target.value)} placeholder="ถ้าเป็นการตรวจซ้ำ ใส่เลขใบเดิม" style={inp} />
-              </IrField>
-              <IrField label="Request by" thai="ขอโดย" lbl={lbl} sub={sub}>
-                <input value={f.reqBy} onChange={(e) => set("reqBy", e.target.value)} style={inp} />
-              </IrField>
-              <IrField label="Others" thai="อื่น ๆ" wide lbl={lbl} sub={sub}>
-                <input value={f.others} onChange={(e) => set("others", e.target.value)} style={inp} />
-              </IrField>
             </div>
 
             {/* ตารางรายการตรวจทีละข้อ — ตัวที่บอกว่า "ไม่ผ่านเพราะข้อไหน" ผลรวมข้างล่างบอกไม่ได้ */}
@@ -605,27 +576,83 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
             </IrField>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={lbl}>ผู้ลงนามท้ายใบ <span style={sub}>(เว้นว่างได้ — พิมพ์ออกมาเป็นช่องให้เซ็นสด)</span></label>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <IrField label="Issue By" thai="ผู้ออกใบ · EPC" lbl={lbl} sub={sub}>
-                  <input value={f.issueBy} onChange={(e) => set("issueBy", e.target.value)} style={inp} />
-                </IrField>
-                <IrField label="Inspected By" thai="ผู้ตรวจสอบ · EPC" lbl={lbl} sub={sub}>
-                  <input value={f.inspectedBy} onChange={(e) => set("inspectedBy", e.target.value)} style={inp} />
-                </IrField>
-                <IrField label="Approved By" thai="ผู้อนุมัติ · Project Manager" lbl={lbl} sub={sub}>
-                  <input value={f.approvedBy} onChange={(e) => set("approvedBy", e.target.value)} style={inp} />
-                </IrField>
-                <IrField label="Approved by Client" thai="อนุมัติโดยลูกค้า" lbl={lbl} sub={sub}>
-                  <input value={f.clientBy} onChange={(e) => set("clientBy", e.target.value)} style={inp} />
-                </IrField>
-              </div>
-            </div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               <label style={lbl}>รูปประกอบการตรวจ <span style={sub}>(ใบรายงานรูปถ่ายใช้รูปชุดนี้)</span></label>
               <IrPhotoPicker store={photos} currentUser={currentUser} />
+            </div>
+
+            {/* หัวใบ 10 ช่อง + ผู้ลงนาม 4 ช่อง พับไว้เป็นบรรทัดสรุป (จัดใหม่ พ.ย. 2026 · ผู้ใช้: ข้างในยากและเยอะ)
+                ส่วนใหญ่ระบบเติมให้แล้ว (ชื่อโครงการ · ผู้รับเหมา · วันที่ขอ) คนตรวจหน้างานเริ่มที่รายการตรวจได้เลย
+                กดแถวนี้เพื่อกางแก้ — ใบพิมพ์ยังใช้ทุกช่องเหมือนเดิม */}
+            <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", flexShrink: 0 /* คอลัมน์ flex ที่เลื่อนได้ — ไม่ใส่ = การ์ด overflow:hidden ถูกบีบเหลือเส้นเดียว */ }}>
+              <button type="button" onClick={() => setHeadOpen((o) => !o)} aria-expanded={headOpen}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", background: "none", border: "none",
+                  cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span className="ic-chip" style={{ background: "var(--primary-soft)", width: 30, height: 30 }}><Icon name="file" size={15} color="var(--primary)" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>หัวใบ · ผู้ลงนาม</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", whiteSpace: headOpen ? "normal" : "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{headLine}</span>
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", flexShrink: 0 }}>{headOpen ? "พับ" : "แก้"}</span>
+                <Icon name="chevronDown" size={14} color="var(--primary)" style={{ transform: headOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+              </button>
+              {headOpen && (
+                <div style={{ padding: "4px 13px 14px", display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                  <IrField label="Report No." thai="เลขที่ใบ" lbl={lbl} sub={sub}>
+                    <input value={f.no} onChange={(e) => set("no", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="To" thai="เรียน" lbl={lbl} sub={sub}>
+                    <input value={f.to} onChange={(e) => set("to", e.target.value)} placeholder="ชื่อผู้รับ / เจ้าของอาคาร" style={inp} />
+                  </IrField>
+                  <IrField label="Project Name" thai="ชื่อโครงการ" lbl={lbl} sub={sub}>
+                    <input value={f.project} onChange={(e) => set("project", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="Contractor" thai="ผู้รับเหมา" lbl={lbl} sub={sub}>
+                    <input value={f.contractor} onChange={(e) => set("contractor", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="Request Date" thai="วันที่ขอ" lbl={lbl} sub={sub}>
+                    <input type="date" value={f.reqDate} onChange={(e) => set("reqDate", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="Inspection Date and Time" thai="วันและเวลาที่ตรวจสอบ" lbl={lbl} sub={sub}>
+                    <input type="datetime-local" value={f.inspAt} onChange={(e) => set("inspAt", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="Request to inspect" thai="หัวข้อการตรวจสอบ" wide lbl={lbl} sub={sub}>
+                    <textarea value={f.reqItems} onChange={(e) => set("reqItems", e.target.value)} rows={2}
+                      placeholder="เขียนให้ชัดว่าขอให้ตรวจอะไรบ้าง"
+                      style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
+                  </IrField>
+                  <IrField label="Ref IR No." thai="อ้างอิงจาก IR เลขที่" lbl={lbl} sub={sub}>
+                    <input value={f.refIr} onChange={(e) => set("refIr", e.target.value)} placeholder="ถ้าเป็นการตรวจซ้ำ ใส่เลขใบเดิม" style={inp} />
+                  </IrField>
+                  <IrField label="Request by" thai="ขอโดย" lbl={lbl} sub={sub}>
+                    <input value={f.reqBy} onChange={(e) => set("reqBy", e.target.value)} style={inp} />
+                  </IrField>
+                  <IrField label="Others" thai="อื่น ๆ" wide lbl={lbl} sub={sub}>
+                    <input value={f.others} onChange={(e) => set("others", e.target.value)} style={inp} />
+                  </IrField>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={lbl}>ผู้ลงนามท้ายใบ <span style={sub}>(เว้นว่างได้ — พิมพ์ออกมาเป็นช่องให้เซ็นสด)</span></label>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                    <IrField label="Issue By" thai="ผู้ออกใบ · EPC" lbl={lbl} sub={sub}>
+                      <input value={f.issueBy} onChange={(e) => set("issueBy", e.target.value)} style={inp} />
+                    </IrField>
+                    <IrField label="Inspected By" thai="ผู้ตรวจสอบ · EPC" lbl={lbl} sub={sub}>
+                      <input value={f.inspectedBy} onChange={(e) => set("inspectedBy", e.target.value)} style={inp} />
+                    </IrField>
+                    <IrField label="Approved By" thai="ผู้อนุมัติ · Project Manager" lbl={lbl} sub={sub}>
+                      <input value={f.approvedBy} onChange={(e) => set("approvedBy", e.target.value)} style={inp} />
+                    </IrField>
+                    <IrField label="Approved by Client" thai="อนุมัติโดยลูกค้า" lbl={lbl} sub={sub}>
+                      <input value={f.clientBy} onChange={(e) => set("clientBy", e.target.value)} style={inp} />
+                    </IrField>
+                  </div>
+                </div>
+
+                </div>
+              )}
             </div>
 
             {rec && rec.updatedAt && (

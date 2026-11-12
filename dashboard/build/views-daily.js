@@ -371,6 +371,9 @@ function DrStepTable({
     color: "var(--text-3)"
   };
   const nHist = hist.current.length;
+  const [tune, setTune] = React.useState(false);
+  const showW = weight && tune;
+  const canRow = can && (!weight || tune);
   const dateBox = (i, k, r) => can ? React.createElement("input", {
     type: "date",
     value: r[k] || "",
@@ -415,10 +418,10 @@ function DrStepTable({
   }, React.createElement("table", {
     style: {
       width: "100%",
-      minWidth: plan ? 640 : 400,
+      minWidth: plan ? 640 : showW ? 400 : 280,
       borderCollapse: "collapse"
     }
-  }, React.createElement("thead", null, React.createElement("tr", null, ["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : []).concat(dates ? ["จริง เริ่ม", "จริง จบ"] : []).concat(weight ? ["น้ำหนักงาน %"] : []).concat(["ทำไปแล้ว %"]).map((h, i, a) => React.createElement("th", {
+  }, React.createElement("thead", null, React.createElement("tr", null, ["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : []).concat(dates ? ["จริง เริ่ม", "จริง จบ"] : []).concat(showW ? ["น้ำหนักงาน %"] : []).concat(["ทำไปแล้ว %"]).map((h, i, a) => React.createElement("th", {
     key: i,
     style: {
       textAlign: i === a.length - 1 ? "right" : "left",
@@ -429,7 +432,7 @@ function DrStepTable({
       borderBottom: "1px solid var(--border-strong)",
       whiteSpace: "nowrap"
     }
-  }, h)), can && React.createElement("th", {
+  }, h)), canRow && React.createElement("th", {
     style: {
       width: rename ? 58 : 30,
       borderBottom: "1px solid var(--border-strong)"
@@ -473,7 +476,7 @@ function DrStepTable({
     style: cell
   }, dateBox(i, "actStart", r)), dates && React.createElement("td", {
     style: cell
-  }, dateBox(i, "actEnd", r)), weight && React.createElement("td", {
+  }, dateBox(i, "actEnd", r)), showW && React.createElement("td", {
     style: Object.assign({}, cell, {
       textAlign: "right"
     })
@@ -507,7 +510,7 @@ function DrStepTable({
       width: 56,
       opacity: disabled ? 0.65 : 1
     })
-  })), can && React.createElement("td", {
+  })), canRow && React.createElement("td", {
     style: Object.assign({}, cell, {
       textAlign: "center"
     })
@@ -538,13 +541,30 @@ function DrStepTable({
     const ok = sum === 100;
     return React.createElement("div", {
       style: {
-        marginTop: 7,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 9,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("button", {
+      type: "button",
+      onClick: () => setTune(t => !t),
+      "aria-expanded": tune,
+      style: Object.assign({}, pillBtn, {
+        color: tune ? "var(--primary-dark)" : "var(--text-2)"
+      })
+    }, React.createElement(Icon, {
+      name: tune ? "check" : "settings",
+      size: 14
+    }), tune ? "เสร็จ · พับน้ำหนักงาน" : can ? "ปรับน้ำหนักงาน / ลบหัวข้อ" : "ดูน้ำหนักงาน"), (tune || !ok) && React.createElement("span", {
+      style: {
         fontSize: 11.5,
         fontWeight: 700,
         color: ok ? "var(--text-3)" : "#B45309"
       }
-    }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E23\u0E27\u0E21 ", sum, "%", ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้");
-  })(), can && React.createElement("div", {
+    }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E23\u0E27\u0E21 ", sum, "%", ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้"));
+  })(), canRow && React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -1363,7 +1383,7 @@ function DailyReportModal({
       color: "var(--text-3)",
       marginBottom: 6
     }
-  }, "\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E02\u0E49\u0E32\u0E07\u0E25\u0E48\u0E32\u0E07"), prev && prev.pct != null && React.createElement("span", {
+  }, "\u0E23\u0E27\u0E21\u0E08\u0E32\u0E01 % \u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E02\u0E49\u0E32\u0E07\u0E25\u0E48\u0E32\u0E07 (\u0E16\u0E48\u0E27\u0E07\u0E15\u0E32\u0E21\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19)"), prev && prev.pct != null && React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-3)",
@@ -1378,7 +1398,7 @@ function DailyReportModal({
       marginTop: 6
     }
   }, React.createElement(DrLabel, {
-    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"
+    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"
   }, isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"), React.createElement(DrStepTable, {
     key: date,
     steps: form.steps,

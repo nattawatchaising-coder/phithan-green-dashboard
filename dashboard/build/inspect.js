@@ -743,7 +743,11 @@ function InspectionFormModal({
   });
   const [paper, setPaper] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [headOpen, setHeadOpen] = React.useState(false);
   const tally = irItemTally(f.items);
+  const signN = ["issueBy", "inspectedBy", "approvedBy", "clientBy"].filter(k => String(f[k] || "").trim()).length;
+  const atTH = f.inspAt ? (window.drDateTH ? window.drDateTH(f.inspAt) : f.inspAt.slice(0, 10)) + (f.inspAt.length > 10 ? " " + f.inspAt.slice(11, 16) : "") : "";
+  const headLine = [f.no || "ไม่มีเลขที่", f.to ? "เรียน " + f.to : "ยังไม่ใส่ผู้รับ", atTH ? "ตรวจ " + atTH : "ยังไม่ใส่วันตรวจ", f.reqBy ? "ขอโดย " + f.reqBy : "", "ลงนาม " + signN + "/4"].filter(Boolean).join(" · ");
   const set = (k, v) => {
     setF(p => Object.assign({}, p, {
       [k]: v
@@ -897,113 +901,6 @@ function InspectionFormModal({
     placeholder: "\u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E40\u0E2D\u0E07",
     style: inp
   })), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-      gap: 12
-    }
-  }, React.createElement(IrField, {
-    label: "Report No.",
-    thai: "\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.no,
-    onChange: e => set("no", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "To",
-    thai: "\u0E40\u0E23\u0E35\u0E22\u0E19",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.to,
-    onChange: e => set("to", e.target.value),
-    placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A / \u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Project Name",
-    thai: "\u0E0A\u0E37\u0E48\u0E2D\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.project,
-    onChange: e => set("project", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Contractor",
-    thai: "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.contractor,
-    onChange: e => set("contractor", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Request Date",
-    thai: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    type: "date",
-    value: f.reqDate,
-    onChange: e => set("reqDate", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Inspection Date and Time",
-    thai: "\u0E27\u0E31\u0E19\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    type: "datetime-local",
-    value: f.inspAt,
-    onChange: e => set("inspAt", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Request to inspect",
-    thai: "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
-    wide: true,
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("textarea", {
-    value: f.reqItems,
-    onChange: e => set("reqItems", e.target.value),
-    rows: 2,
-    placeholder: "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E2B\u0E49\u0E0A\u0E31\u0E14\u0E27\u0E48\u0E32\u0E02\u0E2D\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2D\u0E30\u0E44\u0E23\u0E1A\u0E49\u0E32\u0E07",
-    style: Object.assign({}, inp, {
-      resize: "vertical",
-      lineHeight: 1.5
-    })
-  })), React.createElement(IrField, {
-    label: "Ref IR No.",
-    thai: "\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E08\u0E32\u0E01 IR \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.refIr,
-    onChange: e => set("refIr", e.target.value),
-    placeholder: "\u0E16\u0E49\u0E32\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E0B\u0E49\u0E33 \u0E43\u0E2A\u0E48\u0E40\u0E25\u0E02\u0E43\u0E1A\u0E40\u0E14\u0E34\u0E21",
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Request by",
-    thai: "\u0E02\u0E2D\u0E42\u0E14\u0E22",
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.reqBy,
-    onChange: e => set("reqBy", e.target.value),
-    style: inp
-  })), React.createElement(IrField, {
-    label: "Others",
-    thai: "\u0E2D\u0E37\u0E48\u0E19 \u0E46",
-    wide: true,
-    lbl: lbl,
-    sub: sub
-  }, React.createElement("input", {
-    value: f.others,
-    onChange: e => set("others", e.target.value),
-    style: inp
-  }))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1194,6 +1091,204 @@ function InspectionFormModal({
     style: {
       display: "flex",
       flexDirection: "column",
+      gap: 9
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 ", React.createElement("span", {
+    style: sub
+  }, "(\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E23\u0E39\u0E1B\u0E16\u0E48\u0E32\u0E22\u0E43\u0E0A\u0E49\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49)")), React.createElement(IrPhotoPicker, {
+    store: photos,
+    currentUser: currentUser
+  })), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    type: "button",
+    onClick: () => setHeadOpen(o => !o),
+    "aria-expanded": headOpen,
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "11px 13px",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    className: "ic-chip",
+    style: {
+      background: "var(--primary-soft)",
+      width: 30,
+      height: 30
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "var(--primary)"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E2B\u0E31\u0E27\u0E43\u0E1A \xB7 \u0E1C\u0E39\u0E49\u0E25\u0E07\u0E19\u0E32\u0E21"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      whiteSpace: headOpen ? "normal" : "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, headLine)), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--primary)",
+      flexShrink: 0
+    }
+  }, headOpen ? "พับ" : "แก้"), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--primary)",
+    style: {
+      transform: headOpen ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  })), headOpen && React.createElement("div", {
+    style: {
+      padding: "4px 13px 14px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 16
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: 12
+    }
+  }, React.createElement(IrField, {
+    label: "Report No.",
+    thai: "\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.no,
+    onChange: e => set("no", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "To",
+    thai: "\u0E40\u0E23\u0E35\u0E22\u0E19",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.to,
+    onChange: e => set("to", e.target.value),
+    placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A / \u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Project Name",
+    thai: "\u0E0A\u0E37\u0E48\u0E2D\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.project,
+    onChange: e => set("project", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Contractor",
+    thai: "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.contractor,
+    onChange: e => set("contractor", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Request Date",
+    thai: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    type: "date",
+    value: f.reqDate,
+    onChange: e => set("reqDate", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Inspection Date and Time",
+    thai: "\u0E27\u0E31\u0E19\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    type: "datetime-local",
+    value: f.inspAt,
+    onChange: e => set("inspAt", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Request to inspect",
+    thai: "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
+    wide: true,
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("textarea", {
+    value: f.reqItems,
+    onChange: e => set("reqItems", e.target.value),
+    rows: 2,
+    placeholder: "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E2B\u0E49\u0E0A\u0E31\u0E14\u0E27\u0E48\u0E32\u0E02\u0E2D\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2D\u0E30\u0E44\u0E23\u0E1A\u0E49\u0E32\u0E07",
+    style: Object.assign({}, inp, {
+      resize: "vertical",
+      lineHeight: 1.5
+    })
+  })), React.createElement(IrField, {
+    label: "Ref IR No.",
+    thai: "\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E08\u0E32\u0E01 IR \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.refIr,
+    onChange: e => set("refIr", e.target.value),
+    placeholder: "\u0E16\u0E49\u0E32\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E0B\u0E49\u0E33 \u0E43\u0E2A\u0E48\u0E40\u0E25\u0E02\u0E43\u0E1A\u0E40\u0E14\u0E34\u0E21",
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Request by",
+    thai: "\u0E02\u0E2D\u0E42\u0E14\u0E22",
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.reqBy,
+    onChange: e => set("reqBy", e.target.value),
+    style: inp
+  })), React.createElement(IrField, {
+    label: "Others",
+    thai: "\u0E2D\u0E37\u0E48\u0E19 \u0E46",
+    wide: true,
+    lbl: lbl,
+    sub: sub
+  }, React.createElement("input", {
+    value: f.others,
+    onChange: e => set("others", e.target.value),
+    style: inp
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
       gap: 8
     }
   }, React.createElement("label", {
@@ -1242,20 +1337,7 @@ function InspectionFormModal({
     value: f.clientBy,
     onChange: e => set("clientBy", e.target.value),
     style: inp
-  })))), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 9
-    }
-  }, React.createElement("label", {
-    style: lbl
-  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 ", React.createElement("span", {
-    style: sub
-  }, "(\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E23\u0E39\u0E1B\u0E16\u0E48\u0E32\u0E22\u0E43\u0E0A\u0E49\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49)")), React.createElement(IrPhotoPicker, {
-    store: photos,
-    currentUser: currentUser
-  })), rec && rec.updatedAt && React.createElement("div", {
+  })))))), rec && rec.updatedAt && React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)"

@@ -180,6 +180,12 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
     border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
     fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" };
   const nHist = hist.current.length;
+  /* งานบ้าน: รายงานแต่ละวันกรอกแค่ "ทำไปแล้ว %" — น้ำหนักงาน ถังขยะ และปุ่มคืนชุดมาตรฐาน พับไว้ใต้ "ปรับน้ำหนักงาน"
+     (จัดใหม่ พ.ย. 2026 · ผู้ใช้: ข้างในยากและเยอะ) น้ำหนักตั้งครั้งเดียวต่องาน ไม่ต้องเห็นทุกวัน
+     น้ำหนักรวมไม่ครบ 100 ยังเตือนอยู่ใต้ตารางแม้พับไว้ */
+  const [tune, setTune] = React.useState(false);
+  const showW = weight && tune;
+  const canRow = can && (!weight || tune);
   /* แก้ไม่ได้ก็ไม่ต้องขึ้นเป็นช่องกรอก — งานบ้านมีวันแผนแค่ขั้นติดตั้ง
      ถ้าโชว์ช่องว่างที่กดไม่ได้ทั้งตาราง จะดูเหมือนฟอร์มเสียมากกว่าเป็นข้อมูล */
   const dateBox = (i, k, r) => (can ? (
@@ -200,16 +206,16 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
       {/* ปุ่มย้อนกลับไว้บนหัวตารางด้วย — ตาราง 40 แถว ลบแถวกลางตารางแล้วไม่ต้องเลื่อนลงไปหาปุ่มล่าง */}
       {can && !!nHist && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>{undoBtn}</div>}
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: plan ? 640 : 400, borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: plan ? 640 : (showW ? 400 : 280), borderCollapse: "collapse" }}>
           <thead>
             <tr>
               {["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : [])
                 .concat(dates ? ["จริง เริ่ม", "จริง จบ"] : [])
-                .concat(weight ? ["น้ำหนักงาน %"] : []).concat(["ทำไปแล้ว %"]).map((h, i, a) => (
+                .concat(showW ? ["น้ำหนักงาน %"] : []).concat(["ทำไปแล้ว %"]).map((h, i, a) => (
                 <th key={i} style={{ textAlign: i === a.length - 1 ? "right" : "left", padding: "5px 6px", fontSize: 11,
                   color: "var(--text-3)", fontWeight: 700, borderBottom: "1px solid var(--border-strong)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
-              {can && <th style={{ width: rename ? 58 : 30, borderBottom: "1px solid var(--border-strong)" }} />}
+              {canRow && <th style={{ width: rename ? 58 : 30, borderBottom: "1px solid var(--border-strong)" }} />}
             </tr>
           </thead>
           <tbody>
@@ -232,7 +238,7 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
                 {dates && <td style={cell}>{dateBox(i, "actStart", r)}</td>}
                 {dates && <td style={cell}>{dateBox(i, "actEnd", r)}</td>}
                 {/* น้ำหนักงาน — หัวข้อไหนสำคัญกว่ากันในภาพรวมของงานนี้ ใช้ถ่วงเป็น % รวม */}
-                {weight && (
+                {showW && (
                   <td style={Object.assign({}, cell, { textAlign: "right" })}>
                     <input value={r.w === 0 || r.w ? String(r.w) : ""} disabled={disabled || !editable} inputMode="numeric"
                       onChange={(e) => set(i, "w", e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
@@ -246,7 +252,7 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
                     style={Object.assign({}, DR_INPUT, { padding: "6px 7px", fontSize: 12, fontFamily: "var(--mono)",
                       textAlign: "right", width: 56, opacity: disabled ? 0.65 : 1 })} />
                 </td>
-                {can && (
+                {canRow && (
                   <td style={Object.assign({}, cell, { textAlign: "center" })}>
                     <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
                       {rename && r.head && (
@@ -271,12 +277,21 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
         const sum = window.drWeightSum(list);
         const ok = sum === 100;
         return (
-          <div style={{ marginTop: 7, fontSize: 11.5, fontWeight: 700, color: ok ? "var(--text-3)" : "#B45309" }}>
-            น้ำหนักงานรวม {sum}%{ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้"}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => setTune((t) => !t)} aria-expanded={tune}
+              style={Object.assign({}, pillBtn, { color: tune ? "var(--primary-dark)" : "var(--text-2)" })}>
+              <Icon name={tune ? "check" : "settings"} size={14} />
+              {tune ? "เสร็จ · พับน้ำหนักงาน" : can ? "ปรับน้ำหนักงาน / ลบหัวข้อ" : "ดูน้ำหนักงาน"}
+            </button>
+            {(tune || !ok) && (
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: ok ? "var(--text-3)" : "#B45309" }}>
+                น้ำหนักงานรวม {sum}%{ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้"}
+              </span>
+            )}
           </div>
         );
       })()}
-      {can && (
+      {canRow && (
         <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
           {rename && <button type="button" onClick={() => commit(list.concat([{ no: "", th: "", head: true, pct: 0, w: 0 }]))}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
@@ -689,7 +704,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                     lineHeight: 1, marginBottom: 6 }}>{+form.pct || 0}</span>
                 )}
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-2)", marginBottom: 6 }}>%</span>
-                {!isProject && <span style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 6 }}>คิดจากน้ำหนักงานในตารางข้างล่าง</span>}
+                {!isProject && <span style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 6 }}>รวมจาก % ของแต่ละหัวข้อข้างล่าง (ถ่วงตามน้ำหนักงาน)</span>}
                 {prev && prev.pct != null && (
                   <span style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 6 }}>
                     เมื่อวาน {prev.pct}% → <b style={{ color: (+form.pct || 0) >= (+prev.pct || 0) ? "#10B981" : "#EF4444" }}>
@@ -698,7 +713,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 )}
               </div>
               <div style={{ marginTop: 6 }}>
-                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
+                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
                 {/* งานบ้านไม่มีวันแผน/วันจริงรายหัวข้อ — มีแค่ช่วงวันติดตั้งช่วงเดียวของทั้งงาน
                     เหลือ เนื้องาน · น้ำหนักงาน · ทำไปแล้ว กี่ % กรอกบนมือถือหน้างานได้จริง */}
                 <DrStepTable key={date} steps={form.steps} disabled={locked} editable

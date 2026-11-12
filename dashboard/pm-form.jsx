@@ -444,6 +444,30 @@ function PmSignRow({ block, value, onCommit }) {
 /* ══════════════════════════════════════════════════
    หน้าหลัก
    ══════════════════════════════════════════════════ */
+/* ── กลุ่มหมวดของสมุดส่งมอบ — จัดหน้าจออย่างเดียว ไม่แตะโครงข้อมูล/ใบพิมพ์ ──
+   จัดใหม่ พ.ย. 2026 (ผู้ใช้: ข้างในยากและเยอะ): เดิมภาพรวม + 18 หมวด + รูปประกอบ เป็นแถบเลื่อนแนวนอน 20 ปุ่ม
+   ตอนนี้เลือกกลุ่มก่อน (5 กลุ่ม) แล้วค่อยเลือกหมวดในกลุ่ม · "photo" = หมวดรูปประกอบรวมท้ายเล่ม
+   หมวดใหม่ที่ยังไม่ได้ใส่ในกลุ่มไหน ไปอยู่กลุ่ม "อื่น ๆ" เอง ไม่หายจากจอ */
+const PM_GROUPS = [
+  { key: "info", th: "ข้อมูล · เอกสาร", secs: ["sum", "docs", "reg"] },
+  { key: "elec", th: "ทดสอบไฟฟ้า", secs: ["a1", "b1", "b3", "b4", "c1", "c2"] },
+  { key: "therm", th: "ภาพความร้อน", secs: ["d1", "d2", "d3"] },
+  { key: "mech", th: "แรงขัน · ล้างแผง · รูปทดสอบ", secs: ["e1", "e2", "w1", "pac", "pgnd"] },
+  { key: "close", th: "ลงนาม · รูปประกอบ", secs: ["sign", "photo"] },
+];
+function pmGroupsFor(secs) {
+  const have = {}; (secs || []).forEach((x) => { have[x.key] = true; });
+  const used = { photo: true };
+  const out = PM_GROUPS.map((g) => {
+    const list = g.secs.filter((k) => k === "photo" || have[k]);
+    list.forEach((k) => { used[k] = true; });
+    return Object.assign({}, g, { secs: list });
+  });
+  const rest = (secs || []).filter((x) => !used[x.key]).map((x) => x.key);
+  if (rest.length) out.splice(out.length - 1, 0, { key: "other", th: "อื่น ๆ", secs: rest });
+  return out.filter((g) => g.secs.length);
+}
+
 function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const jobId = job ? job.id : null;
@@ -581,24 +605,24 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
   const secs = window.PM_SECTIONS;
   const cur = window.PM_SEC_BY[tab];
-
-  const tabBtn = (sec) => {
-    const st = prog.bySection[sec.key] || { pct: 0, state: "empty", done: 0, total: 0 };
-    const on = tab === sec.key;
-    return (
-      <button key={sec.key} onClick={() => setTab(sec.key)}
-        style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-          border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-          background: on ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
-        <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
-          {sec.th}
-        </span>
-        <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: PM_STATE_COLOR[st.state] || "var(--text-3)" }}>
-          {st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่มีรายการบังคับ"}
-        </span>
-      </button>
-    );
+  const groups = pmGroupsFor(secs);
+  const groupOf = (k) => groups.find((g) => g.secs.indexOf(k) >= 0) || null;
+  const curGroup = tab === "home" ? null : groupOf(tab);
+  const secSt = (k) => (k === "photo" ? null : (prog.bySection[k] || { pct: 0, state: "empty", done: 0, total: 0 }));
+  const secTh = (k) => (k === "photo" ? "รูปประกอบ" : ((window.PM_SEC_BY[k] || {}).th || k));
+  const grpSt = (g) => {
+    let d = 0, t = 0;
+    g.secs.forEach((k) => { const st = secSt(k); if (st) { d += st.done || 0; t += st.total || 0; } });
+    return { done: d, total: t, pct: t ? Math.round((d * 100) / t) : 0, state: !t ? "na" : d >= t ? "done" : d > 0 ? "partial" : "empty" };
   };
+  /* แตะกลุ่ม = ไปหมวดแรกในกลุ่มที่ยังไม่ครบ (ครบหมดแล้วก็หมวดแรก) */
+  const openGroup = (g) => {
+    const todo = g.secs.find((k) => { const st = secSt(k); return st && st.total && st.done < st.total; });
+    setTab(todo || g.secs[0]);
+  };
+  /* ทำต่อ = หมวดแรกที่ยังมีรายการขาด ตามลำดับเล่ม */
+  const nextSec = prog.missing.length ? prog.missing[0].section : null;
+  const signed = !!(rec && rec.meta && rec.meta.status === "signed");
 
   return (
     <React.Fragment>
@@ -683,75 +707,101 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 </div>
               ) : null}
 
-              {/* แถบเลือกหมวด */}
+              {/* แถบเลือก — แถวบน: ภาพรวม + กลุ่ม · แถวล่าง: หมวดในกลุ่มที่เลือก (กลุ่มที่มีหมวดเดียวไม่มีแถวล่าง) */}
               {/* ⚠ flexShrink: 0 ทุกแถวที่ไม่ใช่ส่วนเลื่อน — หน้าต่างนี้เป็น flex คอลัมน์ที่มีเพดานความสูง
                   ถ้าไม่ห้ามหด เบราว์เซอร์จะบีบแถบหมวดจนบรรทัด "14/26 · 54%" ถูกตัดหายไปครึ่งตัว
                   พอเนื้อหาข้างในยาว (ซึ่งยาวเสมอ) */}
-              <div style={{ flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto",
-                borderBottom: "1px solid var(--divider)" }}>
-                <button onClick={() => setTab("home")}
-                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                    border: "none", boxShadow: tab === "home" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-                    background: tab === "home" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
-                  <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
-                    color: tab === "home" ? "var(--primary-dark)" : "var(--text-1)" }}>ภาพรวม</span>
-                  <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: PM_STATE_COLOR[prog.pct >= 100 ? "done" : "partial"] }}>
-                    {prog.done}/{prog.total} · {prog.pct}%
-                  </span>
-                </button>
-                {secs.map(tabBtn)}
-                <button onClick={() => setTab("photo")}
-                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                    border: "none", boxShadow: tab === "photo" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-                    background: tab === "photo" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
-                  <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
-                    color: tab === "photo" ? "var(--primary-dark)" : "var(--text-1)" }}>รูปประกอบ</span>
-                  <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-                    {genPhotos.length} รูป
-                  </span>
-                </button>
+              <div style={{ flexShrink: 0, padding: "10px 16px", borderBottom: "1px solid var(--divider)" }}>
+                <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
+                  {[{ key: "home", th: "ภาพรวม" }].concat(groups).map((g) => {
+                    const isHome = g.key === "home";
+                    const on = isHome ? tab === "home" : !!(curGroup && curGroup.key === g.key);
+                    const st = isHome ? { done: prog.done, total: prog.total, pct: prog.pct, state: prog.pct >= 100 ? "done" : "partial" } : grpSt(g);
+                    const photoOnly = !isHome && !st.total && g.secs.indexOf("photo") >= 0;
+                    return (
+                      <button key={g.key} onClick={() => (isHome ? setTab("home") : openGroup(g))}
+                        style={{ flexShrink: 0, padding: "7px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
+                          border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+                          background: on ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
+                        <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-1)", whiteSpace: "nowrap" }}>{g.th}</span>
+                        <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: PM_STATE_COLOR[st.state] || "var(--text-3)" }}>
+                          {st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : photoOnly ? genPhotos.length + " รูป" : "ไม่บังคับ"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {curGroup && curGroup.secs.length > 1 && (
+                  <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 8, paddingBottom: 2 }}>
+                    {curGroup.secs.map((k) => {
+                      const st = secSt(k);
+                      const on = tab === k;
+                      return (
+                        <button key={k} onClick={() => setTab(k)}
+                          style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: "var(--r-pill)",
+                            cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", border: "none",
+                            background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--shadow-sm)" : "none",
+                            color: on ? "var(--text-1)" : "var(--text-2)" }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                            background: st ? (PM_STATE_COLOR[st.total ? st.state : "na"] || "var(--border-strong)") : "var(--border-strong)" }} />
+                          {secTh(k)}
+                          {st && st.total ? <span style={{ fontWeight: 600, color: "var(--text-3)" }}>{st.done}/{st.total}</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* เนื้อหา */}
               <div style={{ padding: 16, overflowY: "auto", flex: 1, minHeight: 0 }}>
                 {tab === "home" ? (
                   <div>
-                    <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7, marginBottom: 13 }}>
-                      เปิดสมุดแล้ว · กรอกไปแล้ว <b style={{ color: "var(--text-1)" }}>{prog.pct}%</b>{" "}
+                    <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7, marginBottom: 12 }}>
+                      กรอกไปแล้ว <b style={{ color: "var(--text-1)" }}>{prog.pct}%</b>{" "}
                       ({prog.done} จาก {prog.total} รายการ)
                       {prog.missing.length ? <span> · ยังขาดอีก {prog.missing.length} รายการ</span> : <span> · ครบทุกรายการแล้ว</span>}
                     </div>
-                    {secs.map((sec) => {
-                      const st = prog.bySection[sec.key] || { pct: 0, done: 0, total: 0, state: "empty" };
+                    {/* ทำต่อ — พาไปหมวดแรกที่ยังขาด ไม่ต้องไล่หาเองจาก 18 หมวด */}
+                    {nextSec && !signed ? (
+                      <button className="btn btn-pri" onClick={() => setTab(nextSec)} style={{ width: "100%", marginBottom: 16, fontSize: 13.5 }}>
+                        ทำต่อ · {secTh(nextSec)} <Icon name="arrowRight" size={15} color="#fff" />
+                      </button>
+                    ) : null}
+                    {groups.map((g) => {
+                      const gs = grpSt(g);
                       return (
-                        <button key={sec.key} onClick={() => setTab(sec.key)}
-                          style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 9, padding: "11px 13px",
-                            borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
-                            cursor: "pointer", fontFamily: "inherit" }}>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
-                            <span style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{sec.th}</span>
-                              <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{sec.en}</span>
-                            </span>
-                            <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: PM_STATE_COLOR[st.state] || "var(--text-3)" }}>
-                              {st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่บังคับ"}
-                            </span>
+                        <div key={g.key} style={{ marginBottom: 14 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6, padding: "0 2px" }}>
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{g.th}</span>
+                            {gs.total ? <span style={{ fontSize: 11.5, fontWeight: 800, color: PM_STATE_COLOR[gs.state] || "var(--text-3)" }}>{gs.done}/{gs.total}</span> : null}
                           </div>
-                          {st.total ? (
-                            <div style={{ height: 5, borderRadius: "var(--r-pill)", background: "var(--border)", overflow: "hidden", marginTop: 8 }}>
-                              <div style={{ width: st.pct + "%", height: "100%", borderRadius: "var(--r-pill)",
-                                background: PM_STATE_COLOR[st.state] || "var(--border-strong)" }} />
-                            </div>
-                          ) : null}
-                        </button>
+                          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
+                            {g.secs.map((k, i) => {
+                              const st = secSt(k);
+                              return (
+                                <button key={k} onClick={() => setTab(k)}
+                                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 13px",
+                                    border: "none", borderTop: i ? "1px solid var(--divider)" : "none", background: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                  <span style={{ flex: 1, minWidth: 0 }}>
+                                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{secTh(k)}</span>
+                                    {st && st.total ? (
+                                      <span style={{ display: "block", height: 4, borderRadius: "var(--r-pill)", background: "var(--border)", overflow: "hidden", marginTop: 6, maxWidth: 220 }}>
+                                        <span style={{ display: "block", width: st.pct + "%", height: "100%", borderRadius: "var(--r-pill)", background: PM_STATE_COLOR[st.state] || "var(--border-strong)" }} />
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 800, color: st ? (PM_STATE_COLOR[st.total ? st.state : "na"] || "var(--text-3)") : "var(--text-3)" }}>
+                                    {st ? (st.total ? st.done + "/" + st.total : "ไม่บังคับ") : genPhotos.length + " รูป"}
+                                  </span>
+                                  <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
-                    <button onClick={() => setTab("photo")}
-                      style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-chip)",
-                        border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>รูปประกอบ</span>
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>Photos · {genPhotos.length} รูป</span>
-                    </button>
                   </div>
                 ) : null}
 
