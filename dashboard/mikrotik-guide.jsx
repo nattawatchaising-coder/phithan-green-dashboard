@@ -122,6 +122,21 @@ const MTG_SECTIONS = [
     "หน้านี้กล่อง \"สถานะไซต์\" ต้องขึ้น \"agent บน VPS ติดต่อล่าสุด … วิที่แล้ว\" → ทำข้อ 4b ให้ทุกไซต์",
     "agent อัปเดตตัวเองทุกวันตี 3 ครึ่ง (ดึงจาก GitHub) ไม่ต้องทำอะไร · อยากได้ทันที: sudo mt-agent-update · ดูผล: journalctl -u mt-agent-update -n 5",
   ] },
+  { title: "11) เข้าหน้าเว็บมิเตอร์ / SmartLogger จากคอม (ต่อ VPN ด้วยแอป WireGuard — ตั้งครั้งเดียวต่อคอม)", steps: [
+    "ทำแล้วได้อะไร: เปิดสวิตช์ในแอป WireGuard ทีเดียว แล้วเข้าอุปกรณ์ของทุกไซต์ได้จากเบราว์เซอร์ ไม่ต้องเปิด PowerShell อีก",
+    { warn: "คอมที่เพิ่มจะเข้าหน้าเว็บมิเตอร์/SmartLogger ได้ทุกไซต์ — เพิ่มเฉพาะคอมที่ไว้ใจได้ (สูงสุด 8 เครื่อง) · คอมหาย/เลิกใช้ ให้ลบทันทีด้วย sudo mt-admin del <เลข>" },
+    "คอม: เข้า wireguard.com/install → Download Windows Installer → ติดตั้ง (กด Next จนจบ)",
+    "ssh เข้า VPS แบบข้อ 2",
+    { t: "ครั้งแรกครั้งเดียวของ VPS — ติดตั้งคำสั่ง mt-admin:", code: "curl -fsSL https://raw.githubusercontent.com/nattawatchaising-coder/phithan-green-dashboard/master/tools/mt-server/admin.sh | sudo bash" },
+    { t: "เพิ่มคอมเครื่องนี้ (ตั้งชื่ออังกฤษ เช่น office-pc):", code: "sudo mt-admin add office-pc" },
+    "จอจะพิมพ์คอนฟิก — ลากคลุมตั้งแต่บรรทัด [Interface] ถึงบรรทัด PersistentKeepalive = 25 แล้วกด Enter (= คัดลอก) · มีกุญแจลับ แสดงครั้งเดียว ห้ามส่งในแชต",
+    "เปิดแอป WireGuard → ลูกศรข้างปุ่ม Add Tunnel → Add empty tunnel… → ลบข้อความในกล่องใหญ่ทิ้งทั้งหมด → วาง (Ctrl+V) → ช่อง Name ใส่ flashsolar → Save",
+    "กด Activate → Status ต้องเป็น Active (สีเขียว) · พิมพ์ exit ในหน้าต่าง VPS ปิดได้เลย",
+    "ทดสอบ: เปิดเบราว์เซอร์  http://10.10.{N}.20  = หน้าเว็บมิเตอร์ ·  https://10.10.{N}.10  = SmartLogger (ขึ้นเตือนใบรับรองกด Advanced → Continue)",
+    "ครั้งต่อไป: เปิดแอป WireGuard → Activate → เข้าหน้า MikroTik Monitoring → กดไซต์ → ปุ่ม \"หน้าเว็บมิเตอร์\" / \"SmartLogger\" · เลิกใช้กด Deactivate",
+    "เข้าได้แค่หน้าเว็บ (พอร์ต 80/443) ของ .10 และ .20 — ไม่เปิด Modbus และไม่เปิดเข้าเราเตอร์ · เน็ตปกติของคอมไม่วิ่งผ่าน VPN",
+    { t: "ดูคอมที่เพิ่มไว้ (บน VPS):", code: "sudo mt-admin list" },
+  ] },
 ];
 
 const MTG_TROUBLE = [

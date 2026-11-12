@@ -402,7 +402,26 @@ function MtMonDetail({
     key: o.value,
     className: tab === o.value ? "btn btn-pri" : "btn",
     onClick: () => setTab(o.value)
-  }, o.label))), tab === "bill" ? React.createElement(MtSiteBill, {
+  }, o.label))), isAdmin && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, React.createElement("span", null, "\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E44\u0E0B\u0E15\u0E4C (\u0E40\u0E1B\u0E34\u0E14 VPN \u0E1A\u0E19\u0E04\u0E2D\u0E21\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D\u0E02\u0E49\u0E2D 11):"), React.createElement("a", {
+    className: "btn btn-sm",
+    href: "http://10.10." + s.n + ".20",
+    target: "_blank",
+    rel: "noopener noreferrer"
+  }, "\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C"), React.createElement("a", {
+    className: "btn btn-sm",
+    href: "https://10.10." + s.n + ".10",
+    target: "_blank",
+    rel: "noopener noreferrer"
+  }, "SmartLogger")), tab === "bill" ? React.createElement(MtSiteBill, {
     s: s,
     st: st,
     isAdmin: isAdmin,

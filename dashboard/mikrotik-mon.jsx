@@ -143,6 +143,14 @@ function MtMonDetail({ s, st, isAdmin, canEdit, onBack }) {
         {window.Segmented ? <window.Segmented value={tab} onChange={setTab} options={opts} />
           : opts.map((o) => <button key={o.value} className={tab === o.value ? "btn btn-pri" : "btn"} onClick={() => setTab(o.value)}>{o.label}</button>)}
       </div>
+      {/* เข้าหน้าเว็บอุปกรณ์ในไซต์ตรง ๆ — ใช้ได้เมื่อคอมเปิด WireGuard (คู่มือข้อ 11 · tools/mt-server/admin.sh) · เฉพาะแอดมิน พาร์ทเนอร์ไม่เห็น */}
+      {isAdmin && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12, color: "var(--text-3)" }}>
+          <span>เข้าอุปกรณ์ในไซต์ (เปิด VPN บนคอมก่อน — คู่มือข้อ 11):</span>
+          <a className="btn btn-sm" href={"http://10.10." + s.n + ".20"} target="_blank" rel="noopener noreferrer">หน้าเว็บมิเตอร์</a>
+          <a className="btn btn-sm" href={"https://10.10." + s.n + ".10"} target="_blank" rel="noopener noreferrer">SmartLogger</a>
+        </div>
+      )}
       {tab === "bill" ? <MtSiteBill s={s} st={st} isAdmin={isAdmin} canEdit={canEdit} />
         : tab === "info" ? <MtSiteInfo key={s.n} s={s} canEdit={canEdit} />
         : <MtMonMeter s={s} st={st} isAdmin={isAdmin} />}
