@@ -558,6 +558,13 @@ function FsFleetHero({
   health,
   onHealth
 }) {
+  const [boxRef, bw] = useFsWidth(0);
+  const W = bw || (isMobile ? 360 : 1200);
+  const titleW = Math.max(230, (W - 292) * 0.32);
+  const regL = 22 + titleW + 14,
+    regR = W - 22 - 220 - 14;
+  const imgHL = (regR - regL) / 0.86 / 1.79;
+  const lay = W < 600 ? "s" : imgHL >= 360 ? "l" : "m";
   const co2 = roll.total * FS_GRID_EF / 1000;
   const big = v => Math.abs(v) >= 10000 ? v / 1000 : v;
   const E = v => fsEnergy(v)[1];
@@ -640,7 +647,7 @@ function FsFleetHero({
   }), refreshing ? "กำลังดึงข้อมูลล่าสุด…" : lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"), React.createElement("div", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: isMobile ? 28 : 38,
+      fontSize: lay === "s" ? 28 : lay === "m" ? 34 : 38,
       fontWeight: 700,
       lineHeight: 1.12,
       color: "var(--text-1)"
@@ -688,10 +695,12 @@ function FsFleetHero({
       background: FS_HG[k]
     }
   }), FS_HEALTH[k].th, " ", hCount[k]))));
-  const backdrop = cx => window.FsHouseBackdrop ? React.createElement(window.FsHouseBackdrop, {
-    cx: cx
+  const backdrop = (cx, bgc) => window.FsHouseBackdrop ? React.createElement(window.FsHouseBackdrop, {
+    cx: cx,
+    bg: bgc
   }) : null;
-  const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
+  const cxL = (regL + regR) / 2 / W;
+  const bg = "radial-gradient(ellipse 48% 62% at " + (lay === "s" ? "50% 42%" : lay === "m" ? "70% 36%" : Math.round(cxL * 100) + "% 44%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = {
     position: "relative",
     overflow: "hidden",
@@ -701,7 +710,8 @@ function FsFleetHero({
     isolation: "isolate"
   };
   const vfade = "linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%)";
-  if (isMobile) return React.createElement("div", {
+  let body;
+  if (lay === "s") body = React.createElement("div", {
     className: "fs-hero",
     style: wrap
   }, React.createElement("div", {
@@ -727,36 +737,88 @@ function FsFleetHero({
     key: c.k
   }, c, {
     flat: true
-  })))));
+  })))));else if (lay === "m") {
+    const avail = W - 40 - 14,
+      tW = Math.max(230, avail * 0.8 / 1.8),
+      hh = Math.round(Math.min(290, Math.max(180, (avail - tW) / 1.55)));
+    body = React.createElement("div", {
+      className: "fs-hero",
+      style: wrap
+    }, React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1fr)",
+        gap: 14,
+        padding: "20px 20px 6px",
+        alignItems: "center"
+      }
+    }, titleBlock, React.createElement("div", {
+      style: {
+        position: "relative",
+        height: hh
+      }
+    }, backdrop(0.5, "transparent"))), React.createElement("div", {
+      className: "kpi-grid",
+      style: {
+        display: "grid",
+        gap: 10,
+        gridTemplateColumns: W >= 880 ? "repeat(4, minmax(0, 1fr))" : "1fr 1fr",
+        padding: "8px 20px 20px"
+      }
+    }, cards.map(c => React.createElement(FsFloatCard, _extends({
+      key: c.k
+    }, c, {
+      flat: true
+    })))));
+  } else {
+    const boxH = Math.round(Math.min(520, imgHL / 0.96));
+    body = React.createElement("div", {
+      className: "fs-hero",
+      style: wrap
+    }, React.createElement("div", {
+      "aria-hidden": "true",
+      style: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "50%",
+        height: boxH,
+        transform: "translateY(-50%)",
+        pointerEvents: "none"
+      }
+    }, backdrop(cxL, "transparent")), React.createElement("div", {
+      style: {
+        position: "relative",
+        display: "grid",
+        gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px",
+        gap: 14,
+        padding: "20px 22px",
+        alignItems: "center"
+      }
+    }, titleBlock, React.createElement("div", {
+      style: {
+        height: 360
+      }
+    }), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 10
+      }
+    }, cards.map(c => React.createElement(FsFloatCard, _extends({
+      key: c.k
+    }, c, {
+      style: {
+        padding: "10px 14px"
+      }
+    }))))));
+  }
   return React.createElement("div", {
-    className: "fs-hero",
-    style: wrap
-  }, backdrop(0.52), React.createElement("div", {
+    ref: boxRef,
     style: {
-      position: "relative",
-      display: "grid",
-      gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px",
-      gap: 14,
-      padding: "20px 22px",
-      alignItems: "center"
+      minWidth: 0
     }
-  }, titleBlock, React.createElement("div", {
-    style: {
-      height: 360
-    }
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }
-  }, cards.map(c => React.createElement(FsFloatCard, _extends({
-    key: c.k
-  }, c, {
-    style: {
-      padding: "10px 14px"
-    }
-  }))))));
+  }, body);
 }
 function FsRanking({
   sites,

@@ -232,6 +232,14 @@ function FsFloatCard({ icon, label, value, unit, sub, frac, style, flat }) {
   );
 }
 function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount, health, onHealth }) {
+  /* จัดวางตามความกว้างของแผงเอง (ไม่ใช่หน้าต่าง) — จอ ~930px ที่เปิดเมนูข้าง แผงเหลือ ~620px บ้านเคยทับหัวข้อ/การ์ด (ผู้ใช้ทัก 2026-11-12)
+     s = มือถือ · m = บ้านข้างหัวข้อ การ์ดเรียงข้างล่าง · l = บ้านเต็มแผงระหว่างหัวข้อกับคอลัมน์การ์ด ขนาดพอดีช่อง (ภาพ 1100×614 ขอบจาง 9%) */
+  const [boxRef, bw] = useFsWidth(0);
+  const W = bw || (isMobile ? 360 : 1200);
+  const titleW = Math.max(230, (W - 292) * 0.32);
+  const regL = 22 + titleW + 14, regR = W - 22 - 220 - 14;
+  const imgHL = (regR - regL) / 0.86 / 1.79;          // ส่วนที่ไม่จางของภาพพอดีช่องระหว่างหัวข้อกับการ์ด
+  const lay = W < 600 ? "s" : imgHL >= 360 ? "l" : "m";   // บ้านเล็กกว่า 360 ในแผงสูง ~520 ดูโหรง → ใช้แบบ m (การ์ดแถวเดียว) แทน
   const co2 = (roll.total * FS_GRID_EF) / 1000;
   const big = (v) => (Math.abs(v) >= 10000 ? v / 1000 : v);
   const E = (v) => fsEnergy(v)[1];
@@ -255,7 +263,7 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount,
         borderRadius: 999, background: "color-mix(in srgb, var(--fs-sun) 14%, var(--surface))", color: "var(--text-2)" }}>
         <span className={refreshing ? "fs-pulse" : ""} style={{ width: 7, height: 7, borderRadius: 4, background: "var(--fs-sun)" }} />{refreshing ? "กำลังดึงข้อมูลล่าสุด…" : lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"}
       </span>
-      <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 28 : 38, fontWeight: 700, lineHeight: 1.12, color: "var(--text-1)" }}>
+      <div style={{ fontFamily: "var(--display)", fontSize: lay === "s" ? 28 : lay === "m" ? 34 : 38, fontWeight: 700, lineHeight: 1.12, color: "var(--text-1)" }}>
         พลังงานสะอาด<br />จาก <span style={{ color: "var(--fs-sun)" }}>{roll.n}</span> ไซต์
       </div>
       <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · ดึงข้อมูลจาก Huawei / Sungrow ทุก 15 นาที</div>
@@ -271,12 +279,14 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount,
       </div>
     </div>
   );
-  const backdrop = (cx) => (window.FsHouseBackdrop ? <window.FsHouseBackdrop cx={cx} /> : null);
-  const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%),"
+  const backdrop = (cx, bgc) => (window.FsHouseBackdrop ? <window.FsHouseBackdrop cx={cx} bg={bgc} /> : null);
+  const cxL = (regL + regR) / 2 / W;
+  const bg = "radial-gradient(ellipse 48% 62% at " + (lay === "s" ? "50% 42%" : lay === "m" ? "70% 36%" : Math.round(cxL * 100) + "% 44%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%),"
     + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = { position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: bg, boxShadow: "var(--shadow-card)", isolation: "isolate" };
   const vfade = "linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%)";   // มือถือ: ขอบบน/ล่างของภาพจางเข้าพื้นกรอบ
-  if (isMobile) return (
+  let body;
+  if (lay === "s") body = (
     <div className="fs-hero" style={wrap}>
       <div style={{ padding: "16px 14px 0" }}>{titleBlock}</div>
       <div style={{ position: "relative", height: 230, WebkitMaskImage: vfade, maskImage: vfade }}>{backdrop(0.5)}</div>
@@ -285,19 +295,38 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount,
       </div>
     </div>
   );
-  /* ภาพบ้านเต็มกรอบเป็นพื้นหลัง (ผู้ใช้ขอ) · หัวข้อ | ช่องว่างให้เห็นบ้าน | การ์ด 4 ใบเรียงคอลัมน์ขวา — การ์ดไม่ทับตัวบ้าน (ผู้ใช้ทักว่าการ์ดลอยบังบ้าน) */
-  return (
-    <div className="fs-hero" style={wrap}>
-      {backdrop(0.52)}
-      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
-        {titleBlock}
-        <div style={{ height: 360 }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {cards.map((c) => <FsFloatCard key={c.k} {...c} style={{ padding: "10px 14px" }} />)}
+  else if (lay === "m") {
+    /* บ้านในช่องขวาของแถวบน สูงตามความกว้างช่อง · การ์ด 4 ใบเรียงแถวเดียว (กว้างพอ) หรือ 2×2 */
+    const avail = W - 40 - 14, tW = Math.max(230, avail * 0.8 / 1.8), hh = Math.round(Math.min(290, Math.max(180, (avail - tW) / 1.55)));   // ภาพกว้างกว่าช่องนิดหน่อย ขอบที่จางถูกตัด
+    body = (
+      <div className="fs-hero" style={wrap}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1fr)", gap: 14, padding: "20px 20px 6px", alignItems: "center" }}>
+          {titleBlock}
+          <div style={{ position: "relative", height: hh }}>{backdrop(0.5, "transparent")}</div>
+        </div>
+        <div className="kpi-grid" style={{ display: "grid", gap: 10, gridTemplateColumns: W >= 880 ? "repeat(4, minmax(0, 1fr))" : "1fr 1fr", padding: "8px 20px 20px" }}>
+          {cards.map((c) => <FsFloatCard key={c.k} {...c} flat />)}
         </div>
       </div>
-    </div>
-  );
+    );
+  } else {
+    /* ภาพบ้านเต็มกรอบเป็นพื้นหลัง (ผู้ใช้ขอ) · หัวข้อ | บ้าน | การ์ด 4 ใบเรียงคอลัมน์ขวา — การ์ดไม่ทับตัวบ้าน (ผู้ใช้ทักว่าการ์ดลอยบังบ้าน)
+       ขนาด/ตำแหน่งบ้านคำนวณจากช่องระหว่างหัวข้อกับการ์ด (เดิมสูงตามแผง จอไม่กว้างมากบ้านล้นไปใต้การ์ด) */
+    const boxH = Math.round(Math.min(520, imgHL / 0.96));
+    body = (
+      <div className="fs-hero" style={wrap}>
+        <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: "50%", height: boxH, transform: "translateY(-50%)", pointerEvents: "none" }}>{backdrop(cxL, "transparent")}</div>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
+          {titleBlock}
+          <div style={{ height: 360 }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {cards.map((c) => <FsFloatCard key={c.k} {...c} style={{ padding: "10px 14px" }} />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <div ref={boxRef} style={{ minWidth: 0 }}>{body}</div>;
 }
 
 /* ── ผลิตดีที่สุด — Performance Ratio (ผู้ใช้ขอ 2026-10-28 แทน kWh/kWp) เทียบค่าแดดมาตรฐานรายเดือน (fsPR ใน fusionsolar-viz.jsx) ── */
