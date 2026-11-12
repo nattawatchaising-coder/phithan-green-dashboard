@@ -30,17 +30,24 @@ function DrText({ value, onChange, rows, placeholder, disabled }) {
   );
 }
 
-function DrSection({ n, title, hint, children, tone }) {
+/* fold = { open, onToggle, summary } — หัวข้อที่พับได้ (หัวข้อเสริมของแบบจัดเต็ม · ผู้ใช้สั่ง พ.ย. 2026 "พับไว้ กดเปิดเมื่อใช้")
+   ตอนพับโชว์บรรทัดสรุปแทนคำอธิบาย ช่องข้างในไม่ถูกเรนเดอร์ */
+function DrSection({ n, title, hint, children, tone, fold }) {
+  const closed = !!fold && !fold.open;
+  const Head = fold ? "button" : "div";
   return (
     <div style={{ marginBottom: 16, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: "1px solid var(--divider)" }}>
+      <Head type={fold ? "button" : undefined} onClick={fold ? fold.onToggle : undefined} aria-expanded={fold ? !closed : undefined}
+        style={Object.assign({ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: closed ? "none" : "1px solid var(--divider)" },
+          fold ? { width: "100%", background: "none", borderTop: "none", borderLeft: "none", borderRight: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" } : null)}>
         <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", flexShrink: 0,
           background: (tone || "var(--primary)") + "1e", color: tone || "var(--primary-dark)",
           fontSize: 11.5, fontWeight: 800, fontFamily: "var(--mono)" }}>{n}</span>
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
-        {hint && <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto", textAlign: "right" }}>{hint}</span>}
-      </div>
-      <div style={{ padding: 14 }}>{children}</div>
+        {(closed ? fold.summary : hint) && <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto", textAlign: "right" }}>{closed ? fold.summary : hint}</span>}
+        {fold && <Icon name="chevronDown" size={14} color="var(--primary)" style={{ flexShrink: 0, marginLeft: (closed ? fold.summary : hint) ? 0 : "auto", transform: closed ? "none" : "rotate(180deg)", transition: "transform .18s" }} />}
+      </Head>
+      {!closed && <div style={{ padding: 14 }}>{children}</div>}
     </div>
   );
 }
@@ -487,6 +494,11 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
   /* จัดใหม่ พ.ย. 2026: ลบใบย้ายเข้าเมนู ⋯ (ยืนยันด้วย askConfirm) · ลายเซ็นพับเป็นบรรทัดสรุป · ปฏิทินซ่อนในปุ่มวันที่ */
   const [more, setMore] = React.useState(false);
   const [signOpen, setSignOpen] = React.useState(false);
+  /* หัวข้อเสริมของแบบจัดเต็ม (วัสดุ · เครื่องจักร · กำลังคน · ความปลอดภัย) พับไว้ กดเปิดเมื่อใช้ */
+  const [openX, setOpenX] = React.useState({});
+  const xFold = (k, summary) => ({ open: !!openX[k], summary: summary, onToggle: () => setOpenX((o) => Object.assign({}, o, { [k]: !o[k] })) });
+  /* อากาศรวมแถวเดียว (ผู้ใช้สั่ง พ.ย. 2026) — กด "บ่ายต่างจากเช้า" ถึงแยกสองแถว · ใบที่บ่ายไม่เหมือนเช้าแยกให้เอง */
+  const [wxSplit, setWxSplit] = React.useState(false);
   const dateRef = React.useRef(null);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
@@ -504,7 +516,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
     /* ใบก่อนหน้าโหลดตามมาทีหลัง — ต้องตั้งใบเปล่าใหม่เมื่อมาถึง ไม่งั้นทีมช่างจากเมื่อวานไม่ถูกดึงมา (ใบเปิดครั้งแรก) */
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan, store.dates.filter((d) => d < date).length]);
 
-  React.useEffect(() => { setMore(false); setSignOpen(false); }, [date]);
+  React.useEffect(() => { setMore(false); setSignOpen(false); setWxSplit(false); }, [date]);
 
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role, job, currentUser, form);
@@ -741,16 +753,31 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
               <DrText value={form.team} disabled={locked} rows={2}
                 placeholder={"เช่น ทีม A — " + ((job.tech && job.tech.name) || "หัวหน้าทีม") + " + ช่าง 3 คน"}
                 onChange={(v) => edit({ team: v })} />
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 13 }}>
-                <div>
-                  <DrLabel hint="08:30 – 12:00">อากาศช่วงเช้า</DrLabel>
-                  <DrChips options={window.DR_WEATHER} value={form.weatherAm} disabled={locked} onChange={(v) => edit({ weatherAm: v })} />
+              {/* อากาศ — แถวเดียวใช้ทั้งวัน (เขียนทั้งช่องเช้าและบ่าย ใบพิมพ์ยังมี 2 ช่วงเหมือนเดิม) */}
+              {wxSplit || (!!form.weatherPm && form.weatherPm !== form.weatherAm) ? (
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 13 }}>
+                  <div>
+                    <DrLabel hint="08:30 – 12:00">อากาศช่วงเช้า</DrLabel>
+                    <DrChips options={window.DR_WEATHER} value={form.weatherAm} disabled={locked} onChange={(v) => edit({ weatherAm: v })} />
+                  </div>
+                  <div>
+                    <DrLabel hint="13:00 – 17:00">อากาศช่วงบ่าย</DrLabel>
+                    <DrChips options={window.DR_WEATHER} value={form.weatherPm} disabled={locked} onChange={(v) => edit({ weatherPm: v })} />
+                  </div>
                 </div>
-                <div>
-                  <DrLabel hint="13:00 – 17:00">อากาศช่วงบ่าย</DrLabel>
-                  <DrChips options={window.DR_WEATHER} value={form.weatherPm} disabled={locked} onChange={(v) => edit({ weatherPm: v })} />
+              ) : (
+                <div style={{ marginTop: 13 }}>
+                  <DrLabel hint="ทั้งวัน">สภาพอากาศ</DrLabel>
+                  <DrChips options={window.DR_WEATHER} value={form.weatherAm} disabled={locked} onChange={(v) => edit({ weatherAm: v, weatherPm: v })} />
+                  {!locked && (
+                    <button type="button" onClick={() => setWxSplit(true)}
+                      style={{ marginTop: 8, padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+                      บ่ายต่างจากเช้า? แยกเช้า/บ่าย
+                    </button>
+                  )}
                 </div>
-              </div>
+              )}
             </DrSection>
 
             <DrSection n="3" title="รูปหน้างาน" tone="#F59E0B" hint="ใส่ได้ไม่จำกัด · พิมพ์คำบรรยายใต้รูปได้ทุกใบ">
@@ -772,18 +799,21 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
 
             {isProject && (
               <React.Fragment>
-                <DrSection n="5" title="วัสดุเข้าหน้างาน" tone="#0EA5E9">
+                <DrSection n="5" title="วัสดุเข้าหน้างาน" tone="#0EA5E9"
+                  fold={xFold("mat", (form.materials || []).filter((r) => (r.name || "").trim()).length ? (form.materials || []).filter((r) => (r.name || "").trim()).length + " รายการ" : "ยังไม่กรอก · แตะเพื่อเปิด")}>
                   <DrRows disabled={locked} addLabel="เพิ่มวัสดุ" rows={form.materials} onChange={(v) => edit({ materials: v })}
                     cols={[{ k: "name", th: "รายการวัสดุ" }, { k: "qty", th: "จำนวน", w: 80, type: "num" },
                       { k: "unit", th: "หน่วย", w: 80 }, { k: "loc", th: "จุดจัดเก็บ", w: 130 }, { k: "note", th: "หมายเหตุ", w: 130 }]} />
                 </DrSection>
-                <DrSection n="6" title="เครื่องจักร / เครื่องมือ" tone="#0EA5E9">
+                <DrSection n="6" title="เครื่องจักร / เครื่องมือ" tone="#0EA5E9"
+                  fold={xFold("mac", (form.machines || []).filter((r) => (r.name || "").trim()).length ? (form.machines || []).filter((r) => (r.name || "").trim()).length + " รายการ" : "ยังไม่กรอก · แตะเพื่อเปิด")}>
                   <DrRows disabled={locked} addLabel="เพิ่มเครื่องจักร" rows={form.machines} onChange={(v) => edit({ machines: v })}
                     cols={[{ k: "name", th: "รายการ" }, { k: "qty", th: "จำนวน", w: 80, type: "num" },
                       { k: "unit", th: "หน่วย", w: 80 }, { k: "job", th: "ใช้กับงาน", w: 150 }, { k: "note", th: "หมายเหตุ", w: 120 }]} />
                 </DrSection>
                 <DrSection n="7" title="กำลังคน" tone="#7C5CFC"
-                  hint={"รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน"}>
+                  hint={"รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน"}
+                  fold={xFold("man", (form.manpower || []).length ? "รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน" : "ยังไม่กรอก · แตะเพื่อเปิด")}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 11 }}>
                     {window.DR_MANPOWER.map((m) => (
                       <button key={m.key} type="button" disabled={locked}
@@ -797,7 +827,13 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                     cols={[{ k: "role", th: "ตำแหน่ง" }, { k: "qty", th: "จำนวน", w: 80, type: "num" },
                       { k: "name", th: "ชื่อผู้ปฏิบัติงาน", w: 180 }, { k: "note", th: "หมายเหตุ", w: 120 }]} />
                 </DrSection>
-                <DrSection n="8" title="ความปลอดภัย & สิ่งแวดล้อม" tone="#10B981">
+                <DrSection n="8" title="ความปลอดภัย & สิ่งแวดล้อม" tone="#10B981"
+                  fold={xFold("safe", (() => {
+                    const j = (window.DR_JSA || []).find((x) => x.key === form.jsa);
+                    const nClean = Object.keys(form.clean || {}).filter((k) => (form.clean || {})[k]).length;
+                    const bits = [j ? "ความเสี่ยง" + j.th : "", form.permitCold || form.permitHot ? "มีข้อมูลใบอนุญาต" : "", nClean ? "ความสะอาด " + nClean + " ข้อ" : ""].filter(Boolean);
+                    return bits.length ? bits.join(" · ") : "ยังไม่กรอก · แตะเพื่อเปิด";
+                  })())}>
                   <DrLabel hint="JSA — ประเมินความเสี่ยงของงานวันนี้">ระดับความเสี่ยง</DrLabel>
                   <DrChips options={window.DR_JSA} value={form.jsa} disabled={locked} onChange={(v) => edit({ jsa: v })} />
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }}>

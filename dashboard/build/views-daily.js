@@ -59,8 +59,11 @@ function DrSection({
   title,
   hint,
   children,
-  tone
+  tone,
+  fold
 }) {
+  const closed = !!fold && !fold.open;
+  const Head = fold ? "button" : "div";
   return React.createElement("div", {
     style: {
       marginBottom: 16,
@@ -70,14 +73,26 @@ function DrSection({
       background: "var(--surface2)",
       overflow: "hidden"
     }
-  }, React.createElement("div", {
-    style: {
+  }, React.createElement(Head, {
+    type: fold ? "button" : undefined,
+    onClick: fold ? fold.onToggle : undefined,
+    "aria-expanded": fold ? !closed : undefined,
+    style: Object.assign({
       display: "flex",
       alignItems: "center",
       gap: 9,
       padding: "11px 14px",
-      borderBottom: "1px solid var(--divider)"
-    }
+      borderBottom: closed ? "none" : "1px solid var(--divider)"
+    }, fold ? {
+      width: "100%",
+      background: "none",
+      borderTop: "none",
+      borderLeft: "none",
+      borderRight: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    } : null)
   }, React.createElement("span", {
     style: {
       width: 22,
@@ -98,14 +113,24 @@ function DrSection({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, title), hint && React.createElement("span", {
+  }, title), (closed ? fold.summary : hint) && React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
       marginLeft: "auto",
       textAlign: "right"
     }
-  }, hint)), React.createElement("div", {
+  }, closed ? fold.summary : hint), fold && React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--primary)",
+    style: {
+      flexShrink: 0,
+      marginLeft: (closed ? fold.summary : hint) ? 0 : "auto",
+      transform: closed ? "none" : "rotate(180deg)",
+      transition: "transform .18s"
+    }
+  })), !closed && React.createElement("div", {
     style: {
       padding: 14
     }
@@ -974,6 +999,15 @@ function DailyReportModal({
   const [remember, setRemember] = React.useState(true);
   const [more, setMore] = React.useState(false);
   const [signOpen, setSignOpen] = React.useState(false);
+  const [openX, setOpenX] = React.useState({});
+  const xFold = (k, summary) => ({
+    open: !!openX[k],
+    summary: summary,
+    onToggle: () => setOpenX(o => Object.assign({}, o, {
+      [k]: !o[k]
+    }))
+  });
+  const [wxSplit, setWxSplit] = React.useState(false);
   const dateRef = React.useRef(null);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
@@ -988,6 +1022,7 @@ function DailyReportModal({
   React.useEffect(() => {
     setMore(false);
     setSignOpen(false);
+    setWxSplit(false);
   }, [date]);
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role, job, currentUser, form);
@@ -1481,7 +1516,7 @@ function DailyReportModal({
     onChange: v => edit({
       team: v
     })
-  }), React.createElement("div", {
+  }), wxSplit || !!form.weatherPm && form.weatherPm !== form.weatherAm ? React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
@@ -1506,7 +1541,35 @@ function DailyReportModal({
     onChange: v => edit({
       weatherPm: v
     })
-  })))), React.createElement(DrSection, {
+  }))) : React.createElement("div", {
+    style: {
+      marginTop: 13
+    }
+  }, React.createElement(DrLabel, {
+    hint: "\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19"
+  }, "\u0E2A\u0E20\u0E32\u0E1E\u0E2D\u0E32\u0E01\u0E32\u0E28"), React.createElement(DrChips, {
+    options: window.DR_WEATHER,
+    value: form.weatherAm,
+    disabled: locked,
+    onChange: v => edit({
+      weatherAm: v,
+      weatherPm: v
+    })
+  }), !locked && React.createElement("button", {
+    type: "button",
+    onClick: () => setWxSplit(true),
+    style: {
+      marginTop: 8,
+      padding: 0,
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, "\u0E1A\u0E48\u0E32\u0E22\u0E15\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E40\u0E0A\u0E49\u0E32? \u0E41\u0E22\u0E01\u0E40\u0E0A\u0E49\u0E32/\u0E1A\u0E48\u0E32\u0E22"))), React.createElement(DrSection, {
     n: "3",
     title: "\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     tone: "#F59E0B",
@@ -1545,7 +1608,8 @@ function DailyReportModal({
   }))), isProject && React.createElement(React.Fragment, null, React.createElement(DrSection, {
     n: "5",
     title: "\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
-    tone: "#0EA5E9"
+    tone: "#0EA5E9",
+    fold: xFold("mat", (form.materials || []).filter(r => (r.name || "").trim()).length ? (form.materials || []).filter(r => (r.name || "").trim()).length + " รายการ" : "ยังไม่กรอก · แตะเพื่อเปิด")
   }, React.createElement(DrRows, {
     disabled: locked,
     addLabel: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38",
@@ -1577,7 +1641,8 @@ function DailyReportModal({
   })), React.createElement(DrSection, {
     n: "6",
     title: "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E31\u0E01\u0E23 / \u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D",
-    tone: "#0EA5E9"
+    tone: "#0EA5E9",
+    fold: xFold("mac", (form.machines || []).filter(r => (r.name || "").trim()).length ? (form.machines || []).filter(r => (r.name || "").trim()).length + " รายการ" : "ยังไม่กรอก · แตะเพื่อเปิด")
   }, React.createElement(DrRows, {
     disabled: locked,
     addLabel: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E31\u0E01\u0E23",
@@ -1610,7 +1675,8 @@ function DailyReportModal({
     n: "7",
     title: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E04\u0E19",
     tone: "#7C5CFC",
-    hint: "รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน"
+    hint: "รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน",
+    fold: xFold("man", (form.manpower || []).length ? "รวม " + (form.manpower || []).reduce((s, r) => s + (+r.qty || 0), 0) + " คน" : "ยังไม่กรอก · แตะเพื่อเปิด")
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -1667,7 +1733,13 @@ function DailyReportModal({
   })), React.createElement(DrSection, {
     n: "8",
     title: "\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22 & \u0E2A\u0E34\u0E48\u0E07\u0E41\u0E27\u0E14\u0E25\u0E49\u0E2D\u0E21",
-    tone: "#10B981"
+    tone: "#10B981",
+    fold: xFold("safe", (() => {
+      const j = (window.DR_JSA || []).find(x => x.key === form.jsa);
+      const nClean = Object.keys(form.clean || {}).filter(k => (form.clean || {})[k]).length;
+      const bits = [j ? "ความเสี่ยง" + j.th : "", form.permitCold || form.permitHot ? "มีข้อมูลใบอนุญาต" : "", nClean ? "ความสะอาด " + nClean + " ข้อ" : ""].filter(Boolean);
+      return bits.length ? bits.join(" · ") : "ยังไม่กรอก · แตะเพื่อเปิด";
+    })())
   }, React.createElement(DrLabel, {
     hint: "JSA \u2014 \u0E1B\u0E23\u0E30\u0E40\u0E21\u0E34\u0E19\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E48\u0E22\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"
   }, "\u0E23\u0E30\u0E14\u0E31\u0E1A\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E48\u0E22\u0E07"), React.createElement(DrChips, {
