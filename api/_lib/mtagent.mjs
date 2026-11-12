@@ -84,6 +84,7 @@ export async function agentPOST(request) {
   if (b.status && typeof b.status === "object") {
     const patch = {};
     const src = b.status.sites && typeof b.status.sites === "object" ? b.status.sites : {};
+    const av = parseInt(b.ver, 10), oldW = av >= 1 && av <= 5;
     let count = 0;
     for (const k of Object.keys(src).slice(0, 300)) {
       const n = Number(k);
@@ -93,6 +94,10 @@ export async function agentPOST(request) {
       if (st.meter && st.meter.v && typeof st.meter.v.kwh_exp === "number") st.meter.v.kwh_exp = Math.abs(st.meter.v.kwh_exp);
       /* agent รุ่น ≤4 อ่าน Hz ของ LEOS ด้วยสเกล ×0.1 (ได้ 499.6) — ปรับที่นี่ให้ถูกโดยไม่ต้องรอ VPS อัปเดต */
       if (st.meter && st.meter.v && typeof st.meter.v.hz === "number" && st.meter.v.hz > 100) st.meter.v.hz = Math.round(st.meter.v.hz * 10) / 100;
+      /* agent รุ่น 1–5 อ่าน kW/kvar/kVA ของ LEOS เป็นหน่วย W/var/VA (โหลดจริง 2026-11-12: V×I 6,980 W = ค่าที่ส่งมา 6,969) — หาร 1000 ที่นี่
+         จนกว่า VPS จะอัปเดตตัวเองเป็น v6 (agent.mjs f32scale) · ไม่ส่ง ver = ไม่แตะ */
+      if (oldW && (sites[n].meter_model || "leos-ipm310") === "leos-ipm310" && st.meter && st.meter.v)
+        for (const f of ["kw", "kw1", "kw2", "kw3", "kvar", "kva"]) if (typeof st.meter.v[f] === "number") st.meter.v[f] = Math.round(st.meter.v[f]) / 1000;
       if (JSON.stringify(st).length > MAX_SITE_JSON) continue;
       st.at = iso;
       patch[n] = st;

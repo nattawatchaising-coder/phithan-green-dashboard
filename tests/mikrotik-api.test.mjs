@@ -471,6 +471,23 @@ test("agent: kWh Export ติดลบจากมิเตอร์ → เก
   assert.equal(db.mtMeter[54].d[day].first.kwh_exp, 969.709);
 });
 
+test("agent ≤ v5: kW/kvar/kVA ของ LEOS เป็นวัตต์ → เซิร์ฟเวอร์หาร 1000 · v6 / PM2200 / ไม่บอกรุ่น = ไม่แตะ", async () => {
+  withAgentEnv();
+  await call({ action: "create", n: 55, name: "W" });
+  await call({ action: "create", n: 56, name: "PM" });
+  await call({ action: "meter-cfg", n: 56, meter_model: "pm2200" });
+  const v = () => ({ kw: 6968.972, kw1: 6968.972, kvar: 161.387, kva: 6978.63, v1: 231.077, i1: 30.205, kwh_imp: 20459.436 });
+  await agentCall({ ver: "5", status: { snap: true, sites: { 55: { meter: { modbus: { ok: true }, v: v() } }, 56: { meter: { modbus: { ok: true }, v: v() } } } } });
+  const s = db.mtStatus[55].meter.v;
+  assert.deepEqual([s.kw, s.kw1, s.kvar, s.kva, s.v1, s.i1, s.kwh_imp], [6.969, 6.969, 0.161, 6.979, 231.077, 30.205, 20459.436]);
+  assert.equal(db.mtStatus[56].meter.v.kw, 6968.972, "PM2200 ไม่แตะ");
+  const { day, hm } = agentLib2.thSlot(Date.now());
+  assert.equal(db.mtMeter[55].h[day][hm].kw, 6.969);
+  assert.equal(db.mtMeter[55].d[day].kw_max, 6.969);
+  await agentCall({ ver: "6", status: { sites: { 55: { meter: { modbus: { ok: true }, v: { kw: 6.969 } } } } } });
+  assert.equal(db.mtStatus[55].meter.v.kw, 6.969, "v6 ส่ง kW มาแล้ว ไม่หารซ้ำ");
+});
+
 test("พาร์ทเนอร์: แอดมินสร้าง+มอบไซต์ · ล็อกอินได้เมื่อวางกฎแล้วเท่านั้น · ทำได้แค่ไซต์ตัวเอง", async () => {
   await call({ action: "create", n: 60, name: "PA" });
   await call({ action: "create", n: 61, name: "PB" });

@@ -179,6 +179,16 @@ const mtMonShort = (ym) => { const y = Number(ym.slice(0, 4)), m = Number(ym.sli
 /* ---------- ตัวเลข ---------- */
 const mtNum = (v, d) => (v == null || !isFinite(v) ? "—" : Number(v).toLocaleString("th-TH", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 2 : d }));
 const mtKwD = (v) => (v == null ? 1 : Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0);
+/* kW ที่บันทึกไว้ก่อนแก้หน่วย — agent ≤ v5 ส่งกำลังไฟของ LEOS เป็นวัตต์ (โหลดจริง 2026-11-12: 6,969 = 6.97 kW) · แก้ตอนอ่าน ไม่แก้ข้อมูลในฐาน
+   จุดราย 5 นาที: kW มากกว่ากำลังปรากฏ (ΣV×I) ไม่ได้ทางฟิสิกส์ → เป็นวัตต์ หาร 1000 · kW สูงสุดรายวันของ LEOS ถึงวันที่ 12 พ.ย. 2569 = วัตต์
+   (เซิร์ฟเวอร์หาร 1000 ให้ตั้งแต่ 12 พ.ย. 2569 เย็น · agent v6 แปลงเอง) */
+function mtKwOf(r) {
+  const kw = r && r.kw != null ? Number(r.kw) : null;
+  if (kw == null || !isFinite(kw)) return null;
+  const s = [1, 2, 3].reduce((t, i) => t + (Number(r["v" + i]) || 0) * (Number(r["i" + i]) || 0), 0) / 1000;
+  return s > 0 && Math.abs(kw) > s * 1.5 + 0.05 ? kw / 1000 : kw;
+}
+const mtKwMaxOf = (s, dayKey, v) => (v != null && (s.meter_model || "leos-ipm310") === "leos-ipm310" && dayKey <= "20261112" ? v / 1000 : v);
 /* พลังงาน → [ตัวเลข, หน่วย] · เกิน 10 MWh แสดงเป็น MWh */
 function mtEnergy(kwh) {
   if (kwh == null || !isFinite(kwh)) return ["—", "kWh"];
@@ -379,7 +389,7 @@ function MtStepper({ label, onPrev, onNext, canNext, children }) {
 /* เส้นกำลังไฟวันนี้แบบย่อ (การ์ดไซต์) */
 function MtSpark({ hist, height }) {
   const H = height || 46, W = 200;
-  const pts = Object.keys(hist || {}).sort().map((hm) => ({ t: +hm.slice(0, 2) * 60 + +hm.slice(2), v: Number((hist[hm] || {}).kw) || 0 }));
+  const pts = Object.keys(hist || {}).sort().map((hm) => ({ t: +hm.slice(0, 2) * 60 + +hm.slice(2), v: mtKwOf(hist[hm]) || 0 }));
   const max = Math.max.apply(null, pts.map((p) => p.v).concat([0.001]));
   const X = (t) => (t / 1440) * W, Y = (v) => H - 3 - (Math.max(0, v) / max) * (H - 8);
   const has = pts.length > 1 && pts.some((p) => p.v > 0);
@@ -631,7 +641,7 @@ function MtSiteOverview({ s, st, isAdmin, now }) {
   const C = window.FsTrendChart;
   const dayBars = Object.keys(hist || {}).sort().map((hm) => {
     const r = hist[hm] || {};
-    return { k: hm, t: +hm.slice(0, 2) * 60 + +hm.slice(2), value: r.kw != null ? Math.round(r.kw * 100) / 100 : null,
+    return { k: hm, t: +hm.slice(0, 2) * 60 + +hm.slice(2), value: mtKwOf(r) != null ? Math.round(mtKwOf(r) * 100) / 100 : null,
       label: hm.slice(0, 2) + ":" + hm.slice(2), tip: [hm.slice(0, 2) + ":" + hm.slice(2) + mtT(" น.", "", "")] };
   });
   const thisDayK = mtDayKwh(days, day, reg, live);
@@ -762,13 +772,13 @@ function MtMeterReport({ s, days, ym, reg, live }) {
   const pre = ym.replace("-", "");
   const dayRows = keys.filter((k) => k.slice(0, 6) === pre).map((k) => {
     const d = D[k] || {};
-    return { k, label: mtDayLong(k), first: val(d.first), last: val(d.last), kwh: mtDayKwh(D, k, reg, live), kwmax: d.kw_max };
+    return { k, label: mtDayLong(k), first: val(d.first), last: val(d.last), kwh: mtDayKwh(D, k, reg, live), kwmax: mtKwMaxOf(s, k, d.kw_max) };
   });
   const mons = {};
   keys.forEach((k) => {
     const mk = k.slice(0, 6), d = D[k] || {};
     const e = mons[mk] || (mons[mk] = { k: mk, days: 0, kwh: 0, kwmax: 0, first: null, last: null });
-    e.days++; e.kwh += mtDayKwh(D, k, reg, live) || 0; e.kwmax = Math.max(e.kwmax, Number(d.kw_max) || 0);
+    e.days++; e.kwh += mtDayKwh(D, k, reg, live) || 0; e.kwmax = Math.max(e.kwmax, mtKwMaxOf(s, k, Number(d.kw_max) || 0));
     if (e.first == null) e.first = val(d.first);
     if (val(d.last) != null) e.last = val(d.last);
   });

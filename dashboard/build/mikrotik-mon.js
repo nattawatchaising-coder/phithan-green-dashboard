@@ -320,6 +320,13 @@ const mtNum = (v, d) => v == null || !isFinite(v) ? "—" : Number(v).toLocaleSt
   maximumFractionDigits: d == null ? 2 : d
 });
 const mtKwD = v => v == null ? 1 : Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0;
+function mtKwOf(r) {
+  const kw = r && r.kw != null ? Number(r.kw) : null;
+  if (kw == null || !isFinite(kw)) return null;
+  const s = [1, 2, 3].reduce((t, i) => t + (Number(r["v" + i]) || 0) * (Number(r["i" + i]) || 0), 0) / 1000;
+  return s > 0 && Math.abs(kw) > s * 1.5 + 0.05 ? kw / 1000 : kw;
+}
+const mtKwMaxOf = (s, dayKey, v) => v != null && (s.meter_model || "leos-ipm310") === "leos-ipm310" && dayKey <= "20261112" ? v / 1000 : v;
 function mtEnergy(kwh) {
   if (kwh == null || !isFinite(kwh)) return ["—", "kWh"];
   const a = Math.abs(kwh);
@@ -741,7 +748,7 @@ function MtSpark({
     W = 200;
   const pts = Object.keys(hist || {}).sort().map(hm => ({
     t: +hm.slice(0, 2) * 60 + +hm.slice(2),
-    v: Number((hist[hm] || {}).kw) || 0
+    v: mtKwOf(hist[hm]) || 0
   }));
   const max = Math.max.apply(null, pts.map(p => p.v).concat([0.001]));
   const X = t => t / 1440 * W,
@@ -1459,7 +1466,7 @@ function MtSiteOverview({
     return {
       k: hm,
       t: +hm.slice(0, 2) * 60 + +hm.slice(2),
-      value: r.kw != null ? Math.round(r.kw * 100) / 100 : null,
+      value: mtKwOf(r) != null ? Math.round(mtKwOf(r) * 100) / 100 : null,
       label: hm.slice(0, 2) + ":" + hm.slice(2),
       tip: [hm.slice(0, 2) + ":" + hm.slice(2) + mtT(" น.", "", "")]
     };
@@ -1772,7 +1779,7 @@ function MtMeterReport({
       first: val(d.first),
       last: val(d.last),
       kwh: mtDayKwh(D, k, reg, live),
-      kwmax: d.kw_max
+      kwmax: mtKwMaxOf(s, k, d.kw_max)
     };
   });
   const mons = {};
@@ -1789,7 +1796,7 @@ function MtMeterReport({
     });
     e.days++;
     e.kwh += mtDayKwh(D, k, reg, live) || 0;
-    e.kwmax = Math.max(e.kwmax, Number(d.kw_max) || 0);
+    e.kwmax = Math.max(e.kwmax, mtKwMaxOf(s, k, Number(d.kw_max) || 0));
     if (e.first == null) e.first = val(d.first);
     if (val(d.last) != null) e.last = val(d.last);
   });

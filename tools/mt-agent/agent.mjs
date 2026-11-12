@@ -24,7 +24,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = "5";
+export const VERSION = "6";
 const STATUS_EVERY_MS = 60e3;
 const CMD_TTL_MS = 10 * 60e3;
 const USER = "pg-web";
@@ -176,6 +176,8 @@ export const METER_PROFILES = {
     /* PF ×0.001 (คู่มือเขียน ×0.01 แต่ค่าดิบ 1000 = หน้าจอมิเตอร์ 1 · ผู้ใช้เทียบจริง 2026-11-11) */
     /* Hz ×0.01 (คู่มือเขียน ×0.1 ผิดแบบเดียวกับ PF — ดิบ 4996 = 49.96 Hz · ค่าจริง 2026-11-12 อ่านได้ 499.6) */
     i16: { pf: [251, 0.001], hz: [252, 0.01] },
+    /* กำลังไฟ 224–247 เป็นหน่วย W / var / VA ไม่ใช่ k (ผู้ใช้เปิดโหลดจริง 2026-11-12: V 231 × I 30.2 = 6,980 W · มิเตอร์ส่ง 6,969) → ×0.001 */
+    f32scale: { kw1: 0.001, kw2: 0.001, kw3: 0.001, kw: 0.001, kvar: 0.001, kva: 0.001 },
     /* ส่งค่าดิบช่วงกำลังไฟ/PF/Hz ไปด้วย (hex) ไว้ไล่ดูเวลาค่าไม่ตรงหน้าจอมิเตอร์ */
     raw: [224, 36],
   },
@@ -220,7 +222,8 @@ export function decodeMeter(profile, reg) {
   for (const [k, a] of Object.entries(profile.f32)) {
     if (reg[a] == null || reg[a + 1] == null) continue;
     const v = profile.lowWordFirst ? f32From(reg[a + 1], reg[a]) : f32From(reg[a], reg[a + 1]);
-    if (Number.isFinite(v) && Math.abs(v) < 1e12) out[k] = Math.round(v * 1000) / 1000;
+    const sc = (profile.f32scale && profile.f32scale[k]) || 1;
+    if (Number.isFinite(v) && Math.abs(v) < 1e12) out[k] = Math.round(v * sc * 1000) / 1000;
   }
   for (const [k, [a, scale]] of Object.entries(profile.i16)) {
     if (reg[a] == null) continue;

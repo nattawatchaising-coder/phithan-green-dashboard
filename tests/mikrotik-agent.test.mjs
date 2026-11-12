@@ -105,6 +105,12 @@ test("float จาก 2 register: LEOS word ต่ำมาก่อน · PM220
   assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 0x10000 - 950 }).pf, -0.95);
   assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 251: 1000 }).pf, 1);
   assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 252: 4996 }).hz, 49.96);
+  /* กำลังไฟของ LEOS เป็นวัตต์ → kW (โหลดจริง 2026-11-12) · PM2200 เป็น kW อยู่แล้ว */
+  const w = Buffer.alloc(4); w.writeFloatBE(6968.972, 0);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 230: w.readUInt16BE(2), 231: w.readUInt16BE(0) }).kw, 6.969);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["leos-ipm310"], { 200: lo, 201: hi }).v1, 230.5, "แรงดันไม่ถูกหาร");
+  b.writeFloatBE(12.5, 0);
+  assert.equal(A.decodeMeter(A.METER_PROFILES["pm2200"], { 3059: b.readUInt16BE(0), 3060: b.readUInt16BE(2) }).kw, 12.5);
   assert.equal(A.rawHex(A.METER_PROFILES["leos-ipm310"], { 224: 1, 259: 0xabcd }).length, 144);
 });
 
@@ -122,7 +128,7 @@ test("โปรไฟล์มิเตอร์: บล็อกครอบท
 test("readMeter กับมิเตอร์ปลอม (Modbus TCP ในเครื่อง): อ่านหลายบล็อก · exception = error", async () => {
   const regs = {};
   const put = (a, v, lowFirst) => { const b = Buffer.alloc(4); b.writeFloatBE(v, 0); const hi = b.readUInt16BE(0), lo = b.readUInt16BE(2); regs[a] = lowFirst ? lo : hi; regs[a + 1] = lowFirst ? hi : lo; };
-  put(230, 15.25, true); put(271, 123456.5, true); put(212, 10, true);
+  put(230, 15250, true); put(271, 123456.5, true); put(212, 10, true);   // LEOS ส่งกำลังไฟเป็นวัตต์ → 15.25 kW
   let fcSeen = [];
   const srv = net.createServer((s) => {
     s.on("data", (d) => {
