@@ -464,8 +464,9 @@ test("billReadings: มิเตอร์ถูกรีเซ็ตกลาง
 test("agent: kWh Export ติดลบจากมิเตอร์ → เก็บเป็นค่าบวก", async () => {
   withAgentEnv();
   await call({ action: "create", n: 54, name: "Exp" });
-  await agentCall({ status: { snap: true, sites: { 54: { meter: { modbus: { ok: true }, v: { kwh_imp: 10, kwh_exp: -969.709 } } } } } });
+  await agentCall({ status: { snap: true, sites: { 54: { meter: { modbus: { ok: true }, v: { kwh_imp: 10, kwh_exp: -969.709, hz: 499.6 } } } } } });
   assert.equal(db.mtStatus[54].meter.v.kwh_exp, 969.709);
+  assert.equal(db.mtStatus[54].meter.v.hz, 49.96, "agent รุ่นเก่าส่ง Hz ×10");
   const { day } = agentLib2.thSlot(Date.now());
   assert.equal(db.mtMeter[54].d[day].first.kwh_exp, 969.709);
 });

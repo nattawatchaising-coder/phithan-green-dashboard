@@ -91,6 +91,8 @@ export async function agentPOST(request) {
       const st = cleanStatus(src[k]) || {};
       /* LEOS เก็บ kWh Export เป็นค่าติดลบ — เก็บเป็นค่าบวกเสมอ (ผู้ใช้ 2026-11-12 "kWh Export ติดลบ") */
       if (st.meter && st.meter.v && typeof st.meter.v.kwh_exp === "number") st.meter.v.kwh_exp = Math.abs(st.meter.v.kwh_exp);
+      /* agent รุ่น ≤4 อ่าน Hz ของ LEOS ด้วยสเกล ×0.1 (ได้ 499.6) — ปรับที่นี่ให้ถูกโดยไม่ต้องรอ VPS อัปเดต */
+      if (st.meter && st.meter.v && typeof st.meter.v.hz === "number" && st.meter.v.hz > 100) st.meter.v.hz = Math.round(st.meter.v.hz * 10) / 100;
       if (JSON.stringify(st).length > MAX_SITE_JSON) continue;
       st.at = iso;
       patch[n] = st;

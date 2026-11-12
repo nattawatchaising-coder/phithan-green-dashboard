@@ -24,7 +24,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = "4";
+export const VERSION = "5";
 const STATUS_EVERY_MS = 60e3;
 const CMD_TTL_MS = 10 * 60e3;
 const USER = "pg-web";
@@ -174,7 +174,10 @@ export const METER_PROFILES = {
     f32: { v1: 200, v2: 202, v3: 204, i1: 212, i2: 214, i3: 216, kw1: 224, kw2: 226, kw3: 228, kw: 230, kvar: 238, kva: 246,
       kwh_net: 269, kwh_imp: 271, kwh_exp: 273 },
     /* PF ×0.001 (คู่มือเขียน ×0.01 แต่ค่าดิบ 1000 = หน้าจอมิเตอร์ 1 · ผู้ใช้เทียบจริง 2026-11-11) */
-    i16: { pf: [251, 0.001], hz: [252, 0.1] },
+    /* Hz ×0.01 (คู่มือเขียน ×0.1 ผิดแบบเดียวกับ PF — ดิบ 4996 = 49.96 Hz · ค่าจริง 2026-11-12 อ่านได้ 499.6) */
+    i16: { pf: [251, 0.001], hz: [252, 0.01] },
+    /* ส่งค่าดิบช่วงกำลังไฟ/PF/Hz ไปด้วย (hex) ไว้ไล่ดูเวลาค่าไม่ตรงหน้าจอมิเตอร์ */
+    raw: [224, 36],
   },
   /* Schneider PM2200 (ผ่าน Waveshare) — ตามตารางผู้ผลิต · FC03 · float word สูงมาก่อน · ⚠ ยังไม่ได้ลองกับเครื่องจริง */
   "pm2200": {
@@ -227,6 +230,12 @@ export function decodeMeter(profile, reg) {
   return out;
 }
 
+export function rawHex(profile, reg) {
+  if (!profile.raw) return "";
+  let out = "";
+  for (let a = profile.raw[0]; a < profile.raw[0] + profile.raw[1]; a++) out += (reg[a] == null ? "----" : reg[a].toString(16).padStart(4, "0"));
+  return out;
+}
 /* อ่านทุกบล็อกในการเชื่อมต่อเดียว */
 export function readMeter(host, model, unit = 1, { port = 502, timeout = 4000 } = {}) {
   const P = METER_PROFILES[model];
@@ -238,7 +247,7 @@ export function readMeter(host, model, unit = 1, { port = 502, timeout = 4000 } 
     const s = net.connect({ host, port });
     const fin = (err, v) => { if (done) return; done = true; s.destroy(); err ? reject(err) : resolve(v); };
     const next = () => {
-      if (i >= P.blocks.length) return fin(null, { ms: Date.now() - t0, v: decodeMeter(P, reg) });
+      if (i >= P.blocks.length) return fin(null, { ms: Date.now() - t0, v: decodeMeter(P, reg), raw: rawHex(P, reg) });
       const [a, q] = P.blocks[i];
       s.write(mbRequest(i + 1, unit, P.fc, a, q));
     };
@@ -270,12 +279,13 @@ async function checkSite(s, wg) {
     tcpCheck(P.sl, 443).then((r) => (r.ok ? r : tcpCheck(P.sl, 80))),
     s.meter_model === "none" ? Promise.resolve(null)
       : readMeter(P.meter, METER_PROFILES[s.meter_model] ? s.meter_model : "leos-ipm310", Number(s.meter_unit) || 1)
-        .then((r) => ({ ok: true, ms: r.ms, v: r.v }), (e) => ({ ok: false, error: String(e.message || e).slice(0, 80) })),
+        .then((r) => ({ ok: true, ms: r.ms, v: r.v, raw: r.raw }), (e) => ({ ok: false, error: String(e.message || e).slice(0, 80) })),
   ]);
   st.hex = { ping: hexPing };
   st.sl = { ping: slPing, web: slWeb };
   /* มิเตอร์: ค่าที่อ่านได้อยู่ใน st.meter.v (เว็บเก็บราย 5 นาทีเมื่อ status.snap = ช่อง 5 นาทีใหม่) */
   if (meter) st.meter = { modbus: { ok: meter.ok, ms: meter.ms }, model: s.meter_model || "leos-ipm310", v: meter.v || null, error: meter.error || "" };
+  if (meter && meter.raw) st.meter.raw = meter.raw;
   const req = (path, extra) => pinnedRequest(Object.assign({ host: P.hex, pin: s.fp, user: USER, pass: s.pass, path }, extra));
   try {
     if (!s.fp || !s.pass) {

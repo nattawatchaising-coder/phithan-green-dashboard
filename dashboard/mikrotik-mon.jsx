@@ -249,7 +249,7 @@ function MtMeterReport({ s, days, month, reg }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 6 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 12.5, fontWeight: 700 }}>รายงาน{mode === "day" ? "รายวัน เดือน" + MT_TH_MON_FULL[Number(month.slice(4)) - 1] : "รายเดือน"}</div>
-        <div style={{ fontSize: 12, color: "var(--text-3)" }}>รวม {mtNum(total, 1)} kWh · {MT_REG_TH[reg]}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)" }}>รวม {mtNum(total, 3)} kWh · {MT_REG_TH[reg]}</div>
         <div style={{ flex: 1 }} />
         {window.Segmented ? <window.Segmented value={mode} onChange={setMode} options={opts} /> : null}
         <button className="btn btn-sm" disabled={!rows.length} onClick={csv} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="download" size={13} />CSV</button>
@@ -268,8 +268,8 @@ function MtMeterReport({ s, days, month, reg }) {
               <tr key={r.k}>
                 <td style={Object.assign({}, td, { textAlign: "left", fontFamily: "inherit", fontWeight: 600 })}>{r.label}</td>
                 {mode === "month" && <td style={td}>{r.days}</td>}
-                <td style={td}>{mtNum(r.first, 1)}</td><td style={td}>{mtNum(r.last, 1)}</td>
-                <td style={Object.assign({}, td, { fontWeight: 700 })}>{mtNum(r.kwh, 1)}</td><td style={td}>{mtNum(r.kwmax, 1)}</td>
+                <td style={td}>{mtNum(r.first, 3)}</td><td style={td}>{mtNum(r.last, 3)}</td>
+                <td style={Object.assign({}, td, { fontWeight: 700 })}>{mtNum(r.kwh, 3)}</td><td style={td}>{mtNum(r.kwmax, 2)}</td>
               </tr>
             ); })}</tbody>
         </table>

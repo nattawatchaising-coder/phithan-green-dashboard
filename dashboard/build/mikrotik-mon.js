@@ -710,7 +710,7 @@ function MtMeterReport({
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E23\u0E27\u0E21 ", mtNum(total, 1), " kWh \xB7 ", MT_REG_TH[reg]), React.createElement("div", {
+  }, "\u0E23\u0E27\u0E21 ", mtNum(total, 3), " kWh \xB7 ", MT_REG_TH[reg]), React.createElement("div", {
     style: {
       flex: 1
     }
@@ -773,15 +773,15 @@ function MtMeterReport({
       style: td
     }, r.days), React.createElement("td", {
       style: td
-    }, mtNum(r.first, 1)), React.createElement("td", {
+    }, mtNum(r.first, 3)), React.createElement("td", {
       style: td
-    }, mtNum(r.last, 1)), React.createElement("td", {
+    }, mtNum(r.last, 3)), React.createElement("td", {
       style: Object.assign({}, td, {
         fontWeight: 700
       })
-    }, mtNum(r.kwh, 1)), React.createElement("td", {
+    }, mtNum(r.kwh, 3)), React.createElement("td", {
       style: td
-    }, mtNum(r.kwmax, 1)));
+    }, mtNum(r.kwmax, 2)));
   }))), !rows.length && React.createElement("div", {
     style: {
       fontSize: 12.5,
