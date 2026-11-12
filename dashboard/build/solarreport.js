@@ -1488,12 +1488,12 @@ ul.find li i{color:var(--paper-mute)}
   @page{size:A4;margin:14mm 13mm}
 }
 `;
-function rpFileName(job) {
+function rpFileName(job, head) {
   job = job || {};
   const d = new Date(),
     p2 = n => String(n).padStart(2, "0");
   const clean = x => String(x == null ? "" : x).replace(/[\\/:*?"<>|\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
-  return ["DS", clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
+  return [clean(head || "DS"), clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
 }
 function suPrintReport(D) {
   const html = suReportHTML(D);
@@ -1658,6 +1658,7 @@ function SuReportView({
 Object.assign(window, {
   SuReportView,
   suReportHTML,
+  rpFileName,
   suPrintReport,
   RP_SECTIONS,
   rpPickAll,

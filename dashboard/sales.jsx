@@ -994,7 +994,8 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
   /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
   const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' +
-    "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" +
+    /* ชื่อไฟล์ PDF = เลขใบ_รหัสโครงการ_ชื่อโครงการ_วัน-เดือน-ปีที่ออก (ผู้ใช้สั่ง) — _proj ใส่ตอนเปิดดู */
+    "<title>" + sEsc(window.rpFileName ? window.rpFileName(q._proj || {}, q.no || "QT") : "ใบเสนอราคา " + (q.no || "")) + "</title>" +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
     (window.pgFontLink ? window.pgFontLink(L) : "") +
     "<style>" +
@@ -1794,7 +1795,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     /* เบอร์มือถือผู้เสนอ = เบอร์ในบัญชีผู้ใช้ users/{ownerId}/phone (ผู้ใช้ 2026-11-05 "แปะเบอร์มือถือ") — ไม่เก็บลงใบ ดึงตอนเปิด */
     const phP = q.ownerId && window.FBDB ? window.FBDB.ref("users/" + q.ownerId + "/phone").once("value").then((x) => x.val() || "").catch(() => "") : Promise.resolve("");
     Promise.all([shP, loadPics(), cvP, phP])
-      .then((r) => { setRep(quoteHTML(Object.assign({}, q, { _ownerPhone: r[3] }), qLang, r[0], r[1], r[2])); })
+      .then((r) => { setRep(quoteHTML(Object.assign({}, q, { _ownerPhone: r[3],
+        _proj: { code: (specSrc && specSrc.code) || "", name: (specSrc && (specSrc.projectName || specSrc.name)) || (q.customer && q.customer.name) || "" } }), qLang, r[0], r[1], r[2])); })
       .then(() => setRepBusy(false), () => setRepBusy(false));
   };
   const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
@@ -1836,9 +1838,12 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   /* แบบผูกกับเลข id — ลูกค้าที่แปลงเป็นงานแล้ว แบบจะย้ายไปอยู่ที่เลขงาน (ดู movePlan3d)
      จึงถามเลขงานก่อนเสมอ ถ้ายังไม่เป็นงานค่อยใช้เลขลูกค้า */
   const planId = (job && job.id) || (specSrc && specSrc.id) || null;
-  /* หลายเวอร์ชัน: ใช้แบบ 3D ที่ BOQ ใบที่ใช้งานอยู่ผูกไว้ (boq.plan3d · ไม่มี = ต้นแบบ) */
+  /* หลายเวอร์ชัน: เลือกแบบ 3D ที่จะดึงได้ (ผู้ใช้: งานมีหลายแบบ ให้เลือกด้วย) — ค่าเริ่ม = ที่ใบนี้เคยดึง (q.plan3dVer)
+     ไม่งั้นแบบที่ BOQ ใบที่ใช้งานผูก (boq.plan3d) ไม่งั้นต้นแบบ */
   const planBoq = ((job && job.boq) || (specSrc && specSrc.boq) || {});
-  const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, planBoq.plan3d) : planId);
+  const p3VerList = useQuoteP3Vers(planId).list;
+  const [p3Ver, setP3Ver] = React.useState(String(q.plan3dVer || planBoq.plan3d || "1"));
+  const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, p3Ver) : planId);
   const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
   /* รูปหน้าปกที่ถ่ายเก็บไว้จากหน้าแบบ 3D (ทุกเวอร์ชัน) — ดู QuoteCoverPick */
   const [coverShots, setCoverShots] = React.useState(null);
@@ -1848,7 +1853,6 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     const h = ref.on("value", (x) => setCoverShots(x.val() || null), () => setCoverShots(null));
     return () => ref.off("value", h);
   }, [planId]);
-  const p3VerList = useQuoteP3Vers(planId).list;
   const delCoverShot = (id) => {
     if (!planId || !window.FBDB) return;
     window.FBDB.ref("plan3dShots/" + planId + "/" + id).remove();
@@ -1865,7 +1869,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     setQ((p) => {
       const a = p.items.slice(); if (!a.length) return p;
       a[0] = Object.assign({}, a[0], { name: quoteSpecName(src), detail: quoteSpecDetail(src) });
-      return Object.assign({}, p, { items: a, kwp: planSum.kwp });
+      return Object.assign({}, p, { items: a, kwp: planSum.kwp, plan3dVer: p3Ver });
     });
   };
 
@@ -2037,8 +2041,15 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงรุ่นอุปกรณ์จากผลสำรวจ
                   </button>
                 )}
+                {p3VerList.length > 1 && !locked && (
+                  <select value={p3Ver} onChange={(e) => setP3Ver(e.target.value)} title="เลือกแบบ 3D ที่จะดึงจำนวนแผง/รุ่นอุปกรณ์"
+                    style={{ marginLeft: canPullSpec ? 0 : "auto", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", border: "none",
+                      borderRadius: "var(--r-chip)", padding: "5px 8px", fontFamily: "inherit", fontSize: 11.5, fontWeight: 600, color: "var(--text-1)", cursor: "pointer", maxWidth: 240 }}>
+                    {p3VerList.map((v) => <option key={v.id} value={v.id}>{v.name + (v.sum && v.sum.panels ? " · " + v.sum.panels + " แผง" : "")}</option>)}
+                  </select>
+                )}
                 {planSum && !locked && (
-                  <button onClick={pullPlan} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+                  <button onClick={pullPlan} style={{ marginLeft: (canPullSpec || p3VerList.length > 1) ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                     borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "#4F46E5" }}>
                     <Icon name="download" size={13} color="#4F46E5" /> ดึงจากแบบ 3D ({planSum.panels} แผง · {planSum.kwp} kWp)

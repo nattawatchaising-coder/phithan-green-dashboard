@@ -1980,12 +1980,12 @@ ul.find li i{color:var(--paper-mute)}
 `;
 
 /* ชื่อไฟล์ PDF (= <title> ที่เบราว์เซอร์ใช้ตั้งชื่อตอนบันทึก) — DS_รหัสโครงการ_ชื่อโครงการ_วัน-เดือน-ปี (ค.ศ.) ที่ออกเอกสาร
-   (ผู้ใช้สั่ง พ.ย. 2026) · ตัดอักขระที่ชื่อไฟล์ใช้ไม่ได้ออก */
-function rpFileName(job) {
+   (ผู้ใช้สั่ง พ.ย. 2026) · ตัดอักขระที่ชื่อไฟล์ใช้ไม่ได้ออก · head = คำนำหน้า (ใบเสนอราคาใช้เลขใบ เช่น QT-2611-001) */
+function rpFileName(job, head) {
   job = job || {};
   const d = new Date(), p2 = (n) => String(n).padStart(2, "0");
   const clean = (x) => String(x == null ? "" : x).replace(/[\\/:*?"<>|\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
-  return ["DS", clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
+  return [clean(head || "DS"), clean(job.code), clean(job.name), p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear()].filter(Boolean).join("_");
 }
 
 /* เปิดหน้าต่างใหม่ → ใส่รายงาน → เรียกกล่องพิมพ์ (เลือก "บันทึกเป็น PDF" ได้เลย) */
@@ -2065,5 +2065,5 @@ function SuReportView({ html, title, onClose }) {
   );
 }
 
-Object.assign(window, { SuReportView, suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
+Object.assign(window, { SuReportView, suReportHTML, rpFileName, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
   rpDayPower, rpYearMap, rpIvAll, rpLossFlow, rpSunPath, rpIvFamily, rpFlowDay, rpPxx, RP_FLOW, RP_CSS });
