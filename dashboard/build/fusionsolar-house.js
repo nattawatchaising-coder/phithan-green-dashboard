@@ -243,7 +243,8 @@ function FsHouseStage({
   }), img && overlay && overlay(pt, sz, img));
 }
 function FsHouseBackdrop({
-  cx
+  cx,
+  bg
 }) {
   const kind = useFsHouseKind(),
     V = FS_HOUSE[kind];
@@ -253,7 +254,7 @@ function FsHouseBackdrop({
     style: {
       position: "absolute",
       inset: 0,
-      background: "var(--surface)",
+      background: bg || "var(--surface)",
       overflow: "hidden",
       pointerEvents: "none"
     }

@@ -166,11 +166,12 @@ function FsHouseStage({ height, overlay, pad }) {
 
 /* ส่วนบนหน้าไซต์ทั้งหมด: ภาพเต็มกรอบ (ผู้ใช้ขอ "ภาพเต็มกรอบ") — ใช้ภาพตัดพื้น (cut) บนพื้นการ์ด var(--surface) ให้กลืนกับหน้า (ผู้ใช้ 2026-10-28 ทักกรอบเหลือง/เทา) · โหลด cut ไม่ได้ → ภาพเต็ม
    ขอบซ้าย/ขวาของภาพจางเข้าสีพื้นให้เนียน · cx = ตำแหน่งกึ่งกลางบ้านตามแนวนอนของกล่อง (0..1) · ข้อความ/การ์ดวางทับโดย FsFleetHero */
-function FsHouseBackdrop({ cx }) {
+/* bg = พื้นหลังกล่อง (ค่าเดิม --surface) · "transparent" เมื่อวางในช่องเล็กบนแผงกระจก (หน้า MikroTik จอกลาง) ไม่ให้เห็นเป็นกรอบ */
+function FsHouseBackdrop({ cx, bg }) {
   const kind = useFsHouseKind(), V = FS_HOUSE[kind];
   const fade = "linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%)";
   return (
-    <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "var(--surface)", overflow: "hidden", pointerEvents: "none" }}>
+    <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: bg || "var(--surface)", overflow: "hidden", pointerEvents: "none" }}>
       <img key={kind} src={V.cut || V.src} alt="" draggable="false" onError={(e) => { if (V.cut && e.currentTarget.src.indexOf(V.src) < 0) e.currentTarget.src = V.src; }}
         style={{ position: "absolute", top: "2%", height: "96%", width: "auto", left: (cx == null ? 50 : cx * 100) + "%", transform: "translateX(-50%)", maxWidth: "none",
           WebkitMaskImage: fade, maskImage: fade, userSelect: "none" }} />

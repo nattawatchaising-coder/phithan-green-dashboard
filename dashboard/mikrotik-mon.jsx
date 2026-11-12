@@ -103,6 +103,8 @@ function mtDayKwh(days, k, reg, live) {
   const x = e - Math.abs(d.first[reg]);
   return x < -0.5 ? e : Math.max(0, x);
 }
+/* จำนวนวันที่มีข้อมูลในเดือน (ไว้หารค่าเฉลี่ย — ไซต์ที่เพิ่งเริ่มเก็บกลางเดือนไม่ถูกหารด้วยวันที่ของเดือน) */
+const mtDataDays = (days, ym) => Object.keys(days || {}).filter((k) => k.slice(0, 6) === ym.replace("-", "")).length;
 function mtMonKwh(days, ym, reg, live) {
   const pre = ym.replace("-", "");
   const ks = Object.keys(days || {}).filter((k) => k.slice(0, 6) === pre);
@@ -142,6 +144,18 @@ function useMtNowMon() {
   const [now, setNow] = React.useState(Date.now());
   React.useEffect(() => { const t = setInterval(() => setNow(Date.now()), 20e3); return () => clearInterval(t); }, []);
   return now;
+}
+/* ความกว้างจริงของกล่อง (ไม่ใช่ของหน้าต่าง) — เมนูข้างเปิดอยู่ พื้นที่เหลือแคบกว่าจอมาก · [ref, w] · w = 0 จนกว่าจะวัดได้ */
+function useMtWidth() {
+  const [w, setW] = React.useState(0);
+  const ro = React.useRef(null);
+  const ref = React.useCallback((el) => {
+    if (ro.current) { ro.current.disconnect(); ro.current = null; }
+    if (!el) return;
+    setW(Math.round(el.getBoundingClientRect().width));
+    if (window.ResizeObserver) { ro.current = new ResizeObserver((es) => setW(Math.round(es[0].contentRect.width))); ro.current.observe(el); }
+  }, []);
+  return [ref, w];
 }
 function useMtMobile() {
   const mq = React.useMemo(() => window.matchMedia("(max-width: 860px)"), []);
@@ -268,6 +282,9 @@ function MtFloat({ icon, label, v, sub, frac, flat }) {
   );
 }
 function MtHero({ roll, counts, filter, setFilter, lastAt, now, isMobile, title, foot }) {
+  const [boxRef, bw] = useMtWidth();
+  const W = bw || (isMobile ? 360 : 1200);
+  const lay = W < 600 ? "s" : W < 1080 ? "m" : "l";   // s = มือถือ · m = จอกลาง (บ้านอยู่ข้างหัวข้อ การ์ดลงล่าง) · l = บ้านกลาง การ์ดลอยขวา
   const cu = (v, d) => (window.FsCountUp && v != null && isFinite(v) ? <window.FsCountUp value={v} digits={d} /> : mtNum(v, d));
   const eV = (kwh) => { const e = mtEnergy(kwh); return kwh == null ? e : [cu(Math.abs(kwh) >= 10000 ? kwh / 1000 : kwh, Math.abs(kwh) >= 10000 ? 2 : 1), e[1]]; };
   const dom = Number(mtThDay(now).slice(6));
@@ -276,9 +293,9 @@ function MtHero({ roll, counts, filter, setFilter, lastAt, now, isMobile, title,
       frac: roll.kwp > 0 && roll.live ? roll.kw / roll.kwp : null,
       sub: roll.kwp > 0 && roll.live ? Math.round((roll.kw / roll.kwp) * 100) + "% ของ " + mtNum(roll.kwp, 0) + " kWp" : roll.live + " ไซต์ส่งค่าสด" },
     { k: "day", icon: "sun", label: "ผลิตวันนี้", v: eV(roll.day), sub: roll.yday != null ? "เมื่อวาน " + mtEnergy(roll.yday).join(" ") : "เริ่มนับตั้งแต่ 00:00 น." },
-    { k: "mon", icon: "calendar", label: "ผลิตเดือนนี้", v: eV(roll.mon), sub: roll.mon != null ? "เฉลี่ย " + mtEnergy(roll.mon / Math.max(1, dom)).join(" ") + "/วัน" : null },
+    { k: "mon", icon: "calendar", label: "ผลิตเดือนนี้", v: eV(roll.mon), sub: roll.mon != null ? "เฉลี่ย " + mtEnergy(roll.mon / Math.max(1, Math.min(dom, roll.mdays || dom))).join(" ") + "/วัน" : null },
     roll.money != null
-      ? { k: "baht", icon: "wallet", label: "ค่าไฟเดือนนี้ (ถึงตอนนี้)", v: [cu(roll.money, 0), "บาท"], sub: "ก่อน VAT · ตามราคาต่อหน่วยของแต่ละไซต์" }
+      ? { k: "baht", icon: "wallet", label: "ค่าไฟเดือนนี้ (ถึงตอนนี้)", v: [cu(roll.money, roll.money < 1000 ? 2 : 0), "บาท"], sub: "ก่อน VAT · ตามราคาต่อหน่วยของแต่ละไซต์" }
       : { k: "tot", icon: "trend", label: "เลขมิเตอร์รวม", v: mtEnergy(roll.reading), sub: "เลขสะสมของทุกมิเตอร์" },
   ];
   const chips = [["gen", "กำลังผลิต", "var(--tint-ok-tx)"], ["ok", "ออนไลน์", "var(--tint-ok-tx)"], ["meter", "มิเตอร์ไม่ตอบ", "var(--tint-amber-tx)"],
@@ -290,7 +307,7 @@ function MtHero({ roll, counts, filter, setFilter, lastAt, now, isMobile, title,
         <span className={roll.live ? "mt-pulse" : ""} style={{ width: 7, height: 7, borderRadius: 4, background: roll.live ? "var(--tint-ok-tx)" : "var(--text-3)", color: "var(--tint-ok-tx)" }} />
         {lastAt ? "อัปเดต " + window.mtAgo(now - lastAt) : "ยังไม่ได้รับข้อมูล"}
       </span>
-      <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 27 : 36, fontWeight: 700, lineHeight: 1.15, color: "var(--text-1)" }}>
+      <div style={{ fontFamily: "var(--display)", fontSize: lay === "s" ? 27 : lay === "m" ? 32 : 36, fontWeight: 700, lineHeight: 1.15, color: "var(--text-1)" }}>
         {title || "ไฟฟ้าโซลาร์"}<br />จาก <span style={{ color: mtSun }}>{roll.n}</span> ไซต์
       </div>
       <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
@@ -312,23 +329,39 @@ function MtHero({ roll, counts, filter, setFilter, lastAt, now, isMobile, title,
       {foot}
     </div>
   );
-  const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 30%" : "64% 42%") + ", color-mix(in srgb, " + mtSun + " 15%, transparent), transparent 72%),"
+  const bg = "radial-gradient(ellipse 48% 62% at " + (lay === "s" ? "50% 30%" : "64% 42%") + ", color-mix(in srgb, " + mtSun + " 15%, transparent), transparent 72%),"
     + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 80%)";
   const wrap = { position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: bg, boxShadow: "var(--shadow-card)", isolation: "isolate" };
-  if (isMobile) return (
-    <div style={wrap}>
+  if (lay === "s") return (
+    <div ref={boxRef} style={wrap}>
       <div style={{ padding: "16px 14px 14px" }}>{titleBlock}</div>
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr", padding: "0 14px 14px" }}>
         {cards.map((c) => <MtFloat key={c.k} {...c} flat />)}
       </div>
     </div>
   );
+  if (lay === "m") {
+    /* บ้านอยู่ในช่องขวาของแถวบน (สูงตามความกว้างช่อง ภาพ 1100×614) — ไม่ทับหัวข้อ/การ์ด */
+    const cw = (W - 40 - 14) * 0.6, hh = Math.round(Math.min(250, Math.max(160, cw / 1.7)));
+    return (
+      <div ref={boxRef} style={Object.assign({}, wrap, { background: "var(--surface)" })}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.2fr)", gap: 14, padding: "18px 20px 6px", alignItems: "center" }}>
+          {titleBlock}
+          <div style={{ position: "relative", height: hh }}>{window.FsHouseBackdrop && <window.FsHouseBackdrop bg="transparent" />}</div>
+        </div>
+        <div style={{ display: "grid", gap: 10, gridTemplateColumns: W >= 900 ? "repeat(4, minmax(0, 1fr))" : "1fr 1fr", padding: "6px 20px 18px" }}>
+          {cards.map((c) => <MtFloat key={c.k} {...c} flat />)}
+        </div>
+      </div>
+    );
+  }
+  /* บ้านอยู่ในช่องกลางเท่านั้น สูงตามความกว้างช่อง — เดิมวางเต็มแผงแล้วทับการ์ดลอยเมื่อจอไม่กว้างมาก (การ์ดกระจกบนภาพอ่านยาก) */
+  const cwL = Math.max(0, W - 300) * 1.6 / 2.45, hhL = Math.round(Math.min(380, Math.max(220, cwL / 1.72)));
   return (
-    <div style={wrap}>
-      {window.FsHouseBackdrop && <window.FsHouseBackdrop cx={0.53} />}
+    <div ref={boxRef} style={wrap}>
       <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(250px, .85fr) minmax(0, 1.6fr) 228px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
         {titleBlock}
-        <div style={{ height: 330 }} />
+        <div style={{ position: "relative", height: hhL }}>{window.FsHouseBackdrop && <window.FsHouseBackdrop bg="transparent" />}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{cards.map((c) => <MtFloat key={c.k} {...c} />)}</div>
       </div>
     </div>
@@ -441,6 +474,8 @@ function MtMonDetail({ s, st, isAdmin, canEdit, onBack, now, partner }) {
 /* ---------- แท็บภาพรวม: ตอนนี้ · กราฟวัน · กราฟเดือน · ค่าจากมิเตอร์ · รายงาน ---------- */
 function MtSiteOverview({ s, st, isAdmin, now }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const one = (bw || (isMobile ? 360 : 1200)) < 820;   // แคบ = เกจอยู่บน KPI ลงล่าง
   const today = mtThDay(now);
   const [day, setDay] = React.useState(today);
   const [ym, setYm] = React.useState(today.slice(0, 4) + "-" + today.slice(4, 6));
@@ -476,9 +511,9 @@ function MtSiteOverview({ s, st, isAdmin, now }) {
   const at = st && st.at ? Date.parse(st.at) : null;
   const m = st && st.meter;
   return (
-    <React.Fragment>
+    <div ref={boxRef} style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
       {/* ตอนนี้ + ตัวเลขหลัก */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(260px, 340px) minmax(0, 1fr)", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: one ? "1fr" : "minmax(260px, 340px) minmax(0, 1fr)", gap: 14 }}>
         <div style={mtPanel({ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, justifyContent: "center" })}>
           <div style={{ alignSelf: "stretch" }}><MtHead icon="bolt" title="กำลังผลิตตอนนี้" sub={at ? "อ่านค่าเมื่อ " + new Date(at).toLocaleTimeString("th-TH", { timeStyle: "short" }) + " น. · " + window.mtAgo(now - at) : "ยังไม่ได้รับข้อมูล"} /></div>
           {Gauge ? <Gauge frac={kwp && live ? Math.max(0, v.kw) / kwp : live && v.kw > 0 ? 1 : 0} value={live ? mtNum(v.kw, mtKwD(v.kw)) : "—"} unit="kW" size={210} color={mtSun}
@@ -493,7 +528,7 @@ function MtSiteOverview({ s, st, isAdmin, now }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignContent: "stretch" }}>
           <MtKpi icon="sun" label="ผลิตวันนี้" v={mtEnergy(dayK)} sub={ydK != null ? "เมื่อวาน " + mtEnergy(ydK).join(" ") : "นับตั้งแต่ 00:00 น."} />
           <MtKpi icon="calendar" label={"ผลิตเดือน" + MT_TH_MON_FULL[Number(curYm.slice(5)) - 1]} v={mtEnergy(monK)}
-            sub={monK != null ? "เฉลี่ย " + mtEnergy(monK / Math.max(1, Number(today.slice(6)))).join(" ") + "/วัน" : null} />
+            sub={monK != null ? "เฉลี่ย " + mtEnergy(monK / Math.max(1, Math.min(Number(today.slice(6)), mtDataDays(days, curYm) || 1))).join(" ") + "/วัน" : null} />
           <MtKpi icon="wallet" label="ค่าไฟเดือนนี้ (ถึงตอนนี้)" v={rate != null && monK != null ? [mtMoney(monK * rate), "บาท"] : ["—", ""]}
             sub={rate != null ? mtNum(rate, rate % 1 ? 2 : 0) + " บาท/หน่วย · ก่อน VAT" : "ยังไม่ตั้งราคาต่อหน่วย (แท็บบิลค่าไฟ)"} />
           <MtKpi icon="trend" label="เลขมิเตอร์ (สะสม)" v={[live && v[reg] != null ? mtNum(Math.abs(v[reg]), 1) : "—", "kWh"]} sub={MT_REG_TH[reg]} />
@@ -518,7 +553,7 @@ function MtSiteOverview({ s, st, isAdmin, now }) {
       <MtElecCard s={s} st={st} live={live} now={now} />
       <MtMeterReport s={s} days={days} ym={ym} reg={reg} live={live} />
       {isAdmin && <MtMeterCfg s={s} />}
-    </React.Fragment>
+    </div>
   );
 }
 
@@ -835,6 +870,10 @@ const mtEsc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&
 /* ---------- แท็บบิลค่าไฟ: เดือน · กระดาษบิล | แผงออกบิล · บิลที่ออกแล้ว ---------- */
 function MtSiteBill({ s, st, isAdmin, canEdit, now }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const W = bw || (isMobile ? 360 : 1200);
+  const stack = W < 980;                       // กระดาษต้องการ ≥ 600 + แผง 320
+  const compact = (stack ? W : W - 334) < 600;
   const cur = mtCurYm(), prevYm = mtShiftYm(cur, -1);
   const days = useMtRef("mtMeter/" + s.n + "/d");
   const bills = useMtRef("mtBills/" + s.n);
@@ -845,20 +884,20 @@ function MtSiteBill({ s, st, isAdmin, canEdit, now }) {
     if (ym || days === undefined) return;
     setYm(Object.keys(days || {}).some((k) => k.slice(0, 6) === prevYm.replace("-", "")) ? prevYm : cur);
   }, [days]);
-  if (!ym) return <div style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</div></div>;
+  if (!ym) return <div ref={boxRef} style={mtCard}><div style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</div></div>;
   const past = Object.keys(bills || {}).sort().reverse();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 320px", gap: 14, alignItems: "start" }}>
+    <div ref={boxRef} style={{ display: "grid", gridTemplateColumns: stack ? "minmax(0, 1fr)" : "minmax(0, 1fr) 320px", gap: 14, alignItems: "start" }}>
       <MtBillWork key={ym} s={s} st={st} ym={ym} setYm={setYm} cur={cur} days={days} saved={bills ? bills[ym.replace("-", "")] || null : bills} owner={owner}
-        canEdit={canEdit} isAdmin={isAdmin} now={now} isMobile={isMobile} />
-      <div style={{ gridColumn: isMobile ? undefined : "1 / -1" }}>
+        canEdit={canEdit} isAdmin={isAdmin} now={now} stack={stack} compact={compact} />
+      <div style={{ gridColumn: stack ? undefined : "1 / -1" }}>
         <MtBillHistory s={s} bills={bills} past={past} ym={ym} setYm={setYm} isAdmin={isAdmin} />
       </div>
     </div>
   );
 }
 
-function MtBillWork({ s, st, ym, setYm, cur, days, saved, owner, canEdit, isAdmin, now, isMobile }) {
+function MtBillWork({ s, st, ym, setYm, cur, days, saved, owner, canEdit, isAdmin, now, stack, compact }) {
   const paperRef = React.useRef(null);
   const reg = mtRegOf(s);
   const b = s.bill || {};
@@ -935,11 +974,11 @@ function MtBillWork({ s, st, ym, setYm, cur, days, saved, owner, canEdit, isAdmi
           <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>เลือกเดือนที่จะดู/ออกบิล</span>
           {useSaved && <button className="btn btn-sm" onClick={() => mtPrintPaper(paperRef.current, d.no)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="download" size={13} />พิมพ์ / PDF</button>}
         </div>
-        <MtBillPaper d={d} paperRef={paperRef} compact={isMobile} />
+        <MtBillPaper d={d} paperRef={paperRef} compact={compact} />
       </div>
 
       {/* แผงออกบิล */}
-      <div className="mt-noprint" style={mtPanel({ display: "flex", flexDirection: "column", gap: 14, position: isMobile ? "static" : "sticky", top: 12 })}>
+      <div className="mt-noprint" style={mtPanel({ display: "flex", flexDirection: "column", gap: 14, position: stack ? "static" : "sticky", top: 12 })}>
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "11px 13px", borderRadius: "var(--r-tile)", background: status.bg }}>
           <Icon name={status.icon} size={17} color={status.tx} sw={2.2} />
           <div style={{ minWidth: 0 }}>
@@ -1075,6 +1114,8 @@ const MT_INFO_GROUPS = [
 const MT_INFO_KEYS = MT_INFO_GROUPS.reduce((a, g) => a.concat(g.fields.map((f) => f[0])), []);
 function MtSiteInfo({ s, canEdit }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const two = (bw || (isMobile ? 360 : 1200)) >= 620;
   const init = () => { const c = mtCustOf(s); const o = {}; MT_INFO_KEYS.forEach((k) => { o[k] = c[k] == null ? "" : String(c[k]); }); return o; };
   const [f, setF] = React.useState(init);
   const [base] = React.useState(init);
@@ -1090,11 +1131,11 @@ function MtSiteInfo({ s, canEdit }) {
   const fld = Object.assign({}, mtField, { background: "var(--surface2)", boxShadow: "var(--shadow-inset)" });
   const ro = { fontSize: 13.5, color: "var(--text-1)", padding: "10px 12px", borderRadius: "var(--r-tile)", background: "color-mix(in srgb, var(--surface2) 60%, transparent)", minHeight: 20, whiteSpace: "pre-line" };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div ref={boxRef} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {MT_INFO_GROUPS.map((g) => (
         <div key={g.title} style={mtCard}>
           <MtHead icon={g.icon} color="var(--primary)" title={g.title} sub={g.sub} />
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: two ? "repeat(2, minmax(0, 1fr))" : "1fr", gap: 12 }}>
             {g.fields.map(([k, label, ph, span, multi, type]) => (
               <div key={k} style={{ gridColumn: span === 2 ? "1 / -1" : undefined }}>
                 <div style={mtLbl}>{label}</div>
@@ -1148,7 +1189,7 @@ function MtMonView({ role, currentUser, partner }) {
 
   /* รวมทุกไซต์ */
   const today = mtThDay(now), ym = mtCurYm();
-  const roll = { n: sites.length, kw: 0, live: 0, kwp: 0, day: null, yday: null, mon: null, money: null, reading: null };
+  const roll = { n: sites.length, kw: 0, live: 0, kwp: 0, day: null, yday: null, mon: null, money: null, reading: null, mdays: 0 };
   const counts = {};
   let lastAt = 0;
   const add = (k, v) => { if (v != null) roll[k] = (roll[k] || 0) + v; };
@@ -1165,6 +1206,7 @@ function MtMonView({ role, currentUser, partner }) {
     add("yday", mtDayKwh(days, mtShiftDay(today, -1), reg, live));
     const mk = mtMonKwh(days, ym, reg, live);
     add("mon", mk);
+    roll.mdays = Math.max(roll.mdays, mtDataDays(days, ym));
     if (rate != null && mk != null) add("money", mk * rate);
   });
   const ql = q.trim().toLowerCase();

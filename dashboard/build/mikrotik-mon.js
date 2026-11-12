@@ -151,6 +151,7 @@ function mtDayKwh(days, k, reg, live) {
   const x = e - Math.abs(d.first[reg]);
   return x < -0.5 ? e : Math.max(0, x);
 }
+const mtDataDays = (days, ym) => Object.keys(days || {}).filter(k => k.slice(0, 6) === ym.replace("-", "")).length;
 function mtMonKwh(days, ym, reg, live) {
   const pre = ym.replace("-", "");
   const ks = Object.keys(days || {}).filter(k => k.slice(0, 6) === pre);
@@ -194,6 +195,23 @@ function useMtNowMon() {
     return () => clearInterval(t);
   }, []);
   return now;
+}
+function useMtWidth() {
+  const [w, setW] = React.useState(0);
+  const ro = React.useRef(null);
+  const ref = React.useCallback(el => {
+    if (ro.current) {
+      ro.current.disconnect();
+      ro.current = null;
+    }
+    if (!el) return;
+    setW(Math.round(el.getBoundingClientRect().width));
+    if (window.ResizeObserver) {
+      ro.current = new ResizeObserver(es => setW(Math.round(es[0].contentRect.width)));
+      ro.current.observe(el);
+    }
+  }, []);
+  return [ref, w];
 }
 function useMtMobile() {
   const mq = React.useMemo(() => window.matchMedia("(max-width: 860px)"), []);
@@ -563,6 +581,9 @@ function MtHero({
   title,
   foot
 }) {
+  const [boxRef, bw] = useMtWidth();
+  const W = bw || (isMobile ? 360 : 1200);
+  const lay = W < 600 ? "s" : W < 1080 ? "m" : "l";
   const cu = (v, d) => window.FsCountUp && v != null && isFinite(v) ? React.createElement(window.FsCountUp, {
     value: v,
     digits: d
@@ -590,12 +611,12 @@ function MtHero({
     icon: "calendar",
     label: "ผลิตเดือนนี้",
     v: eV(roll.mon),
-    sub: roll.mon != null ? "เฉลี่ย " + mtEnergy(roll.mon / Math.max(1, dom)).join(" ") + "/วัน" : null
+    sub: roll.mon != null ? "เฉลี่ย " + mtEnergy(roll.mon / Math.max(1, Math.min(dom, roll.mdays || dom))).join(" ") + "/วัน" : null
   }, roll.money != null ? {
     k: "baht",
     icon: "wallet",
     label: "ค่าไฟเดือนนี้ (ถึงตอนนี้)",
-    v: [cu(roll.money, 0), "บาท"],
+    v: [cu(roll.money, roll.money < 1000 ? 2 : 0), "บาท"],
     sub: "ก่อน VAT · ตามราคาต่อหน่วยของแต่ละไซต์"
   } : {
     k: "tot",
@@ -637,7 +658,7 @@ function MtHero({
   }), lastAt ? "อัปเดต " + window.mtAgo(now - lastAt) : "ยังไม่ได้รับข้อมูล"), React.createElement("div", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: isMobile ? 27 : 36,
+      fontSize: lay === "s" ? 27 : lay === "m" ? 32 : 36,
       fontWeight: 700,
       lineHeight: 1.15,
       color: "var(--text-1)"
@@ -685,7 +706,7 @@ function MtHero({
       background: c
     }
   }), th, " ", counts[k]))), foot);
-  const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 30%" : "64% 42%") + ", color-mix(in srgb, " + mtSun + " 15%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 80%)";
+  const bg = "radial-gradient(ellipse 48% 62% at " + (lay === "s" ? "50% 30%" : "64% 42%") + ", color-mix(in srgb, " + mtSun + " 15%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 80%)";
   const wrap = {
     position: "relative",
     overflow: "hidden",
@@ -694,7 +715,8 @@ function MtHero({
     boxShadow: "var(--shadow-card)",
     isolation: "isolate"
   };
-  if (isMobile) return React.createElement("div", {
+  if (lay === "s") return React.createElement("div", {
+    ref: boxRef,
     style: wrap
   }, React.createElement("div", {
     style: {
@@ -712,11 +734,48 @@ function MtHero({
   }, c, {
     flat: true
   })))));
+  if (lay === "m") {
+    const cw = (W - 40 - 14) * 0.6,
+      hh = Math.round(Math.min(250, Math.max(160, cw / 1.7)));
+    return React.createElement("div", {
+      ref: boxRef,
+      style: Object.assign({}, wrap, {
+        background: "var(--surface)"
+      })
+    }, React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.2fr)",
+        gap: 14,
+        padding: "18px 20px 6px",
+        alignItems: "center"
+      }
+    }, titleBlock, React.createElement("div", {
+      style: {
+        position: "relative",
+        height: hh
+      }
+    }, window.FsHouseBackdrop && React.createElement(window.FsHouseBackdrop, {
+      bg: "transparent"
+    }))), React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 10,
+        gridTemplateColumns: W >= 900 ? "repeat(4, minmax(0, 1fr))" : "1fr 1fr",
+        padding: "6px 20px 18px"
+      }
+    }, cards.map(c => React.createElement(MtFloat, _extends({
+      key: c.k
+    }, c, {
+      flat: true
+    })))));
+  }
+  const cwL = Math.max(0, W - 300) * 1.6 / 2.45,
+    hhL = Math.round(Math.min(380, Math.max(220, cwL / 1.72)));
   return React.createElement("div", {
+    ref: boxRef,
     style: wrap
-  }, window.FsHouseBackdrop && React.createElement(window.FsHouseBackdrop, {
-    cx: 0.53
-  }), React.createElement("div", {
+  }, React.createElement("div", {
     style: {
       position: "relative",
       display: "grid",
@@ -727,9 +786,12 @@ function MtHero({
     }
   }, titleBlock, React.createElement("div", {
     style: {
-      height: 330
+      position: "relative",
+      height: hhL
     }
-  }), React.createElement("div", {
+  }, window.FsHouseBackdrop && React.createElement(window.FsHouseBackdrop, {
+    bg: "transparent"
+  })), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1081,6 +1143,8 @@ function MtSiteOverview({
   now
 }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const one = (bw || (isMobile ? 360 : 1200)) < 820;
   const today = mtThDay(now);
   const [day, setDay] = React.useState(today);
   const [ym, setYm] = React.useState(today.slice(0, 4) + "-" + today.slice(4, 6));
@@ -1128,10 +1192,18 @@ function MtSiteOverview({
   const Gauge = window.FsGauge;
   const at = st && st.at ? Date.parse(st.at) : null;
   const m = st && st.meter;
-  return React.createElement(React.Fragment, null, React.createElement("div", {
+  return React.createElement("div", {
+    ref: boxRef,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "minmax(260px, 340px) minmax(0, 1fr)",
+      gridTemplateColumns: one ? "1fr" : "minmax(260px, 340px) minmax(0, 1fr)",
       gap: 14
     }
   }, React.createElement("div", {
@@ -1188,7 +1260,7 @@ function MtSiteOverview({
     icon: "calendar",
     label: "ผลิตเดือน" + MT_TH_MON_FULL[Number(curYm.slice(5)) - 1],
     v: mtEnergy(monK),
-    sub: monK != null ? "เฉลี่ย " + mtEnergy(monK / Math.max(1, Number(today.slice(6)))).join(" ") + "/วัน" : null
+    sub: monK != null ? "เฉลี่ย " + mtEnergy(monK / Math.max(1, Math.min(Number(today.slice(6)), mtDataDays(days, curYm) || 1))).join(" ") + "/วัน" : null
   }), React.createElement(MtKpi, {
     icon: "wallet",
     label: "\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 (\u0E16\u0E36\u0E07\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49)",
@@ -2071,6 +2143,10 @@ function MtSiteBill({
   now
 }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const W = bw || (isMobile ? 360 : 1200);
+  const stack = W < 980;
+  const compact = (stack ? W : W - 334) < 600;
   const cur = mtCurYm(),
     prevYm = mtShiftYm(cur, -1);
   const days = useMtRef("mtMeter/" + s.n + "/d");
@@ -2082,6 +2158,7 @@ function MtSiteBill({
     setYm(Object.keys(days || {}).some(k => k.slice(0, 6) === prevYm.replace("-", "")) ? prevYm : cur);
   }, [days]);
   if (!ym) return React.createElement("div", {
+    ref: boxRef,
     style: mtCard
   }, React.createElement("div", {
     style: {
@@ -2091,9 +2168,10 @@ function MtSiteBill({
   }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"));
   const past = Object.keys(bills || {}).sort().reverse();
   return React.createElement("div", {
+    ref: boxRef,
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 320px",
+      gridTemplateColumns: stack ? "minmax(0, 1fr)" : "minmax(0, 1fr) 320px",
       gap: 14,
       alignItems: "start"
     }
@@ -2110,10 +2188,11 @@ function MtSiteBill({
     canEdit: canEdit,
     isAdmin: isAdmin,
     now: now,
-    isMobile: isMobile
+    stack: stack,
+    compact: compact
   }), React.createElement("div", {
     style: {
-      gridColumn: isMobile ? undefined : "1 / -1"
+      gridColumn: stack ? undefined : "1 / -1"
     }
   }, React.createElement(MtBillHistory, {
     s: s,
@@ -2136,7 +2215,8 @@ function MtBillWork({
   canEdit,
   isAdmin,
   now,
-  isMobile
+  stack,
+  compact
 }) {
   const paperRef = React.useRef(null);
   const reg = mtRegOf(s);
@@ -2347,14 +2427,14 @@ function MtBillWork({
   }), "\u0E1E\u0E34\u0E21\u0E1E\u0E4C / PDF")), React.createElement(MtBillPaper, {
     d: d,
     paperRef: paperRef,
-    compact: isMobile
+    compact: compact
   })), React.createElement("div", {
     className: "mt-noprint",
     style: mtPanel({
       display: "flex",
       flexDirection: "column",
       gap: 14,
-      position: isMobile ? "static" : "sticky",
+      position: stack ? "static" : "sticky",
       top: 12
     })
   }, React.createElement("div", {
@@ -2763,6 +2843,8 @@ function MtSiteInfo({
   canEdit
 }) {
   const isMobile = useMtMobile();
+  const [boxRef, bw] = useMtWidth();
+  const two = (bw || (isMobile ? 360 : 1200)) >= 620;
   const init = () => {
     const c = mtCustOf(s);
     const o = {};
@@ -2807,6 +2889,7 @@ function MtSiteInfo({
     whiteSpace: "pre-line"
   };
   return React.createElement("div", {
+    ref: boxRef,
     style: {
       display: "flex",
       flexDirection: "column",
@@ -2823,7 +2906,7 @@ function MtSiteInfo({
   }), React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+      gridTemplateColumns: two ? "repeat(2, minmax(0, 1fr))" : "1fr",
       gap: 12
     }
   }, g.fields.map(([k, label, ph, span, multi, type]) => React.createElement("div", {
@@ -2941,7 +3024,8 @@ function MtMonView({
     yday: null,
     mon: null,
     money: null,
-    reading: null
+    reading: null,
+    mdays: 0
   };
   const counts = {};
   let lastAt = 0;
@@ -2969,6 +3053,7 @@ function MtMonView({
     add("yday", mtDayKwh(days, mtShiftDay(today, -1), reg, live));
     const mk = mtMonKwh(days, ym, reg, live);
     add("mon", mk);
+    roll.mdays = Math.max(roll.mdays, mtDataDays(days, ym));
     if (rate != null && mk != null) add("money", mk * rate);
   });
   const ql = q.trim().toLowerCase();
