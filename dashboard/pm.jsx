@@ -773,6 +773,21 @@ const PM_SECTIONS = [
 const PM_SEC_BY = {};
 PM_SECTIONS.forEach((s) => { PM_SEC_BY[s.key] = s; });
 
+/* ชุดย่องานบ้าน (ผู้ใช้สั่ง พ.ย. 2026 "ทำชุดย่องานบ้าน") — งานประเภท "home" ใช้ 8 หมวดนี้ ~44 รายการแทน 94
+   ซ่อน: รายการเอกสาร 35 ข้อ · B4 · C1 · ภาพความร้อน D1–D3 · แรงขัน E1–E2 · ล้างแผง W1 · มิเตอร์ PQM
+   ⚠ แค่ซ่อน ไม่ลบ — เล่มงานบ้านที่เคยกรอกหมวดพวกนั้นไว้ ข้อมูลยังอยู่ในฐานข้อมูลครบ
+   ⚠ % ความครบ · รายการที่ขาด · PDF · Excel ต้องวนจาก pmSectionsFor(job) ไม่ใช่ PM_SECTIONS ตรง ๆ */
+const PM_HOME_KEYS = ["sum", "reg", "a1", "b1", "b3", "c2", "pgnd", "sign"];
+const pmIsHome = (job) => !!job && job.type === "home";
+function pmSectionsFor(job) {
+  return pmIsHome(job) ? PM_SECTIONS.filter((s) => PM_HOME_KEYS.indexOf(s.key) >= 0) : PM_SECTIONS;
+}
+/* รูปที่ผูกกับหมวดที่ซ่อนไม่พิมพ์ในเล่มงานบ้าน (รูปทั่วไป sec "gen" อยู่เสมอ) */
+function pmPhotosFor(job, list) {
+  if (!pmIsHome(job)) return list || [];
+  return (list || []).filter((ph) => !ph.sec || ph.sec === "gen" || PM_HOME_KEYS.indexOf(ph.sec) >= 0);
+}
+
 /* ป้ายบอกที่มาของค่าที่เติมให้ล่วงหน้า — ความหมายคือ "ช่วยตรวจที" ไม่ใช่ "อันนี้เสร็จแล้ว" */
 const PM_FROM_LABEL = { job: "จากใบงาน", boq: "จาก BOQ", survey: "จากแบบสำรวจ", user: "จากผู้ใช้งาน" };
 
@@ -1140,7 +1155,7 @@ function pmProgress(rec, job, user) {
 
   const filled = (v) => String(v === null || v === undefined ? "" : v).trim() !== "";
 
-  PM_SECTIONS.forEach((sec) => {
+  pmSectionsFor(job).forEach((sec) => {
     if ((sec.since || 1) > ver) return;
     let sd = 0, st = 0;
     const tick = (ok, key, en, th) => {
@@ -1474,7 +1489,7 @@ function pmPhotoFlags(idx) {
 }
 
 Object.assign(window, {
-  PM_ROOT, PM_VER, PM_RETIRED, PM_SECTIONS, PM_SEC_BY, PM_FROM_LABEL,
+  PM_ROOT, PM_VER, PM_RETIRED, PM_SECTIONS, PM_SEC_BY, PM_FROM_LABEL, PM_HOME_KEYS, pmIsHome, pmSectionsFor, pmPhotosFor,
   pmDocName, pmDocLabel, pmSetId, pmSetCount, pmGroupsOf,
   pmRowId, pmTableOf, pmRowsOf, pmNextOrd,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,

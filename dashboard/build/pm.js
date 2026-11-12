@@ -1934,6 +1934,15 @@ const PM_SEC_BY = {};
 PM_SECTIONS.forEach(s => {
   PM_SEC_BY[s.key] = s;
 });
+const PM_HOME_KEYS = ["sum", "reg", "a1", "b1", "b3", "c2", "pgnd", "sign"];
+const pmIsHome = job => !!job && job.type === "home";
+function pmSectionsFor(job) {
+  return pmIsHome(job) ? PM_SECTIONS.filter(s => PM_HOME_KEYS.indexOf(s.key) >= 0) : PM_SECTIONS;
+}
+function pmPhotosFor(job, list) {
+  if (!pmIsHome(job)) return list || [];
+  return (list || []).filter(ph => !ph.sec || ph.sec === "gen" || PM_HOME_KEYS.indexOf(ph.sec) >= 0);
+}
 const PM_FROM_LABEL = {
   job: "จากใบงาน",
   boq: "จาก BOQ",
@@ -2245,7 +2254,7 @@ function pmProgress(rec, job, user) {
   let done = 0,
     total = 0;
   const filled = v => String(v === null || v === undefined ? "" : v).trim() !== "";
-  PM_SECTIONS.forEach(sec => {
+  pmSectionsFor(job).forEach(sec => {
     if ((sec.since || 1) > ver) return;
     let sd = 0,
       st = 0;
@@ -2603,6 +2612,10 @@ Object.assign(window, {
   PM_SECTIONS,
   PM_SEC_BY,
   PM_FROM_LABEL,
+  PM_HOME_KEYS,
+  pmIsHome,
+  pmSectionsFor,
+  pmPhotosFor,
   pmDocName,
   pmDocLabel,
   pmSetId,

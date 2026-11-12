@@ -54,7 +54,8 @@ function PmHandoverPaper({
     total: 0,
     missing: []
   };
-  const list = photos || [];
+  const homeJob = window.pmIsHome(j);
+  const list = window.pmPhotosFor(j, photos);
   const sumSec = window.PM_SEC_BY.sum;
   const docSec = window.PM_SEC_BY.docs;
   const signSec = window.PM_SEC_BY.sign;
@@ -229,7 +230,7 @@ function PmHandoverPaper({
   };
   const pmHasResult = tb => !!tb.pass && tb.resultCol !== false;
   const tableSheets = [];
-  window.PM_SECTIONS.forEach(sec => {
+  window.pmSectionsFor(j).forEach(sec => {
     if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
     (sec.tables || []).forEach(tb => {
       const t = window.pmTableOf(r, sec.key, tb.key);
@@ -646,7 +647,7 @@ function PmHandoverPaper({
     key: "tbx-" + x.sec.key + "-" + x.tb.key
   }, tableSheet(x, i), rowPhotoSheets(x), photoSheets(window.pmSlotLabel(x.sec.key, x.tb.key).en + " — Photos", window.pmSlotLabel(x.sec.key, x.tb.key).th, window.pmPhotosOf(ordered, x.sec.key, x.tb.key), x.sec.key + "-" + x.tb.key))), React.createElement("div", {
     className: "pm-sheet pm-page"
-  }, headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), React.createElement("table", {
+  }, homeJob ? headBar("Handover Sign-off", "ลงนามส่งมอบ") : headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), !homeJob && React.createElement("table", {
     style: {
       width: "100%",
       borderCollapse: "collapse",
@@ -731,7 +732,7 @@ function PmHandoverPaper({
       });
     });
     return out;
-  })())), React.createElement("div", {
+  })())), !homeJob && React.createElement("div", {
     style: {
       marginTop: 8,
       fontSize: 10,
@@ -817,7 +818,8 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
     total: 0,
     missing: []
   };
-  const idx = photoIdx || [];
+  const homeJob = window.pmIsHome(j);
+  const idx = window.pmPhotosFor(j, photoIdx);
   const C = {
     brand: "1D854B",
     brandDk: "12603A",
@@ -1116,21 +1118,21 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
       });
     });
   });
-  const wsDoc = makeSheet(["#", "Document (EN)", "เอกสาร (ไทย)", "Yes", "No", "สถานะ"], [{
+  const wsDoc = makeSheet(homeJob ? ["", "Signer (EN)", "ผู้ลงนาม (ไทย)", "ชื่อ", "วันที่", "สถานะ"] : ["#", "Document (EN)", "เอกสาร (ไทย)", "Yes", "No", "สถานะ"], [{
     wch: 6
   }, {
     wch: 52
   }, {
     wch: 38
   }, {
-    wch: 7
+    wch: homeJob ? 26 : 7
   }, {
-    wch: 7
+    wch: homeJob ? 14 : 7
   }, {
     wch: 14
   }], (pushRow, merges, getR, lastC) => {
     let n = 0;
-    (window.PM_SEC_BY.docs.groups || []).forEach(g => {
+    (homeJob ? [] : window.PM_SEC_BY.docs.groups || []).forEach(g => {
       pushRow([g.en + "  (" + g.th + ")", "", "", "", "", ""], "group", 20);
       merges.push({
         s: {
@@ -1150,7 +1152,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
         pushRow([n, lb.en, lb.th, v === "y" ? "√" : "", v === "n" ? "–" : "", answered ? v === "y" ? "มีเอกสาร" : "ไม่เกี่ยวข้อง" : "ยังไม่ตอบ"], !answered ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
       });
     });
-    pushRow([], "spacer", 8);
+    if (!homeJob) pushRow([], "spacer", 8);
     pushRow(["ช่องลงนาม"], "group", 20);
     merges.push({
       s: {
@@ -1228,7 +1230,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
     });
   });
   const tableWs = [];
-  window.PM_SECTIONS.forEach(sec => {
+  window.pmSectionsFor(j).forEach(sec => {
     if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
     (sec.tables || []).forEach(tb => {
       const rows = window.pmRowsOf(r, sec.key, tb.key);
@@ -1316,7 +1318,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
   });
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, wsSum, "Summary");
-  X.utils.book_append_sheet(wb, wsDoc, "Documents");
+  X.utils.book_append_sheet(wb, wsDoc, homeJob ? "Signatures" : "Documents");
   X.utils.book_append_sheet(wb, wsChk, "Checklist");
   tableWs.forEach(t => X.utils.book_append_sheet(wb, t.ws, String(t.name).replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31)));
   X.utils.book_append_sheet(wb, wsPh, "Photos");

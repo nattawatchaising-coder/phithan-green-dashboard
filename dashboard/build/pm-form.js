@@ -890,7 +890,20 @@ const PM_GROUPS = [{
   th: "ลงนาม · รูปประกอบ",
   secs: ["sign", "photo"]
 }];
-function pmGroupsFor(secs) {
+const PM_GROUPS_HOME = [{
+  key: "info",
+  th: "ข้อมูล · ทะเบียนอุปกรณ์",
+  secs: ["sum", "reg"]
+}, {
+  key: "elec",
+  th: "ทดสอบไฟฟ้า · หลักดิน",
+  secs: ["a1", "b1", "b3", "c2", "pgnd"]
+}, {
+  key: "close",
+  th: "ลงนาม · รูปประกอบ",
+  secs: ["sign", "photo"]
+}];
+function pmGroupsFor(secs, home) {
   const have = {};
   (secs || []).forEach(x => {
     have[x.key] = true;
@@ -898,7 +911,7 @@ function pmGroupsFor(secs) {
   const used = {
     photo: true
   };
-  const out = PM_GROUPS.map(g => {
+  const out = (home ? PM_GROUPS_HOME : PM_GROUPS).map(g => {
     const list = g.secs.filter(k => k === "photo" || have[k]);
     list.forEach(k => {
       used[k] = true;
@@ -1073,9 +1086,10 @@ function PmHandoverModal({
     }
     store.setStatus("signed", currentUser);
   };
-  const secs = window.PM_SECTIONS;
-  const cur = window.PM_SEC_BY[tab];
-  const groups = pmGroupsFor(secs);
+  const homeJob = window.pmIsHome(job);
+  const secs = window.pmSectionsFor(job);
+  const cur = secs.indexOf(window.PM_SEC_BY[tab]) >= 0 ? window.PM_SEC_BY[tab] : null;
+  const groups = pmGroupsFor(secs, homeJob);
   const groupOf = k => groups.find(g => g.secs.indexOf(k) >= 0) || null;
   const curGroup = tab === "home" ? null : groupOf(tab);
   const secSt = k => k === "photo" ? null : prog.bySection[k] || {
@@ -1453,7 +1467,12 @@ function PmHandoverModal({
     style: {
       color: "var(--text-1)"
     }
-  }, prog.pct, "%"), " ", "(", prog.done, " \u0E08\u0E32\u0E01 ", prog.total, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)", prog.missing.length ? React.createElement("span", null, " \xB7 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", null, " \xB7 \u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27")), nextSec && !signed ? React.createElement("button", {
+  }, prog.pct, "%"), " ", "(", prog.done, " \u0E08\u0E32\u0E01 ", prog.total, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)", prog.missing.length ? React.createElement("span", null, " \xB7 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", null, " \xB7 \u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27"), homeJob ? React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19 \xB7 \u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E22\u0E48\u0E2D ", secs.length, " \u0E2B\u0E21\u0E27\u0E14 (\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E20\u0E32\u0E1E\u0E04\u0E27\u0E32\u0E21\u0E23\u0E49\u0E2D\u0E19 \xB7 \u0E41\u0E23\u0E07\u0E02\u0E31\u0E19 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07)") : null), nextSec && !signed ? React.createElement("button", {
     className: "btn btn-pri",
     onClick: () => setTab(nextSec),
     style: {

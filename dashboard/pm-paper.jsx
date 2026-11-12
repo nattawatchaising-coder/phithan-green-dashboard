@@ -59,7 +59,9 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
   const r = rec || {};
   const s = sum || {};
   const p = prog || { pct: 0, done: 0, total: 0, missing: [] };
-  const list = photos || [];
+  /* งานบ้าน = ชุดย่อ — ไม่พิมพ์แผ่นของหมวดที่ซ่อนและรูปของหมวดพวกนั้น */
+  const homeJob = window.pmIsHome(j);
+  const list = window.pmPhotosFor(j, photos);
   const sumSec = window.PM_SEC_BY.sum;
   const docSec = window.PM_SEC_BY.docs;
   const signSec = window.PM_SEC_BY.sign;
@@ -167,7 +169,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
   const pmHasResult = (tb) => !!tb.pass && tb.resultCol !== false;
 
   const tableSheets = [];
-  window.PM_SECTIONS.forEach((sec) => {
+  window.pmSectionsFor(j).forEach((sec) => {
     if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
     (sec.tables || []).forEach((tb) => {
       const t = window.pmTableOf(r, sec.key, tb.key);
@@ -428,9 +430,10 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
           </React.Fragment>
         ))}
 
-        {/* ── แผ่นที่ 2 · Documents Checklist + ลงนาม ── */}
+        {/* ── แผ่นที่ 2 · Documents Checklist + ลงนาม (งานบ้านไม่มีรายการเอกสาร เหลือแผ่นลงนาม) ── */}
         <div className="pm-sheet pm-page">
-          {headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ")}
+          {homeJob ? headBar("Handover Sign-off", "ลงนามส่งมอบ") : headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ")}
+          {!homeJob && (
           <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead>
               <tr>
@@ -473,10 +476,13 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
               })()}
             </tbody>
           </table>
+          )}
+          {!homeJob && (
           <div style={{ marginTop: 8, fontSize: 10, color: PM_SOFT }}>
             ตอบแล้ว {(p.bySection && p.bySection.docs ? p.bySection.docs.done : 0)} จาก{" "}
             {(p.bySection && p.bySection.docs ? p.bySection.docs.total : 0)} รายการ
           </div>
+          )}
 
           {/* ช่องลงนามสี่ช่องตามต้นฉบับ — พิมพ์ชื่อจากในระบบไว้ แต่ยังเว้นช่องเซ็นจริงเสมอ */}
           <div className="pm-foot" style={{ display: "flex", gap: 14, marginTop: 26, paddingTop: 10,
@@ -542,7 +548,8 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
   const r = rec || {};
   const s = sum || {};
   const p = prog || { pct: 0, done: 0, total: 0, missing: [] };
-  const idx = photoIdx || [];
+  const homeJob = window.pmIsHome(j);
+  const idx = window.pmPhotosFor(j, photoIdx);
 
   const C = { brand: "1D854B", brandDk: "12603A", brandSoft: "EAF6EF", group: "D6EBDF", alt: "F4FAF6",
     white: "FFFFFF", border: "CBD8D0", text: "16241D", sub: "5A6B62", warn: "B45309", warnBg: "FEF3C7" };
@@ -624,11 +631,12 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
     });
 
   /* ── แผ่น Documents ── */
-  const wsDoc = makeSheet(["#", "Document (EN)", "เอกสาร (ไทย)", "Yes", "No", "สถานะ"],
-    [{ wch: 6 }, { wch: 52 }, { wch: 38 }, { wch: 7 }, { wch: 7 }, { wch: 14 }],
+  /* งานบ้าน (ชุดย่อ) ไม่มีรายการเอกสาร — แผ่นนี้เหลือช่องลงนามอย่างเดียว ชื่อแผ่น "Signatures" */
+  const wsDoc = makeSheet(homeJob ? ["", "Signer (EN)", "ผู้ลงนาม (ไทย)", "ชื่อ", "วันที่", "สถานะ"] : ["#", "Document (EN)", "เอกสาร (ไทย)", "Yes", "No", "สถานะ"],
+    [{ wch: 6 }, { wch: 52 }, { wch: 38 }, { wch: homeJob ? 26 : 7 }, { wch: homeJob ? 14 : 7 }, { wch: 14 }],
     (pushRow, merges, getR, lastC) => {
       let n = 0;
-      (window.PM_SEC_BY.docs.groups || []).forEach((g) => {
+      (homeJob ? [] : (window.PM_SEC_BY.docs.groups || [])).forEach((g) => {
         pushRow([g.en + "  (" + g.th + ")", "", "", "", "", ""], "group", 20);
         merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
         (g.items || []).forEach((it, i) => {
@@ -641,7 +649,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
             !answered ? "miss" : (i % 2 === 0 ? "item" : "itemAlt"));
         });
       });
-      pushRow([], "spacer", 8);
+      if (!homeJob) pushRow([], "spacer", 8);
       pushRow(["ช่องลงนาม"], "group", 20);
       merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
       (window.PM_SEC_BY.sign.blocks || []).forEach((b, i) => {
@@ -699,7 +707,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
      หนึ่งหมวดเท่ากับหนึ่งแผ่น ตารางย่อยวางต่อกันลงมา — ชื่อแผ่นของ Excel ยาวได้ไม่เกิน 31 ตัว
      และห้ามมี : \ / ? * [ ] — จึงใช้รหัสแผ่นของต้นฉบับ (1 · 2 · 3 · A1 · C1 · C2) เป็นหลัก */
   const tableWs = [];
-  window.PM_SECTIONS.forEach((sec) => {
+  window.pmSectionsFor(j).forEach((sec) => {
     if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
     (sec.tables || []).forEach((tb) => {
       const rows = window.pmRowsOf(r, sec.key, tb.key);
@@ -756,7 +764,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
 
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, wsSum, "Summary");
-  X.utils.book_append_sheet(wb, wsDoc, "Documents");
+  X.utils.book_append_sheet(wb, wsDoc, homeJob ? "Signatures" : "Documents");
   X.utils.book_append_sheet(wb, wsChk, "Checklist");
   /* ชื่อแผ่น Excel ยาวได้ไม่เกิน 31 ตัว และห้ามมี : \ / ? * [ ] */
   tableWs.forEach((t) => X.utils.book_append_sheet(wb, t.ws, String(t.name).replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31)));

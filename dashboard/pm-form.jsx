@@ -455,10 +455,16 @@ const PM_GROUPS = [
   { key: "mech", th: "แรงขัน · ล้างแผง · รูปทดสอบ", secs: ["e1", "e2", "w1", "pac", "pgnd"] },
   { key: "close", th: "ลงนาม · รูปประกอบ", secs: ["sign", "photo"] },
 ];
-function pmGroupsFor(secs) {
+/* งานบ้าน (ชุดย่อ) — 3 กลุ่ม · รูปทดสอบดินอยู่กับ C2 ตามที่ผู้ใช้อนุมัติ */
+const PM_GROUPS_HOME = [
+  { key: "info", th: "ข้อมูล · ทะเบียนอุปกรณ์", secs: ["sum", "reg"] },
+  { key: "elec", th: "ทดสอบไฟฟ้า · หลักดิน", secs: ["a1", "b1", "b3", "c2", "pgnd"] },
+  { key: "close", th: "ลงนาม · รูปประกอบ", secs: ["sign", "photo"] },
+];
+function pmGroupsFor(secs, home) {
   const have = {}; (secs || []).forEach((x) => { have[x.key] = true; });
   const used = { photo: true };
-  const out = PM_GROUPS.map((g) => {
+  const out = (home ? PM_GROUPS_HOME : PM_GROUPS).map((g) => {
     const list = g.secs.filter((k) => k === "photo" || have[k]);
     list.forEach((k) => { used[k] = true; });
     return Object.assign({}, g, { secs: list });
@@ -605,9 +611,11 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
     store.setStatus("signed", currentUser);
   };
 
-  const secs = window.PM_SECTIONS;
-  const cur = window.PM_SEC_BY[tab];
-  const groups = pmGroupsFor(secs);
+  /* งานบ้านเห็นแค่ชุดย่อ (pmSectionsFor) — หมวดที่ซ่อนเปิดไม่ได้ ข้อมูลเดิมยังอยู่ */
+  const homeJob = window.pmIsHome(job);
+  const secs = window.pmSectionsFor(job);
+  const cur = secs.indexOf(window.PM_SEC_BY[tab]) >= 0 ? window.PM_SEC_BY[tab] : null;
+  const groups = pmGroupsFor(secs, homeJob);
   const groupOf = (k) => groups.find((g) => g.secs.indexOf(k) >= 0) || null;
   const curGroup = tab === "home" ? null : groupOf(tab);
   const secSt = (k) => (k === "photo" ? null : (prog.bySection[k] || { pct: 0, state: "empty", done: 0, total: 0 }));
@@ -779,6 +787,11 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       กรอกไปแล้ว <b style={{ color: "var(--text-1)" }}>{prog.pct}%</b>{" "}
                       ({prog.done} จาก {prog.total} รายการ)
                       {prog.missing.length ? <span> · ยังขาดอีก {prog.missing.length} รายการ</span> : <span> · ครบทุกรายการแล้ว</span>}
+                      {homeJob ? (
+                        <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+                          งานบ้าน · ใช้ชุดย่อ {secs.length} หมวด (ไม่มีรายการเอกสาร · ภาพความร้อน · แรงขัน · ล้างแผง)
+                        </div>
+                      ) : null}
                     </div>
                     {/* ทำต่อ — พาไปหมวดแรกที่ยังขาด ไม่ต้องไล่หาเองจาก 18 หมวด */}
                     {nextSec && !signed ? (
