@@ -35,6 +35,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | ถอด BOQ · ตู้ไฟ · หน้าตั้งค่าคำนวณ BOQ · O&M · ค่าขออนุญาต (`boq.jsx` `boq.js` `views-stock.jsx`) | `docs/boq.md` |
 | หลายเวอร์ชันแบบ 3D/BOQ (`versions.jsx`) | `docs/versions.md` |
 | ห้องอุปกรณ์ 3D (`eroom.jsx`) | `docs/eroom.md` |
+| ใบงานติดตั้ง (แผงรายละเอียดงาน · แท็บ · ปุ่มด่วน · เลื่อนขั้น `drawer.jsx`) | `docs/job-drawer.md` |
 | งาน/ลูกค้าเฉพาะแอดมิน (`adminOnly`) | `docs/admin-only.md` |
 | รูปแพ็คเกจขาย (`pkgposter.jsx`) | `docs/pkgposter.md` |
 | ลงเวลา · OT · การลา · เมนู LINE (`attend` `leave` `liff-*`) | `docs/attend-leave.md` |

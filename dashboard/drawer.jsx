@@ -90,6 +90,58 @@ function InfoRow({ label, children }) {
   );
 }
 
+/* ── ชิ้นส่วนใบงานแบบจัดใหม่ (พ.ย. 2026) ──
+   ผู้ใช้: "รู้สึกว่ามันยากไป เยอะไปหน่อย" — เดิมภาพรวมมีช่องข้อมูล ~20 ช่อง (ว่างก็โชว์ "—") + Flow 5 ขั้นยาวทั้งแผง
+   จัดใหม่: แถบ 5 ขั้นบนหัว · เรื่องเตือนบนสุด · การ์ดนัดหมายและทีม (ช่องว่างไม่โชว์) · สเปกบรรทัดเดียว · ประวัติขั้นตอนพับไว้ */
+const DR_STAGE_SHORT = { design: "ออกแบบ", takeoff: "ถอดของ", queue: "นัดคิว", install: "ติดตั้ง", done: "เสร็จสิ้น" };
+
+/* แถบขั้นตอนบนหัวใบ — แทนป้ายสถานะ + แถบ % เดิม
+   % เดิมคิดจากลำดับขั้นอย่างเดียว (ขั้นที่ 4 จาก 5 = 60%) คนอ่านเข้าใจว่าเป็น % งานที่ทำไปจริง */
+function DrStageSteps({ job }) {
+  const SF = window.SF;
+  const idx = job.stageIdx != null ? job.stageIdx : (SF.STAGE_INDEX[job.stage] || 0);
+  const cur = SF.STAGES[idx] || SF.STAGES[0];
+  const blocked = !!job.problem && job.stage !== "done";
+  const c = blocked ? "#EF4444" : cur.color;
+  return (
+    <div role="img" aria-label={"ขั้นตอนงาน: " + cur.th + " (ขั้นที่ " + (idx + 1) + " จาก " + SF.STAGES.length + ")"}
+      title={cur.th + (blocked ? " · ติดปัญหา" : "")} style={{ display: "flex", gap: 5 }}>
+      {SF.STAGES.map((s, i) => {
+        const now = i === idx;
+        const done = i < idx;
+        return (
+          <span key={s.key} style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", height: 5, borderRadius: "var(--r-pill)", background: done || now ? c : "var(--surface3)", opacity: done ? .5 : 1 }} />
+            <span style={{ display: "block", marginTop: 5, fontSize: 11, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              fontWeight: now ? 800 : 600, color: now ? (blocked ? "var(--tint-red-tx)" : s.fg) : "var(--text-3)" }}>
+              {DR_STAGE_SHORT[s.key] || s.th}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/* บรรทัดในการ์ดนัดหมายและทีม: ไอคอน + เนื้อ (ไม่มีป้ายช่องแยกบรรทัด อ่านเป็นประโยคเดียว) */
+function DrLine({ icon, muted, children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "6px 0" }}>
+      <span style={{ width: 18, height: 20, flexShrink: 0, display: "grid", placeItems: "center" }}><Icon name={icon} size={15} color="var(--text-3)" /></span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, color: muted ? "var(--text-3)" : "var(--text-1)", overflowWrap: "anywhere" }}>{children}</span>
+    </div>
+  );
+}
+/* คู่ป้าย + ค่า ในบรรทัดเดียว (ช่าง · วิศวกร · เซลล์) — ตัดบรรทัดเป็นคู่ ๆ ไม่ฉีกกลางคู่ */
+function DrPair({ label, children }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginRight: 16, maxWidth: "100%" }}>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ minWidth: 0 }}>{children}</span>
+    </span>
+  );
+}
+
 /* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ + เบิกของเข้างาน (ช้อปปิ้ง) + คืน/ยกเลิกการเบิก */
 function JobMaterialUsage({ job, stock, currentUser }) {
   const [retRow, setRetRow] = React.useState(null); // {item, net} ที่กำลังคืน
@@ -486,34 +538,68 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const [irOpen, setIrOpen] = React.useState(false);            // รายการใบตรวจสอบงาน
   /* อ่านรายการใบตรวจไว้ตั้งแต่เปิดใบงาน เพื่อโชว์จำนวนใบกับผลล่าสุดบนปุ่มโดยไม่ต้องกดเข้าไปดู */
   const inspections = useDrInspections(job ? job.id : null);
-  React.useEffect(() => { setPlanOpen(false); setIrOpen(false); }, [job ? job.id : null]);
+  /* ของที่กางค้างไว้ (สเปกเต็ม · ประวัติขั้นตอน · ตัวเลือกสถานะวัสดุ) พับกลับเมื่อเปลี่ยนงาน */
+  const [specOpen, setSpecOpen] = React.useState(false);
+  const [histOpen, setHistOpen] = React.useState(false);
+  const [matPick, setMatPick] = React.useState(null);
+  React.useEffect(() => { setPlanOpen(false); setIrOpen(false); setSpecOpen(false); setHistOpen(false); setMatPick(null); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
   const [advancing, setAdvancing] = React.useState(false);
   React.useEffect(() => { setAdvancing(false); }, [job ? job.stage : null]);
 
+  /* เลื่อนขั้นต้องยืนยันก่อน — เดิมกดครั้งเดียวเปลี่ยนทันที กดพลาดต้องไปลากการ์ดบนบอร์ดกลับเอง (จัดใหม่ พ.ย. 2026) */
   const handleAdvance = () => {
     if (advancing) return;
-    setAdvancing(true);
-    onAdvance(job.id);
-    // safety reset: ถ้า Firebase ไม่ตอบใน 6s ให้ปลดล็อกปุ่ม
-    setTimeout(() => setAdvancing(false), 6000);
+    const next = SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)];
+    const id = job.id;
+    const body = [job.code + " · " + job.name,
+      next.key === "done" && job.problem ? "ปัญหาหน้างานที่บันทึกไว้จะถูกล้างออก" : "",
+      "กดพลาดย้อนได้ด้วยการลากการ์ดบนบอร์ดกลับขั้นเดิม"].filter(Boolean).join("\n");
+    window.askConfirm({ title: "เลื่อนงานไปขั้น \"" + next.th + "\"?", body, ok: "เลื่อนขั้น", danger: false, icon: "arrowRight" })
+      .then((ok) => {
+        if (!ok) return;
+        setAdvancing(true);
+        onAdvance(id);
+        // safety reset: ถ้า Firebase ไม่ตอบใน 6s ให้ปลดล็อกปุ่ม
+        setTimeout(() => setAdvancing(false), 6000);
+      });
   };
 
-  /* แท็บที่ไม่มีอะไรข้างใน (ตามสิทธิ์/โหมด) ไม่ต้องโชว์ */
+  /* แท็บที่ไม่มีอะไรข้างใน (ตามสิทธิ์/โหมด) ไม่ต้องโชว์
+     "ออกแบบ" กับ "วัสดุ" รวมเป็นแท็บเดียว เรียงตามลำดับงานจริง แบบ 3D → BOQ → สถานะวัสดุ → เบิก/คืน (6 แท็บเหลือ 5) */
   const TABS = !job ? [] : [
     { k: "ov", th: "ภาพรวม", ic: "grid" },
     (onDaily || onExpense || onSurvey || onHandover || onPermit || (onOm && window.OmJobButton) || (window.InspectionListModal && !roMode))
       && { k: "site", th: "หน้างาน", ic: "wrench",
         alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ"
           : (job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100) ? "ส่งมอบยังไม่ครบ" : "" },
-    !roMode && { k: "design", th: "ออกแบบ", ic: "panel", n: (dvs.p3List || []).length || null },
-    !roMode && { k: "mat", th: "วัสดุ", ic: "box", n: job.matReadyPct != null ? job.matReadyPct + "%" : null },
+    !roMode && { k: "dm", th: "แบบ & วัสดุ", ic: "panel", n: job.matReadyPct != null ? job.matReadyPct + "%" : null },
     (!roMode || (onBilling && window.BlJobCard)) && { k: "docs", th: "เอกสาร", ic: "file" },
     { k: "chat", th: "รูป & คุย", ic: "camera", n: (media.photos || []).length || null },
   ].filter(Boolean);
   const tabNow = TABS.some((t) => t.k === tab) ? tab : "ov";
+
+  /* เรื่องที่ต้องรู้ก่อนอ่านอย่างอื่น — ขึ้นบนสุดของภาพรวม โชว์เฉพาะตอนมีเรื่อง
+     หมายเหตุเดิมอยู่ล่างสุดของแผง ต้องเลื่อนผ่าน Flow ทั้งยาวกว่าจะเจอ */
+  const alerts = [];
+  if (job) {
+    if (job.problem && job.stage !== "done") alerts.push({ tone: "bad", icon: "alert", th: "ปัญหาหน้างาน", tx: String(job.problem) });
+    const lateInst = (job.lateStages || []).find((ls) => ls.key === "install");
+    if (lateInst) alerts.push({ tone: "bad", icon: "clock", th: "ติดตั้งเลยกำหนด " + lateInst.daysLate + " วัน", tx: "" });
+    const siteTab = TABS.find((t) => t.k === "site");
+    if (siteTab && siteTab.alert) alerts.push({ tone: "bad", icon: "shield", th: siteTab.alert, tx: "แตะเพื่อดูในแท็บหน้างาน", go: "site" });
+    /* วิศวกร = คนอนุมัติรายงานประจำวัน ว่างไว้ใบที่ช่างส่งจะค้าง ไม่มีใครเซ็นได้ */
+    if (!job.eeName && job.stage !== "done" && !roMode) alerts.push({ tone: "warn", icon: "user", th: "ยังไม่ระบุวิศวกรผู้รับผิดชอบ",
+      tx: "รายงานประจำวันที่ช่างส่งจะไม่มีใครอนุมัติ" + (onEdit ? " · ระบุได้ที่ แก้ไขข้อมูล" : "") });
+    if (job.note) alerts.push({ tone: "note", icon: "message", th: "หมายเหตุ", tx: String(job.note) });
+  }
+  const ALERT_TONE = {
+    bad:  { bg: "var(--tint-red-bg)", tx: "var(--tint-red-tx)", ic: "#EF4444" },
+    warn: { bg: "var(--tint-amber-bg)", tx: "var(--tint-amber-tx)", ic: "#F59E0B" },
+    note: { bg: "var(--surface)", tx: "var(--text-2)", ic: "var(--text-3)", sh: "var(--shadow-sm)" },
+  };
   return (
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
@@ -556,13 +642,32 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                   <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}><AdminOnlyMark rec={job} />{job.name}</h2>
                 </div>
-                <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
+                <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด" style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
                   <Icon name="x" size={18} />
                 </button>
               </div>
+              {/* ปุ่มด่วน โทร · แผนที่ · Drive — ของที่หยิบใช้บ่อยสุด กดได้จากทุกแท็บ (เดิมเป็นช่องข้อมูลในภาพรวม)
+                  ไม่มีข้อมูล = ไม่มีปุ่ม · เบอร์หลายเบอร์ โทรเบอร์แรก แต่โชว์ข้อความเต็ม */}
+              {(() => {
+                const tel = job.phone ? String(job.phone).split(/[,/|]| หรือ /)[0].replace(/[^0-9+]/g, "") : "";
+                const addr = [job.address, job.province].filter(Boolean).join(" ");
+                const mapUrl = job.map || (addr ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addr) : "");
+                if (!tel && !mapUrl && !job.drive) return null;
+                return (
+                  <div className="jd-quick">
+                    {tel && <a className="btn btn-sm" href={"tel:" + tel} title={"โทร " + job.phone}>
+                      {/* มือถือกดแล้วโทรออกเลย ไม่ต้องอ่านเบอร์ — เหลือคำว่า "โทร" ปุ่มด่วนจะได้อยู่บรรทัดเดียว */}
+                      <Icon name="phone" size={14} color="var(--primary)" />{isMobile ? "โทร" : <span className="jd-quick-tx">{job.phone}</span>}</a>}
+                    {mapUrl && <a className="btn btn-sm" href={mapUrl} target="_blank" rel="noreferrer" title="เปิดแผนที่">
+                      <Icon name="pin" size={14} color="var(--primary)" />แผนที่</a>}
+                    {job.drive && <a className="btn btn-sm" href={job.drive} target="_blank" rel="noreferrer" title="เปิดโฟลเดอร์งาน Google Drive">
+                      <Icon name="folder" size={14} color="var(--primary)" />Drive</a>}
+                  </div>
+                );
+              })()}
               {/* progress */}
-              <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
                 {permitMode ? (() => {
                   /* ความคืบหน้าที่ฝ่ายขออนุญาตสนใจคือใบขออนุญาต ไม่ใช่งานติดตั้งที่จบไปแล้ว */
                   const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
@@ -579,11 +684,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     </React.Fragment>
                   );
                 })() : (
-                  <React.Fragment>
-                    <StageBadge stageKey={job.stage} />
-                    <div style={{ flex: 1 }}><ProgressBar pct={job.progressPct} color={stageOf(job.stage).color} /></div>
-                    <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{job.progressPct}%</span>
-                  </React.Fragment>
+                  <div style={{ flex: 1, minWidth: 0 }}><DrStageSteps job={job} /></div>
                 )}
               </div>
             </div>
@@ -608,79 +709,104 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
             <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
             <div ref={bodyRef} style={{ overflowY: "auto", flex: 1, padding: isMobile ? "16px 15px" : "22px 24px" }}>
               {tabNow === "ov" && <React.Fragment>
-              {/* customer info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 18 : 24 }}>
-                <InfoRow label="เบอร์โทร">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" />{job.phone}</span>
-                </InfoRow>
-                <InfoRow label="วันนัดติดตั้ง">{(() => {
-                  // วันนัดติดตั้ง = วัน "เริ่ม" ของขั้นติดตั้ง (ไม่ใช่วันเสร็จ/กำหนดส่งงานรวม)
-                  const v = job.stageDates && job.stageDates.install;
-                  const d = v ? (typeof v === "object" ? (v.start || v.end) : v) : job.deadline;
-                  return thDate(d, true);
-                })()}</InfoRow>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <InfoRow label="ที่อยู่ / พิกัด">
-                    {job.address}, {job.province}{"  "}
-                    <a href={job.map} target="_blank" rel="noreferrer" style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600, fontSize: 12, marginLeft: 4 }}>
-                      <Icon name="pin" size={12} style={{ verticalAlign: -1 }} /> เปิดแผนที่
-                    </a>
-                  </InfoRow>
+              {/* เรื่องเตือน · หมายเหตุ — บนสุด โชว์เฉพาะตอนมีเรื่อง */}
+              {alerts.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: isMobile ? 14 : 16 }}>
+                  {alerts.map((a, i) => {
+                    const t = ALERT_TONE[a.tone];
+                    const Tag = a.go ? "button" : "div";
+                    return (
+                      <Tag key={i} onClick={a.go ? () => setTab(a.go) : undefined}
+                        style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: "var(--r-tile)", border: "none",
+                          background: t.bg, boxShadow: t.sh || "none", textAlign: "left", fontFamily: "inherit", width: "100%",
+                          cursor: a.go ? "pointer" : "default" }}>
+                        <span style={{ width: 18, height: 20, flexShrink: 0, display: "grid", placeItems: "center" }}><Icon name={a.icon} size={15} color={t.ic} /></span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: a.tone === "note" ? "var(--text-1)" : t.tx }}>{a.th}</span>
+                          {a.tx && <span style={{ display: "block", fontSize: 12.5, color: t.tx, marginTop: 2, lineHeight: 1.55, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{a.tx}</span>}
+                        </span>
+                        {a.go && <Icon name="arrowRight" size={15} color={t.tx} style={{ flexShrink: 0, marginTop: 2 }} />}
+                      </Tag>
+                    );
+                  })}
                 </div>
-                <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
-                {/* วิศวกรผู้รับผิดชอบ = คนตรวจและเซ็นอนุมัติรายงานประจำวันของงานนี้
-                    ถ้าว่างไว้ ใบที่ช่างส่งมาจะไม่มีใครอนุมัติได้ จึงต้องเห็นตรงนี้ ไม่ใช่ต้องเปิดฟอร์มไปดู */}
-                <InfoRow label="วิศวกรผู้รับผิดชอบ">
-                  {job.eeName ? (
-                    <span>
-                      {job.eeName}
-                      {job.eeIsTech && (
-                        <span style={{ marginLeft: 7, fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)",
-                          background: "var(--primary-soft)", borderRadius: "var(--r-pill)", padding: "2px 8px" }}>ลงหน้างานเองด้วย</span>
-                      )}
-                    </span>
-                  ) : <span style={{ color: "#F59E0B" }}>ยังไม่ระบุ</span>}
-                </InfoRow>
-                {/* ช่างกับวิศวกรต้องรู้ว่างานนี้ใครขายมา — เรื่องที่ตกลงกับลูกค้าไว้ต้องถามคนนั้น */}
-                <InfoRow label="เซลล์เจ้าของงาน">
-                  {job.salesName ? job.salesName : <span style={{ color: "var(--text-3)" }}>—</span>}
-                </InfoRow>
-                <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
-                {!roMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
-                {!roMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
-                {job.drive && (
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <InfoRow label="โฟลเดอร์งาน Google Drive">
-                      <a href={job.drive} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#1A73E8", padding: "6px 12px", borderRadius: "var(--r-chip)", textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
-                        <Icon name="folder" size={14} color="#fff" /> เปิดโฟลเดอร์ Drive <Icon name="arrowRight" size={13} color="#fff" />
-                      </a>
-                    </InfoRow>
+              )}
+
+              {/* นัดหมายและทีม — เดิมเป็นช่อง 2 คอลัมน์ 10 ช่อง ว่างก็โชว์ "—" · ตอนนี้ช่องที่ว่างไม่โชว์
+                  เบอร์โทร/แผนที่/Drive ขึ้นไปเป็นปุ่มด่วนบนหัว · "ประเภทงาน" ซ้ำกับป้ายบนหัว จึงตัด */}
+              {(() => {
+                // วันนัดติดตั้ง = ช่วงวันของขั้นติดตั้ง (ไม่ใช่วันเสร็จ/กำหนดส่งงานรวม)
+                const v = job.stageDates && job.stageDates.install;
+                const st = v ? (typeof v === "object" ? (v.start || v.end) : v) : job.deadline;
+                const en = v && typeof v === "object" ? v.end : null;
+                const addr = [job.address, job.province].filter(Boolean).join(", ");
+                const tech = job.tech && window.SF.TECH_BY_ID && window.SF.TECH_BY_ID[job.tech];
+                const people = [
+                  tech && <DrPair key="t" label="ช่าง"><TechAvatar techId={job.tech} size={22} showName /></DrPair>,
+                  job.eeName && <DrPair key="e" label="วิศวกร"><span>{job.eeName}{job.eeIsTech && (
+                    <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)",
+                      borderRadius: "var(--r-pill)", padding: "2px 8px", whiteSpace: "nowrap" }}>ลงหน้างานเองด้วย</span>)}</span></DrPair>,
+                  // ช่างกับวิศวกรต้องรู้ว่างานนี้ใครขายมา — เรื่องที่ตกลงกับลูกค้าไว้ต้องถามคนนั้น
+                  job.salesName && <DrPair key="s" label="เซลล์">{job.salesName}</DrPair>,
+                ].filter(Boolean);
+                const crew = roMode ? [] : [
+                  job.contractor && <DrPair key="c" label="ทีมรับเหมา">{job.contractor}</DrPair>,
+                  job.laborCost ? <DrPair key="l" label="ค่าแรง">{Number(job.laborCost).toLocaleString()} บาท</DrPair> : null,
+                ].filter(Boolean);
+                return (
+                  <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: isMobile ? "10px 13px" : "12px 16px", marginBottom: isMobile ? 14 : 16 }}>
+                    <DrLine icon="calendar" muted={!st}>
+                      {st ? <React.Fragment><span style={{ color: "var(--text-3)", fontSize: 12, fontWeight: 600, marginRight: 6 }}>นัดติดตั้ง</span>
+                        {thDate(st, true)}{en && en !== st ? " – " + thDate(en, true) : ""}</React.Fragment> : "ยังไม่นัดวันติดตั้ง"}
+                    </DrLine>
+                    {addr && <DrLine icon="pin">{addr}</DrLine>}
+                    {people.length > 0 && <DrLine icon="users"><span style={{ display: "flex", flexWrap: "wrap", rowGap: 4 }}>{people}</span></DrLine>}
+                    {crew.length > 0 && <DrLine icon="wrench"><span style={{ display: "flex", flexWrap: "wrap", rowGap: 4 }}>{crew}</span></DrLine>}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {permitMode && <PermitJobSummary job={job} onOpenReview={onOpenReview} />}
               {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} />}
 
-              {/* spec card */}
-              <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="sun" size={14} color="var(--primary)" /> สเปกระบบ
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 14 : 16 }}>
-                  <SpecItem label="แบรนด์" value={job.brand} />
-                  <SpecItem label="รุ่นแผง" value={job.panelModel || "ยังไม่ระบุ"} />
-                  <SpecItem label="ขนาดระบบ" value={job.kw + " kW"} mono />
-                  <SpecItem label="จำนวนแผง" value={job.panels + " แผง"} mono />
-                  <SpecItem label="ระบบไฟฟ้า" value={window.SF.phaseOf(job) + " เฟส"} />
-                  <SpecItem label="แบตเตอรี่" value={job.battery ? job.batSize : "ไม่มี"} accent={job.battery} />
-                  <SpecItem label="ระบบ / ออฟติไมเซอร์" value={job.connect} />
-                  <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />
-                  {(job.brand || "").toUpperCase().includes("ATMOCE") && (
-                    <SpecItem label="ตู้ Combiner" value={job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"} />
-                  )}
-                </div>
-              </div>
+              {/* สเปกระบบ — บรรทัดเดียวพอรู้ว่าระบบใหญ่แค่ไหน · กด "ดูทั้งหมด" กางรายละเอียดครบเหมือนเดิม */}
+              {(() => {
+                const line = [job.brand, job.kw != null && job.kw !== "" ? job.kw + " kW" : "", job.panels ? job.panels + " แผง" : "",
+                  window.SF.phaseOf(job) + " เฟส", job.battery ? "แบต " + (job.batSize || "") : "", job.backup ? "Backup" : ""].filter(Boolean).join(" · ");
+                return (
+                  <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", marginBottom: isMobile ? 14 : 16, overflow: "hidden" }}>
+                    <button onClick={() => setSpecOpen((o) => !o)} aria-expanded={specOpen}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 13px" : "13px 16px",
+                        background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                      <span style={{ width: 18, height: 20, flexShrink: 0, display: "grid", placeItems: "center" }}><Icon name="sun" size={15} color="var(--primary)" /></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>สเปกระบบ</span>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", marginTop: 2, overflowWrap: "anywhere" }}>{line || "ยังไม่ระบุ"}</span>
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "var(--primary)", whiteSpace: "nowrap" }}>
+                        {specOpen ? "ย่อ" : "ดูทั้งหมด"}
+                        <Icon name="chevronDown" size={14} color="var(--primary)" style={{ transform: specOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+                      </span>
+                    </button>
+                    {specOpen && (
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 14 : 16,
+                        padding: isMobile ? "4px 13px 14px 41px" : "4px 16px 16px 44px" }}>
+                        <SpecItem label="แบรนด์" value={job.brand} />
+                        <SpecItem label="รุ่นแผง" value={job.panelModel || "ยังไม่ระบุ"} />
+                        <SpecItem label="ขนาดระบบ" value={job.kw + " kW"} mono />
+                        <SpecItem label="จำนวนแผง" value={job.panels + " แผง"} mono />
+                        <SpecItem label="ระบบไฟฟ้า" value={window.SF.phaseOf(job) + " เฟส"} />
+                        <SpecItem label="แบตเตอรี่" value={job.battery ? job.batSize : "ไม่มี"} accent={job.battery} />
+                        <SpecItem label="ระบบ / ออฟติไมเซอร์" value={job.connect} />
+                        <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />
+                        {(job.brand || "").toUpperCase().includes("ATMOCE") && (
+                          <SpecItem label="ตู้ Combiner" value={job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"} />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* ใบเสนอราคาที่เสนอลูกค้าไป — ราคาที่ตกลงกันต้องอยู่ในใบงานด้วย ไม่ใช่มีแต่ที่หน้าขาย
                   โหมดเซลล์มีรายการนี้อยู่ในบล็อกสรุปข้างบนแล้ว จึงไม่ต้องซ้ำ
@@ -691,58 +817,54 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
               </React.Fragment>}
 
-              {/* แท็บหน้างาน — เครื่องมือที่ช่างใช้ระหว่างทำงาน */}
-              {tabNow === "site" && <React.Fragment>
-                {/* รายงานประจำวันหน้างาน — บันทึกรายวัน + ออกเป็น PDF */}
-                {onDaily && <DailyJobButton job={job} onOpen={onDaily} />}
-
-                {/* งานบริการหลังการขาย — ประกัน · รอบล้างแผง · ใบแจ้งซ่อม
-                    โชว์เฉพาะงานที่ติดตั้งเสร็จแล้ว หรือที่ขึ้นทะเบียนบริการไว้แล้ว (งานอื่นยังไม่มีอะไรให้ดู) */}
-                {onOm && (job.stage === "done" || omSite) && window.OmJobButton && (
-                  <window.OmJobButton job={job} site={omSite} visits={omVisits} tickets={omTickets} onOpen={onOm} />
-                )}
-
-                {/* เบิกเงินหน้างาน — เงินสดที่ลงไปกับงานนี้ และใบที่ยังรออนุมัติ */}
-                {onExpense && window.EcJobButton && (
-                  <window.EcJobButton job={job} sum={ecSum} onOpen={onExpense} />
-                )}
-
-                {/* สำรวจหน้างาน (Site Survey) */}
-                {onSurvey && (() => {
+              {/* แท็บหน้างาน — เครื่องมือที่ช่างใช้ แบ่ง 3 กลุ่มตามลำดับงานจริง: ก่อน / ระหว่าง / หลังติดตั้ง (จัดใหม่ พ.ย. 2026)
+                  ทุกแถวหน้าตาเดียวกัน (.act-row) — เดิมปน 3 แบบ มีเส้นขอบ / พื้นเทา / แผ่นขาว
+                  กลุ่มที่ไม่มีแถว (ตามสิทธิ์/ขั้นงาน) ไม่โชว์หัวกลุ่ม */}
+              {tabNow === "site" && (() => {
+                /* สำรวจหน้างาน (Site Survey) · รายงานผลสำรวจเป็นปุ่ม PDF เล็กในแถวเดียวกัน (เดิมเป็นปุ่มเขียวเต็มกว้างอีกแถว)
+                   แถวนี้มีปุ่มซ้อนข้างใน จึงเป็น div role=button แทน <button> (ปุ่มซ้อนปุ่มใช้ไม่ได้) */
+                const surveyRow = onSurvey && (() => {
                   const ss = window.surveyStatus ? window.surveyStatus(job) : { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "var(--text-3)" };
                   return (
-                    <React.Fragment>
-                    <button onClick={onSurvey}
-                      className="act-row">
-                      <span className="ic-chip" style={{ background: ss.color + "1c" }}><Icon name="list" size={17} color={ss.color} /></span>
+                    <div key="survey" className="act-row" role="button" tabIndex={0} onClick={onSurvey}
+                      onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSurvey(); } }}>
+                      {/* สีสถานะบางตัวเป็นตัวแปร (var(--tint-green-tx)) ต่อท้าย "1c" ไม่ได้ → ผสมจางด้วย color-mix */}
+                      <span className="ic-chip" style={{ background: String(ss.color).indexOf("var(") === 0 ? "color-mix(in srgb, " + ss.color + " 12%, transparent)" : ss.color + "1c" }}><Icon name="list" size={17} color={ss.color} /></span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>สำรวจหน้างาน (Site Survey)</span>
                         <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{ss.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : ss.label + " · " + ss.pct + "% · แตะเพื่อแก้ไข"}</span>
                       </span>
+                      {/* ออกรายงานได้เมื่อเริ่มสำรวจแล้ว — ยังไม่มีข้อมูลก็ไม่มีอะไรให้พิมพ์ */}
+                      {onSurveyReport && ss.state !== "none" && (
+                        <button className="btn btn-sm btn-soft" onClick={(e) => { e.stopPropagation(); onSurveyReport(); }} title="ดูรายงานผลสำรวจ · บันทึก PDF">
+                          <Icon name="file" size={13} color="var(--primary-dark)" /> PDF
+                        </button>
+                      )}
                       <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                    </button>
-                    {/* ออกรายงานได้เมื่อเริ่มสำรวจแล้ว — ยังไม่มีข้อมูลก็ไม่มีอะไรให้พิมพ์ */}
-                    {onSurveyReport && ss.state !== "none" && (
-                      <button onClick={onSurveyReport}
-                        style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 14px",
-                          background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit",
-                          fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
-                        <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
-                      </button>
-                    )}
-                    </React.Fragment>
+                    </div>
                   );
-                })()}
+                })();
 
-                {/* ใบตรวจสอบงาน — งานหนึ่งงานถูกตรวจหลายรอบ (รับมอบหลังคา · โครงสร้าง · ติดตั้งแผง · ไฟฟ้า)
-                    ใบพวกนี้คือหลักฐานว่างานผ่านเป็นขั้น ๆ */}
-                {window.InspectionListModal && !roMode && (() => {
+                /* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */
+                const planRow = false && window.SitePlanEditor && (
+                  <button key="plan" onClick={() => setPlanOpen(true)} className="act-row">
+                    <span className="ic-chip" style={{ background: "#0EA5E91c" }}><Icon name="map" size={17} color="#0784b8" /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
+                    </span>
+                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                  </button>
+                );
+
+                /* ใบตรวจสอบงาน — งานหนึ่งงานถูกตรวจหลายรอบ (รับมอบหลังคา · โครงสร้าง · ติดตั้งแผง · ไฟฟ้า)
+                   ใบพวกนี้คือหลักฐานว่างานผ่านเป็นขั้น ๆ */
+                const irRow = window.InspectionListModal && !roMode && (() => {
                   const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
                   return (
-                    <button onClick={() => setIrOpen(true)}
-                      className="act-row">
+                    <button key="ir" onClick={() => setIrOpen(true)} className="act-row">
                       <span className="ic-chip" style={{ background: "#0EA5E91c" }}>
-                        <Icon name="list" size={17} color="#0284C7" />
+                        <Icon name="clipboard" size={17} color="#0284C7" />
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ใบตรวจสอบงาน (Inspection Report)</span>
@@ -753,17 +875,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                       <Icon name="arrowRight" size={16} color="var(--text-3)" />
                     </button>
                   );
-                })()}
+                })();
 
-
-                {/* สมุดตรวจรับและส่งมอบระบบ — วางต่อจากใบตรวจสอบงานตามลำดับงานจริง
-                    ตรวจทีละขั้น → ส่งมอบให้ลูกค้าและทีมหลังการขาย
-                    บรรทัดสถานะอ่านจาก "เงา" บนใบงาน จึงไม่ต้อง subscribe เล่มจริงจากดรอว์เออร์ */}
-                {onHandover && (() => {
+                /* สมุดตรวจรับและส่งมอบระบบ — ตรวจทีละขั้น → ส่งมอบให้ลูกค้าและทีมหลังการขาย
+                   บรรทัดสถานะอ่านจาก "เงา" บนใบงาน จึงไม่ต้อง subscribe เล่มจริงจากดรอว์เออร์ */
+                const handoverRow = onHandover && (() => {
                   const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
                   return (
-                    <button onClick={onHandover}
-                      className="act-row">
+                    <button key="handover" onClick={onHandover} className="act-row">
                       <span className="ic-chip" style={{ background: "#16A34A1c" }}>
                         <Icon name="check" size={17} color="#16A34A" />
                       </span>
@@ -776,61 +895,24 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                       <Icon name="arrowRight" size={16} color="var(--text-3)" />
                     </button>
                   );
-                })()}
+                })();
 
-                {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
-                {false && window.SitePlanEditor && (
-                <button onClick={() => setPlanOpen(true)}
-                  className="act-row">
-                  <span className="ic-chip" style={{ background: "#0EA5E91c" }}><Icon name="map" size={17} color="#0784b8" /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
-                  </span>
-                  <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                </button>
-                )}
-
-              </React.Fragment>}
-
-              {/* แท็บออกแบบ — แบบ 3D · ห้องอุปกรณ์ · BOQ */}
-              {tabNow === "design" && <React.Fragment>
-                {/* วางแผง 3D — ออกแบบระบบ/ผลผลิต อยู่ในจอนี้ ไม่มีแถวของตัวเอง
-                   เพราะมันกินทิศ/มุมของแผงจากผังนั้นตรง ๆ แยกสองทางจึงเป็นสองทางที่ทำเรื่องเดียวกัน
-                   กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
-                   คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
-                {window.Plan3DEntry && !roMode && (
-                /* รายการเวอร์ชันแบบเดียวกับรายการใบเสนอราคา — แตะแถว = เปิดแบบนั้น · "ทำแบบใหม่" = คัดลอกจากต้นแบบ */
-                <window.DvVerCard kind="p3" dvs={dvs} icon="panel" color="#4F46E5" canNew
-                  title="วางแผง 3D (โมเดลหลังคา + เงาแดด)" sub="ปั้นหลังคาตามรูปโดรน · วางแผง · เงาแดด · ออกแบบระบบ + ผลผลิต" />
-                )}
-                {/* ห้องอุปกรณ์ 3D (eroom.jsx) — ตู้ไฟ/อินเวอร์เตอร์จากการออกแบบระบบ */}
-                {window.Plan3DEntry && window.ErRoomCard && !roMode && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard job={job} p3List={dvs.p3List} canEdit />}
-
-                {/* ถอดวัสดุ BOQ */}
-                {!roMode && <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
-                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง" />}
-
-              </React.Fragment>}
-
-              {tabNow === "site" && <React.Fragment>
-                {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
-                    วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว
-                    แถบความคืบหน้าคิดจากช่องบังคับ + รูปบังคับ ช่างจะได้รู้ว่าเหลืออีกเท่าไรโดยไม่ต้องเปิดเข้าไปดู */}
-                {onPermit && (() => {
+                /* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
+                   เป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว · แถบขั้นตอนบอกว่าใบเดินไปถึงไหนโดยไม่ต้องเปิดเข้าไปดู */
+                const permitRow = onPermit && (() => {
                   const pm = job.permit || null;
                   const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
                   const FLOW = window.PERMIT_FLOW || [];
                   const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
                   const rejected = !!(pm && pm.status === "rejected");
+                  const pc = pst ? pst.color : "#14B8A6";
                   return (
-                    <div style={{ marginBottom: 22, border: "none", boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
-                      borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: "var(--r-tile)", overflow: "hidden",
-                      background: "var(--surface)" }}>
+                    <div key="permit" className="jd-pcard" style={{ marginBottom: 9, background: "var(--surface)", borderRadius: "var(--r-tile)", overflow: "hidden",
+                      boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd), var(--shadow-sm)" : "var(--shadow-sm)" }}>
                       <button onClick={onPermit}
-                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px",
                           background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                        <span className="ic-chip" style={{ background: "#14B8A61c" }}><Icon name="shield" size={17} color="#14B8A6" /></span>
+                        <span className="ic-chip" style={{ background: pc + "1c" }}><Icon name="shield" size={17} color={pc} /></span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ขออนุญาตการไฟฟ้า</span>
                           <span style={{ display: "block", fontSize: 11.5, color: pst ? pst.color : "var(--text-3)", fontWeight: pst ? 700 : 400 }}>
@@ -842,14 +924,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
                       {/* แถบขั้นตอน — งานติดตั้งจบแล้วยังไม่จบเรื่อง ใบขออนุญาตต้องเดินต่อจนการไฟฟ้าอนุมัติ */}
                       {idx >= 0 && (
-                        <div style={{ display: "flex", gap: 6, padding: "0 14px 12px" }}>
+                        <div style={{ display: "flex", gap: 6, padding: "0 16px 13px" }}>
                           {FLOW.map((st, i) => {
                             const done = i < idx, now = i === idx;
                             const c = rejected && now ? "#EF4444" : (done || now ? "var(--primary)" : "var(--border-strong)");
                             return (
                               <span key={st.key} style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ display: "block", height: 4, borderRadius: "var(--r-pill)", background: c, opacity: done ? .55 : 1 }} />
-                                <span style={{ display: "block", marginTop: 5, fontSize: 9.5, lineHeight: 1.3,
+                                <span style={{ display: "block", marginTop: 5, fontSize: 10.5, lineHeight: 1.3,
                                   fontWeight: now ? 800 : 600, color: now ? (rejected ? "#EF4444" : "var(--primary-dark)") : "var(--text-3)" }}>{st.th}</span>
                               </span>
                             );
@@ -859,14 +941,13 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
                       {/* ตีกลับ = ช่างต้องลงมือแก้ ต้องเห็นเหตุผลตรงนี้เลย ไม่ใช่ไปตามอ่านในแจ้งเตือน */}
                       {rejected && (
-                        <div style={{ margin: "0 12px 12px", padding: "10px 12px", borderRadius: "var(--r-tile)",
-                          background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)" }}>
+                        <div style={{ margin: "0 12px 12px", padding: "10px 12px", borderRadius: "var(--r-tile)", background: "var(--tint-red-bg)" }}>
                           <div style={{ fontSize: 12, fontWeight: 800, color: "var(--tint-red-tx)" }}>↩ ฝ่ายขออนุญาตตีกลับ ต้องแก้ไขแล้วส่งใหม่</div>
                           <div style={{ fontSize: 12, color: "var(--tint-red-tx)", marginTop: 4, lineHeight: 1.55 }}>
                             {pm.rejectReason || "ไม่ได้ระบุเหตุผล — สอบถามฝ่ายขออนุญาต"}
                           </div>
                           {(pm.byAdmin || pm.statusAt) && (
-                            <div style={{ fontSize: 10.5, color: "var(--tint-red-tx)", opacity: .8, marginTop: 4 }}>
+                            <div style={{ fontSize: 11, color: "var(--tint-red-tx)", opacity: .8, marginTop: 4 }}>
                               {pm.byAdmin ? "โดย " + pm.byAdmin : ""}{pm.statusAt ? " · " + thDate(String(pm.statusAt).slice(0, 10), true) : ""}
                             </div>
                           )}
@@ -879,79 +960,143 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                       {/* อนุมัติแล้ว = ปิดงานได้จริง ให้เห็นเลขที่คำร้อง/วันอนุมัติโดยไม่ต้องเปิดเข้าไป */}
                       {pm && pm.status === "approved" && (
                         <div style={{ margin: "0 12px 12px", padding: "9px 12px", borderRadius: "var(--r-tile)",
-                          background: "var(--primary-soft)", border: "1px solid var(--primary)", fontSize: 11.5, color: "var(--primary-dark)", fontWeight: 700 }}>
+                          background: "var(--primary-soft)", fontSize: 11.5, color: "var(--primary-dark)", fontWeight: 700 }}>
                           ✔ การไฟฟ้าอนุมัติแล้ว{pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : ""}{pm.reqNo ? " · คำร้อง " + pm.reqNo : ""}
                         </div>
                       )}
                     </div>
                   );
-                })()}
+                })();
+
+                const groups = [
+                  { k: "pre", th: "ก่อนติดตั้ง", items: [surveyRow, planRow] },
+                  /* รายงานประจำวันเปิดได้เฉพาะงานที่กำลังติดตั้ง (app.jsx ส่ง onDaily มาเฉพาะขั้นนั้น) */
+                  { k: "mid", th: "ระหว่างติดตั้ง", items: [
+                    onDaily && <DailyJobButton key="daily" job={job} onOpen={onDaily} />,
+                    /* เบิกเงินหน้างาน — เงินสดที่ลงไปกับงานนี้ และใบที่ยังรออนุมัติ */
+                    onExpense && window.EcJobButton && <window.EcJobButton key="ec" job={job} sum={ecSum} onOpen={onExpense} />,
+                    irRow] },
+                  { k: "post", th: "หลังติดตั้ง", items: [handoverRow, permitRow,
+                    /* งานบริการหลังการขาย — ประกัน · รอบล้างแผง · ใบแจ้งซ่อม
+                       โชว์เฉพาะงานที่ติดตั้งเสร็จแล้ว หรือที่ขึ้นทะเบียนบริการไว้แล้ว (งานอื่นยังไม่มีอะไรให้ดู) */
+                    onOm && (job.stage === "done" || omSite) && window.OmJobButton &&
+                      <window.OmJobButton key="om" job={job} site={omSite} visits={omVisits} tickets={omTickets} onOpen={onOm} />] },
+                ].map((g) => Object.assign({}, g, { items: g.items.filter(Boolean) })).filter((g) => g.items.length);
+                return groups.map((g, gi) => (
+                  <div key={g.k} style={{ marginBottom: gi < groups.length - 1 ? 16 : 4 }}>
+                    <div className="jd-sec">{g.th}</div>
+                    {g.items}
+                  </div>
+                ));
+              })()}
+
+              {/* แท็บแบบ & วัสดุ — รวม "ออกแบบ" กับ "วัสดุ" เดิม เรียงตามลำดับงาน: แบบ 3D → (ห้องอุปกรณ์) → BOQ → สถานะวัสดุ → เบิก/คืน */}
+              {tabNow === "dm" && !roMode && <React.Fragment>
+                {/* วางแผง 3D — ออกแบบระบบ/ผลผลิต อยู่ในจอนี้ ไม่มีแถวของตัวเอง
+                   เพราะมันกินทิศ/มุมของแผงจากผังนั้นตรง ๆ แยกสองทางจึงเป็นสองทางที่ทำเรื่องเดียวกัน
+                   กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
+                   คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
+                {window.Plan3DEntry && (
+                /* รายการเวอร์ชันแบบเดียวกับรายการใบเสนอราคา — แตะแถว = เปิดแบบนั้น · "ทำแบบใหม่" = คัดลอกจากต้นแบบ */
+                <window.DvVerCard kind="p3" dvs={dvs} icon="panel" color="#4F46E5" canNew
+                  title="วางแผง 3D (โมเดลหลังคา + เงาแดด)" sub="ปั้นหลังคาตามรูปโดรน · วางแผง · เงาแดด · ออกแบบระบบ + ผลผลิต" />
+                )}
+                {/* ห้องอุปกรณ์ 3D (eroom.jsx) — ตู้ไฟ/อินเวอร์เตอร์จากการออกแบบระบบ */}
+                {window.Plan3DEntry && window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard job={job} p3List={dvs.p3List} canEdit />}
+
+                {/* ถอดวัสดุ BOQ */}
+                <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
+                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง" />
+
+                {/* สถานะวัสดุ — แตะแถวแล้วเลือกจาก 4 ตัวเลือก
+                    เดิมแตะวนทีละสถานะ (ยังไม่สั่ง → รอของ → ครบ → ไม่ใช้) จะถอยจาก "ครบ" กลับ "รอของ" ต้องกด 3 ครั้ง และกดพลาดง่าย */}
+                <div style={{ marginTop: 18, marginBottom: 24 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-3)", marginLeft: 2 }}>· แตะเพื่อเลือกสถานะ</span>
+                    </span>
+                    {/* ความคืบหน้าเป็นแถบสั้น ๆ ข้างตัวเลข — เห็นภาพรวมก่อนไล่อ่านทีละรายการ */}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <span className="mbar" style={{ width: 54, height: 6, "--fill": job.matReady ? "var(--primary)" : "#F59E0B" }}>
+                        <i style={{ width: job.matReadyPct + "%" }} />
+                      </span>
+                      <span style={{ fontFamily: "var(--display)", fontSize: 13, fontWeight: 700, letterSpacing: "-.02em",
+                        fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{job.matReadyPct}%</span>
+                    </span>
+                  </div>
+                  {/* แผงเดียวแบ่งด้วยเส้นผม เหมือนตารางย่อย อ่านไล่ลงมาได้ลื่นกว่ากล่องมีขอบหลายใบ */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 0, alignItems: "start",
+                    boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
+                    {SF.MATERIALS.filter((m) => {
+                      if (m.key === "battery" && !job.battery) return false;
+                      if (m.key === "backup" && !job.backup) return false;
+                      return true;
+                    }).map((m, i) => {
+                      const cur = job.mat[m.key];
+                      const open = matPick === m.key;
+                      return (
+                        <div key={m.key} style={{ alignSelf: "stretch", background: open ? "var(--surface2)" : "transparent",
+                          boxShadow: "inset 0 -1px 0 var(--border)" + (!isMobile && i % 2 === 0 ? ", inset -1px 0 0 var(--border)" : "") }}>
+                          <button onClick={() => setMatPick(open ? null : m.key)} aria-expanded={open} title="แตะเพื่อเลือกสถานะ"
+                            className="jd-matrow"
+                            style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                              padding: "10px 12px", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                            <span style={{ fontSize: 12.5, color: "var(--text-1)", fontWeight: 600 }}>{m.th}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <MatChip status={cur} />
+                              <Icon name="chevronDown" size={13} color="var(--text-3)" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+                            </span>
+                          </button>
+                          {open && (
+                            <div role="group" aria-label={"สถานะ " + m.th} style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 12px 11px" }}>
+                              {["none", "waiting", "ready", "na"].map((st) => {
+                                const on = (SF.MAT_STATUS[cur] ? cur : "none") === st;
+                                return (
+                                  <button key={st} aria-pressed={on}
+                                    onClick={() => { if (st !== cur) onSetMat(job.id, m.key, st); setMatPick(null); }}
+                                    style={{ padding: 0, border: "none", background: "none", cursor: "pointer", borderRadius: "var(--r-pill)",
+                                      boxShadow: on ? "0 0 0 2px var(--primary)" : "none" }}>
+                                    <MatChip status={st} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
+                <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />
               </React.Fragment>}
 
               {/* เอกสารงวดงาน · วางบิล — ถอดงวดจากใบเสนอราคาแล้วตามเงินจนจบโปรเจค
-                  วางต่อจากงานขออนุญาต เพราะเป็นงานเอกสารหลังบ้านเหมือนกัน ไม่ใช่เครื่องมือหน้างาน
                   ช่างเห็นการ์ดนี้ได้แบบอ่านอย่างเดียว (billRO) — เขาต้องรู้ว่างวดไหนรอเอกสารจากหน้างานอยู่ */}
               {tabNow === "docs" && onBilling && window.BlJobCard && (
                 <window.BlJobCard job={job} quotes={quotes} leads={leads} role={billRole || []}
                   currentUser={currentUser} readOnly={billRO} onOpen={onBilling} onSaveBills={onSaveBills} />
               )}
 
-              {/* material checklist */}
-              {tabNow === "mat" && !roMode && <div style={{ marginBottom: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
-                    <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· แตะเพื่อแก้ไข</span>
-                  </span>
-                  {/* ความคืบหน้าเป็นแถบสั้น ๆ ข้างตัวเลข — เห็นภาพรวมก่อนไล่อ่านทีละรายการ */}
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <span className="mbar" style={{ width: 54, height: 6, "--fill": job.matReady ? "var(--primary)" : "#F59E0B" }}>
-                      <i style={{ width: job.matReadyPct + "%" }} />
+              {/* ประวัติขั้นตอน — เดิมเป็น Flow การทำงาน 5 ขั้นกางยาวทั้งแผง ตอนนี้ขั้นปัจจุบันอยู่บนหัวแล้ว
+                  วันเวลาที่เลื่อนแต่ละขั้นพับไว้ กดกางดูได้ · ฝ่ายขออนุญาต/เซลล์ไม่ได้ใช้ */}
+              {tabNow === "ov" && !roMode && (
+                <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", marginBottom: 8 }}>
+                  <button onClick={() => setHistOpen((o) => !o)} aria-expanded={histOpen}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 13px" : "13px 16px",
+                      background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <span style={{ width: 18, height: 20, flexShrink: 0, display: "grid", placeItems: "center" }}><Icon name="history" size={15} color="var(--text-3)" /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ประวัติขั้นตอน</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วันเวลาที่เลื่อนเข้าแต่ละขั้น</span>
                     </span>
-                    <span style={{ fontFamily: "var(--display)", fontSize: 13, fontWeight: 700, letterSpacing: "-.02em",
-                      fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{job.matReadyPct}%</span>
-                  </span>
+                    <Icon name="chevronDown" size={15} color="var(--text-3)" style={{ transform: histOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+                  </button>
+                  {histOpen && <div style={{ padding: isMobile ? "4px 13px 16px" : "4px 16px 18px" }}><FlowTimeline job={job} /></div>}
                 </div>
-                {/* เดิมเป็นกล่องมีขอบ 6 ใบเรียงกัน = เส้นขอบ 6 เส้นแย่งความสนใจกับตัวข้อมูล
-                   เปลี่ยนเป็นแผงเดียวแบ่งด้วยเส้นผม เหมือนตารางย่อย อ่านไล่ลงมาได้ลื่นกว่า */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 0,
-                  boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
-                  {SF.MATERIALS.filter((m) => {
-                    if (m.key === "battery" && !job.battery) return false;
-                    if (m.key === "backup" && !job.backup) return false;
-                    return true;
-                  }).map((m, i) => {
-                    const MAT_CYCLE = ["none", "waiting", "ready", "na"];
-                    const cycle = () => {
-                      const cur = MAT_CYCLE.indexOf(job.mat[m.key]);
-                      onSetMat(job.id, m.key, MAT_CYCLE[(cur + 1) % MAT_CYCLE.length]);
-                    };
-                    return (
-                      <button key={m.key} onClick={cycle} title="คลิกเพื่อเปลี่ยนสถานะ"
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
-                        padding: "10px 12px", background: "transparent", border: 0,
-                        boxShadow: "inset 0 -1px 0 var(--border)" + (!isMobile && i % 2 === 0 ? ", inset -1px 0 0 var(--border)" : ""),
-                        cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background .13s" }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                        <span style={{ fontSize: 12.5, color: "var(--text-1)", fontWeight: 600 }}>{m.th}</span>
-                        <MatChip status={job.mat[m.key]} />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>}
-
-              {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
-              {tabNow === "mat" && !roMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
-
-              {/* flow timeline — ขั้นติดตั้ง ฝ่ายขออนุญาตไม่ได้ใช้ (ของเขาอยู่ในบล็อกสรุปด้านบน) */}
-              {tabNow === "ov" && !roMode && <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="flow" size={14} color="var(--text-2)" /> Flow การทำงาน
-                </div>
-                <FlowTimeline job={job} />
-              </div>}
+              )}
 
               {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด · โหมดขออนุญาตดูได้จากบล็อกสรุปแล้ว (อ่านอย่างเดียว) */}
               {tabNow === "docs" && !roMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
@@ -961,32 +1106,22 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={roMode} />
                 <JobComments media={media} currentUser={currentUser} canManage={canManage} />
               </React.Fragment>}
-
-              {tabNow === "ov" && job.note && (
-                <div style={{ padding: "12px 14px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
-                  <strong style={{ color: "var(--text-1)" }}>หมายเหตุ:</strong> {job.note}
-                </div>
-              )}
+              {/* หมายเหตุ (job.note) ย้ายขึ้นไปอยู่กล่องเตือนบนสุดของภาพรวมแล้ว */}
             </div>
             </div>
 
             {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม
-               มือถือ: ปุ่ม ปิด/แก้ไข เป็นไอคอนล้วน ให้ปุ่มเลื่อนขั้นกว้างพอแสดงบรรทัดเดียว */}
+               ไม่มีปุ่ม "ปิด" แล้ว (ซ้ำกับ ✕ มุมขวาบน · จัดใหม่ พ.ย. 2026) เหลือ แก้ไขข้อมูล + เลื่อนขั้น
+               งานที่เสร็จแล้ว (ไม่มีปุ่มเลื่อนขั้น) ปุ่มแก้ไขกินเต็มแถบ */}
             <div style={{ padding: isMobile ? "12px 16px" : "14px 24px", paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
               borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
-              <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด"
-                style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
-                  borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)",
-                  fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
-              </button>
               {!salesMode && onEdit && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
-                style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
+                style={{ flex: !roMode && job.stage !== "done" ? "0 0 auto" : permitMode ? "0 0 auto" : 1,
+                  padding: isMobile ? "0 14px" : "11px 16px", height: isMobile ? 42 : "auto",
                   borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-1)",
-                  fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
+                  fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", whiteSpace: "nowrap",
                   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                <Icon name="settings" size={isMobile ? 17 : 15} color="var(--text-2)" />{!isMobile && " แก้ไขข้อมูล"}
+                <Icon name="settings" size={15} color="var(--text-2)" />{isMobile ? "แก้ไข" : "แก้ไขข้อมูล"}
               </button>}
               {permitMode && (
                 <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",

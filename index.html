@@ -465,6 +465,21 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .jd-stab.on::after { bottom: -12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--surface) 12px), radial-gradient(circle at 0 100%, transparent 11.5px, var(--bg) 12px); }
 .jd-stab .ld-tab-n { font-size: 11px; padding: 7px 1px; background: color-mix(in srgb, var(--tc) 14%, var(--surface)); }
 .jd-stab.on .ld-tab-n { background: var(--tc); color: #fff; }
+/* ใบงานติดตั้งจัดใหม่ (พ.ย. 2026) — ปุ่มด่วนใต้ชื่องาน (โทร · แผนที่ · Drive) ใช้ .btn.btn-sm · เบอร์ยาวตัดด้วย … */
+.jd-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.jd-quick .btn { text-decoration: none; color: var(--text-1); max-width: 100%; }
+.jd-quick-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; font-family: var(--mono); font-weight: 600; }
+/* หัวกลุ่มในแท็บหน้างาน (ก่อน / ระหว่าง / หลังติดตั้ง) */
+.jd-sec { font-size: 11.5px; font-weight: 700; color: var(--text-3); margin: 0 2px 8px; }
+/* การ์ดขออนุญาต (แถวที่มีแถบขั้นตอนต่อท้าย) — ให้พื้นเท่า .act-row ในธีมกราไฟต์ */
+[data-theme="aurora"] .jd-pcard { background: var(--gr-card) !important; }
+.jd-matrow:hover { background: var(--surface2) !important; }
+/* แท็บใบงานบนมือถือแคบ — 5 แท็บให้พอดีจอ ไม่ต้องเลื่อนหา (เดิม 6 แท็บ แท็บท้ายตกขอบ) · ซ่อนตัวเลขบนแท็บ (% วัสดุ/จำนวนรูปมีในเนื้อแท็บอยู่แล้ว) จุดแดงเตือนยังอยู่ */
+@media (max-width: 560px) {
+  .jd-mtabs { padding-right: 4px; }
+  .jd-mtabs .ld-tab { padding: 0 8px; margin-right: 3px; font-size: 12px; gap: 4px; }
+  .jd-mtabs .ld-tab-n { display: none; }
+}
 
 /* sidebar overlay backdrop */
 .sidebar-overlay {
@@ -1263,7 +1278,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=13"></script>
 <script src="dashboard/build/pm-paper.js?v=13"></script>
 <script src="dashboard/build/pm-form.js?v=19"></script>
-<script src="dashboard/build/drawer.js?v=97"></script>
+<script src="dashboard/build/drawer.js?v=98"></script>
 <script src="dashboard/build/views-overview.js?v=54"></script>
 <script src="dashboard/build/views-board.js?v=46"></script>
 <script src="dashboard/build/views-table.js?v=39"></script>
@@ -1287,9 +1302,9 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-lead.js?v=23"></script>
 <script src="dashboard/build/views-flow.js?v=33"></script>
 <script src="dashboard/build/daily.js?v=20"></script>
-<script src="dashboard/build/views-daily.js?v=43"></script>
+<script src="dashboard/build/views-daily.js?v=44"></script>
 <script src="dashboard/build/om.js?v=13"></script>
-<script src="dashboard/build/views-om.js?v=26"></script>
+<script src="dashboard/build/views-om.js?v=27"></script>
 <script src="dashboard/build/fusionsolar-viz.js?v=22"></script>
 <script src="dashboard/build/fusionsolar-scene.js?v=19"></script>
 <script src="dashboard/build/fusionsolar-charts.js?v=12"></script>
@@ -1303,7 +1318,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/om-ticket.js?v=26"></script>
 <script src="dashboard/build/om-paper.js?v=17"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
-<script src="dashboard/build/views-expense.js?v=35"></script>
+<script src="dashboard/build/views-expense.js?v=36"></script>
 <script src="dashboard/build/ec-paper.js?v=20"></script>
 <script src="dashboard/build/attend.js?v=27"></script>
 <script src="dashboard/build/leave.js?v=4"></script>

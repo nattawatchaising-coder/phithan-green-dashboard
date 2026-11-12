@@ -3911,66 +3911,48 @@ function DailyJobButton({
   const today = window.drToday();
   const s = window.drDayState(store.byDate, today);
   const n = store.dates.length;
-  return React.createElement("button", {
-    onClick: onOpen,
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderLeft: "3px solid " + s.color,
-      borderRadius: "var(--r-chip)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: s.color + "1c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(Icon, {
-    name: "pen",
-    size: 17,
-    color: s.color
-  })), React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: s.color,
-      fontWeight: 700
-    }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \xB7 ", s.th, n ? React.createElement("span", {
-    style: {
-      color: "var(--text-3)",
-      fontWeight: 400
-    }
-  }, " \xB7 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27 ", n, " \u0E27\u0E31\u0E19") : null)), React.createElement(Icon, {
-    name: "arrowRight",
-    size: 16,
-    color: "var(--text-3)"
-  }));
+  return (React.createElement("button", {
+      onClick: onOpen,
+      className: "act-row"
+    }, React.createElement("span", {
+      className: "ic-chip",
+      style: {
+        background: s.color + "1c"
+      }
+    }, React.createElement(Icon, {
+      name: "pen",
+      size: 17,
+      color: s.color
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: s.color,
+        fontWeight: 700
+      }
+    }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \xB7 ", s.th, n ? React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        fontWeight: 400
+      }
+    }, " \xB7 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27 ", n, " \u0E27\u0E31\u0E19") : null)), React.createElement(Icon, {
+      name: "arrowRight",
+      size: 16,
+      color: "var(--text-3)"
+    }))
+  );
 }
 Object.assign(window, {
   DailyReportModal,

@@ -1838,11 +1838,10 @@ function DailyJobButton({ job, onOpen }) {
   const s = window.drDayState(store.byDate, today);
   const n = store.dates.length;
   return (
-    <button onClick={onOpen}
-      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-        background: "var(--surface)", border: "1px solid var(--border-strong)", borderLeft: "3px solid " + s.color,
-        borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-      <span style={{ width: 34, height: 34, borderRadius: 9, background: s.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+    /* หน้าตาเดียวกับแถวอื่นในแท็บหน้างาน (.act-row + .ic-chip) — เดิมมีเส้นขอบ + ขีดสีซ้าย ปนกับแถวอื่นคนละแบบ (จัดใหม่ พ.ย. 2026)
+       สีสถานะอยู่ที่ชิปไอคอนกับบรรทัดล่างแทนขีดซ้าย */
+    <button onClick={onOpen} className="act-row">
+      <span className="ic-chip" style={{ background: s.color + "1c" }}>
         <Icon name="pen" size={17} color={s.color} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>

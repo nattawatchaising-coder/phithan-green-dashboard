@@ -1134,11 +1134,8 @@ function EcJobButton({ job, sum, onOpen }) {
        s.waitCount ? "รออนุมัติ " + s.waitCount + " ใบ" : "",
        s.owed ? "ค้างจ่ายพนักงาน " + window.ecBahtShort(s.owed) : ""].filter(Boolean).join(" · ");
   return (
-    <button onClick={onOpen}
-      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-        background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + color,
-        borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-      <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+    <button onClick={onOpen} className="act-row">
+      <span className="ic-chip" style={{ background: color + "1c" }}>
         <Icon name="wallet" size={17} color={color} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>

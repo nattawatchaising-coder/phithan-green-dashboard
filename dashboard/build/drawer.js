@@ -206,6 +206,122 @@ function InfoRow({
     }
   }, children));
 }
+const DR_STAGE_SHORT = {
+  design: "ออกแบบ",
+  takeoff: "ถอดของ",
+  queue: "นัดคิว",
+  install: "ติดตั้ง",
+  done: "เสร็จสิ้น"
+};
+function DrStageSteps({
+  job
+}) {
+  const SF = window.SF;
+  const idx = job.stageIdx != null ? job.stageIdx : SF.STAGE_INDEX[job.stage] || 0;
+  const cur = SF.STAGES[idx] || SF.STAGES[0];
+  const blocked = !!job.problem && job.stage !== "done";
+  const c = blocked ? "#EF4444" : cur.color;
+  return React.createElement("div", {
+    role: "img",
+    "aria-label": "ขั้นตอนงาน: " + cur.th + " (ขั้นที่ " + (idx + 1) + " จาก " + SF.STAGES.length + ")",
+    title: cur.th + (blocked ? " · ติดปัญหา" : ""),
+    style: {
+      display: "flex",
+      gap: 5
+    }
+  }, SF.STAGES.map((s, i) => {
+    const now = i === idx;
+    const done = i < idx;
+    return React.createElement("span", {
+      key: s.key,
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        height: 5,
+        borderRadius: "var(--r-pill)",
+        background: done || now ? c : "var(--surface3)",
+        opacity: done ? .5 : 1
+      }
+    }), React.createElement("span", {
+      style: {
+        display: "block",
+        marginTop: 5,
+        fontSize: 11,
+        lineHeight: 1.3,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        fontWeight: now ? 800 : 600,
+        color: now ? blocked ? "var(--tint-red-tx)" : s.fg : "var(--text-3)"
+      }
+    }, DR_STAGE_SHORT[s.key] || s.th));
+  }));
+}
+function DrLine({
+  icon,
+  muted,
+  children
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10,
+      padding: "6px 0"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 18,
+      height: 20,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13.5,
+      fontWeight: 500,
+      lineHeight: 1.5,
+      color: muted ? "var(--text-3)" : "var(--text-1)",
+      overflowWrap: "anywhere"
+    }
+  }, children));
+}
+function DrPair({
+  label,
+  children
+}) {
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      marginRight: 16,
+      maxWidth: "100%"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap"
+    }
+  }, label), React.createElement("span", {
+    style: {
+      minWidth: 0
+    }
+  }, children));
+}
 function JobMaterialUsage({
   job,
   stock,
@@ -1206,9 +1322,15 @@ function DetailDrawer({
   }, [job ? job.id : null]);
   const [irOpen, setIrOpen] = React.useState(false);
   const inspections = useDrInspections(job ? job.id : null);
+  const [specOpen, setSpecOpen] = React.useState(false);
+  const [histOpen, setHistOpen] = React.useState(false);
+  const [matPick, setMatPick] = React.useState(null);
   React.useEffect(() => {
     setPlanOpen(false);
     setIrOpen(false);
+    setSpecOpen(false);
+    setHistOpen(false);
+    setMatPick(null);
   }, [job ? job.id : null]);
   const [advancing, setAdvancing] = React.useState(false);
   React.useEffect(() => {
@@ -1216,9 +1338,21 @@ function DetailDrawer({
   }, [job ? job.stage : null]);
   const handleAdvance = () => {
     if (advancing) return;
-    setAdvancing(true);
-    onAdvance(job.id);
-    setTimeout(() => setAdvancing(false), 6000);
+    const next = SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)];
+    const id = job.id;
+    const body = [job.code + " · " + job.name, next.key === "done" && job.problem ? "ปัญหาหน้างานที่บันทึกไว้จะถูกล้างออก" : "", "กดพลาดย้อนได้ด้วยการลากการ์ดบนบอร์ดกลับขั้นเดิม"].filter(Boolean).join("\n");
+    window.askConfirm({
+      title: "เลื่อนงานไปขั้น \"" + next.th + "\"?",
+      body,
+      ok: "เลื่อนขั้น",
+      danger: false,
+      icon: "arrowRight"
+    }).then(ok => {
+      if (!ok) return;
+      setAdvancing(true);
+      onAdvance(id);
+      setTimeout(() => setAdvancing(false), 6000);
+    });
   };
   const TABS = !job ? [] : [{
     k: "ov",
@@ -1230,14 +1364,9 @@ function DetailDrawer({
     ic: "wrench",
     alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100 ? "ส่งมอบยังไม่ครบ" : ""
   }, !roMode && {
-    k: "design",
-    th: "ออกแบบ",
+    k: "dm",
+    th: "แบบ & วัสดุ",
     ic: "panel",
-    n: (dvs.p3List || []).length || null
-  }, !roMode && {
-    k: "mat",
-    th: "วัสดุ",
-    ic: "box",
     n: job.matReadyPct != null ? job.matReadyPct + "%" : null
   }, (!roMode || onBilling && window.BlJobCard) && {
     k: "docs",
@@ -1250,6 +1379,60 @@ function DetailDrawer({
     n: (media.photos || []).length || null
   }].filter(Boolean);
   const tabNow = TABS.some(t => t.k === tab) ? tab : "ov";
+  const alerts = [];
+  if (job) {
+    if (job.problem && job.stage !== "done") alerts.push({
+      tone: "bad",
+      icon: "alert",
+      th: "ปัญหาหน้างาน",
+      tx: String(job.problem)
+    });
+    const lateInst = (job.lateStages || []).find(ls => ls.key === "install");
+    if (lateInst) alerts.push({
+      tone: "bad",
+      icon: "clock",
+      th: "ติดตั้งเลยกำหนด " + lateInst.daysLate + " วัน",
+      tx: ""
+    });
+    const siteTab = TABS.find(t => t.k === "site");
+    if (siteTab && siteTab.alert) alerts.push({
+      tone: "bad",
+      icon: "shield",
+      th: siteTab.alert,
+      tx: "แตะเพื่อดูในแท็บหน้างาน",
+      go: "site"
+    });
+    if (!job.eeName && job.stage !== "done" && !roMode) alerts.push({
+      tone: "warn",
+      icon: "user",
+      th: "ยังไม่ระบุวิศวกรผู้รับผิดชอบ",
+      tx: "รายงานประจำวันที่ช่างส่งจะไม่มีใครอนุมัติ" + (onEdit ? " · ระบุได้ที่ แก้ไขข้อมูล" : "")
+    });
+    if (job.note) alerts.push({
+      tone: "note",
+      icon: "message",
+      th: "หมายเหตุ",
+      tx: String(job.note)
+    });
+  }
+  const ALERT_TONE = {
+    bad: {
+      bg: "var(--tint-red-bg)",
+      tx: "var(--tint-red-tx)",
+      ic: "#EF4444"
+    },
+    warn: {
+      bg: "var(--tint-amber-bg)",
+      tx: "var(--tint-amber-tx)",
+      ic: "#F59E0B"
+    },
+    note: {
+      bg: "var(--surface)",
+      tx: "var(--text-2)",
+      ic: "var(--text-3)",
+      sh: "var(--shadow-sm)"
+    }
+  };
   return React.createElement(React.Fragment, null, React.createElement("div", {
     onClick: onClose,
     style: {
@@ -1357,6 +1540,8 @@ function DetailDrawer({
   }), job.name)), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
       width: 36,
       height: 36,
@@ -1372,9 +1557,47 @@ function DetailDrawer({
   }, React.createElement(Icon, {
     name: "x",
     size: 18
-  }))), React.createElement("div", {
+  }))), (() => {
+    const tel = job.phone ? String(job.phone).split(/[,/|]| หรือ /)[0].replace(/[^0-9+]/g, "") : "";
+    const addr = [job.address, job.province].filter(Boolean).join(" ");
+    const mapUrl = job.map || (addr ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addr) : "");
+    if (!tel && !mapUrl && !job.drive) return null;
+    return React.createElement("div", {
+      className: "jd-quick"
+    }, tel && React.createElement("a", {
+      className: "btn btn-sm",
+      href: "tel:" + tel,
+      title: "โทร " + job.phone
+    }, React.createElement(Icon, {
+      name: "phone",
+      size: 14,
+      color: "var(--primary)"
+    }), isMobile ? "โทร" : React.createElement("span", {
+      className: "jd-quick-tx"
+    }, job.phone)), mapUrl && React.createElement("a", {
+      className: "btn btn-sm",
+      href: mapUrl,
+      target: "_blank",
+      rel: "noreferrer",
+      title: "\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"
+    }, React.createElement(Icon, {
+      name: "pin",
+      size: 14,
+      color: "var(--primary)"
+    }), "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), job.drive && React.createElement("a", {
+      className: "btn btn-sm",
+      href: job.drive,
+      target: "_blank",
+      rel: "noreferrer",
+      title: "\u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19 Google Drive"
+    }, React.createElement(Icon, {
+      name: "folder",
+      size: 14,
+      color: "var(--primary)"
+    }), "Drive"));
+  })(), React.createElement("div", {
     style: {
-      marginTop: 16,
+      marginTop: 14,
       display: "flex",
       alignItems: "center",
       gap: 12
@@ -1411,23 +1634,14 @@ function DetailDrawer({
         color: "var(--text-2)"
       }
     }, pct, "%"));
-  })() : React.createElement(React.Fragment, null, React.createElement(StageBadge, {
-    stageKey: job.stage
-  }), React.createElement("div", {
+  })() : React.createElement("div", {
     style: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     }
-  }, React.createElement(ProgressBar, {
-    pct: job.progressPct,
-    color: stageOf(job.stage).color
-  })), React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 13,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, job.progressPct, "%")))), isMobile && React.createElement("div", {
+  }, React.createElement(DrStageSteps, {
+    job: job
+  })))), isMobile && React.createElement("div", {
     style: {
       background: "var(--surface)",
       paddingLeft: 10,
@@ -1465,127 +1679,152 @@ function DetailDrawer({
       flex: 1,
       padding: isMobile ? "16px 15px" : "22px 24px"
     }
-  }, tabNow === "ov" && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, tabNow === "ov" && React.createElement(React.Fragment, null, alerts.length > 0 && React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: isMobile ? 12 : 16,
-      marginBottom: isMobile ? 18 : 24
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginBottom: isMobile ? 14 : 16
     }
-  }, React.createElement(InfoRow, {
-    label: "\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E42\u0E17\u0E23"
-  }, React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, React.createElement(Icon, {
-    name: "phone",
-    size: 13,
-    color: "var(--text-3)"
-  }), job.phone)), React.createElement(InfoRow, {
-    label: "\u0E27\u0E31\u0E19\u0E19\u0E31\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
-  }, (() => {
+  }, alerts.map((a, i) => {
+    const t = ALERT_TONE[a.tone];
+    const Tag = a.go ? "button" : "div";
+    return React.createElement(Tag, {
+      key: i,
+      onClick: a.go ? () => setTab(a.go) : undefined,
+      style: {
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        padding: "10px 12px",
+        borderRadius: "var(--r-tile)",
+        border: "none",
+        background: t.bg,
+        boxShadow: t.sh || "none",
+        textAlign: "left",
+        fontFamily: "inherit",
+        width: "100%",
+        cursor: a.go ? "pointer" : "default"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 18,
+        height: 20,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: a.icon,
+      size: 15,
+      color: t.ic
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: a.tone === "note" ? "var(--text-1)" : t.tx
+      }
+    }, a.th), a.tx && React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        color: t.tx,
+        marginTop: 2,
+        lineHeight: 1.55,
+        whiteSpace: "pre-wrap",
+        overflowWrap: "anywhere"
+      }
+    }, a.tx)), a.go && React.createElement(Icon, {
+      name: "arrowRight",
+      size: 15,
+      color: t.tx,
+      style: {
+        flexShrink: 0,
+        marginTop: 2
+      }
+    }));
+  })), (() => {
     const v = job.stageDates && job.stageDates.install;
-    const d = v ? typeof v === "object" ? v.start || v.end : v : job.deadline;
-    return thDate(d, true);
-  })()), React.createElement("div", {
-    style: {
-      gridColumn: "1 / -1"
-    }
-  }, React.createElement(InfoRow, {
-    label: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48 / \u0E1E\u0E34\u0E01\u0E31\u0E14"
-  }, job.address, ", ", job.province, "  ", React.createElement("a", {
-    href: job.map,
-    target: "_blank",
-    rel: "noreferrer",
-    style: {
-      color: "var(--primary-dark)",
-      textDecoration: "none",
-      fontWeight: 600,
-      fontSize: 12,
-      marginLeft: 4
-    }
-  }, React.createElement(Icon, {
-    name: "pin",
-    size: 12,
-    style: {
-      verticalAlign: -1
-    }
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"))), React.createElement(InfoRow, {
-    label: "\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"
-  }, React.createElement(TechAvatar, {
-    techId: job.tech,
-    size: 24,
-    showName: true
-  })), React.createElement(InfoRow, {
-    label: "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"
-  }, job.eeName ? React.createElement("span", null, job.eeName, job.eeIsTech && React.createElement("span", {
-    style: {
-      marginLeft: 7,
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--primary-dark)",
-      background: "var(--primary-soft)",
-      borderRadius: "var(--r-pill)",
-      padding: "2px 8px"
-    }
-  }, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22")) : React.createElement("span", {
-    style: {
-      color: "#F59E0B"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38")), React.createElement(InfoRow, {
-    label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19"
-  }, job.salesName ? job.salesName : React.createElement("span", {
-    style: {
-      color: "var(--text-3)"
-    }
-  }, "\u2014")), React.createElement(InfoRow, {
-    label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
-  }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), !roMode && React.createElement(InfoRow, {
-    label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
-  }, job.contractor ? job.contractor : React.createElement("span", {
-    style: {
-      color: "var(--text-3)"
-    }
-  }, "\u2014")), !roMode && React.createElement(InfoRow, {
-    label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
-  }, job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : React.createElement("span", {
-    style: {
-      color: "var(--text-3)"
-    }
-  }, "\u2014")), job.drive && React.createElement("div", {
-    style: {
-      gridColumn: "1 / -1"
-    }
-  }, React.createElement(InfoRow, {
-    label: "\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19 Google Drive"
-  }, React.createElement("a", {
-    href: job.drive,
-    target: "_blank",
-    rel: "noreferrer",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      color: "#fff",
-      background: "#1A73E8",
-      padding: "6px 12px",
-      borderRadius: "var(--r-chip)",
-      textDecoration: "none",
-      fontWeight: 700,
-      fontSize: 12.5
-    }
-  }, React.createElement(Icon, {
-    name: "folder",
-    size: 14,
-    color: "#fff"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C Drive ", React.createElement(Icon, {
-    name: "arrowRight",
-    size: 13,
-    color: "#fff"
-  }))))), permitMode && React.createElement(PermitJobSummary, {
+    const st = v ? typeof v === "object" ? v.start || v.end : v : job.deadline;
+    const en = v && typeof v === "object" ? v.end : null;
+    const addr = [job.address, job.province].filter(Boolean).join(", ");
+    const tech = job.tech && window.SF.TECH_BY_ID && window.SF.TECH_BY_ID[job.tech];
+    const people = [tech && React.createElement(DrPair, {
+      key: "t",
+      label: "\u0E0A\u0E48\u0E32\u0E07"
+    }, React.createElement(TechAvatar, {
+      techId: job.tech,
+      size: 22,
+      showName: true
+    })), job.eeName && React.createElement(DrPair, {
+      key: "e",
+      label: "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23"
+    }, React.createElement("span", null, job.eeName, job.eeIsTech && React.createElement("span", {
+      style: {
+        marginLeft: 6,
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "var(--primary-dark)",
+        background: "var(--primary-soft)",
+        borderRadius: "var(--r-pill)",
+        padding: "2px 8px",
+        whiteSpace: "nowrap"
+      }
+    }, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22"))), job.salesName && React.createElement(DrPair, {
+      key: "s",
+      label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C"
+    }, job.salesName)].filter(Boolean);
+    const crew = roMode ? [] : [job.contractor && React.createElement(DrPair, {
+      key: "c",
+      label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
+    }, job.contractor), job.laborCost ? React.createElement(DrPair, {
+      key: "l",
+      label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07"
+    }, Number(job.laborCost).toLocaleString(), " \u0E1A\u0E32\u0E17") : null].filter(Boolean);
+    return React.createElement("div", {
+      style: {
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
+        padding: isMobile ? "10px 13px" : "12px 16px",
+        marginBottom: isMobile ? 14 : 16
+      }
+    }, React.createElement(DrLine, {
+      icon: "calendar",
+      muted: !st
+    }, st ? React.createElement(React.Fragment, null, React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        fontSize: 12,
+        fontWeight: 600,
+        marginRight: 6
+      }
+    }, "\u0E19\u0E31\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), thDate(st, true), en && en !== st ? " – " + thDate(en, true) : "") : "ยังไม่นัดวันติดตั้ง"), addr && React.createElement(DrLine, {
+      icon: "pin"
+    }, addr), people.length > 0 && React.createElement(DrLine, {
+      icon: "users"
+    }, React.createElement("span", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        rowGap: 4
+      }
+    }, people)), crew.length > 0 && React.createElement(DrLine, {
+      icon: "wrench"
+    }, React.createElement("span", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        rowGap: 4
+      }
+    }, crew)));
+  })(), permitMode && React.createElement(PermitJobSummary, {
     job: job,
     onOpenReview: onOpenReview
   }), salesMode && window.SalesJobSummary && React.createElement(window.SalesJobSummary, {
@@ -1593,303 +1832,25 @@ function DetailDrawer({
     quotes: quotes,
     leads: leads,
     onOpenQuote: onOpenQuote
-  }), React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      padding: isMobile ? 15 : 18,
-      marginBottom: isMobile ? 18 : 22
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, React.createElement(Icon, {
-    name: "sun",
-    size: 14,
-    color: "var(--primary)"
-  }), " \u0E2A\u0E40\u0E1B\u0E01\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-      gap: isMobile ? 14 : 16
-    }
-  }, React.createElement(SpecItem, {
-    label: "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C",
-    value: job.brand
-  }), React.createElement(SpecItem, {
-    label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07",
-    value: job.panelModel || "ยังไม่ระบุ"
-  }), React.createElement(SpecItem, {
-    label: "\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A",
-    value: job.kw + " kW",
-    mono: true
-  }), React.createElement(SpecItem, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07",
-    value: job.panels + " แผง",
-    mono: true
-  }), React.createElement(SpecItem, {
-    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    value: window.SF.phaseOf(job) + " เฟส"
-  }), React.createElement(SpecItem, {
-    label: "\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48",
-    value: job.battery ? job.batSize : "ไม่มี",
-    accent: job.battery
-  }), React.createElement(SpecItem, {
-    label: "\u0E23\u0E30\u0E1A\u0E1A / \u0E2D\u0E2D\u0E1F\u0E15\u0E34\u0E44\u0E21\u0E40\u0E0B\u0E2D\u0E23\u0E4C",
-    value: job.connect
-  }), React.createElement(SpecItem, {
-    label: "\u0E23\u0E30\u0E1A\u0E1A Backup",
-    value: job.backup ? "Backup ✓" : "ไม่มี",
-    accent: job.backup
-  }), (job.brand || "").toUpperCase().includes("ATMOCE") && React.createElement(SpecItem, {
-    label: "\u0E15\u0E39\u0E49 Combiner",
-    value: job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"
-  }))), !salesMode && onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
-    job: job,
-    quotes: quotes,
-    leads: leads,
-    onOpenQuote: onOpenQuote,
-    card: true
-  })), tabNow === "site" && React.createElement(React.Fragment, null, onDaily && React.createElement(DailyJobButton, {
-    job: job,
-    onOpen: onDaily
-  }), onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {
-    job: job,
-    site: omSite,
-    visits: omVisits,
-    tickets: omTickets,
-    onOpen: onOm
-  }), onExpense && window.EcJobButton && React.createElement(window.EcJobButton, {
-    job: job,
-    sum: ecSum,
-    onOpen: onExpense
-  }), onSurvey && (() => {
-    const ss = window.surveyStatus ? window.surveyStatus(job) : {
-      state: "none",
-      pct: 0,
-      label: "ยังไม่สำรวจ",
-      color: "var(--text-3)"
-    };
-    return React.createElement(React.Fragment, null, React.createElement("button", {
-      onClick: onSurvey,
-      className: "act-row"
-    }, React.createElement("span", {
-      className: "ic-chip",
-      style: {
-        background: ss.color + "1c"
-      }
-    }, React.createElement(Icon, {
-      name: "list",
-      size: 17,
-      color: ss.color
-    })), React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 13.5,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)"), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11.5,
-        color: "var(--text-3)"
-      }
-    }, ss.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : ss.label + " · " + ss.pct + "% · แตะเพื่อแก้ไข")), React.createElement(Icon, {
-      name: "arrowRight",
-      size: 16,
-      color: "var(--text-3)"
-    })), onSurveyReport && ss.state !== "none" && React.createElement("button", {
-      onClick: onSurveyReport,
-      style: {
-        width: "100%",
-        marginBottom: 10,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 7,
-        padding: "10px 14px",
-        background: "var(--primary-soft)",
-        border: "1px solid var(--primary)",
-        borderRadius: "var(--r-tile)",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 13,
-        fontWeight: 700,
-        color: "var(--primary-dark)"
-      }
-    }, React.createElement(Icon, {
-      name: "file",
-      size: 15,
-      color: "var(--primary-dark)"
-    }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"));
-  })(), window.InspectionListModal && !roMode && (() => {
-    const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
-    return React.createElement("button", {
-      onClick: () => setIrOpen(true),
-      className: "act-row"
-    }, React.createElement("span", {
-      className: "ic-chip",
-      style: {
-        background: "#0EA5E91c"
-      }
-    }, React.createElement(Icon, {
-      name: "list",
-      size: 17,
-      color: "#0284C7"
-    })), React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 13.5,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, "\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A\u0E07\u0E32\u0E19 (Inspection Report)"), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11.5,
-        color: st ? st.color : "var(--text-3)",
-        fontWeight: st && st.bold ? 700 : 400
-      }
-    }, st ? st.label : "แตะเพื่อสร้าง")), React.createElement(Icon, {
-      name: "arrowRight",
-      size: 16,
-      color: "var(--text-3)"
-    }));
-  })(), onHandover && (() => {
-    const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
-    return React.createElement("button", {
-      onClick: onHandover,
-      className: "act-row"
-    }, React.createElement("span", {
-      className: "ic-chip",
-      style: {
-        background: "#16A34A1c"
-      }
-    }, React.createElement(Icon, {
-      name: "check",
-      size: 17,
-      color: "#16A34A"
-    })), React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 13.5,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, "\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E23\u0E30\u0E1A\u0E1A (Commissioning & Handover)"), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11.5,
-        color: hs ? hs.color : "var(--text-3)",
-        fontWeight: hs && hs.bold ? 700 : 400
-      }
-    }, hs ? hs.label : "แตะเพื่อเปิดสมุดส่งมอบ")), React.createElement(Icon, {
-      name: "arrowRight",
-      size: 16,
-      color: "var(--text-3)"
-    }));
-  })(), false && window.SitePlanEditor && React.createElement("button", {
-    onClick: () => setPlanOpen(true),
-    className: "act-row"
-  }, React.createElement("span", {
-    className: "ic-chip",
-    style: {
-      background: "#0EA5E91c"
-    }
-  }, React.createElement(Icon, {
-    name: "map",
-    size: 17,
-    color: "#0784b8"
-  })), React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, "\u0E1C\u0E31\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (\u0E27\u0E32\u0E14 + \u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30)"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E32\u0E14\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22 \xB7 \u0E27\u0E32\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C \xB7 \u0E1B\u0E23\u0E30\u0E40\u0E21\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E40\u0E1A\u0E37\u0E49\u0E2D\u0E07\u0E15\u0E49\u0E19")), React.createElement(Icon, {
-    name: "arrowRight",
-    size: 16,
-    color: "var(--text-3)"
-  }))), tabNow === "design" && React.createElement(React.Fragment, null, window.Plan3DEntry && !roMode && React.createElement(window.DvVerCard, {
-    kind: "p3",
-    dvs: dvs,
-    icon: "panel",
-    color: "#4F46E5",
-    canNew: true,
-    title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D (\u0E42\u0E21\u0E40\u0E14\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14)",
-    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19 \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"
-  }), window.Plan3DEntry && window.ErRoomCard && !roMode && window.hasRole(window.userRoles(currentUser), "admin") && React.createElement(window.ErRoomCard, {
-    job: job,
-    p3List: dvs.p3List,
-    canEdit: true
-  }), !roMode && React.createElement(window.DvVerCard, {
-    kind: "boq",
-    dvs: dvs,
-    icon: "box",
-    color: "var(--primary-dark)",
-    canNew: !!onSaveBOQ,
-    title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
-    sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"
-  })), tabNow === "site" && React.createElement(React.Fragment, null, onPermit && (() => {
-    const pm = job.permit || null;
-    const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
-    const FLOW = window.PERMIT_FLOW || [];
-    const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
-    const rejected = !!(pm && pm.status === "rejected");
+  }), (() => {
+    const line = [job.brand, job.kw != null && job.kw !== "" ? job.kw + " kW" : "", job.panels ? job.panels + " แผง" : "", window.SF.phaseOf(job) + " เฟส", job.battery ? "แบต " + (job.batSize || "") : "", job.backup ? "Backup" : ""].filter(Boolean).join(" · ");
     return React.createElement("div", {
       style: {
-        marginBottom: 22,
-        border: "none",
-        boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
-        borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"),
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: "var(--r-tile)",
-        overflow: "hidden",
-        background: "var(--surface)"
+        marginBottom: isMobile ? 14 : 16,
+        overflow: "hidden"
       }
     }, React.createElement("button", {
-      onClick: onPermit,
+      onClick: () => setSpecOpen(o => !o),
+      "aria-expanded": specOpen,
       style: {
         width: "100%",
         display: "flex",
         alignItems: "center",
         gap: 10,
-        padding: "12px 14px",
+        padding: isMobile ? "12px 13px" : "13px 16px",
         background: "none",
         border: "none",
         cursor: "pointer",
@@ -1897,14 +1858,179 @@ function DetailDrawer({
         textAlign: "left"
       }
     }, React.createElement("span", {
-      className: "ic-chip",
       style: {
-        background: "#14B8A61c"
+        width: 18,
+        height: 20,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
       }
     }, React.createElement(Icon, {
-      name: "shield",
+      name: "sun",
+      size: 15,
+      color: "var(--primary)"
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "\u0E2A\u0E40\u0E1B\u0E01\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        marginTop: 2,
+        overflowWrap: "anywhere"
+      }
+    }, line || "ยังไม่ระบุ")), React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--primary)",
+        whiteSpace: "nowrap"
+      }
+    }, specOpen ? "ย่อ" : "ดูทั้งหมด", React.createElement(Icon, {
+      name: "chevronDown",
+      size: 14,
+      color: "var(--primary)",
+      style: {
+        transform: specOpen ? "rotate(180deg)" : "none",
+        transition: "transform .18s"
+      }
+    }))), specOpen && React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+        gap: isMobile ? 14 : 16,
+        padding: isMobile ? "4px 13px 14px 41px" : "4px 16px 16px 44px"
+      }
+    }, React.createElement(SpecItem, {
+      label: "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C",
+      value: job.brand
+    }), React.createElement(SpecItem, {
+      label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07",
+      value: job.panelModel || "ยังไม่ระบุ"
+    }), React.createElement(SpecItem, {
+      label: "\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A",
+      value: job.kw + " kW",
+      mono: true
+    }), React.createElement(SpecItem, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07",
+      value: job.panels + " แผง",
+      mono: true
+    }), React.createElement(SpecItem, {
+      label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
+      value: window.SF.phaseOf(job) + " เฟส"
+    }), React.createElement(SpecItem, {
+      label: "\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48",
+      value: job.battery ? job.batSize : "ไม่มี",
+      accent: job.battery
+    }), React.createElement(SpecItem, {
+      label: "\u0E23\u0E30\u0E1A\u0E1A / \u0E2D\u0E2D\u0E1F\u0E15\u0E34\u0E44\u0E21\u0E40\u0E0B\u0E2D\u0E23\u0E4C",
+      value: job.connect
+    }), React.createElement(SpecItem, {
+      label: "\u0E23\u0E30\u0E1A\u0E1A Backup",
+      value: job.backup ? "Backup ✓" : "ไม่มี",
+      accent: job.backup
+    }), (job.brand || "").toUpperCase().includes("ATMOCE") && React.createElement(SpecItem, {
+      label: "\u0E15\u0E39\u0E49 Combiner",
+      value: job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"
+    })));
+  })(), !salesMode && onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
+    job: job,
+    quotes: quotes,
+    leads: leads,
+    onOpenQuote: onOpenQuote,
+    card: true
+  })), tabNow === "site" && (() => {
+    const surveyRow = onSurvey && (() => {
+      const ss = window.surveyStatus ? window.surveyStatus(job) : {
+        state: "none",
+        pct: 0,
+        label: "ยังไม่สำรวจ",
+        color: "var(--text-3)"
+      };
+      return React.createElement("div", {
+        key: "survey",
+        className: "act-row",
+        role: "button",
+        tabIndex: 0,
+        onClick: onSurvey,
+        onKeyDown: e => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSurvey();
+          }
+        }
+      }, React.createElement("span", {
+        className: "ic-chip",
+        style: {
+          background: String(ss.color).indexOf("var(") === 0 ? "color-mix(in srgb, " + ss.color + " 12%, transparent)" : ss.color + "1c"
+        }
+      }, React.createElement(Icon, {
+        name: "list",
+        size: 17,
+        color: ss.color
+      })), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13.5,
+          fontWeight: 700,
+          color: "var(--text-1)"
+        }
+      }, "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)"), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 11.5,
+          color: "var(--text-3)"
+        }
+      }, ss.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : ss.label + " · " + ss.pct + "% · แตะเพื่อแก้ไข")), onSurveyReport && ss.state !== "none" && React.createElement("button", {
+        className: "btn btn-sm btn-soft",
+        onClick: e => {
+          e.stopPropagation();
+          onSurveyReport();
+        },
+        title: "\u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"
+      }, React.createElement(Icon, {
+        name: "file",
+        size: 13,
+        color: "var(--primary-dark)"
+      }), " PDF"), React.createElement(Icon, {
+        name: "arrowRight",
+        size: 16,
+        color: "var(--text-3)"
+      }));
+    })();
+    const planRow = false && window.SitePlanEditor && React.createElement("button", {
+      key: "plan",
+      onClick: () => setPlanOpen(true),
+      className: "act-row"
+    }, React.createElement("span", {
+      className: "ic-chip",
+      style: {
+        background: "#0EA5E91c"
+      }
+    }, React.createElement(Icon, {
+      name: "map",
       size: 17,
-      color: "#14B8A6"
+      color: "#0784b8"
     })), React.createElement("span", {
       style: {
         flex: 1,
@@ -1917,29 +2043,33 @@ function DetailDrawer({
         fontWeight: 700,
         color: "var(--text-1)"
       }
-    }, "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("span", {
+    }, "\u0E1C\u0E31\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (\u0E27\u0E32\u0E14 + \u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30)"), React.createElement("span", {
       style: {
         display: "block",
         fontSize: 11.5,
-        color: pst ? pst.color : "var(--text-3)",
-        fontWeight: pst ? 700 : 400
+        color: "var(--text-3)"
       }
-    }, pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม")), React.createElement(Icon, {
+    }, "\u0E27\u0E32\u0E14\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22 \xB7 \u0E27\u0E32\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C \xB7 \u0E1B\u0E23\u0E30\u0E40\u0E21\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E40\u0E1A\u0E37\u0E49\u0E2D\u0E07\u0E15\u0E49\u0E19")), React.createElement(Icon, {
       name: "arrowRight",
       size: 16,
       color: "var(--text-3)"
-    })), idx >= 0 && React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        padding: "0 14px 12px"
-      }
-    }, FLOW.map((st, i) => {
-      const done = i < idx,
-        now = i === idx;
-      const c = rejected && now ? "#EF4444" : done || now ? "var(--primary)" : "var(--border-strong)";
-      return React.createElement("span", {
-        key: st.key,
+    }));
+    const irRow = window.InspectionListModal && !roMode && (() => {
+      const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
+      return React.createElement("button", {
+        key: "ir",
+        onClick: () => setIrOpen(true),
+        className: "act-row"
+      }, React.createElement("span", {
+        className: "ic-chip",
+        style: {
+          background: "#0EA5E91c"
+        }
+      }, React.createElement(Icon, {
+        name: "clipboard",
+        size: 17,
+        color: "#0284C7"
+      })), React.createElement("span", {
         style: {
           flex: 1,
           minWidth: 0
@@ -1947,86 +2077,275 @@ function DetailDrawer({
       }, React.createElement("span", {
         style: {
           display: "block",
-          height: 4,
-          borderRadius: "var(--r-pill)",
-          background: c,
-          opacity: done ? .55 : 1
+          fontSize: 13.5,
+          fontWeight: 700,
+          color: "var(--text-1)"
         }
-      }), React.createElement("span", {
+      }, "\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A\u0E07\u0E32\u0E19 (Inspection Report)"), React.createElement("span", {
         style: {
           display: "block",
-          marginTop: 5,
-          fontSize: 9.5,
-          lineHeight: 1.3,
-          fontWeight: now ? 800 : 600,
-          color: now ? rejected ? "#EF4444" : "var(--primary-dark)" : "var(--text-3)"
+          fontSize: 11.5,
+          color: st ? st.color : "var(--text-3)",
+          fontWeight: st && st.bold ? 700 : 400
         }
-      }, st.th));
-    })), rejected && React.createElement("div", {
+      }, st ? st.label : "แตะเพื่อสร้าง")), React.createElement(Icon, {
+        name: "arrowRight",
+        size: 16,
+        color: "var(--text-3)"
+      }));
+    })();
+    const handoverRow = onHandover && (() => {
+      const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
+      return React.createElement("button", {
+        key: "handover",
+        onClick: onHandover,
+        className: "act-row"
+      }, React.createElement("span", {
+        className: "ic-chip",
+        style: {
+          background: "#16A34A1c"
+        }
+      }, React.createElement(Icon, {
+        name: "check",
+        size: 17,
+        color: "#16A34A"
+      })), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13.5,
+          fontWeight: 700,
+          color: "var(--text-1)"
+        }
+      }, "\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E23\u0E30\u0E1A\u0E1A (Commissioning & Handover)"), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 11.5,
+          color: hs ? hs.color : "var(--text-3)",
+          fontWeight: hs && hs.bold ? 700 : 400
+        }
+      }, hs ? hs.label : "แตะเพื่อเปิดสมุดส่งมอบ")), React.createElement(Icon, {
+        name: "arrowRight",
+        size: 16,
+        color: "var(--text-3)"
+      }));
+    })();
+    const permitRow = onPermit && (() => {
+      const pm = job.permit || null;
+      const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+      const FLOW = window.PERMIT_FLOW || [];
+      const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+      const rejected = !!(pm && pm.status === "rejected");
+      const pc = pst ? pst.color : "#14B8A6";
+      return React.createElement("div", {
+        key: "permit",
+        className: "jd-pcard",
+        style: {
+          marginBottom: 9,
+          background: "var(--surface)",
+          borderRadius: "var(--r-tile)",
+          overflow: "hidden",
+          boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd), var(--shadow-sm)" : "var(--shadow-sm)"
+        }
+      }, React.createElement("button", {
+        onClick: onPermit,
+        style: {
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 16px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left"
+        }
+      }, React.createElement("span", {
+        className: "ic-chip",
+        style: {
+          background: pc + "1c"
+        }
+      }, React.createElement(Icon, {
+        name: "shield",
+        size: 17,
+        color: pc
+      })), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13.5,
+          fontWeight: 700,
+          color: "var(--text-1)"
+        }
+      }, "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 11.5,
+          color: pst ? pst.color : "var(--text-3)",
+          fontWeight: pst ? 700 : 400
+        }
+      }, pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม")), React.createElement(Icon, {
+        name: "arrowRight",
+        size: 16,
+        color: "var(--text-3)"
+      })), idx >= 0 && React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          padding: "0 16px 13px"
+        }
+      }, FLOW.map((st, i) => {
+        const done = i < idx,
+          now = i === idx;
+        const c = rejected && now ? "#EF4444" : done || now ? "var(--primary)" : "var(--border-strong)";
+        return React.createElement("span", {
+          key: st.key,
+          style: {
+            flex: 1,
+            minWidth: 0
+          }
+        }, React.createElement("span", {
+          style: {
+            display: "block",
+            height: 4,
+            borderRadius: "var(--r-pill)",
+            background: c,
+            opacity: done ? .55 : 1
+          }
+        }), React.createElement("span", {
+          style: {
+            display: "block",
+            marginTop: 5,
+            fontSize: 10.5,
+            lineHeight: 1.3,
+            fontWeight: now ? 800 : 600,
+            color: now ? rejected ? "#EF4444" : "var(--primary-dark)" : "var(--text-3)"
+          }
+        }, st.th));
+      })), rejected && React.createElement("div", {
+        style: {
+          margin: "0 12px 12px",
+          padding: "10px 12px",
+          borderRadius: "var(--r-tile)",
+          background: "var(--tint-red-bg)"
+        }
+      }, React.createElement("div", {
+        style: {
+          fontSize: 12,
+          fontWeight: 800,
+          color: "var(--tint-red-tx)"
+        }
+      }, "\u21A9 \u0E1D\u0E48\u0E32\u0E22\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48"), React.createElement("div", {
+        style: {
+          fontSize: 12,
+          color: "var(--tint-red-tx)",
+          marginTop: 4,
+          lineHeight: 1.55
+        }
+      }, pm.rejectReason || "ไม่ได้ระบุเหตุผล — สอบถามฝ่ายขออนุญาต"), (pm.byAdmin || pm.statusAt) && React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "var(--tint-red-tx)",
+          opacity: .8,
+          marginTop: 4
+        }
+      }, pm.byAdmin ? "โดย " + pm.byAdmin : "", pm.statusAt ? " · " + thDate(String(pm.statusAt).slice(0, 10), true) : ""), React.createElement("button", {
+        onClick: onPermit,
+        style: {
+          marginTop: 9,
+          padding: "8px 14px",
+          borderRadius: "var(--r-chip)",
+          border: "none",
+          background: "#EF4444",
+          color: "#fff",
+          fontFamily: "inherit",
+          fontSize: 12.5,
+          fontWeight: 700,
+          cursor: "pointer"
+        }
+      }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48")), pm && pm.status === "approved" && React.createElement("div", {
+        style: {
+          margin: "0 12px 12px",
+          padding: "9px 12px",
+          borderRadius: "var(--r-tile)",
+          background: "var(--primary-soft)",
+          fontSize: 11.5,
+          color: "var(--primary-dark)",
+          fontWeight: 700
+        }
+      }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
+    })();
+    const groups = [{
+      k: "pre",
+      th: "ก่อนติดตั้ง",
+      items: [surveyRow, planRow]
+    }, {
+      k: "mid",
+      th: "ระหว่างติดตั้ง",
+      items: [onDaily && React.createElement(DailyJobButton, {
+        key: "daily",
+        job: job,
+        onOpen: onDaily
+      }), onExpense && window.EcJobButton && React.createElement(window.EcJobButton, {
+        key: "ec",
+        job: job,
+        sum: ecSum,
+        onOpen: onExpense
+      }), irRow]
+    }, {
+      k: "post",
+      th: "หลังติดตั้ง",
+      items: [handoverRow, permitRow, onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {
+        key: "om",
+        job: job,
+        site: omSite,
+        visits: omVisits,
+        tickets: omTickets,
+        onOpen: onOm
+      })]
+    }].map(g => Object.assign({}, g, {
+      items: g.items.filter(Boolean)
+    })).filter(g => g.items.length);
+    return groups.map((g, gi) => React.createElement("div", {
+      key: g.k,
       style: {
-        margin: "0 12px 12px",
-        padding: "10px 12px",
-        borderRadius: "var(--r-tile)",
-        background: "var(--tint-red-bg)",
-        border: "1px solid var(--tint-red-bd)"
+        marginBottom: gi < groups.length - 1 ? 16 : 4
       }
     }, React.createElement("div", {
-      style: {
-        fontSize: 12,
-        fontWeight: 800,
-        color: "var(--tint-red-tx)"
-      }
-    }, "\u21A9 \u0E1D\u0E48\u0E32\u0E22\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48"), React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--tint-red-tx)",
-        marginTop: 4,
-        lineHeight: 1.55
-      }
-    }, pm.rejectReason || "ไม่ได้ระบุเหตุผล — สอบถามฝ่ายขออนุญาต"), (pm.byAdmin || pm.statusAt) && React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--tint-red-tx)",
-        opacity: .8,
-        marginTop: 4
-      }
-    }, pm.byAdmin ? "โดย " + pm.byAdmin : "", pm.statusAt ? " · " + thDate(String(pm.statusAt).slice(0, 10), true) : ""), React.createElement("button", {
-      onClick: onPermit,
-      style: {
-        marginTop: 9,
-        padding: "8px 14px",
-        borderRadius: "var(--r-chip)",
-        border: "none",
-        background: "#EF4444",
-        color: "#fff",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 700,
-        cursor: "pointer"
-      }
-    }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48")), pm && pm.status === "approved" && React.createElement("div", {
-      style: {
-        margin: "0 12px 12px",
-        padding: "9px 12px",
-        borderRadius: "var(--r-tile)",
-        background: "var(--primary-soft)",
-        border: "1px solid var(--primary)",
-        fontSize: 11.5,
-        color: "var(--primary-dark)",
-        fontWeight: 700
-      }
-    }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
-  })()), tabNow === "docs" && onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
+      className: "jd-sec"
+    }, g.th), g.items));
+  })(), tabNow === "dm" && !roMode && React.createElement(React.Fragment, null, window.Plan3DEntry && React.createElement(window.DvVerCard, {
+    kind: "p3",
+    dvs: dvs,
+    icon: "panel",
+    color: "#4F46E5",
+    canNew: true,
+    title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D (\u0E42\u0E21\u0E40\u0E14\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14)",
+    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19 \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"
+  }), window.Plan3DEntry && window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && React.createElement(window.ErRoomCard, {
     job: job,
-    quotes: quotes,
-    leads: leads,
-    role: billRole || [],
-    currentUser: currentUser,
-    readOnly: billRO,
-    onOpen: onBilling,
-    onSaveBills: onSaveBills
-  }), tabNow === "mat" && !roMode && React.createElement("div", {
+    p3List: dvs.p3List,
+    canEdit: true
+  }), React.createElement(window.DvVerCard, {
+    kind: "boq",
+    dvs: dvs,
+    icon: "box",
+    color: "var(--primary-dark)",
+    canNew: !!onSaveBOQ,
+    title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
+    sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"
+  }), React.createElement("div", {
     style: {
+      marginTop: 18,
       marginBottom: 24
     }
   }, React.createElement("div", {
@@ -2051,14 +2370,12 @@ function DetailDrawer({
     color: "var(--text-2)"
   }), " \u0E2A\u0E16\u0E32\u0E19\u0E30\u0E27\u0E31\u0E2A\u0E14\u0E38", React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: 500,
-      letterSpacing: 0,
-      textTransform: "none",
       color: "var(--text-3)",
       marginLeft: 2
     }
-  }, "\xB7 \u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E41\u0E01\u0E49\u0E44\u0E02")), React.createElement("span", {
+  }, "\xB7 \u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E16\u0E32\u0E19\u0E30")), React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -2089,6 +2406,7 @@ function DetailDrawer({
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 0,
+      alignItems: "start",
       boxShadow: "var(--shadow-sm)",
       borderRadius: "var(--r-tile)",
       overflow: "hidden",
@@ -2099,16 +2417,22 @@ function DetailDrawer({
     if (m.key === "backup" && !job.backup) return false;
     return true;
   }).map((m, i) => {
-    const MAT_CYCLE = ["none", "waiting", "ready", "na"];
-    const cycle = () => {
-      const cur = MAT_CYCLE.indexOf(job.mat[m.key]);
-      onSetMat(job.id, m.key, MAT_CYCLE[(cur + 1) % MAT_CYCLE.length]);
-    };
-    return React.createElement("button", {
+    const cur = job.mat[m.key];
+    const open = matPick === m.key;
+    return React.createElement("div", {
       key: m.key,
-      onClick: cycle,
-      title: "\u0E04\u0E25\u0E34\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30",
       style: {
+        alignSelf: "stretch",
+        background: open ? "var(--surface2)" : "transparent",
+        boxShadow: "inset 0 -1px 0 var(--border)" + (!isMobile && i % 2 === 0 ? ", inset -1px 0 0 var(--border)" : "")
+      }
+    }, React.createElement("button", {
+      onClick: () => setMatPick(open ? null : m.key),
+      "aria-expanded": open,
+      title: "\u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E16\u0E32\u0E19\u0E30",
+      className: "jd-matrow",
+      style: {
+        width: "100%",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -2116,48 +2440,143 @@ function DetailDrawer({
         padding: "10px 12px",
         background: "transparent",
         border: 0,
-        boxShadow: "inset 0 -1px 0 var(--border)" + (!isMobile && i % 2 === 0 ? ", inset -1px 0 0 var(--border)" : ""),
         cursor: "pointer",
         fontFamily: "inherit",
-        textAlign: "left",
-        transition: "background .13s"
-      },
-      onMouseEnter: e => e.currentTarget.style.background = "var(--surface2)",
-      onMouseLeave: e => e.currentTarget.style.background = "transparent"
+        textAlign: "left"
+      }
     }, React.createElement("span", {
       style: {
         fontSize: 12.5,
         color: "var(--text-1)",
         fontWeight: 600
       }
-    }, m.th), React.createElement(MatChip, {
-      status: job.mat[m.key]
-    }));
-  }))), tabNow === "mat" && !roMode && React.createElement(JobMaterialUsage, {
+    }, m.th), React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4
+      }
+    }, React.createElement(MatChip, {
+      status: cur
+    }), React.createElement(Icon, {
+      name: "chevronDown",
+      size: 13,
+      color: "var(--text-3)",
+      style: {
+        transform: open ? "rotate(180deg)" : "none",
+        transition: "transform .18s"
+      }
+    }))), open && React.createElement("div", {
+      role: "group",
+      "aria-label": "สถานะ " + m.th,
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        padding: "0 12px 11px"
+      }
+    }, ["none", "waiting", "ready", "na"].map(st => {
+      const on = (SF.MAT_STATUS[cur] ? cur : "none") === st;
+      return React.createElement("button", {
+        key: st,
+        "aria-pressed": on,
+        onClick: () => {
+          if (st !== cur) onSetMat(job.id, m.key, st);
+          setMatPick(null);
+        },
+        style: {
+          padding: 0,
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          borderRadius: "var(--r-pill)",
+          boxShadow: on ? "0 0 0 2px var(--primary)" : "none"
+        }
+      }, React.createElement(MatChip, {
+        status: st
+      }));
+    })));
+  }))), React.createElement(JobMaterialUsage, {
     job: job,
     stock: stock,
     currentUser: currentUser
+  })), tabNow === "docs" && onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
+    job: job,
+    quotes: quotes,
+    leads: leads,
+    role: billRole || [],
+    currentUser: currentUser,
+    readOnly: billRO,
+    onOpen: onBilling,
+    onSaveBills: onSaveBills
   }), tabNow === "ov" && !roMode && React.createElement("div", {
     style: {
-      marginBottom: 20
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden",
+      marginBottom: 8
     }
-  }, React.createElement("div", {
+  }, React.createElement("button", {
+    onClick: () => setHistOpen(o => !o),
+    "aria-expanded": histOpen,
     style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 16,
+      width: "100%",
       display: "flex",
       alignItems: "center",
-      gap: 6
+      gap: 10,
+      padding: isMobile ? "12px 13px" : "13px 16px",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 18,
+      height: 20,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center"
     }
   }, React.createElement(Icon, {
-    name: "flow",
-    size: 14,
-    color: "var(--text-2)"
-  }), " Flow \u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19"), React.createElement(FlowTimeline, {
+    name: "history",
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E02\u0E31\u0E49\u0E19\u0E15\u0E2D\u0E19"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E40\u0E02\u0E49\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19")), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 15,
+    color: "var(--text-3)",
+    style: {
+      transform: histOpen ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  })), histOpen && React.createElement("div", {
+    style: {
+      padding: isMobile ? "4px 13px 16px" : "4px 16px 18px"
+    }
+  }, React.createElement(FlowTimeline, {
     job: job
-  })), tabNow === "docs" && !roMode && React.createElement(JobFiles, {
+  }))), tabNow === "docs" && !roMode && React.createElement(JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage
@@ -2170,21 +2589,7 @@ function DetailDrawer({
     media: media,
     currentUser: currentUser,
     canManage: canManage
-  })), tabNow === "ov" && job.note && React.createElement("div", {
-    style: {
-      padding: "12px 14px",
-      background: "var(--surface2)",
-      border: "1px dashed var(--border-strong)",
-      borderRadius: "var(--r-tile)",
-      fontSize: 12.5,
-      color: "var(--text-2)",
-      lineHeight: 1.55
-    }
-  }, React.createElement("strong", {
-    style: {
-      color: "var(--text-1)"
-    }
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38:"), " ", job.note))), React.createElement("div", {
+  })))), React.createElement("div", {
     style: {
       padding: isMobile ? "12px 16px" : "14px 24px",
       paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
@@ -2194,40 +2599,13 @@ function DetailDrawer({
       gap: isMobile ? 8 : 10,
       flexShrink: 0
     }
-  }, React.createElement("button", {
-    className: "x-close",
-    onClick: onClose,
-    title: "\u0E1B\u0E34\u0E14",
-    "aria-label": "\u0E1B\u0E34\u0E14",
-    style: {
-      flex: "0 0 auto",
-      padding: isMobile ? 0 : "11px 16px",
-      width: isMobile ? 42 : "auto",
-      height: isMobile ? 42 : "auto",
-      borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontWeight: 600,
-      fontFamily: "inherit",
-      fontSize: 13.5,
-      cursor: "pointer",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, isMobile ? React.createElement(Icon, {
-    name: "x",
-    size: 18,
-    color: "var(--text-2)"
-  }) : "ปิด"), !salesMode && onEdit && React.createElement("button", {
+  }, !salesMode && onEdit && React.createElement("button", {
     onClick: () => onEdit(job.id),
     title: "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
     "aria-label": "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
     style: {
-      flex: "0 0 auto",
-      padding: isMobile ? 0 : "11px 16px",
-      width: isMobile ? 42 : "auto",
+      flex: !roMode && job.stage !== "done" ? "0 0 auto" : permitMode ? "0 0 auto" : 1,
+      padding: isMobile ? "0 14px" : "11px 16px",
       height: isMobile ? 42 : "auto",
       borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
@@ -2237,6 +2615,7 @@ function DetailDrawer({
       fontFamily: "inherit",
       fontSize: 13.5,
       cursor: "pointer",
+      whiteSpace: "nowrap",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -2244,9 +2623,9 @@ function DetailDrawer({
     }
   }, React.createElement(Icon, {
     name: "settings",
-    size: isMobile ? 17 : 15,
+    size: 15,
     color: "var(--text-2)"
-  }), !isMobile && " แก้ไขข้อมูล"), permitMode && React.createElement("span", {
+  }), isMobile ? "แก้ไข" : "แก้ไขข้อมูล"), permitMode && React.createElement("span", {
     style: {
       flex: 1,
       minWidth: 0,

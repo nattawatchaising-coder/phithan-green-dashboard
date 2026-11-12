@@ -2371,30 +2371,11 @@ function EcJobButton({
   const sub = !s.count && !s.waitCount ? "ยังไม่มีใบเบิกของงานนี้ — กดเพื่อเปิดใบ" : [s.count ? window.ecBaht(s.total) + " บาท · " + s.count + " ใบ" : "", s.waitCount ? "รออนุมัติ " + s.waitCount + " ใบ" : "", s.owed ? "ค้างจ่ายพนักงาน " + window.ecBahtShort(s.owed) : ""].filter(Boolean).join(" · ");
   return React.createElement("button", {
     onClick: onOpen,
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-sm)",
-      borderLeft: "3px solid " + color,
-      borderRadius: "var(--r-tile)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: "var(--r-chip)",
-      background: color + "1c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: color + "1c"
     }
   }, React.createElement(Icon, {
     name: "wallet",

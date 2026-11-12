@@ -2236,30 +2236,11 @@ function OmJobButton({
   const sub = !site ? "ยังไม่ขึ้นทะเบียนบริการ — กดเพื่อขึ้นทะเบียน" : [st && st.key !== "none" ? st.th + " · " + window.omDaysTH(st) : "ยังไม่ได้ตั้งประกัน", cs && cs.key !== "off" ? cs.th : "", open ? "ใบแจ้งซ่อมค้าง " + open + " ใบ" : ""].filter(Boolean).join(" · ");
   return React.createElement("button", {
     onClick: onOpen,
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderLeft: "3px solid " + color,
-      borderRadius: "var(--r-chip)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: color + "1c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: color + "1c"
     }
   }, React.createElement(Icon, {
     name: "wrench",
