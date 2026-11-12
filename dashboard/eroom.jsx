@@ -1147,10 +1147,27 @@ function ErRoomStudio({ job, ver: ver0, canEdit, onClose }) {
 }
 
 /* ── การ์ดในใบลูกค้า/ใบงาน ── แถวละเวอร์ชันแบบ 3D · แตะ = เปิดห้องของแบบนั้น (ตัวแก้เปิดเองผ่าน portal ไม่ต้องต่อสายที่ app) */
-function ErRoomCard({ job, p3List, canEdit }) {
+function ErRoomCard({ job, p3List, canEdit, inline }) {
   const [open, setOpen] = React.useState(null);
   const list = (p3List && p3List.length ? p3List : [{ id: "1", name: "ต้นแบบ" }]);
   const many = list.length > 1;
+  /* inline = แถวย่อยใต้การ์ดแบบ 3D ในใบงาน (ส่งเป็น children ของ DvVerCard) — ไม่มีหัวการ์ดของตัวเอง */
+  if (inline) return (
+    <div className="dvc-list">
+      {list.map((v) => (
+        <div key={v.id} className="dvc-row" role="button" tabIndex={0} onClick={() => setOpen(v.id)}
+          onKeyDown={(e) => { if (e.key === "Enter") setOpen(v.id); }} title="ตู้ MDB · ตู้ AC/DC · อินเวอร์เตอร์บนราง — สร้างจากการออกแบบระบบของแบบ 3D">
+          <span className="dvc-ic" style={{ width: 26, height: 26, background: "color-mix(in srgb,#0EA5E9 13%,transparent)" }}><Icon name="power" size={14} color="#0EA5E9" /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span className="dvc-nm">ห้องอุปกรณ์ 3D{many ? " · " + v.name : ""}</span>
+            <span className="dvc-mt">ตู้ไฟ · อินเวอร์เตอร์ จากแบบ V{v.id}{v.sum && v.sum.kwp ? " · " + v.sum.kwp + " kWp" : ""}</span>
+          </span>
+          <Icon name="arrowRight" size={15} color="var(--text-3)" />
+        </div>
+      ))}
+      {open && <ErRoomStudio job={job} ver={open} canEdit={canEdit} onClose={() => setOpen(null)} />}
+    </div>
+  );
   return (
     <div className="dvc">
       <div className="dvc-hd">

@@ -2324,7 +2324,8 @@ function ErRoomStudio({
 function ErRoomCard({
   job,
   p3List,
-  canEdit
+  canEdit,
+  inline
 }) {
   const [open, setOpen] = React.useState(null);
   const list = p3List && p3List.length ? p3List : [{
@@ -2332,6 +2333,48 @@ function ErRoomCard({
     name: "ต้นแบบ"
   }];
   const many = list.length > 1;
+  if (inline) return React.createElement("div", {
+    className: "dvc-list"
+  }, list.map(v => React.createElement("div", {
+    key: v.id,
+    className: "dvc-row",
+    role: "button",
+    tabIndex: 0,
+    onClick: () => setOpen(v.id),
+    onKeyDown: e => {
+      if (e.key === "Enter") setOpen(v.id);
+    },
+    title: "\u0E15\u0E39\u0E49 MDB \xB7 \u0E15\u0E39\u0E49 AC/DC \xB7 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E1A\u0E19\u0E23\u0E32\u0E07 \u2014 \u0E2A\u0E23\u0E49\u0E32\u0E07\u0E08\u0E32\u0E01\u0E01\u0E32\u0E23\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E07\u0E41\u0E1A\u0E1A 3D"
+  }, React.createElement("span", {
+    className: "dvc-ic",
+    style: {
+      width: 26,
+      height: 26,
+      background: "color-mix(in srgb,#0EA5E9 13%,transparent)"
+    }
+  }, React.createElement(Icon, {
+    name: "power",
+    size: 14,
+    color: "#0EA5E9"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    className: "dvc-nm"
+  }, "\u0E2B\u0E49\u0E2D\u0E07\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C 3D", many ? " · " + v.name : ""), React.createElement("span", {
+    className: "dvc-mt"
+  }, "\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A V", v.id, v.sum && v.sum.kwp ? " · " + v.sum.kwp + " kWp" : "")), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 15,
+    color: "var(--text-3)"
+  }))), open && React.createElement(ErRoomStudio, {
+    job: job,
+    ver: open,
+    canEdit: canEdit,
+    onClose: () => setOpen(null)
+  }));
   return React.createElement("div", {
     className: "dvc"
   }, React.createElement("div", {

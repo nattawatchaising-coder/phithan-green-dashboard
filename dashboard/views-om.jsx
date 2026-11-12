@@ -1268,6 +1268,96 @@ function OmView({ jobs, users, role, currentUser, focus }) {
   );
 }
 
+/* ── บริการหลังการขายของงานเดียว (เปิดจากใบงานติดตั้ง · พ.ย. 2026) ──
+   เดิมปุ่มในใบงานพาออกไปหน้าบริการหลังการขายทั้งหน้า (ช่องสรุป 8 ช่อง + บอร์ดใบแจ้งซ่อม) แล้วกลับมาใบงานเดิมไม่ได้
+   ตอนนี้เปิดแผงไซต์ (OmSiteModal ตัวเดียวกับหน้ารวม) ทับใบงานเลย ปิดแล้วกลับใบงานเดิม
+   งานที่ยังไม่ขึ้นทะเบียน → แผงเล็กให้กดขึ้นทะเบียนไซต์นี้ได้ทันที (ตัวเดียวกับปุ่มขึ้นทะเบียนในหน้ารวม)
+   ห่อด้วยชั้น zIndex 92 ให้อยู่เหนือใบงาน (90) ทั้งแผงไซต์ ใบแจ้งซ่อม และใบรายงาน */
+function OmJobHost({ job, users, role, currentUser, onClose, onFullPage }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const { sites, loading, upsert, patch, remove } = window.useOmSites();
+  const cleanStore = window.useOmCleanVisits();
+  const ticketStore = window.useOmTickets();
+  const visitStore = window.useOmVisits();
+  const [openTicket, setOpenTicket] = React.useState(null);
+  const [openVisit, setOpenVisit] = React.useState(null);
+  const canWrite = window.omCanWrite(role, null);
+  const site = (sites || []).find((s) => s.id === job.id) || null;
+  const bd = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
+
+  const newVisit = (opts) => {
+    if (!site || !canWrite) return;
+    const rec = window.omBlankVisit(site, Object.assign({ siteVisits: (visitStore.bySite || {})[site.id] || [] }, opts || {}), currentUser);
+    visitStore.save(rec);
+    setOpenTicket(null); setOpenVisit(rec.id);
+  };
+  const newTicket = () => {
+    const rec = window.omBlankTicket(site, ticketStore.tickets, currentUser);
+    ticketStore.save(rec);
+    /* push: false — เหตุผลเดียวกับปุ่มเปิดใบบนบอร์ด (om-ticket.jsx) */
+    window.omNotify({ toPerm: "om", omSiteId: site.id, push: false, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+      body: (site.name || site.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "") });
+    setOpenTicket(rec.id);
+  };
+  const t = openTicket ? (ticketStore.tickets || []).find((x) => x.id === openTicket) : null;
+  const v = openVisit ? (visitStore.visits || []).find((x) => x.id === openVisit) : null;
+
+  return (
+    <div style={{ position: "relative", zIndex: 92 }}>
+      {site ? (
+        <OmSiteModal site={site} job={job} role={role}
+          visits={(cleanStore.bySite || {})[site.id] || []} cleanStore={cleanStore}
+          tickets={(ticketStore.tickets || []).filter((x) => x.siteId === site.id)} siteVisits={(visitStore.bySite || {})[site.id] || []}
+          onNewVisit={newVisit} onOpenVisit={(id) => { setOpenTicket(null); setOpenVisit(id); }}
+          onOpenTicket={(id) => setOpenTicket(id)} onNewTicket={newTicket}
+          onClose={onClose} onPatch={patch} onRemove={remove} />
+      ) : (
+        <div {...bd} style={{ position: "fixed", inset: 0, height: "calc(100dvh - var(--kb, 0px))", background: "rgba(8,20,26,.45)", backdropFilter: "blur(3px)",
+          display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+          <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="งานบริการหลังการขาย"
+            style={{ width: isMobile ? "100%" : "min(440px, 100%)", background: "var(--surface)", borderRadius: isMobile ? "var(--r-card) var(--r-card) 0 0" : "var(--r-card)",
+              boxShadow: "var(--shadow-modal)", padding: isMobile ? "18px 16px calc(18px + env(safe-area-inset-bottom, 0px))" : 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span className="ic-chip" style={{ background: "#10B9811c" }}><Icon name="wrench" size={17} color="#10B981" /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 16.5, fontWeight: 800, color: "var(--text-1)" }}>งานบริการหลังการขาย</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.code} · {job.name}</span>
+              </span>
+              <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด"
+                style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 16 }}>
+              {loading ? "กำลังโหลด…" : "งานนี้ยังไม่ขึ้นทะเบียนบริการ — ขึ้นทะเบียนแล้วจะตั้งประกัน รอบล้างแผง และเปิดใบแจ้งซ่อมได้ (ข้อมูลไซต์ดึงจากใบงานให้เอง)"}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {canWrite && !loading && (
+                <button className="btn btn-pri" style={{ flex: 1 }} onClick={() => upsert(window.omSiteFromJob(job, currentUser))}>
+                  <Icon name="plus" size={14} color="#fff" /> ขึ้นทะเบียนไซต์นี้
+                </button>
+              )}
+              {onFullPage && <button className="btn" onClick={onFullPage}>ไปหน้าบริการหลังการขาย</button>}
+            </div>
+          </div>
+        </div>
+      )}
+      {t && (
+        <window.OmTicketModal ticket={t} site={site} job={job} users={users}
+          role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
+          onPatch={ticketStore.patch} onRemove={ticketStore.remove}
+          visits={(visitStore.visits || []).filter((x) => x.ticketId === t.id)}
+          onOpenVisit={(id) => { setOpenTicket(null); setOpenVisit(id); }}
+          onMove={(x, to, note) => { const r = window.omTicketMove(x, to, currentUser, note); if (r) ticketStore.save(r); }} />
+      )}
+      {v && (
+        <window.OmVisitModal visit={v} site={site} role={role} currentUser={currentUser} onClose={() => setOpenVisit(null)}
+          onPatch={visitStore.patch} onRemove={visitStore.remove} />
+      )}
+    </div>
+  );
+}
+
 Object.assign(window, { OM_INPUT, OmPill, OmStat, OmStatRow, OmWarrantyBar, OmWarrantyTable,
-  OmCleanVisits, OmCleanView, OmSiteModal, OmView, OmJobButton, omExportXlsx,
+  OmCleanVisits, OmCleanView, OmSiteModal, OmView, OmJobButton, OmJobHost, omExportXlsx,
   OM_SITE_TYPE, OM_SITE_TYPE_BY, omSiteType, omSiteTypeTH });

@@ -2329,20 +2329,21 @@ function DetailDrawer({
     icon: "panel",
     color: "#4F46E5",
     canNew: true,
-    title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D (\u0E42\u0E21\u0E40\u0E14\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14)",
-    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19 \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"
-  }), window.Plan3DEntry && window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && React.createElement(window.ErRoomCard, {
+    title: "\u0E41\u0E1A\u0E1A 3D \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07",
+    sub: "\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \xB7 \u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A"
+  }, window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && React.createElement(window.ErRoomCard, {
+    inline: true,
     job: job,
     p3List: dvs.p3List,
     canEdit: true
-  }), React.createElement(window.DvVerCard, {
+  })), React.createElement(window.DvVerCard, {
     kind: "boq",
     dvs: dvs,
     icon: "box",
     color: "var(--primary-dark)",
     canNew: !!onSaveBOQ,
     title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
-    sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"
+    sub: "\u0E43\u0E1A\u0E25\u0E30\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1A\u0E1A 3D"
   }), React.createElement("div", {
     style: {
       marginTop: 18,

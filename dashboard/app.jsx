@@ -802,6 +802,9 @@ function App() {
   const [blRow, setBlRow] = React.useState(null);           // งวดที่ให้แผงกางไว้ตอนเปิด (มาจากหน้ารวม)
   const [dailyJob, setDailyJob] = React.useState(null);     // งานที่กำลังเปิดรายงานประจำวัน
   const [pmJob, setPmJob] = React.useState(null);           // งานที่กำลังเปิดสมุดตรวจรับและส่งมอบ
+  /* เบิกเงิน / บริการหลังการขาย ของงานเดียว — เปิดเป็นแผงทับใบงาน ปิดแล้วกลับใบงานเดิม (เดิมพาออกไปหน้าใหญ่ทั้งหน้า · พ.ย. 2026) */
+  const [ecJob, setEcJob] = React.useState(null);
+  const [omJob, setOmJob] = React.useState(null);
   const [omFocus, setOmFocus] = React.useState(null);       // ไซต์บริการที่ให้หน้า O&M เปิดขึ้นมาให้เลย
   /* ข้อมูลบริการหลังการขายสำหรับกระดิ่ง + ปุ่มในลิ้นชัก — โหนดเบา ๆ สามอัน เปิดค้างไว้ได้
      คนที่ไม่มีสิทธิ์ om จะไม่ฟังอะไรเลย (ส่ง false เข้าไป) */
@@ -1110,10 +1113,10 @@ function App() {
         omSite={selectedJob ? (omLive.sites || []).find((s) => s.id === selectedJob.id) || null : null}
         omVisits={selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : []}
         omTickets={selectedJob ? (omLive.tickets || []).filter((t) => t.siteId === selectedJob.id) : []}
-        onOm={can(role, "om") && !permitOnly && selectedJob ? () => openOm({ siteId: selectedJob.id }) : null}
+        onOm={can(role, "om") && !permitOnly && selectedJob ? () => (window.OmJobHost ? setOmJob(selectedJob) : openOm({ siteId: selectedJob.id })) : null}
         /* เบิกเงินหน้างาน — เปิดได้ทุกขั้น เพราะค่าขนส่ง/ค่าเดินทางเกิดตั้งแต่ก่อนเริ่มติดตั้ง */
         ecSum={selectedJob ? (ecLive.byJob || {})[selectedJob.id] || null : null}
-        onExpense={can(role, "expense") && !permitOnly && selectedJob ? () => openExpense(selectedJob.id) : null}
+        onExpense={can(role, "expense") && !permitOnly && selectedJob ? () => (window.EcJobSheet ? setEcJob(selectedJob) : openExpense(selectedJob.id)) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         salesMode={salesOnly} quotes={quoteStore.quotes} leads={leadStore.leads}
@@ -1187,6 +1190,14 @@ function App() {
       )}
       {/* สมุดตรวจรับและส่งมอบ — อ่านงานสดจาก jobs เสมอ เพราะ BOQ อาจเปลี่ยนระหว่างเล่มเปิดอยู่
           แล้วค่าที่เติมให้ล่วงหน้าต้องตามไปด้วย */}
+      {ecJob && window.EcJobSheet && (
+        <window.EcJobSheet job={jobs.find((x) => x.id === ecJob.id) || ecJob} users={auth.users} role={role} currentUser={auth.current}
+          onClose={() => setEcJob(null)} onFullPage={() => { const id = ecJob.id; setEcJob(null); openExpense(id); }} />
+      )}
+      {omJob && window.OmJobHost && (
+        <window.OmJobHost job={jobs.find((x) => x.id === omJob.id) || omJob} users={auth.users} role={role} currentUser={auth.current}
+          onClose={() => setOmJob(null)} onFullPage={() => { const id = omJob.id; setOmJob(null); openOm({ siteId: id }); }} />
+      )}
       {pmJob && window.PmHandoverModal && (
         <window.PmHandoverModal job={jobs.find((x) => x.id === pmJob.id) || pmJob}
           currentUser={auth.current} onClose={() => setPmJob(null)}

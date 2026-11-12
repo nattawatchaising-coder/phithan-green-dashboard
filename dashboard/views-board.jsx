@@ -66,54 +66,8 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           </span>
         )}
       </div>
-      {/* สถานะใบขออนุญาต — งานที่ติดตั้งเสร็จแล้วยังค้างที่ขั้นนี้ได้อีกนาน ช่างต้องเห็นบนการ์ดเลย */}
-      {job.permit && job.permit.status && (() => {
-        const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
-        if (!pst) return null;
-        const rejected = job.permit.status === "rejected";
-        return (
-          <div style={{ marginBottom: 10, padding: "7px 10px", borderRadius: "var(--r-tile)", background: pst.color + "14",
-            border: "none", boxShadow: "inset 0 0 0 1px " + pst.color + (rejected ? "" : "33") }}>
-            <div style={{ fontSize: 10.5, fontWeight: 800, color: pst.color }}>
-              <Icon name="shield" size={10} color={pst.color} style={{ verticalAlign: -1 }} /> ขออนุญาต · {pst.th}
-            </div>
-            {rejected && job.permit.rejectReason && (
-              <div style={{ fontSize: 10.5, color: pst.color, marginTop: 3, lineHeight: 1.4,
-                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.permit.rejectReason}</div>
-            )}
-          </div>
-        );
-      })()}
-      {/* งวดงาน · วางบิล — งานที่ติดตั้งจบแล้วยังค้างเก็บเงินอยู่ได้อีกหลายเดือน
-          บอร์ดคือที่เดียวที่ทุกคนเปิดดูทุกวัน ถ้าไม่ขึ้นตรงนี้ก็ไม่มีใครรู้ว่างานไหนเงินยังไม่เข้า
-          เป็นแถบอ่านอย่างเดียว การกดเดินสถานะอยู่ในใบงานกับหน้ารวมเหมือนเดิม */}
-      {window.blHas && window.blHas(job) && (() => {
-        const S = window.blSummary(job);
-        const cur = S.cur;
-        const st = cur ? window.blStatusOf(cur.status) : null;
-        const c = S.allPaid ? "#10B981" : (S.overdue.length ? "#EF4444" : (st ? st.color : "#6366F1"));
-        return (
-          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: "var(--r-chip)", background: c + "14", border: "none" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 800, color: c, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <Icon name="file" size={10} color={c} style={{ verticalAlign: -1 }} />
-              งวดงาน · {S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")}
-            </div>
-            {!S.allPaid && (
-              <div style={{ fontSize: 10.5, color: c, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>
-                คงค้าง {window.sBaht(S.remain)} บาท{S.overdue.length ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : ""}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-      {job.problem && (
-        <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: "var(--r-chip)", padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          ⚠ {job.problem}
-        </div>
-      )}
       {/* สเปคเป็นบรรทัดเดียวคั่นด้วยจุด — เดิมเป็นป้าย 3-5 อันเรียงกัน กินสายตาเท่าชื่องาน */}
-      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 11, flexWrap: "wrap", fontSize: 11.5 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9, flexWrap: "wrap", fontSize: 11.5 }}>
         <span style={{ color: "var(--text-2)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
           <b style={{ color: "var(--text-1)", fontWeight: 700 }}>{job.kw}</b> kW
           <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>
@@ -131,22 +85,83 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ตู้ประกอบ</span>
         )}
       </div>
-      <InstallSpanBar job={job} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--divider)", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <TechAvatar techId={job.tech} size={24} />
-          {job.startDate
-            ? <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
-                color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
-            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid var(--tint-amber-bd)", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
+      {/* ปัญหา · ขออนุญาต · งวดงาน — เดิมเป็นกล่องสีละ 2 บรรทัดซ้อนกันสามกล่อง (ผู้ใช้: "รู้สึกมันยืดยาวไป" พ.ย. 2026)
+          ตอนนี้เป็นป้ายแถวเดียว เรื่องหนักสุดขึ้นก่อน (แดง) · รายละเอียดเต็มอยู่ใน title และในใบงาน
+          งวดงานต้องยังเห็นบนบอร์ด — บอร์ดคือที่เดียวที่ทุกคนเปิดดูทุกวัน ถ้าไม่ขึ้นตรงนี้ก็ไม่มีใครรู้ว่างานไหนเงินยังไม่เข้า */}
+      <KanbanStatusPills job={job} />
+      <InstallSpanBar job={job} compact />
+      {(() => {
+        /* วันเริ่มท้ายการ์ดซ้ำกับแถบช่วงติดตั้งด้านบน (งานหลายวัน) — โชว์เฉพาะงานวันเดียว */
+        const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
+        const showDate = !(sp && sp.multi);
+        return (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 9, borderTop: "1px solid var(--divider)", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <TechAvatar techId={job.tech} size={24} />
+              {!job.startDate
+                ? <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>
+                : showDate && <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
+                    color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>}
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+              <MatDots mat={job.mat} />
+              <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 700, letterSpacing: "-.02em",
+                fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
+              {/* รายงานวันนี้ — เดิมเป็นปุ่มเต็มกว้างอีกแถวใต้การ์ด ตอนนี้เป็นชิปเล็กท้ายแถวนี้ */}
+              {job.stage === "install" && <DailyReportButton job={job} compact />}
+            </span>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+/* ยอดเงินแบบสั้นสำหรับป้ายบนการ์ด — 5,053,776 → "5.05 ล้าน" (ยอดเต็มอยู่ใน title) */
+function kbMoneyShort(n) {
+  const v = Math.abs(+n || 0);
+  if (v >= 1e6) return (Math.round(v / 1e4) / 100).toLocaleString() + " ล้าน";
+  return Math.round(v).toLocaleString();
+}
+
+/* ป้ายสถานะบนการ์ด (แถวเดียว ขึ้นบรรทัดใหม่ได้ถ้าแคบ) — เรียงแดงก่อน */
+function KanbanStatusPills({ job }) {
+  const pills = [];
+  if (job.problem) pills.push({ bad: true, icon: "alert", c: "#EF4444", th: String(job.problem), title: "ปัญหาหน้างาน: " + job.problem });
+  /* สถานะใบขออนุญาต — งานที่ติดตั้งเสร็จแล้วยังค้างที่ขั้นนี้ได้อีกนาน ช่างต้องเห็นบนการ์ดเลย */
+  if (job.permit && job.permit.status) {
+    const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+    if (pst) {
+      const rejected = job.permit.status === "rejected";
+      pills.push({ bad: rejected, icon: "shield", c: rejected ? "#EF4444" : pst.color, th: "ขออนุญาต · " + pst.th,
+        title: "ขออนุญาต · " + pst.th + (rejected && job.permit.rejectReason ? " — " + job.permit.rejectReason : "") });
+    }
+  }
+  /* งวดงาน · วางบิล — อ่านอย่างเดียว การกดเดินสถานะอยู่ในใบงานกับหน้ารวมเหมือนเดิม */
+  if (window.blHas && window.blHas(job)) {
+    const S = window.blSummary(job);
+    const st = S.cur ? window.blStatusOf(S.cur.status) : null;
+    const late = S.overdue.length > 0;
+    const c = S.allPaid ? "#10B981" : (late ? "#EF4444" : (st ? st.color : "#6366F1"));
+    const step = "งวด " + Math.min(S.doneCount + 1, S.count) + "/" + S.count;
+    pills.push({ bad: late && !S.allPaid, icon: "file", c,
+      th: S.allPaid ? "เก็บเงินครบแล้ว" : step + (late ? " · เลยกำหนด" : " · ค้าง " + kbMoneyShort(S.remain)),
+      title: "งวดงาน · " + (S.allPaid ? "เก็บเงินครบแล้ว" : step + (st ? " · " + st.short : "") + " · คงค้าง " + window.sBaht(S.remain) + " บาท"
+        + (late ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : "")) });
+  }
+  if (!pills.length) return null;
+  pills.sort((a, b) => (b.bad ? 1 : 0) - (a.bad ? 1 : 0));
+  return (
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 9 }}>
+      {pills.map((p, i) => (
+        <span key={i} title={p.title}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%", fontSize: 10.5, fontWeight: 800, color: p.c,
+            background: "color-mix(in srgb, " + p.c + " " + (p.bad ? 14 : 10) + "%, transparent)", padding: "3px 8px", borderRadius: "var(--r-pill)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontVariantNumeric: "tabular-nums" }}>
+          <Icon name={p.icon} size={10} color={p.c} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{p.th}</span>
         </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <MatDots mat={job.mat} />
-          <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 700, letterSpacing: "-.02em",
-            fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
-        </span>
-      </div>
-      {job.stage === "install" && <DailyReportButton job={job} />}
+      ))}
     </div>
   );
 }
@@ -159,9 +174,31 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
    ⚠ นี่คือ "วันตามปฏิทิน" ไม่ใช่ "วันทำงานจริง" — ไม่ได้หักเสาร์อาทิตย์หรือวันฝนตก
      ความคืบหน้าเนื้องานจริงอยู่ที่รายงานประจำวัน ไม่ใช่ที่แถบนี้
    งานวันเดียวไม่ขึ้นแถบนี้ — วันที่ท้ายการ์ดบอกครบอยู่แล้ว */
-function InstallSpanBar({ job }) {
+function InstallSpanBar({ job, compact }) {
   const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
   if (!sp || !sp.multi) return null;
+  /* แบบย่อบนการ์ดบอร์ด (พ.ย. 2026) — บรรทัดเดียว "ช่วงวัน · เหลือกี่วัน" + แถบบาง
+     ตัด "· 185 วัน" กับ "ทำมาแล้ว 81 วัน จาก 185 วัน" ออก (แถบบอกสัดส่วนอยู่แล้ว · จำนวนวันเต็มอยู่ใน title) */
+  if (compact) {
+    const cc = sp.phase === "done" ? "#10B981" : sp.phase === "over" ? "#EF4444" : sp.phase === "before" ? "var(--text-3)" : "var(--primary)";
+    const pp = sp.phase === "before" ? 0 : Math.max(4, Math.min(100, Math.round((sp.dayNo / sp.total) * 100)));
+    const yy = sp.start.slice(0, 4) !== sp.end.slice(0, 4);
+    const rr = sp.phase === "before" ? "อีก " + sp.inDays + " วันเริ่ม"
+      : sp.phase === "done" ? "ติดตั้งเสร็จแล้ว"
+      : sp.phase === "over" ? "เลยกำหนด " + sp.overDays + " วัน"
+      : sp.left === 0 ? "วันสุดท้าย" : "เหลือ " + sp.left + " วัน";
+    return (
+      <div style={{ marginBottom: 10 }} title={"ช่วงติดตั้ง " + sp.total + " วัน" + (sp.phase === "running" ? " · ทำมาแล้ว " + sp.dayNo + " วัน" : "")}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 11, marginBottom: 4, whiteSpace: "nowrap" }}>
+          <span style={{ color: "var(--text-3)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{thDate(sp.start, yy)} – {thDate(sp.end, yy)}</span>
+          <span style={{ marginLeft: "auto", fontWeight: 800, color: cc, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{rr}</span>
+        </div>
+        <div style={{ height: 4, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
+          <div style={{ width: pp + "%", height: "100%", borderRadius: "var(--r-pill)", background: cc }} />
+        </div>
+      </div>
+    );
+  }
 
   const c = sp.phase === "done" ? "#10B981"
     : sp.phase === "over" ? "#EF4444"

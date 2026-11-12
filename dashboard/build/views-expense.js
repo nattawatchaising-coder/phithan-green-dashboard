@@ -1,3 +1,4 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const EC_INPUT = {
   width: "100%",
   padding: "10px 12px",
@@ -2409,6 +2410,240 @@ function EcJobButton({
     color: "var(--text-3)"
   }));
 }
+function ecMoveNotify(store, c, to, note, currentUser) {
+  const rec = window.ecMove(c, to, currentUser, note);
+  if (!rec) return;
+  store.save(rec);
+  const money = window.ecBaht(rec.amount) + " บาท";
+  const where = rec.siteCode ? " · " + rec.siteCode : "";
+  const noteText = (note && typeof note === "object" ? note.text : note) || "";
+  if (to === "sent") {
+    window.ecNotify(rec.approverId ? {
+      toUserId: rec.approverId,
+      title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
+      body: (rec.byName || "") + " · " + money + where
+    } : {
+      toPerm: "expenseApprove",
+      title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
+      body: (rec.byName || "") + " · " + money + where
+    });
+  } else if (to === "approved" || to === "rejected" || to === "paid") {
+    window.ecNotify({
+      toUserId: rec.byId,
+      title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
+      body: money + where + (noteText ? " · " + noteText : "")
+    });
+  }
+}
+function EcJobSheet({
+  job,
+  users,
+  role,
+  currentUser,
+  onClose,
+  onFullPage
+}) {
+  const store = window.useEcClaims();
+  const [open, setOpen] = React.useState(null);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bd = window.useBackdropClose ? window.useBackdropClose(onClose) : {
+    onClick: onClose
+  };
+  const uid = currentUser ? currentUser.id : null;
+  const list = React.useMemo(() => window.ecVisible(store.claims, currentUser, role).filter(c => (c.jobId || "") === job.id), [store.claims, currentUser, role, job.id]);
+  const live = list.filter(c => c.status !== "rejected");
+  const total = live.reduce((a, c) => a + (+c.amount || 0), 0);
+  const waiting = list.filter(c => c.status === "sent").length;
+  const openNew = () => {
+    const rec = window.ecBlank(job, currentUser, store.claims, users);
+    store.save(rec);
+    setOpen(rec.id);
+  };
+  const markDoc = (id, k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? uid : null;
+    f[k + "ByName"] = on ? (currentUser || {}).name || "" : "";
+    store.patch(id, f);
+  };
+  const cur = (store.claims || []).find(c => c.id === open) || null;
+  return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bd, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      height: "calc(100dvh - var(--kb, 0px))",
+      zIndex: 92,
+      background: "rgba(8,20,26,.45)",
+      backdropFilter: "blur(3px)",
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    role: "dialog",
+    "aria-label": "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
+    style: {
+      width: isMobile ? "100%" : "min(560px, 100%)",
+      maxHeight: isMobile ? "92%" : "88%",
+      display: "flex",
+      flexDirection: "column",
+      background: "var(--bg)",
+      borderRadius: isMobile ? "var(--r-card) var(--r-card) 0 0" : "var(--r-card)",
+      boxShadow: "var(--shadow-modal)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "15px 18px",
+      background: "var(--surface)",
+      boxShadow: "0 6px 16px -12px rgba(0,0,0,.25)",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    className: "ic-chip",
+    style: {
+      background: "#0EA5E91c"
+    }
+  }, React.createElement(Icon, {
+    name: "wallet",
+    size: 17,
+    color: "#0EA5E9"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 16.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, job.code, " \xB7 ", job.name)), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    "aria-label": "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "var(--r-chip)",
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: "auto",
+      padding: isMobile ? "14px 14px" : "16px 18px"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 14
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, list.length ? React.createElement(React.Fragment, null, React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, window.ecBaht(total)), " \u0E1A\u0E32\u0E17 \xB7 ", live.length, " \u0E43\u0E1A", waiting ? React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontWeight: 700
+    }
+  }, " \xB7 \u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 ", waiting) : null) : "งานนี้ยังไม่มีใบเบิก"), React.createElement("button", {
+    className: "btn btn-pri",
+    onClick: openNew
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    color: "#fff"
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49")), list.map(c => React.createElement(EcClaimRow, {
+    key: c.id,
+    claim: c,
+    onOpen: setOpen,
+    gone: false,
+    currentUser: currentUser,
+    role: role,
+    onDoc: markDoc,
+    onRemove: store.remove
+  })), !list.length && React.createElement("div", {
+    style: {
+      padding: "18px 0 6px",
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E04\u0E48\u0E32\u0E02\u0E19\u0E2A\u0E48\u0E07 \u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E19\u0E17\u0E32\u0E07 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E01\u0E14 \u201C\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u201D \u0E41\u0E25\u0E49\u0E27\u0E41\u0E19\u0E1A\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), onFullPage && React.createElement("div", {
+    style: {
+      padding: "11px 18px",
+      paddingBottom: isMobile ? "calc(11px + env(safe-area-inset-bottom, 0px))" : 11,
+      background: "var(--surface)",
+      borderTop: "1px solid var(--divider)",
+      flexShrink: 0,
+      textAlign: "center"
+    }
+  }, React.createElement("button", {
+    onClick: onFullPage,
+    style: {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, "\u0E14\u0E39\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 (\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19 \xB7 \u0E22\u0E2D\u0E14\u0E23\u0E32\u0E22\u0E04\u0E19) ", React.createElement(Icon, {
+    name: "arrowRight",
+    size: 14,
+    color: "var(--text-3)"
+  }))))), cur && React.createElement(EcClaimModal, {
+    claim: cur,
+    job: job,
+    users: users,
+    role: role,
+    currentUser: currentUser,
+    onClose: () => setOpen(null),
+    onPatch: store.patch,
+    onMove: (c, to, note) => ecMoveNotify(store, c, to, note, currentUser),
+    onRemove: store.remove
+  }));
+}
 function ExpenseView({
   jobs,
   users,
@@ -2465,31 +2700,7 @@ function ExpenseView({
     setOpen(rec.id);
     setTab("mine");
   };
-  const move = (c, to, note) => {
-    const rec = window.ecMove(c, to, currentUser, note);
-    if (!rec) return;
-    store.save(rec);
-    const money = window.ecBaht(rec.amount) + " บาท";
-    const where = rec.siteCode ? " · " + rec.siteCode : "";
-    const noteText = (note && typeof note === "object" ? note.text : note) || "";
-    if (to === "sent") {
-      window.ecNotify(rec.approverId ? {
-        toUserId: rec.approverId,
-        title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
-        body: (rec.byName || "") + " · " + money + where
-      } : {
-        toPerm: "expenseApprove",
-        title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
-        body: (rec.byName || "") + " · " + money + where
-      });
-    } else if (to === "approved" || to === "rejected" || to === "paid") {
-      window.ecNotify({
-        toUserId: rec.byId,
-        title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
-        body: money + where + (noteText ? " · " + noteText : "")
-      });
-    }
-  };
+  const move = (c, to, note) => ecMoveNotify(store, c, to, note, currentUser);
   const payBatch = (batch, list, slip) => Promise.resolve(batchStore.payBatch(batch, list, currentUser, slip)).then(ok => {
     if (ok) {
       window.ecNotify({
@@ -2825,5 +3036,7 @@ Object.assign(window, {
   EcPersonTable,
   EcJobTable,
   EcJobButton,
+  EcJobSheet,
+  ecMoveNotify,
   ExpenseView
 });

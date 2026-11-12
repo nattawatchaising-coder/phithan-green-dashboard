@@ -572,13 +572,18 @@ function BlJobCard({
     });
   };
   const st = cur ? window.blStatusOf(cur.status) : null;
-  const sub = !S.has ? j.noBill ? "ไม่ต้องตั้งงวดงาน — แอดมินเอาออกจากรายการไว้" : quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
+  const m0 = v => {
+    const r = Math.round((+v || 0) * 100) / 100;
+    return r % 1 ? blMoney(r) : r.toLocaleString("en-US");
+  };
+  const sub = !S.has ? j.noBill ? "ไม่ต้องตั้งงวดงาน — แอดมินเอาออกจากรายการไว้" : quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + m0(S.collected) + " จาก " + m0(S.grand || S.total) + " · ค้าง " + m0(S.remain) + " บาท";
+  const tone = st ? st.color : !S.has && quote ? "var(--primary)" : "var(--text-3)";
   return React.createElement("div", {
+    className: "jd-pcard",
     style: {
-      marginBottom: 22,
+      marginBottom: 16,
       border: "none",
-      boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd)" : "var(--shadow-sm)",
-      borderLeft: "3px solid " + (st ? st.color : !S.has && quote ? "var(--primary)" : "var(--border-strong)"),
+      boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd), var(--shadow-sm)" : "var(--shadow-sm)",
       borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
@@ -603,7 +608,7 @@ function BlJobCard({
       width: 34,
       height: 34,
       borderRadius: "var(--r-chip)",
-      background: BL_ACCENT + "1c",
+      background: "color-mix(in srgb, " + (S.has ? tone : BL_ACCENT) + " 14%, transparent)",
       display: "grid",
       placeItems: "center",
       flexShrink: 0
@@ -611,7 +616,7 @@ function BlJobCard({
   }, React.createElement(Icon, {
     name: "file",
     size: 17,
-    color: BL_ACCENT
+    color: S.has ? tone : BL_ACCENT
   })), React.createElement("span", {
     style: {
       flex: 1,
@@ -637,18 +642,13 @@ function BlJobCard({
     color: "var(--text-3)"
   })), S.has && React.createElement("div", {
     style: {
-      padding: "0 14px 12px",
-      display: "grid",
-      gap: 10
+      padding: "0 14px 12px"
     }
   }, React.createElement(BlRail, {
     rows: rows,
     curId: cur ? cur.id : null
-  }), React.createElement(BlMoneyStrip, {
-    S: S
   })), S.has && cur && React.createElement("div", {
     style: {
-      borderTop: "1px solid var(--divider)",
       padding: "10px 14px",
       background: "var(--surface2)"
     }

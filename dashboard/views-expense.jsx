@@ -1147,6 +1147,118 @@ function EcJobButton({ job, sum, onOpen }) {
   );
 }
 
+/* เดินสถานะใบเบิก = เขียนเรคคอร์ดใหม่ + ยิงแจ้งเตือนไปหาคนที่ต้องทำต่อ
+   ใช้ร่วมกันทั้งหน้ารวม (ExpenseView) และแผงของงาน (EcJobSheet) — ข้อความแจ้งเตือนต้องเหมือนกันทั้งสองทาง */
+function ecMoveNotify(store, c, to, note, currentUser) {
+  const rec = window.ecMove(c, to, currentUser, note);
+  if (!rec) return;
+  store.save(rec);
+  const money = window.ecBaht(rec.amount) + " บาท";
+  const where = rec.siteCode ? " · " + rec.siteCode : "";
+  /* note ที่ส่งเข้ามาเป็นออบเจ็กต์ { text, ref } (ดูปุ่มเดินสถานะใน EcClaimModal)
+     ecMove แกะ .text ให้อยู่แล้ว แต่ตรงนี้เอามาต่อสตริงตรง ๆ จนได้ "[object Object]"
+     ติดไปกับข้อความแจ้งเตือน — และตอนนี้ข้อความเดียวกันถูกส่งเข้า LINE ด้วย */
+  const noteText = (note && typeof note === "object" ? note.text : note) || "";
+  if (to === "sent") {
+    window.ecNotify(rec.approverId
+      ? { toUserId: rec.approverId, title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
+          body: (rec.byName || "") + " · " + money + where }
+      : { toPerm: "expenseApprove", title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
+          body: (rec.byName || "") + " · " + money + where });
+  } else if (to === "approved" || to === "rejected" || to === "paid") {
+    window.ecNotify({ toUserId: rec.byId,
+      title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
+      body: money + where + (noteText ? " · " + noteText : "") });
+  }
+}
+
+/* ── แผงเบิกเงินของงานเดียว (เปิดจากใบงานติดตั้ง · พ.ย. 2026) ──
+   เดิมปุ่มในใบงานพาออกไปหน้าเบิกเงินทั้งหน้า (ช่องตัวเลข 4 ช่อง + แท็บ 6 แท็บ) แล้วกลับมาใบงานเดิมไม่ได้
+   ผู้ใช้: "รู้สึกว่ามันยากไป เยอะไปหน่อย" → แผงนี้เห็นแค่ใบของงานนี้ + ปุ่มเปิดใบเบิก ปิดแล้วกลับใบงานเดิม
+   หน้ารวมยังอยู่ครบที่เมนูซ้าย และมีลิงก์ "ดูหน้าเบิกเงินทั้งหมด" ท้ายแผง */
+function EcJobSheet({ job, users, role, currentUser, onClose, onFullPage }) {
+  const store = window.useEcClaims();
+  const [open, setOpen] = React.useState(null);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bd = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
+  const uid = currentUser ? currentUser.id : null;
+  /* กรองที่ชั้นข้อมูลเหมือนหน้ารวม — คนที่ไม่มีสิทธิ์อนุมัติเห็นแค่ใบที่เกี่ยวกับตัวเอง */
+  const list = React.useMemo(() => window.ecVisible(store.claims, currentUser, role).filter((c) => (c.jobId || "") === job.id),
+    [store.claims, currentUser, role, job.id]);
+  const live = list.filter((c) => c.status !== "rejected");
+  const total = live.reduce((a, c) => a + (+c.amount || 0), 0);
+  const waiting = list.filter((c) => c.status === "sent").length;
+
+  const openNew = () => {
+    const rec = window.ecBlank(job, currentUser, store.claims, users);
+    store.save(rec);
+    setOpen(rec.id);
+  };
+  const markDoc = (id, k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? uid : null;
+    f[k + "ByName"] = on ? ((currentUser || {}).name || "") : "";
+    store.patch(id, f);
+  };
+  const cur = (store.claims || []).find((c) => c.id === open) || null;
+
+  return (
+    <React.Fragment>
+      <div {...bd} style={{ position: "fixed", inset: 0, height: "calc(100dvh - var(--kb, 0px))", zIndex: 92, background: "rgba(8,20,26,.45)",
+        backdropFilter: "blur(3px)", display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+        <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="เบิกเงินหน้างาน"
+          style={{ width: isMobile ? "100%" : "min(560px, 100%)", maxHeight: isMobile ? "92%" : "88%", display: "flex", flexDirection: "column",
+            background: "var(--bg)", borderRadius: isMobile ? "var(--r-card) var(--r-card) 0 0" : "var(--r-card)", boxShadow: "var(--shadow-modal)", overflow: "hidden" }}>
+          <div style={{ padding: "15px 18px", background: "var(--surface)", boxShadow: "0 6px 16px -12px rgba(0,0,0,.25)", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            <span className="ic-chip" style={{ background: "#0EA5E91c" }}><Icon name="wallet" size={17} color="#0EA5E9" /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 16.5, fontWeight: 800, color: "var(--text-1)" }}>เบิกเงินหน้างาน</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.code} · {job.name}</span>
+            </span>
+            <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด"
+              style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
+              <Icon name="x" size={16} />
+            </button>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: isMobile ? "14px 14px" : "16px 18px" }}>
+            {/* สรุปบรรทัดเดียว + ปุ่มเปิดใบเบิกของงานนี้ (ผูกงานให้แล้ว ไม่ต้องค้นหางานเอง) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
+                {list.length ? <React.Fragment><b style={{ color: "var(--text-1)" }}>{window.ecBaht(total)}</b> บาท · {live.length} ใบ{waiting ? <span style={{ color: "#F59E0B", fontWeight: 700 }}> · รออนุมัติ {waiting}</span> : null}</React.Fragment>
+                  : "งานนี้ยังไม่มีใบเบิก"}
+              </span>
+              <button className="btn btn-pri" onClick={openNew}><Icon name="plus" size={14} color="#fff" /> เปิดใบเบิกงานนี้</button>
+            </div>
+            {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={false}
+              currentUser={currentUser} role={role} onDoc={markDoc} onRemove={store.remove} />)}
+            {!list.length && (
+              <div style={{ padding: "18px 0 6px", textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>
+                ค่าขนส่ง ค่าเดินทาง ค่าของหน้างาน — กด “เปิดใบเบิกงานนี้” แล้วแนบใบเสร็จได้เลย
+              </div>
+            )}
+          </div>
+
+          {onFullPage && (
+            <div style={{ padding: "11px 18px", paddingBottom: isMobile ? "calc(11px + env(safe-area-inset-bottom, 0px))" : 11,
+              background: "var(--surface)", borderTop: "1px solid var(--divider)", flexShrink: 0, textAlign: "center" }}>
+              <button onClick={onFullPage} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                ดูหน้าเบิกเงินทั้งหมด (อนุมัติ · จ่ายคืน · ยอดรายคน) <Icon name="arrowRight" size={14} color="var(--text-3)" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {cur && (
+        <EcClaimModal claim={cur} job={job} users={users} role={role} currentUser={currentUser}
+          onClose={() => setOpen(null)} onPatch={store.patch} onMove={(c, to, note) => ecMoveNotify(store, c, to, note, currentUser)} onRemove={store.remove} />
+      )}
+    </React.Fragment>
+  );
+}
+
 /* ── หน้าหลัก ── */
 function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const store = window.useEcClaims();
@@ -1209,29 +1321,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     setTab("mine");
   };
 
-  /* เดินสถานะ = เขียนเรคคอร์ดใหม่ + ยิงแจ้งเตือนไปหาคนที่ต้องทำต่อ */
-  const move = (c, to, note) => {
-    const rec = window.ecMove(c, to, currentUser, note);
-    if (!rec) return;
-    store.save(rec);
-    const money = window.ecBaht(rec.amount) + " บาท";
-    const where = rec.siteCode ? " · " + rec.siteCode : "";
-    /* note ที่ส่งเข้ามาเป็นออบเจ็กต์ { text, ref } (ดูปุ่มเดินสถานะใน EcClaimModal)
-       ecMove แกะ .text ให้อยู่แล้ว แต่ตรงนี้เอามาต่อสตริงตรง ๆ จนได้ "[object Object]"
-       ติดไปกับข้อความแจ้งเตือน — และตอนนี้ข้อความเดียวกันถูกส่งเข้า LINE ด้วย */
-    const noteText = (note && typeof note === "object" ? note.text : note) || "";
-    if (to === "sent") {
-      window.ecNotify(rec.approverId
-        ? { toUserId: rec.approverId, title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
-            body: (rec.byName || "") + " · " + money + where }
-        : { toPerm: "expenseApprove", title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
-            body: (rec.byName || "") + " · " + money + where });
-    } else if (to === "approved" || to === "rejected" || to === "paid") {
-      window.ecNotify({ toUserId: rec.byId,
-        title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
-        body: money + where + (noteText ? " · " + noteText : "") });
-    }
-  };
+  /* เดินสถานะ = เขียนเรคคอร์ดใหม่ + ยิงแจ้งเตือนไปหาคนที่ต้องทำต่อ (ฟังก์ชันกลาง ใช้ร่วมกับแผงของงาน EcJobSheet) */
+  const move = (c, to, note) => ecMoveNotify(store, c, to, note, currentUser);
 
   /* ปิดรอบ = เขียนรอบ + ปิดทุกใบในคำสั่งเดียว แล้วค่อยยิงแจ้งเตือนหาเจ้าของเงิน
      แจ้งเตือนยิงหลังเขียนสำเร็จเท่านั้น ไม่งั้นคนจะได้ข้อความว่าโอนแล้วทั้งที่เขียนไม่ผ่าน */
@@ -1441,4 +1532,4 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
 Object.assign(window, { EC_INPUT, EcPill, EcStat, EcMini, EcClaimModal, EcClaimRow,
   EcReceipts, EcBigShot, EcPayModal, EcBatchList,
-  EcPersonTable, EcJobTable, EcJobButton, ExpenseView });
+  EcPersonTable, EcJobTable, EcJobButton, EcJobSheet, ecMoveNotify, ExpenseView });

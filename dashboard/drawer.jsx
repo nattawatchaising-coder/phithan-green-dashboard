@@ -997,16 +997,17 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                    กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
                    คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
                 {window.Plan3DEntry && (
-                /* รายการเวอร์ชันแบบเดียวกับรายการใบเสนอราคา — แตะแถว = เปิดแบบนั้น · "ทำแบบใหม่" = คัดลอกจากต้นแบบ */
+                /* รายการเวอร์ชันแบบเดียวกับรายการใบเสนอราคา — แตะแถว = เปิดแบบนั้น · "ทำแบบใหม่" = คัดลอกจากต้นแบบ
+                   ห้องอุปกรณ์ 3D (eroom.jsx · เฉพาะแอดมิน) เป็นแถวย่อยใต้รายการ — เดิมเป็นการ์ดแยกอีกใบ (จัดใหม่ พ.ย. 2026) */
                 <window.DvVerCard kind="p3" dvs={dvs} icon="panel" color="#4F46E5" canNew
-                  title="วางแผง 3D (โมเดลหลังคา + เงาแดด)" sub="ปั้นหลังคาตามรูปโดรน · วางแผง · เงาแดด · ออกแบบระบบ + ผลผลิต" />
+                  title="แบบ 3D · วางแผง" sub="หลังคา · แผง · เงาแดด · ออกแบบระบบ">
+                  {window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard inline job={job} p3List={dvs.p3List} canEdit />}
+                </window.DvVerCard>
                 )}
-                {/* ห้องอุปกรณ์ 3D (eroom.jsx) — ตู้ไฟ/อินเวอร์เตอร์จากการออกแบบระบบ */}
-                {window.Plan3DEntry && window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard job={job} p3List={dvs.p3List} canEdit />}
 
                 {/* ถอดวัสดุ BOQ */}
                 <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
-                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง" />
+                  title="ถอดวัสดุ BOQ" sub="ใบละหนึ่งแบบ 3D" />
 
                 {/* สถานะวัสดุ — แตะแถวแล้วเลือกจาก 4 ตัวเลือก
                     เดิมแตะวนทีละสถานะ (ยังไม่สั่ง → รอของ → ครบ → ไม่ใช้) จะถอยจาก "ครบ" กลับ "รอของ" ต้องกด 3 ครั้ง และกดพลาดง่าย */}

@@ -212,37 +212,36 @@ function JobPhotos({ media, currentUser, canManage, readOnly }) {
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
-        </span>
-        {!readOnly && <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-chip)",
-            boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--primary-dark)",
-            fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-          <Icon name="plus" size={14} color="var(--primary-dark)" sw={2.4} /> {busy ? "กำลังเพิ่ม..." : "เพิ่มรูป"}
-        </button>}
-        <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
+      {/* จัดใหม่ พ.ย. 2026: ปุ่มเพิ่มรูปเป็นช่องแรกในแถวรูป (เดิมปุ่มมุมขวา + กล่องว่างเส้นประเต็มกว้าง) */}
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+        <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
       </div>
+      <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
 
-      {n === 0 ? (
-        <div onClick={() => { if (!readOnly && fileRef.current) fileRef.current.click(); }}
-          style={{ padding: "22px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-tile)", cursor: readOnly ? "default" : "pointer" }}>
-          {readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน"}
-        </div>
+      {n === 0 && readOnly ? (
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "4px 2px" }}>ยังไม่มีรูปหน้างาน</div>
       ) : (
-        // แถวเดียว เลื่อนแนวนอน
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4, margin: "0 -2px", paddingLeft: 2, paddingRight: 2 }}>
+        // แถวเดียว เลื่อนแนวนอน · ช่องแรก = เพิ่มรูป
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4, margin: "0 -2px", paddingLeft: 2, paddingRight: 2, alignItems: "center" }}>
+          {!readOnly && (
+            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} title="เพิ่มรูปหน้างาน (เลือกได้หลายใบ)"
+              style={{ width: 96, height: 96, flexShrink: 0, borderRadius: "var(--r-tile)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, cursor: busy ? "default" : "pointer",
+                fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)", opacity: busy ? 0.6 : 1 }}>
+              <Icon name={busy ? "clock" : "camera"} size={22} color="var(--primary)" />
+              {busy ? "กำลังเพิ่ม…" : "เพิ่มรูป"}
+            </button>
+          )}
+          {n === 0 && !readOnly && <span style={{ fontSize: 12.5, color: "var(--text-3)", padding: "0 6px" }}>ยังไม่มีรูป — ถ่ายหรือเลือกจากเครื่องได้หลายใบ</span>}
           {media.photos.map((p, idx) => (
             <div key={p.id} style={{ position: "relative", width: 96, height: 96, flexShrink: 0, borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface3)" }}>
               <img src={p.dataUrl} alt={p.caption || "รูปหน้างาน"} onClick={() => setLbIndex(idx)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
               {canDelete(p) && (
-                <button onClick={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(p.id); }); }} title="ลบรูป"
+                <button onClick={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(p.id); }); }} title="ลบรูป" aria-label="ลบรูป"
                   style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: 6, border: "none",
                     background: "rgba(8,20,14,.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
-                  <Icon name="x" size={12} color="#fff" />
+                  <Icon name="trash" size={12} color="#fff" />
                 </button>
               )}
             </div>
@@ -392,21 +391,21 @@ function JobFiles({ media, currentUser, canManage }) {
     <div style={{ marginBottom: 24 }}>
       {viewing && <JobFileViewer file={viewing} onClose={() => setViewing(null)} />}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name="file" size={14} color="var(--text-2)" /> เอกสารแนบ (PDF){files.length > 0 && " · " + files.length}
         </span>
+        {/* จัดใหม่ พ.ย. 2026: เพิ่มปุ่ม "อื่น ๆ" — เดิมแนบชนิดอื่นได้ทางเดียวคือแตะกล่องว่าง (มีไฟล์แล้วแนบไม่ได้เลย) */}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <UpBtn kind="design" label={busy ? "กำลังอัปโหลด..." : "แบบ"} />
           <UpBtn kind="boq" label="BOQ" />
+          <UpBtn kind="other" label="อื่น ๆ" />
         </span>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple onChange={onPick} style={{ display: "none" }} />
       </div>
 
       {files.length === 0 ? (
-        <div onClick={() => trigger("other")}
-          style={{ padding: "20px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-tile)", cursor: "pointer" }}>
-          ยังไม่มีเอกสาร · แตะปุ่ม “แบบ” หรือ “BOQ” เพื่ออัปโหลด PDF
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "2px 2px" }}>
+          ยังไม่มีเอกสาร — กดปุ่มด้านบนเพื่อแนบ PDF
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -433,7 +432,7 @@ function JobFiles({ media, currentUser, canManage }) {
                 {canDelete(f) && (
                   <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: f.name || "", ok: "ลบเอกสาร" }).then((ok) => { if (ok) media.removeFile(f.id); }); }} title="ลบ" aria-label="ลบ"
                     style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
-                    <Icon name="x" size={15} color="var(--text-3)" />
+                    <Icon name="trash" size={15} color="var(--tint-red-tx)" />
                   </button>
                 )}
               </div>
@@ -453,7 +452,7 @@ function JobComments({ media, currentUser, canManage }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         <Icon name="message" size={14} color="var(--text-2)" /> พูดคุย / บันทึกงาน{media.comments.length > 0 && " · " + media.comments.length}
       </div>
 
@@ -482,11 +481,17 @@ function JobComments({ media, currentUser, canManage }) {
 
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } }}
+          onKeyDown={(e) => {
+            /* จัดใหม่ พ.ย. 2026: เดิมต้องกด Ctrl+Enter ถึงจะส่ง — คอมกด Enter ส่งเลย (Shift+Enter ขึ้นบรรทัด)
+               จอสัมผัส Enter = ขึ้นบรรทัดตามเดิม (คีย์บอร์ดมือถือไม่มี Shift) · กำลังผสมคำ (IME) ไม่ส่ง */
+            if (e.key !== "Enter" || (e.nativeEvent && e.nativeEvent.isComposing)) return;
+            const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+            if (e.ctrlKey || e.metaKey || (!touch && !e.shiftKey)) { e.preventDefault(); send(); }
+          }}
           placeholder="พิมพ์ข้อความ / บันทึกงาน..." rows={1}
           style={{ flex: 1, resize: "vertical", height: 44, minHeight: 44, boxSizing: "border-box", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
             color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.4, padding: "11px 12px", borderRadius: "var(--r-tile)", outline: "none" }} />
-        <button onClick={send} disabled={!text.trim()}
+        <button onClick={send} disabled={!text.trim()} title="ส่ง" aria-label="ส่งข้อความ"
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "var(--r-tile)", border: "none",
             background: text.trim() ? "var(--primary)" : "var(--surface3)", cursor: text.trim() ? "pointer" : "default",
             display: "grid", placeItems: "center", transition: "background .15s" }}>

@@ -816,6 +816,8 @@ const DVC_CSS = `
 .dvc-t{display:block;font-size:13.5px;font-weight:700;color:var(--text-1)}
 .dvc-s{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
 .dvc-btn{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-chip);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary-dark);white-space:nowrap}
+[data-theme="aurora"] .dvc-btn{color:var(--primary)}
+[data-theme="aurora"] .dvc-btn svg{stroke:var(--primary)}
 .dvc-btn.ghost{background:transparent;box-shadow:none;color:var(--text-3)}
 .dvc-btn.ghost:hover{color:var(--text-1);background:var(--surface2)}
 .dvc-list{margin-top:9px;display:flex;flex-direction:column;gap:6px}
@@ -1279,7 +1281,8 @@ function DvVerCard({
   sub,
   icon,
   color,
-  canNew
+  canNew,
+  children
 }) {
   const isP3 = kind === "p3";
   const sldNode = dvUseNode(isP3 && dvs.jobId ? "plan3dSldDesign/" + dvs.jobId : null) || {};
@@ -1448,7 +1451,7 @@ function DvVerCard({
     name: "arrowRight",
     size: 15,
     color: "var(--text-3)"
-  })))), sldVer && sldNode[sldVer] && React.createElement(DvDwgModal, {
+  })))), children, sldVer && sldNode[sldVer] && React.createElement(DvDwgModal, {
     job: dvs.job,
     jobId: dvs.jobId,
     ver: sldVer,

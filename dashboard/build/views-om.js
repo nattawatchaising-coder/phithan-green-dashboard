@@ -1,3 +1,4 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const OM_INPUT = {
   width: "100%",
   padding: "10px 12px",
@@ -2831,6 +2832,209 @@ function OmView({
     });
   })());
 }
+function OmJobHost({
+  job,
+  users,
+  role,
+  currentUser,
+  onClose,
+  onFullPage
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const {
+    sites,
+    loading,
+    upsert,
+    patch,
+    remove
+  } = window.useOmSites();
+  const cleanStore = window.useOmCleanVisits();
+  const ticketStore = window.useOmTickets();
+  const visitStore = window.useOmVisits();
+  const [openTicket, setOpenTicket] = React.useState(null);
+  const [openVisit, setOpenVisit] = React.useState(null);
+  const canWrite = window.omCanWrite(role, null);
+  const site = (sites || []).find(s => s.id === job.id) || null;
+  const bd = window.useBackdropClose ? window.useBackdropClose(onClose) : {
+    onClick: onClose
+  };
+  const newVisit = opts => {
+    if (!site || !canWrite) return;
+    const rec = window.omBlankVisit(site, Object.assign({
+      siteVisits: (visitStore.bySite || {})[site.id] || []
+    }, opts || {}), currentUser);
+    visitStore.save(rec);
+    setOpenTicket(null);
+    setOpenVisit(rec.id);
+  };
+  const newTicket = () => {
+    const rec = window.omBlankTicket(site, ticketStore.tickets, currentUser);
+    ticketStore.save(rec);
+    window.omNotify({
+      toPerm: "om",
+      omSiteId: site.id,
+      push: false,
+      title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+      body: (site.name || site.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "")
+    });
+    setOpenTicket(rec.id);
+  };
+  const t = openTicket ? (ticketStore.tickets || []).find(x => x.id === openTicket) : null;
+  const v = openVisit ? (visitStore.visits || []).find(x => x.id === openVisit) : null;
+  return React.createElement("div", {
+    style: {
+      position: "relative",
+      zIndex: 92
+    }
+  }, site ? React.createElement(OmSiteModal, {
+    site: site,
+    job: job,
+    role: role,
+    visits: (cleanStore.bySite || {})[site.id] || [],
+    cleanStore: cleanStore,
+    tickets: (ticketStore.tickets || []).filter(x => x.siteId === site.id),
+    siteVisits: (visitStore.bySite || {})[site.id] || [],
+    onNewVisit: newVisit,
+    onOpenVisit: id => {
+      setOpenTicket(null);
+      setOpenVisit(id);
+    },
+    onOpenTicket: id => setOpenTicket(id),
+    onNewTicket: newTicket,
+    onClose: onClose,
+    onPatch: patch,
+    onRemove: remove
+  }) : React.createElement("div", _extends({}, bd, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      height: "calc(100dvh - var(--kb, 0px))",
+      background: "rgba(8,20,26,.45)",
+      backdropFilter: "blur(3px)",
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    role: "dialog",
+    "aria-label": "\u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22",
+    style: {
+      width: isMobile ? "100%" : "min(440px, 100%)",
+      background: "var(--surface)",
+      borderRadius: isMobile ? "var(--r-card) var(--r-card) 0 0" : "var(--r-card)",
+      boxShadow: "var(--shadow-modal)",
+      padding: isMobile ? "18px 16px calc(18px + env(safe-area-inset-bottom, 0px))" : 20
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 12
+    }
+  }, React.createElement("span", {
+    className: "ic-chip",
+    style: {
+      background: "#10B9811c"
+    }
+  }, React.createElement(Icon, {
+    name: "wrench",
+    size: 17,
+    color: "#10B981"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 16.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, job.code, " \xB7 ", job.name)), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    "aria-label": "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "var(--r-chip)",
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-2)",
+      lineHeight: 1.6,
+      marginBottom: 16
+    }
+  }, loading ? "กำลังโหลด…" : "งานนี้ยังไม่ขึ้นทะเบียนบริการ — ขึ้นทะเบียนแล้วจะตั้งประกัน รอบล้างแผง และเปิดใบแจ้งซ่อมได้ (ข้อมูลไซต์ดึงจากใบงานให้เอง)"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, canWrite && !loading && React.createElement("button", {
+    className: "btn btn-pri",
+    style: {
+      flex: 1
+    },
+    onClick: () => upsert(window.omSiteFromJob(job, currentUser))
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    color: "#fff"
+  }), " \u0E02\u0E36\u0E49\u0E19\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49"), onFullPage && React.createElement("button", {
+    className: "btn",
+    onClick: onFullPage
+  }, "\u0E44\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22")))), t && React.createElement(window.OmTicketModal, {
+    ticket: t,
+    site: site,
+    job: job,
+    users: users,
+    role: role,
+    currentUser: currentUser,
+    onClose: () => setOpenTicket(null),
+    onPatch: ticketStore.patch,
+    onRemove: ticketStore.remove,
+    visits: (visitStore.visits || []).filter(x => x.ticketId === t.id),
+    onOpenVisit: id => {
+      setOpenTicket(null);
+      setOpenVisit(id);
+    },
+    onMove: (x, to, note) => {
+      const r = window.omTicketMove(x, to, currentUser, note);
+      if (r) ticketStore.save(r);
+    }
+  }), v && React.createElement(window.OmVisitModal, {
+    visit: v,
+    site: site,
+    role: role,
+    currentUser: currentUser,
+    onClose: () => setOpenVisit(null),
+    onPatch: visitStore.patch,
+    onRemove: visitStore.remove
+  }));
+}
 Object.assign(window, {
   OM_INPUT,
   OmPill,
@@ -2843,6 +3047,7 @@ Object.assign(window, {
   OmSiteModal,
   OmView,
   OmJobButton,
+  OmJobHost,
   omExportXlsx,
   OM_SITE_TYPE,
   OM_SITE_TYPE_BY,

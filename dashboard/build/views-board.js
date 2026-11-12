@@ -178,102 +178,12 @@ function KanbanCard({
       name: "shield",
       size: 10,
       color: "var(--primary-dark)"
-    }), "Backup")), job.permit && job.permit.status && (() => {
-      const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
-      if (!pst) return null;
-      const rejected = job.permit.status === "rejected";
-      return React.createElement("div", {
-        style: {
-          marginBottom: 10,
-          padding: "7px 10px",
-          borderRadius: "var(--r-tile)",
-          background: pst.color + "14",
-          border: "none",
-          boxShadow: "inset 0 0 0 1px " + pst.color + (rejected ? "" : "33")
-        }
-      }, React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          fontWeight: 800,
-          color: pst.color
-        }
-      }, React.createElement(Icon, {
-        name: "shield",
-        size: 10,
-        color: pst.color,
-        style: {
-          verticalAlign: -1
-        }
-      }), " \u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \xB7 ", pst.th), rejected && job.permit.rejectReason && React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          color: pst.color,
-          marginTop: 3,
-          lineHeight: 1.4,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden"
-        }
-      }, job.permit.rejectReason));
-    })(), window.blHas && window.blHas(job) && (() => {
-      const S = window.blSummary(job);
-      const cur = S.cur;
-      const st = cur ? window.blStatusOf(cur.status) : null;
-      const c = S.allPaid ? "#10B981" : S.overdue.length ? "#EF4444" : st ? st.color : "#6366F1";
-      return React.createElement("div", {
-        style: {
-          marginBottom: 10,
-          padding: "6px 9px",
-          borderRadius: "var(--r-chip)",
-          background: c + "14",
-          border: "none"
-        }
-      }, React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          fontWeight: 800,
-          color: c,
-          display: "flex",
-          gap: 6,
-          alignItems: "center",
-          flexWrap: "wrap"
-        }
-      }, React.createElement(Icon, {
-        name: "file",
-        size: 10,
-        color: c,
-        style: {
-          verticalAlign: -1
-        }
-      }), "\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19 \xB7 ", S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")), !S.allPaid && React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          color: c,
-          marginTop: 3,
-          fontVariantNumeric: "tabular-nums"
-        }
-      }, "\u0E04\u0E07\u0E04\u0E49\u0E32\u0E07 ", window.sBaht(S.remain), " \u0E1A\u0E32\u0E17", S.overdue.length ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : ""));
-    })(), job.problem && React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "var(--tint-red-tx)",
-        background: "var(--tint-red-bg)",
-        borderRadius: "var(--r-chip)",
-        padding: "6px 8px",
-        marginBottom: 10,
-        lineHeight: 1.4,
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden"
-      }
-    }, "\u26A0 ", job.problem), React.createElement("div", {
+    }), "Backup")), React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 7,
-        marginBottom: 11,
+        marginBottom: 9,
         flexWrap: "wrap",
         fontSize: 11.5
       }
@@ -328,82 +238,226 @@ function KanbanCard({
         padding: "2px 7px",
         borderRadius: "var(--r-pill)"
       }
-    }, "\u0E15\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A")), React.createElement(InstallSpanBar, {
+    }, "\u0E15\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A")), React.createElement(KanbanStatusPills, {
       job: job
-    }), React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingTop: 10,
-        borderTop: "1px solid var(--divider)",
-        gap: 8,
-        flexWrap: "wrap"
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        minWidth: 0
-      }
-    }, React.createElement(TechAvatar, {
-      techId: job.tech,
-      size: 24
-    }), job.startDate ? React.createElement("span", {
-      style: {
-        fontFamily: "var(--mono)",
-        fontSize: 11.5,
-        fontWeight: 600,
-        letterSpacing: "-.01em",
-        color: job.delayed ? "#D93025" : "var(--text-2)"
-      }
-    }, thDate(job.startDate)) : React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3,
-        fontSize: 10,
-        fontWeight: 700,
-        color: "var(--tint-amber-tx)",
-        background: "var(--tint-amber-bg2)",
-        border: "1px solid var(--tint-amber-bd)",
-        padding: "2px 7px",
-        borderRadius: "var(--r-pill)",
-        whiteSpace: "nowrap"
-      }
-    }, React.createElement(Icon, {
-      name: "alert",
-      size: 10,
-      color: "var(--tint-amber-tx)"
-    }), " \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")), React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        flexShrink: 0
-      }
-    }, React.createElement(MatDots, {
-      mat: job.mat
-    }), React.createElement("span", {
-      style: {
-        fontFamily: "var(--display)",
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: "-.02em",
-        fontVariantNumeric: "tabular-nums",
-        color: job.matReady ? "var(--primary-dark)" : "var(--text-3)"
-      }
-    }, job.matReadyPct, "%"))), job.stage === "install" && React.createElement(DailyReportButton, {
-      job: job
-    }))
+    }), React.createElement(InstallSpanBar, {
+      job: job,
+      compact: true
+    }), (() => {
+      const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
+      const showDate = !(sp && sp.multi);
+      return React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingTop: 9,
+          borderTop: "1px solid var(--divider)",
+          gap: 8,
+          flexWrap: "wrap"
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 0
+        }
+      }, React.createElement(TechAvatar, {
+        techId: job.tech,
+        size: 24
+      }), !job.startDate ? React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3,
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: "var(--tint-amber-tx)",
+          background: "var(--tint-amber-bg2)",
+          padding: "2px 7px",
+          borderRadius: "var(--r-pill)",
+          whiteSpace: "nowrap"
+        }
+      }, React.createElement(Icon, {
+        name: "alert",
+        size: 10,
+        color: "var(--tint-amber-tx)"
+      }), " \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07") : showDate && React.createElement("span", {
+        style: {
+          fontFamily: "var(--mono)",
+          fontSize: 11.5,
+          fontWeight: 600,
+          letterSpacing: "-.01em",
+          color: job.delayed ? "#D93025" : "var(--text-2)"
+        }
+      }, thDate(job.startDate))), React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          flexShrink: 0,
+          marginLeft: "auto"
+        }
+      }, React.createElement(MatDots, {
+        mat: job.mat
+      }), React.createElement("span", {
+        style: {
+          fontFamily: "var(--display)",
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: "-.02em",
+          fontVariantNumeric: "tabular-nums",
+          color: job.matReady ? "var(--primary-dark)" : "var(--text-3)"
+        }
+      }, job.matReadyPct, "%"), job.stage === "install" && React.createElement(DailyReportButton, {
+        job: job,
+        compact: true
+      })));
+    })())
   );
 }
-function InstallSpanBar({
+function kbMoneyShort(n) {
+  const v = Math.abs(+n || 0);
+  if (v >= 1e6) return (Math.round(v / 1e4) / 100).toLocaleString() + " ล้าน";
+  return Math.round(v).toLocaleString();
+}
+function KanbanStatusPills({
   job
+}) {
+  const pills = [];
+  if (job.problem) pills.push({
+    bad: true,
+    icon: "alert",
+    c: "#EF4444",
+    th: String(job.problem),
+    title: "ปัญหาหน้างาน: " + job.problem
+  });
+  if (job.permit && job.permit.status) {
+    const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+    if (pst) {
+      const rejected = job.permit.status === "rejected";
+      pills.push({
+        bad: rejected,
+        icon: "shield",
+        c: rejected ? "#EF4444" : pst.color,
+        th: "ขออนุญาต · " + pst.th,
+        title: "ขออนุญาต · " + pst.th + (rejected && job.permit.rejectReason ? " — " + job.permit.rejectReason : "")
+      });
+    }
+  }
+  if (window.blHas && window.blHas(job)) {
+    const S = window.blSummary(job);
+    const st = S.cur ? window.blStatusOf(S.cur.status) : null;
+    const late = S.overdue.length > 0;
+    const c = S.allPaid ? "#10B981" : late ? "#EF4444" : st ? st.color : "#6366F1";
+    const step = "งวด " + Math.min(S.doneCount + 1, S.count) + "/" + S.count;
+    pills.push({
+      bad: late && !S.allPaid,
+      icon: "file",
+      c,
+      th: S.allPaid ? "เก็บเงินครบแล้ว" : step + (late ? " · เลยกำหนด" : " · ค้าง " + kbMoneyShort(S.remain)),
+      title: "งวดงาน · " + (S.allPaid ? "เก็บเงินครบแล้ว" : step + (st ? " · " + st.short : "") + " · คงค้าง " + window.sBaht(S.remain) + " บาท" + (late ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : ""))
+    });
+  }
+  if (!pills.length) return null;
+  pills.sort((a, b) => (b.bad ? 1 : 0) - (a.bad ? 1 : 0));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexWrap: "wrap",
+      marginBottom: 9
+    }
+  }, pills.map((p, i) => React.createElement("span", {
+    key: i,
+    title: p.title,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      maxWidth: "100%",
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: p.c,
+      background: "color-mix(in srgb, " + p.c + " " + (p.bad ? 14 : 10) + "%, transparent)",
+      padding: "3px 8px",
+      borderRadius: "var(--r-pill)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, React.createElement(Icon, {
+    name: p.icon,
+    size: 10,
+    color: p.c,
+    style: {
+      flexShrink: 0
+    }
+  }), React.createElement("span", {
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, p.th))));
+}
+function InstallSpanBar({
+  job,
+  compact
 }) {
   const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
   if (!sp || !sp.multi) return null;
+  if (compact) {
+    const cc = sp.phase === "done" ? "#10B981" : sp.phase === "over" ? "#EF4444" : sp.phase === "before" ? "var(--text-3)" : "var(--primary)";
+    const pp = sp.phase === "before" ? 0 : Math.max(4, Math.min(100, Math.round(sp.dayNo / sp.total * 100)));
+    const yy = sp.start.slice(0, 4) !== sp.end.slice(0, 4);
+    const rr = sp.phase === "before" ? "อีก " + sp.inDays + " วันเริ่ม" : sp.phase === "done" ? "ติดตั้งเสร็จแล้ว" : sp.phase === "over" ? "เลยกำหนด " + sp.overDays + " วัน" : sp.left === 0 ? "วันสุดท้าย" : "เหลือ " + sp.left + " วัน";
+    return React.createElement("div", {
+      style: {
+        marginBottom: 10
+      },
+      title: "ช่วงติดตั้ง " + sp.total + " วัน" + (sp.phase === "running" ? " · ทำมาแล้ว " + sp.dayNo + " วัน" : "")
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 6,
+        fontSize: 11,
+        marginBottom: 4,
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, thDate(sp.start, yy), " \u2013 ", thDate(sp.end, yy)), React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        fontWeight: 800,
+        color: cc,
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0
+      }
+    }, rr)), React.createElement("div", {
+      style: {
+        height: 4,
+        borderRadius: "var(--r-pill)",
+        background: "var(--surface3)",
+        overflow: "hidden"
+      }
+    }, React.createElement("div", {
+      style: {
+        width: pp + "%",
+        height: "100%",
+        borderRadius: "var(--r-pill)",
+        background: cc
+      }
+    })));
+  }
   const c = sp.phase === "done" ? "#10B981" : sp.phase === "over" ? "#EF4444" : sp.phase === "before" ? "var(--text-3)" : "var(--primary)";
   const pct = sp.phase === "before" ? 0 : Math.max(4, Math.min(100, Math.round(sp.dayNo / sp.total * 100)));
   const yr = sp.start.slice(0, 4) !== sp.end.slice(0, 4);

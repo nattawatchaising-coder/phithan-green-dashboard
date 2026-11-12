@@ -1020,6 +1020,8 @@ function App() {
   const [blRow, setBlRow] = React.useState(null);
   const [dailyJob, setDailyJob] = React.useState(null);
   const [pmJob, setPmJob] = React.useState(null);
+  const [ecJob, setEcJob] = React.useState(null);
+  const [omJob, setOmJob] = React.useState(null);
   const [omFocus, setOmFocus] = React.useState(null);
   const omLive = window.useOmAlerts(can(role, "om"));
   const [ecFocus, setEcFocus] = React.useState(null);
@@ -1538,11 +1540,11 @@ function App() {
     omSite: selectedJob ? (omLive.sites || []).find(s => s.id === selectedJob.id) || null : null,
     omVisits: selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : [],
     omTickets: selectedJob ? (omLive.tickets || []).filter(t => t.siteId === selectedJob.id) : [],
-    onOm: can(role, "om") && !permitOnly && selectedJob ? () => openOm({
+    onOm: can(role, "om") && !permitOnly && selectedJob ? () => window.OmJobHost ? setOmJob(selectedJob) : openOm({
       siteId: selectedJob.id
     }) : null,
     ecSum: selectedJob ? (ecLive.byJob || {})[selectedJob.id] || null : null,
-    onExpense: can(role, "expense") && !permitOnly && selectedJob ? () => openExpense(selectedJob.id) : null,
+    onExpense: can(role, "expense") && !permitOnly && selectedJob ? () => window.EcJobSheet ? setEcJob(selectedJob) : openExpense(selectedJob.id) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,
@@ -1659,6 +1661,30 @@ function App() {
     onNotify: notif.addNotif,
     openDate: dailyJob._openDate || "",
     onClose: () => setDailyJob(null)
+  }), ecJob && window.EcJobSheet && React.createElement(window.EcJobSheet, {
+    job: jobs.find(x => x.id === ecJob.id) || ecJob,
+    users: auth.users,
+    role: role,
+    currentUser: auth.current,
+    onClose: () => setEcJob(null),
+    onFullPage: () => {
+      const id = ecJob.id;
+      setEcJob(null);
+      openExpense(id);
+    }
+  }), omJob && window.OmJobHost && React.createElement(window.OmJobHost, {
+    job: jobs.find(x => x.id === omJob.id) || omJob,
+    users: auth.users,
+    role: role,
+    currentUser: auth.current,
+    onClose: () => setOmJob(null),
+    onFullPage: () => {
+      const id = omJob.id;
+      setOmJob(null);
+      openOm({
+        siteId: id
+      });
+    }
   }), pmJob && window.PmHandoverModal && React.createElement(window.PmHandoverModal, {
     job: jobs.find(x => x.id === pmJob.id) || pmJob,
     currentUser: auth.current,

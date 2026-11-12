@@ -264,16 +264,26 @@ function ReportView({ jobs, onOpen }) {
 
 
 // ปุ่มเปิดรายงานประจำวันบนการ์ด (เฉพาะงานขั้นดำเนินการติดตั้ง)
-function DailyReportButton({ job }) {
+function DailyReportButton({ job, compact }) {
   const [open, setOpen] = React.useState(false);
   return (
     <React.Fragment>
+      {/* compact = ชิปเล็กท้ายแถวล่างของการ์ดบอร์ด (พ.ย. 2026 — เดิมปุ่มเต็มกว้างเพิ่มอีกแถว การ์ดยืดยาว) */}
+      {compact ? (
+        <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="รายงานประจำวัน — เขียนรายงานวันนี้"
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: "var(--r-chip)", border: "none",
+            background: "var(--primary-soft)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)", fontWeight: 700, fontSize: 11,
+            cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          <Icon name="pen" size={12} color="var(--primary-dark)" /> รายงาน
+        </button>
+      ) : (
       <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="รายงานประจำวัน"
         style={{ marginTop: 10, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "8px 12px", borderRadius: "var(--r-chip)", border: "1px dashed var(--primary)", background: "var(--primary-soft)",
           color: "var(--primary-dark)", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
         <Icon name="file" size={13} color="var(--primary-dark)" /> รายงานวันนี้
       </button>
+      )}
       {/* ฟอร์มเดียวกับในใบงาน — เมื่อก่อนปุ่มนี้เปิดรายงานอีกใบที่เขียนคนละชื่อช่องลงที่เดิม
           เปิดสองทางทับกันเมื่อไหร่ ใบที่ช่างเขียนไว้หายทันที จึงเหลือทางเดียว
           การ์ดอยู่ลึกเกินกว่าจะส่ง props ลงมา เลยรับผู้ใช้ปัจจุบันจาก window.DR_ME ที่ app ฝากไว้ */}

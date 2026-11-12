@@ -267,49 +267,19 @@ function JobPhotos({
     }
   }, React.createElement("div", {
     style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 700,
-      letterSpacing: ".08em",
       color: "var(--text-3)",
       display: "flex",
       alignItems: "center",
-      gap: 6
+      gap: 6,
+      marginBottom: 10
     }
   }, React.createElement(Icon, {
     name: "image",
     size: 14,
     color: "var(--text-2)"
-  }), " \u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19", n > 0 && " · " + n), !readOnly && React.createElement("button", {
-    onClick: () => fileRef.current && fileRef.current.click(),
-    disabled: busy,
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "7px 12px",
-      borderRadius: "var(--r-chip)",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      color: "var(--primary-dark)",
-      fontWeight: 600,
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      cursor: busy ? "default" : "pointer",
-      opacity: busy ? 0.6 : 1
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 14,
-    color: "var(--primary-dark)",
-    sw: 2.4
-  }), " ", busy ? "กำลังเพิ่ม..." : "เพิ่มรูป"), React.createElement("input", {
+  }), " \u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19", n > 0 && " · " + n), React.createElement("input", {
     ref: fileRef,
     type: "file",
     accept: "image/*",
@@ -318,20 +288,13 @@ function JobPhotos({
     style: {
       display: "none"
     }
-  })), n === 0 ? React.createElement("div", {
-    onClick: () => {
-      if (!readOnly && fileRef.current) fileRef.current.click();
-    },
+  }), n === 0 && readOnly ? React.createElement("div", {
     style: {
-      padding: "22px 0",
-      textAlign: "center",
       fontSize: 12.5,
       color: "var(--text-3)",
-      border: "1.5px dashed var(--border-strong)",
-      borderRadius: "var(--r-tile)",
-      cursor: readOnly ? "default" : "pointer"
+      padding: "4px 2px"
     }
-  }, readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน") : React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19") : React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -340,9 +303,44 @@ function JobPhotos({
       paddingBottom: 4,
       margin: "0 -2px",
       paddingLeft: 2,
-      paddingRight: 2
+      paddingRight: 2,
+      alignItems: "center"
     }
-  }, media.photos.map((p, idx) => React.createElement("div", {
+  }, !readOnly && React.createElement("button", {
+    onClick: () => fileRef.current && fileRef.current.click(),
+    disabled: busy,
+    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E43\u0E1A)",
+    style: {
+      width: 96,
+      height: 96,
+      flexShrink: 0,
+      borderRadius: "var(--r-tile)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      cursor: busy ? "default" : "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      opacity: busy ? 0.6 : 1
+    }
+  }, React.createElement(Icon, {
+    name: busy ? "clock" : "camera",
+    size: 22,
+    color: "var(--primary)"
+  }), busy ? "กำลังเพิ่ม…" : "เพิ่มรูป"), n === 0 && !readOnly && React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      padding: "0 6px"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B \u2014 \u0E16\u0E48\u0E32\u0E22\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E43\u0E1A"), media.photos.map((p, idx) => React.createElement("div", {
     key: p.id,
     style: {
       position: "relative",
@@ -373,6 +371,7 @@ function JobPhotos({
       });
     },
     title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B",
+    "aria-label": "\u0E25\u0E1A\u0E23\u0E39\u0E1B",
     style: {
       position: "absolute",
       top: 4,
@@ -388,7 +387,7 @@ function JobPhotos({
       placeItems: "center"
     }
   }, React.createElement(Icon, {
-    name: "x",
+    name: "trash",
     size: 12,
     color: "#fff"
   }))))), cur && React.createElement("div", {
@@ -777,9 +776,8 @@ function JobFiles({
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 700,
-      letterSpacing: ".08em",
       color: "var(--text-3)",
       display: "flex",
       alignItems: "center",
@@ -801,6 +799,9 @@ function JobFiles({
   }), React.createElement(UpBtn, {
     kind: "boq",
     label: "BOQ"
+  }), React.createElement(UpBtn, {
+    kind: "other",
+    label: "\u0E2D\u0E37\u0E48\u0E19 \u0E46"
   })), React.createElement("input", {
     ref: fileRef,
     type: "file",
@@ -811,17 +812,12 @@ function JobFiles({
       display: "none"
     }
   })), files.length === 0 ? React.createElement("div", {
-    onClick: () => trigger("other"),
     style: {
-      padding: "20px 0",
-      textAlign: "center",
       fontSize: 12.5,
       color: "var(--text-3)",
-      border: "1.5px dashed var(--border-strong)",
-      borderRadius: "var(--r-tile)",
-      cursor: "pointer"
+      padding: "2px 2px"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E41\u0E15\u0E30\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E41\u0E1A\u0E1A\u201D \u0E2B\u0E23\u0E37\u0E2D \u201CBOQ\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14 PDF") : React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \u2014 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E41\u0E19\u0E1A PDF") : React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -943,9 +939,9 @@ function JobFiles({
         color: "var(--text-3)"
       }
     }, React.createElement(Icon, {
-      name: "x",
+      name: "trash",
       size: 15,
-      color: "var(--text-3)"
+      color: "var(--tint-red-tx)"
     })));
   })));
 }
@@ -967,9 +963,8 @@ function JobComments({
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 700,
-      letterSpacing: ".08em",
       color: "var(--text-3)",
       marginBottom: 12,
       display: "flex",
@@ -1073,7 +1068,9 @@ function JobComments({
     value: text,
     onChange: e => setText(e.target.value),
     onKeyDown: e => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      if (e.key !== "Enter" || e.nativeEvent && e.nativeEvent.isComposing) return;
+      const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      if (e.ctrlKey || e.metaKey || !touch && !e.shiftKey) {
         e.preventDefault();
         send();
       }
@@ -1099,6 +1096,8 @@ function JobComments({
   }), React.createElement("button", {
     onClick: send,
     disabled: !text.trim(),
+    title: "\u0E2A\u0E48\u0E07",
+    "aria-label": "\u0E2A\u0E48\u0E07\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21",
     style: {
       flexShrink: 0,
       width: 44,

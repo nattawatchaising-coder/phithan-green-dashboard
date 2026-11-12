@@ -286,22 +286,26 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
   };
 
   const st = cur ? window.blStatusOf(cur.status) : null;
+  /* บรรทัดสรุปไม่โชว์ .00 ตอนเป็นเลขกลม — สามยอดในบรรทัดเดียวยาวเกินจอมือถือ (มีสตางค์ยังโชว์ครบ) */
+  const m0 = (v) => { const r = Math.round((+v || 0) * 100) / 100; return r % 1 ? blMoney(r) : r.toLocaleString("en-US"); };
   const sub = !S.has
     ? (j.noBill ? "ไม่ต้องตั้งงวดงาน — แอดมินเอาออกจากรายการไว้"
       : quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง")
     : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count
-      + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
+      + " · รับแล้ว " + m0(S.collected) + " จาก " + m0(S.grand || S.total) + " · ค้าง " + m0(S.remain) + " บาท";
+  /* จัดใหม่ พ.ย. 2026: ตัดกล่องตัวเลข 3 กล่อง (ยอดสัญญา/รับแล้ว/คงค้าง) ที่ซ้ำกับบรรทัดสรุป — ยอดสัญญาย้ายมาอยู่ในบรรทัดสรุป
+     ไม่มีแถบสีซ้าย (ข้อห้ามใน DESIGN.md) — สีสถานะอยู่ที่ไอคอนกับบรรทัดสรุปแทน */
+  const tone = st ? st.color : (!S.has && quote ? "var(--primary)" : "var(--text-3)");
 
   return (
-    <div style={{ marginBottom: 22, border: "none", boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd)" : "var(--shadow-sm)",
-      borderLeft: "3px solid " + (st ? st.color : (!S.has && quote ? "var(--primary)" : "var(--border-strong)")),
+    <div className="jd-pcard" style={{ marginBottom: 16, border: "none", boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd), var(--shadow-sm)" : "var(--shadow-sm)",
       borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
 
       <button onClick={onOpen} disabled={!onOpen}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
           background: "none", border: "none", cursor: onOpen ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
-        <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <Icon name="file" size={17} color={BL_ACCENT} />
+        <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: "color-mix(in srgb, " + (S.has ? tone : BL_ACCENT) + " 14%, transparent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <Icon name="file" size={17} color={S.has ? tone : BL_ACCENT} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>เอกสารงวดงาน · วางบิล</span>
@@ -312,15 +316,14 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
       </button>
 
       {S.has && (
-        <div style={{ padding: "0 14px 12px", display: "grid", gap: 10 }}>
+        <div style={{ padding: "0 14px 12px" }}>
           <BlRail rows={rows} curId={cur ? cur.id : null} />
-          <BlMoneyStrip S={S} />
         </div>
       )}
 
       {/* งวดที่กำลังเดินอยู่ — บรรทัดเดียวที่บัญชีต้องอ่าน แล้วต่อด้วยปุ่มที่กดได้จริง */}
       {S.has && cur && (
-        <div style={{ borderTop: "1px solid var(--divider)", padding: "10px 14px", background: "var(--surface2)" }}>
+        <div style={{ padding: "10px 14px", background: "var(--surface2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: ro ? 0 : 9 }}>
             <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>งวดที่ {cur.n}</span>
             <span style={{ fontSize: 12.5, color: "var(--text-2)", fontFamily: "var(--mono)" }}>{blMoney(cur.amount)} บาท</span>

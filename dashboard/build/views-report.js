@@ -445,10 +445,37 @@ function ReportView({
   })))));
 }
 function DailyReportButton({
-  job
+  job,
+  compact
 }) {
   const [open, setOpen] = React.useState(false);
-  return React.createElement(React.Fragment, null, React.createElement("button", {
+  return React.createElement(React.Fragment, null, compact ? React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setOpen(true);
+    },
+    title: "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19 \u2014 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "4px 9px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--primary-soft)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--primary-dark)",
+      fontWeight: 700,
+      fontSize: 11,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 12,
+    color: "var(--primary-dark)"
+  }), " \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19") : React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       setOpen(true);
