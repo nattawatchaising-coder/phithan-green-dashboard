@@ -58,7 +58,9 @@ function fsMonoPath(P) {
    bars: [{ k, label, value, tip: [บรรทัด], partial }] · avg = เส้นค่าเฉลี่ยประ (แท่งเท่านั้น) */
 /* onExpand = กดที่กราฟแล้วเปิดเป็นหน้าต่างใหญ่ (การ์ดเล็ก) · onPick = กดแท่งแล้วเจาะดูรายวัน (ในหน้าต่างใหญ่)
    มีอย่างใดอย่างหนึ่ง = ทั้งกราฟกดได้ · ไม่มีเลย = ชี้ดูค่าอย่างเดียวเหมือนเดิม */
-function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, onExpand, onPick }) {
+function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, onExpand, onPick, tx }) {
+  /* tx = ป้ายภาษาอื่น (หน้า MikroTik สลับ English / 中文 ได้ — mtChartTx ใน mikrotik-mon.jsx) · ไม่ส่ง = ไทย */
+  const L = Object.assign({ expand: "ขยาย", chart: "กราฟ", table: "ตาราง", nodata: "ยังไม่มีข้อมูล", none: "ไม่มีข้อมูล", unfinished: "ยังไม่จบ", now: "ตอนนี้", use: "ใช้", gen: "ผลิต" }, tx || {});
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
   React.useEffect(() => { setHov(null); }, [bars.length]);
@@ -88,8 +90,8 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
     padding: "3px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit" };
   const tog = (vals.length > 0 || hasLoad) && (
     <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 6, zIndex: 2 }}>
-      {onExpand && !table && <button type="button" onClick={onExpand} style={chipStyle}>ขยาย</button>}
-      <button type="button" onClick={() => setTable(!table)} style={chipStyle}>{table ? "กราฟ" : "ตาราง"}</button>
+      {onExpand && !table && <button type="button" onClick={onExpand} style={chipStyle}>{L.expand}</button>}
+      <button type="button" onClick={() => setTable(!table)} style={chipStyle}>{table ? L.chart : L.table}</button>
     </div>
   );
   const grid = [0, 0.5, 1].map((f) => (
@@ -116,7 +118,7 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
             boxShadow: "var(--shadow-card)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.45 }}>
             <span style={{ width: 28, height: 28, borderRadius: 14, display: "grid", placeItems: "center", flexShrink: 0,
               background: "color-mix(in srgb, var(--fs-sun) 16%, var(--surface))" }}><Icon name="clock" size={15} color={sun} /></span>
-            {empty || "ยังไม่มีข้อมูล"}
+            {empty || L.nodata}
           </div>
         </div>
       </div>
@@ -128,9 +130,9 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
       <div style={{ maxHeight: H + 30, overflowY: "auto", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
         {bars.filter((b) => b.value != null || b.load != null).map((b, i) => (
           <div key={b.k} style={{ display: "flex", padding: "6px 12px", fontSize: 12, borderTop: i ? "1px solid var(--divider)" : "none" }}>
-            <span style={{ flex: 1, color: "var(--text-2)" }}>{(b.tip && b.tip[0]) || b.label}{b.partial ? " (ยังไม่จบ)" : ""}</span>
+            <span style={{ flex: 1, color: "var(--text-2)" }}>{(b.tip && b.tip[0]) || b.label}{b.partial ? " (" + L.unfinished + ")" : ""}</span>
             <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-1)" }}>{b.value == null ? "–" : fsFmt(b.value, 1)} {unit}</span>
-            {hasLoad && <span style={{ width: 96, textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-2)" }}>ใช้ {b.load == null ? "–" : fsFmt(b.load, 1)}</span>}
+            {hasLoad && <span style={{ width: 96, textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-2)" }}>{L.use} {b.load == null ? "–" : fsFmt(b.load, 1)}</span>}
           </div>
         ))}
       </div>
@@ -259,7 +261,7 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
             if (nowI >= 0 && Math.abs(x - X(nowI)) < 30) continue;
             out.push(<text key={"tk" + h} x={x} y={H - 7} textAnchor="middle" style={{ fill: "var(--text-3)", fontSize: 10 }}>{String(h).padStart(2, "0")}:00</text>);
           }
-          if (nowI >= 0) out.push(<text key="tknow" x={X(nowI)} y={H - 7} textAnchor="middle" style={{ fill: sun, fontSize: 10, fontWeight: 800 }}>ตอนนี้</text>);
+          if (nowI >= 0) out.push(<text key="tknow" x={X(nowI)} y={H - 7} textAnchor="middle" style={{ fill: sun, fontSize: 10, fontWeight: 800 }}>{L.now}</text>);
           return out;
         })()}
         {!timeMode && bars.map((b, i) => {
@@ -269,7 +271,7 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
           return (
             <text key={"l" + b.k} x={X(i)} y={H - 7} textAnchor="middle"
               style={{ fill: isNow ? sun : hov === i ? "var(--text-1)" : "var(--text-3)", fontSize: 10, fontWeight: isNow || hov === i ? 800 : 500 }}>
-              {isNow ? "ตอนนี้" : area ? b.label + ":00" : b.label}
+              {isNow ? L.now : area ? b.label + ":00" : b.label}
             </text>
           );
         })}
@@ -285,13 +287,13 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
       {hb && (
         <div style={{ position: "absolute", left: tipX, top: hb.value != null || hb.load != null ? Math.max(0, Y(Math.max(hb.value || 0, hb.load || 0)) - (hasLoad ? 92 : 70)) : 0, transform: "translateX(-50%)", pointerEvents: "none",
           background: "var(--surface)", boxShadow: "var(--shadow-pop)", borderRadius: "var(--r-tile)", padding: "7px 11px", fontSize: 11.5, whiteSpace: "nowrap", zIndex: 3 }}>
-          <div style={{ fontWeight: 700, color: "var(--text-2)", marginBottom: 1 }}>{(hb.tip && hb.tip[0]) || hb.label}{hb.partial ? " · ยังไม่จบ" : ""}</div>
+          <div style={{ fontWeight: 700, color: "var(--text-2)", marginBottom: 1 }}>{(hb.tip && hb.tip[0]) || hb.label}{hb.partial ? " · " + L.unfinished : ""}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-1)", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 4, background: sun }} />{hasLoad ? "ผลิต " : ""}{hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit}
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: sun }} />{hasLoad ? L.gen + " " : ""}{hb.value == null ? L.none : fsFmt(hb.value, 1) + " " + unit}
           </div>
           {hasLoad && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-1)", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--fs-load)" }} />ใช้ {hb.load == null ? "ไม่มีข้อมูล" : fsFmt(hb.load, 1) + " " + unit}
+              <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--fs-load)" }} />{L.use} {hb.load == null ? L.none : fsFmt(hb.load, 1) + " " + unit}
             </div>
           )}
           {(hb.tip || []).slice(1).map((t, i) => <div key={i} style={{ color: "var(--text-3)" }}>{t}</div>)}

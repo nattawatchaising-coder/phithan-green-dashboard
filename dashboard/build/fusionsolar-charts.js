@@ -49,8 +49,20 @@ function FsTrendChart({
   t0,
   t1,
   onExpand,
-  onPick
+  onPick,
+  tx
 }) {
+  const L = Object.assign({
+    expand: "ขยาย",
+    chart: "กราฟ",
+    table: "ตาราง",
+    nodata: "ยังไม่มีข้อมูล",
+    none: "ไม่มีข้อมูล",
+    unfinished: "ยังไม่จบ",
+    now: "ตอนนี้",
+    use: "ใช้",
+    gen: "ผลิต"
+  }, tx || {});
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
   React.useEffect(() => {
@@ -108,11 +120,11 @@ function FsTrendChart({
     type: "button",
     onClick: onExpand,
     style: chipStyle
-  }, "\u0E02\u0E22\u0E32\u0E22"), React.createElement("button", {
+  }, L.expand), React.createElement("button", {
     type: "button",
     onClick: () => setTable(!table),
     style: chipStyle
-  }, table ? "กราฟ" : "ตาราง"));
+  }, table ? L.chart : L.table));
   const grid = [0, 0.5, 1].map(f => React.createElement("g", {
     key: f
   }, React.createElement("line", {
@@ -210,7 +222,7 @@ function FsTrendChart({
       name: "clock",
       size: 15,
       color: sun
-    })), empty || "ยังไม่มีข้อมูล")));
+    })), empty || L.nodata)));
   }
   if (table) return React.createElement("div", {
     ref: ref,
@@ -239,7 +251,7 @@ function FsTrendChart({
       flex: 1,
       color: "var(--text-2)"
     }
-  }, b.tip && b.tip[0] || b.label, b.partial ? " (ยังไม่จบ)" : ""), React.createElement("span", {
+  }, b.tip && b.tip[0] || b.label, b.partial ? " (" + L.unfinished + ")" : ""), React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
@@ -253,7 +265,7 @@ function FsTrendChart({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E43\u0E0A\u0E49 ", b.load == null ? "–" : fsFmt(b.load, 1))))));
+  }, L.use, " ", b.load == null ? "–" : fsFmt(b.load, 1))))));
   const hb = hov != null && bars[hov] ? bars[hov] : null;
   const tipX = hb ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
   const nowI = bars.findIndex(b => b.partial && b.value != null);
@@ -627,7 +639,7 @@ function FsTrendChart({
         fontSize: 10,
         fontWeight: 800
       }
-    }, "\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49"));
+    }, L.now));
     return out;
   })(), !timeMode && bars.map((b, i) => {
     const isNow = area && i === nowI;
@@ -643,7 +655,7 @@ function FsTrendChart({
         fontSize: 10,
         fontWeight: isNow || hov === i ? 800 : 500
       }
-    }, isNow ? "ตอนนี้" : area ? b.label + ":00" : b.label);
+    }, isNow ? L.now : area ? b.label + ":00" : b.label);
   }), bars.map((b, i) => {
     const x0 = timeMode ? i ? (X(i - 1) + X(i)) / 2 : padL : padL + step * i;
     const x1 = timeMode ? i < bars.length - 1 ? (X(i) + X(i + 1)) / 2 : w - padR : x0 + step;
@@ -683,7 +695,7 @@ function FsTrendChart({
       color: "var(--text-2)",
       marginBottom: 1
     }
-  }, hb.tip && hb.tip[0] || hb.label, hb.partial ? " · ยังไม่จบ" : ""), React.createElement("div", {
+  }, hb.tip && hb.tip[0] || hb.label, hb.partial ? " · " + L.unfinished : ""), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -700,7 +712,7 @@ function FsTrendChart({
       borderRadius: 4,
       background: sun
     }
-  }), hasLoad ? "ผลิต " : "", hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit), hasLoad && React.createElement("div", {
+  }), hasLoad ? L.gen + " " : "", hb.value == null ? L.none : fsFmt(hb.value, 1) + " " + unit), hasLoad && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -717,7 +729,7 @@ function FsTrendChart({
       borderRadius: 4,
       background: "var(--fs-load)"
     }
-  }), "\u0E43\u0E0A\u0E49 ", hb.load == null ? "ไม่มีข้อมูล" : fsFmt(hb.load, 1) + " " + unit), (hb.tip || []).slice(1).map((t, i) => React.createElement("div", {
+  }), L.use, " ", hb.load == null ? L.none : fsFmt(hb.load, 1) + " " + unit), (hb.tip || []).slice(1).map((t, i) => React.createElement("div", {
     key: i,
     style: {
       color: "var(--text-3)"

@@ -37,12 +37,12 @@ function useMtPartnerData(p) {
 }
 function mtLogoFromFile(file) {
   return new Promise((resolve, reject) => {
-    if (!file || !/^image\//.test(file.type)) return reject(new Error("เลือกไฟล์รูปภาพ (PNG / JPG)"));
+    if (!file || !/^image\//.test(file.type)) return reject(new Error(mtT("เลือกไฟล์รูปภาพ (PNG / JPG)", "Choose an image file (PNG / JPG)", "请选择图片文件（PNG / JPG）")));
     const rd = new FileReader();
-    rd.onerror = () => reject(new Error("อ่านไฟล์ไม่ได้"));
+    rd.onerror = () => reject(new Error(mtT("อ่านไฟล์ไม่ได้", "Can't read the file", "无法读取文件")));
     rd.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error("เปิดรูปไม่ได้"));
+      img.onerror = () => reject(new Error(mtT("เปิดรูปไม่ได้", "Can't open the image", "无法打开图片")));
       img.onload = () => {
         const k = Math.min(1, 480 / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
@@ -51,7 +51,7 @@ function mtLogoFromFile(file) {
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
         let url = file.type === "image/png" ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.85);
         if (url.length > 280000) url = c.toDataURL("image/jpeg", 0.7);
-        if (url.length > 280000) return reject(new Error("รูปใหญ่เกินไป ลองรูปที่เล็กลง"));
+        if (url.length > 280000) return reject(new Error(mtT("รูปใหญ่เกินไป ลองรูปที่เล็กลง", "Image too large — try a smaller one", "图片过大，请换一张较小的")));
         resolve(url);
       };
       img.src = rd.result;
@@ -120,7 +120,7 @@ function MtCompanyForm({
       }, self ? {} : {
         pid
       }));
-      setMsg("บันทึกแล้ว");
+      setMsg(mtT("บันทึกแล้ว", "Saved", "已保存"));
       if (onDone) onDone();
     } catch (x) {
       setErr(String(x.message || x));
@@ -155,8 +155,8 @@ function MtCompanyForm({
   }, React.createElement(window.MtHead, {
     icon: "building",
     color: "var(--primary)",
-    title: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17",
-    sub: "\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E1C\u0E39\u0E49\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25\u0E1A\u0E19\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E17\u0E38\u0E01\u0E44\u0E0B\u0E15\u0E4C\u0E02\u0E2D\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49"
+    title: mtT("ข้อมูลบริษัท", "Company details", "公司信息"),
+    sub: mtT("ขึ้นเป็นผู้ออกบิลบนใบแจ้งค่าไฟทุกไซต์ของบัญชีนี้", "Shown as the issuer on every bill for this account's sites", "作为开具方显示在本账户所有站点的电费单上")
   }), React.createElement("label", {
     onDragOver: e => {
       e.preventDefault();
@@ -213,13 +213,13 @@ function MtCompanyForm({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, f.logo ? "เปลี่ยนโลโก้" : "เพิ่มโลโก้บริษัท"), React.createElement("div", {
+  }, f.logo ? mtT("เปลี่ยนโลโก้", "Change logo", "更换标志") : mtT("เพิ่มโลโก้บริษัท", "Add company logo", "添加公司标志")), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E04\u0E25\u0E34\u0E01\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E27\u0E32\u0E07 \xB7 PNG \u0E1E\u0E37\u0E49\u0E19\u0E43\u0E2A\u0E2A\u0E27\u0E22\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14 \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E22\u0E48\u0E2D\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07"), f.logo && React.createElement("button", {
+  }, mtT("คลิกหรือลากรูปมาวาง · PNG พื้นใสสวยที่สุด · ระบบย่อรูปให้เอง", "Click or drop an image · a transparent PNG looks best · resized automatically", "点击或拖入图片 · 透明背景 PNG 效果最佳 · 系统自动缩放")), f.logo && React.createElement("button", {
     type: "button",
     className: "btn btn-sm btn-dngr",
     onClick: e => {
@@ -229,7 +229,7 @@ function MtCompanyForm({
     style: {
       marginTop: 6
     }
-  }, "\u0E40\u0E2D\u0E32\u0E42\u0E25\u0E42\u0E01\u0E49\u0E2D\u0E2D\u0E01")), React.createElement("input", {
+  }, mtT("เอาโลโก้ออก", "Remove logo", "移除标志"))), React.createElement("input", {
     type: "file",
     accept: "image/png,image/jpeg,image/webp",
     onChange: pick,
@@ -242,20 +242,20 @@ function MtCompanyForm({
       gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
       gap: 12
     }
-  }, row("name", "ชื่อบริษัท", "เช่น บริษัท พลังแดด จำกัด", true), row("tax", "เลขประจำตัวผู้เสียภาษี", "13 หลัก", false, true), row("branch", "สาขา", "สำนักงานใหญ่"), React.createElement("div", {
+  }, row("name", mtT("ชื่อบริษัท", "Company name", "公司名称"), mtT("เช่น บริษัท พลังแดด จำกัด", "e.g. Palangdad Co., Ltd.", "例如：Palangdad 有限公司"), true), row("tax", mtT("เลขประจำตัวผู้เสียภาษี", "Tax ID", "纳税人识别号"), mtT("13 หลัก", "13 digits", "13 位"), false, true), row("branch", mtT("สาขา", "Branch", "分支机构"), mtT("สำนักงานใหญ่", "Head office", "总部")), React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }
   }, React.createElement("div", {
     style: mtLbl
-  }, "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48"), React.createElement("textarea", {
+  }, mtT("ที่อยู่", "Address", "地址")), React.createElement("textarea", {
     rows: 3,
     value: f.addr,
     onChange: e => set("addr", e.target.value),
     style: Object.assign({}, fld, {
       resize: "vertical"
     })
-  })), row("phone", "โทร"), row("email", "อีเมล")), err && React.createElement("div", {
+  })), row("phone", mtT("โทร", "Phone", "电话")), row("email", mtT("อีเมล", "Email", "电子邮箱"))), err && React.createElement("div", {
     style: mtErrBox
   }, err), React.createElement("div", {
     style: {
@@ -281,19 +281,34 @@ function MtCompanyForm({
     className: "btn btn-pri",
     disabled: busy || !dirty,
     onClick: save
-  }, busy ? "กำลังบันทึก…" : "บันทึกข้อมูลบริษัท"))), React.createElement("div", {
+  }, busy ? mtT("กำลังบันทึก…", "Saving…", "保存中…") : mtT("บันทึกข้อมูลบริษัท", "Save company details", "保存公司信息")))), React.createElement("div", {
     style: mtPCard()
   }, React.createElement(window.MtHead, {
     icon: "eye",
-    title: "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E2B\u0E31\u0E27\u0E1A\u0E34\u0E25",
-    sub: "\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E1A\u0E19\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A"
+    title: mtT("ตัวอย่างหัวบิล", "Bill header preview", "账单抬头预览"),
+    sub: mtT("หน้าตาบนใบแจ้งค่าไฟที่ลูกค้าได้รับ", "How it looks on the bill your customer receives", "客户收到的电费单上的样子")
   }), React.createElement("div", {
     style: {
       background: P("bg"),
       color: P("ink"),
       borderRadius: 12,
       boxShadow: "var(--shadow-sm)",
-      padding: "18px 18px 14px"
+      padding: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      border: "1px solid " + P("line2"),
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      height: 5,
+      background: "linear-gradient(90deg, " + P("brand") + ", " + P("brand-dk") + ")"
+    }
+  }), React.createElement("div", {
+    style: {
+      padding: "16px 16px 12px"
     }
   }, React.createElement("div", {
     style: {
@@ -335,11 +350,11 @@ function MtCompanyForm({
     style: {
       color: P("mute")
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")), f.addr && React.createElement("div", {
+  }, mtT("ชื่อบริษัท", "Company name", "公司名称"))), f.addr && React.createElement("div", {
     style: {
       whiteSpace: "pre-line"
     }
-  }, f.addr), (f.tax || f.phone || f.email) && React.createElement("div", null, [f.tax ? "เลขประจำตัวผู้เสียภาษี " + f.tax + (f.branch ? " (" + f.branch + ")" : "") : "", f.phone ? "โทร " + f.phone : "", f.email].filter(Boolean).join(" · ")))), React.createElement("div", {
+  }, f.addr), (f.tax || f.phone || f.email) && React.createElement("div", null, [f.tax ? mtT("เลขประจำตัวผู้เสียภาษี ", "Tax ID ", "纳税人识别号 ") + f.tax + (f.branch ? " (" + f.branch + ")" : "") : "", f.phone ? mtT("โทร ", "Tel. ", "电话 ") + f.phone : "", f.email].filter(Boolean).join(" · ")))), React.createElement("div", {
     style: {
       textAlign: "right",
       marginLeft: "auto"
@@ -350,16 +365,15 @@ function MtCompanyForm({
       fontWeight: 800,
       color: P("brand-dk")
     }
-  }, "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("div", {
+  }, mtT("ใบแจ้งค่าไฟฟ้า", "Electricity Bill", "电费通知单")), React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: P("ink3")
     }
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E1C\u0E25\u0E34\u0E15\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E41\u0E2A\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C"))), React.createElement("div", {
+  }, mtT("ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์", "Solar power generation system", "太阳能发电系统")))), React.createElement("div", {
     style: {
-      height: 3,
-      borderRadius: 2,
-      background: P("brand"),
+      height: 1,
+      background: P("line3"),
       margin: "12px 0 10px"
     }
   }), [70, 92, 55].map((w, i) => React.createElement("div", {
@@ -371,7 +385,7 @@ function MtCompanyForm({
       background: P("line3"),
       marginBottom: 7
     }
-  })))));
+  })))))));
 }
 function MtPinForm() {
   const [old, setOld] = React.useState("");
@@ -384,7 +398,7 @@ function MtPinForm() {
   const save = async () => {
     setErr("");
     setMsg("");
-    if (pin !== pin2) return setErr("รหัสใหม่สองช่องไม่ตรงกัน");
+    if (pin !== pin2) return setErr(mtT("รหัสใหม่สองช่องไม่ตรงกัน", "The two new passwords don't match", "两次输入的新密码不一致"));
     setBusy(true);
     try {
       await mtCall({
@@ -392,7 +406,7 @@ function MtPinForm() {
         old,
         pin
       });
-      setMsg("เปลี่ยนรหัสแล้ว — ใช้รหัสใหม่ในการเข้าครั้งถัดไป");
+      setMsg(mtT("เปลี่ยนรหัสแล้ว — ใช้รหัสใหม่ในการเข้าครั้งถัดไป", "Password changed — use the new one next time you sign in", "密码已更改 — 下次登录请使用新密码"));
       setOld("");
       setPin("");
       setPin2("");
@@ -413,11 +427,11 @@ function MtPinForm() {
   }, React.createElement(window.MtHead, {
     icon: "lock",
     color: "var(--primary)",
-    title: "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19",
-    sub: "\u0E23\u0E2B\u0E31\u0E2A\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22 6 \u0E15\u0E31\u0E27"
+    title: mtT("เปลี่ยนรหัสผ่าน", "Change password", "更改密码"),
+    sub: mtT("รหัสใหม่อย่างน้อย 6 ตัว", "New password: at least 6 characters", "新密码至少 6 位")
   }), React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, "\u0E23\u0E2B\u0E31\u0E2A\u0E40\u0E14\u0E34\u0E21"), React.createElement("input", {
+  }, mtT("รหัสเดิม", "Current password", "当前密码")), React.createElement("input", {
     type: t,
     value: old,
     autoComplete: "current-password",
@@ -425,7 +439,7 @@ function MtPinForm() {
     style: fld
   })), React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, "\u0E23\u0E2B\u0E31\u0E2A\u0E43\u0E2B\u0E21\u0E48"), React.createElement("input", {
+  }, mtT("รหัสใหม่", "New password", "新密码")), React.createElement("input", {
     type: t,
     value: pin,
     autoComplete: "new-password",
@@ -451,9 +465,9 @@ function MtPinForm() {
       color: "var(--text-3)",
       marginTop: 4
     }
-  }, pin ? ["สั้นเกินไป", "ใช้ได้", "ดี", "ดีมาก"][strong] : "ยาวกว่า 8 ตัว และผสมตัวเลข/ตัวอักษรจะปลอดภัยกว่า")), React.createElement("div", null, React.createElement("div", {
+  }, pin ? mtT(["สั้นเกินไป", "ใช้ได้", "ดี", "ดีมาก"], ["Too short", "OK", "Good", "Very good"], ["太短", "可用", "良好", "很好"])[strong] : mtT("ยาวกว่า 8 ตัว และผสมตัวเลข/ตัวอักษรจะปลอดภัยกว่า", "Longer than 8 characters with letters and numbers is safer", "超过 8 位并混合字母和数字更安全"))), React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, "\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E43\u0E2B\u0E21\u0E48"), React.createElement("input", {
+  }, mtT("ยืนยันรหัสใหม่", "Confirm new password", "确认新密码")), React.createElement("input", {
     type: t,
     value: pin2,
     autoComplete: "new-password",
@@ -465,7 +479,7 @@ function MtPinForm() {
       color: "var(--tint-red-tx)",
       marginTop: 4
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E23\u0E2B\u0E31\u0E2A\u0E43\u0E2B\u0E21\u0E48")), React.createElement("label", {
+  }, mtT("ยังไม่ตรงกับรหัสใหม่", "Doesn't match the new password", "与新密码不一致"))), React.createElement("label", {
     style: {
       display: "flex",
       gap: 8,
@@ -478,7 +492,7 @@ function MtPinForm() {
     type: "checkbox",
     checked: show,
     onChange: e => setShow(e.target.checked)
-  }), "\u0E41\u0E2A\u0E14\u0E07\u0E23\u0E2B\u0E31\u0E2A"), err && React.createElement("div", {
+  }), mtT("แสดงรหัส", "Show password", "显示密码")), err && React.createElement("div", {
     style: mtErrBox
   }, err), msg && React.createElement("div", {
     style: {
@@ -490,7 +504,7 @@ function MtPinForm() {
     className: "btn btn-pri",
     disabled: busy || !old || pin.length < 6 || pin !== pin2,
     onClick: save
-  }, busy ? "กำลังบันทึก…" : "เปลี่ยนรหัส"));
+  }, busy ? mtT("กำลังบันทึก…", "Saving…", "保存中…") : mtT("เปลี่ยนรหัส", "Change password", "更改密码")));
 }
 function MtPartnerEdit({
   p,
@@ -544,8 +558,8 @@ function MtPartnerEdit({
   }, React.createElement(window.MtHead, {
     icon: "user",
     color: "var(--primary)",
-    title: isNew ? "เพิ่มบัญชีพาร์ทเนอร์" : "บัญชี " + p.name,
-    sub: "\u0E25\u0E47\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E19\u0E35\u0E49\u0E14\u0E49\u0E27\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E25\u0E47\u0E2D\u0E01\u0E2D\u0E34\u0E19 + \u0E23\u0E2B\u0E31\u0E2A \xB7 \u0E40\u0E2B\u0E47\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07"
+    title: isNew ? mtT("เพิ่มบัญชีพาร์ทเนอร์", "Add partner account", "添加合作方账户") : mtT("บัญชี ", "Account ", "账户 ") + p.name,
+    sub: mtT("ล็อกอินที่หน้าเว็บนี้ด้วยชื่อล็อกอิน + รหัส · เห็นเฉพาะไซต์ที่ติ๊กด้านล่าง", "Signs in on this website with username + password · sees only the sites ticked below", "使用登录名和密码登录本网站 · 仅可查看下方勾选的站点")
   }), React.createElement("div", {
     style: {
       display: "grid",
@@ -554,14 +568,14 @@ function MtPartnerEdit({
     }
   }, React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 (\u0E04\u0E19/\u0E17\u0E35\u0E21)"), React.createElement("input", {
+  }, mtT("ชื่อผู้ใช้งาน (คน/ทีม)", "Display name (person / team)", "使用者名称（个人/团队）")), React.createElement("input", {
     value: f.name,
     onChange: e => set("name", e.target.value),
     style: fld,
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E04\u0E38\u0E13\u0E2A\u0E21\u0E0A\u0E32\u0E22 (\u0E19\u0E31\u0E01\u0E25\u0E07\u0E17\u0E38\u0E19)"
+    placeholder: mtT("เช่น คุณสมชาย (นักลงทุน)", "e.g. Mr. Somchai (investor)", "例如：Somchai 先生（投资方）")
   })), React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E25\u0E47\u0E2D\u0E01\u0E2D\u0E34\u0E19"), React.createElement("input", {
+  }, mtT("ชื่อล็อกอิน", "Username", "登录名")), React.createElement("input", {
     value: f.username,
     onChange: e => set("username", e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "")),
     style: Object.assign({}, fld, {
@@ -570,7 +584,7 @@ function MtPartnerEdit({
     placeholder: "a-z 0-9 . _ -"
   })), React.createElement("div", null, React.createElement("div", {
     style: mtLbl
-  }, isNew ? "รหัสผ่าน (อย่างน้อย 6 ตัว)" : "ตั้งรหัสใหม่ (เว้นว่าง = ใช้รหัสเดิม)"), React.createElement("input", {
+  }, isNew ? mtT("รหัสผ่าน (อย่างน้อย 6 ตัว)", "Password (at least 6 characters)", "密码（至少 6 位）") : mtT("ตั้งรหัสใหม่ (เว้นว่าง = ใช้รหัสเดิม)", "New password (blank = keep current)", "设置新密码（留空 = 保持原密码）")), React.createElement("input", {
     value: f.pin,
     onChange: e => set("pin", e.target.value),
     style: Object.assign({}, fld, {
@@ -597,17 +611,17 @@ function MtPartnerEdit({
       fontWeight: 700,
       color: f.active ? "var(--tint-ok-tx)" : "var(--tint-red-tx)"
     }
-  }, f.active ? "เปิดใช้งาน" : "ปิดบัญชี"), React.createElement("span", {
+  }, f.active ? mtT("เปิดใช้งาน", "Active", "已启用") : mtT("ปิดบัญชี", "Disabled", "已停用")), React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-2)"
     }
-  }, f.active ? "เข้าระบบได้" : "เข้าระบบไม่ได้ (ข้อมูลและบิลยังอยู่)"))), React.createElement("div", {
+  }, f.active ? mtT("เข้าระบบได้", "Can sign in", "可以登录") : mtT("เข้าระบบไม่ได้ (ข้อมูลและบิลยังอยู่)", "Can't sign in (data and bills are kept)", "无法登录（数据和账单仍保留）")))), React.createElement("div", {
     style: mtPCard()
   }, React.createElement(window.MtHead, {
     icon: "building",
-    title: "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E40\u0E2B\u0E47\u0E19\u0E41\u0E25\u0E30\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25\u0E44\u0E14\u0E49",
-    sub: f.sites.length + " ไซต์ · ไซต์ละหนึ่งเจ้าของ — ติ๊กไซต์ที่มีเจ้าของแล้ว = ย้ายมาบัญชีนี้"
+    title: mtT("ไซต์ที่บัญชีนี้เห็นและออกบิลได้", "Sites this account can see and bill", "此账户可查看并开具账单的站点"),
+    sub: mtT(f.sites.length + " ไซต์ · ไซต์ละหนึ่งเจ้าของ — ติ๊กไซต์ที่มีเจ้าของแล้ว = ย้ายมาบัญชีนี้", f.sites.length + " sites · one owner per site — ticking a site that already has an owner moves it here", f.sites.length + " 个站点 · 每个站点只有一个所有者 — 勾选已有所有者的站点 = 转移到此账户")
   }), React.createElement("div", {
     style: {
       display: "grid",
@@ -680,13 +694,13 @@ function MtPartnerEdit({
         color: "var(--tint-amber-tx)",
         marginTop: 2
       }
-    }, "\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49: ", ownerName(s.owner))));
+    }, mtT("เจ้าของตอนนี้: ", "Current owner: ", "当前所有者："), ownerName(s.owner))));
   }), !sites.length && React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C"))), err && React.createElement("div", {
+  }, mtT("ยังไม่มีไซต์", "No sites yet", "暂无站点")))), err && React.createElement("div", {
     style: mtErrBox
   }, err), React.createElement("div", {
     style: window.mtPanel({
@@ -703,11 +717,11 @@ function MtPartnerEdit({
     className: "btn",
     onClick: onClose,
     disabled: busy
-  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+  }, mtT("ยกเลิก", "Cancel", "取消")), React.createElement("button", {
     className: "btn btn-pri",
     onClick: save,
     disabled: busy || !f.name || !f.username || isNew && f.pin.length < 6
-  }, busy ? "กำลังบันทึก…" : isNew ? "สร้างบัญชี" : "บันทึก")), !isNew && React.createElement(MtCompanyForm, {
+  }, busy ? mtT("กำลังบันทึก…", "Saving…", "保存中…") : isNew ? mtT("สร้างบัญชี", "Create account", "创建账户") : mtT("บันทึก", "Save", "保存"))), !isNew && React.createElement(MtCompanyForm, {
     key: p.id + (p.updated_at || ""),
     pid: p.id,
     company: p.company
@@ -736,7 +750,7 @@ function MtPartnerAdmin({
   }, React.createElement(Icon, {
     name: "chevronLeft",
     size: 14
-  }), edit ? "รายชื่อพาร์ทเนอร์" : "ทุกไซต์");
+  }), edit ? mtT("รายชื่อพาร์ทเนอร์", "Partner list", "合作方列表") : mtT("ทุกไซต์", "All sites", "所有站点"));
   if (edit) return React.createElement("div", {
     style: {
       display: "flex",
@@ -769,11 +783,14 @@ function MtPartnerAdmin({
       alignItems: "center",
       flexWrap: "wrap"
     }
-  }, back, React.createElement("button", {
+  }, back, React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, React.createElement(MtLangPick, null)), React.createElement("button", {
     className: "btn btn-pri",
     onClick: () => setEdit("new"),
     style: {
-      marginLeft: "auto",
       display: "inline-flex",
       alignItems: "center",
       gap: 6
@@ -781,7 +798,7 @@ function MtPartnerAdmin({
   }, React.createElement(Icon, {
     name: "plus",
     size: 14
-  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1A\u0E31\u0E0D\u0E0A\u0E35")), React.createElement("div", {
+  }), mtT("เพิ่มบัญชี", "Add account", "添加账户"))), React.createElement("div", {
     style: {
       display: "flex",
       gap: 14,
@@ -797,20 +814,20 @@ function MtPartnerAdmin({
       fontSize: 22,
       fontWeight: 700
     }
-  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1E\u0E32\u0E23\u0E4C\u0E17\u0E40\u0E19\u0E2D\u0E23\u0E4C / \u0E19\u0E31\u0E01\u0E25\u0E07\u0E17\u0E38\u0E19"), React.createElement("div", {
+  }, mtT("บัญชีพาร์ทเนอร์ / นักลงทุน", "Partner / investor accounts", "合作方 / 投资方账户")), React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, "\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E20\u0E32\u0E22\u0E19\u0E2D\u0E01\u0E25\u0E47\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E19\u0E35\u0E49\u0E41\u0E25\u0E49\u0E27\u0E40\u0E2B\u0E47\u0E19\u0E41\u0E04\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E21\u0E2D\u0E1A\u0E43\u0E2B\u0E49 \xB7 \u0E25\u0E07\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E44\u0E0B\u0E15\u0E4C \u0E15\u0E31\u0E49\u0E07\u0E23\u0E32\u0E04\u0E32 \u0E41\u0E25\u0E30\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49 (\u0E40\u0E25\u0E02\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E41\u0E01\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49)")))), all === undefined ? React.createElement("div", {
+  }, mtT("ผู้ใช้ภายนอกล็อกอินที่หน้าเว็บนี้แล้วเห็นแค่ไซต์ที่มอบให้ · ลงทะเบียนไซต์ ตั้งราคา และออกบิลเองได้ (เลขมิเตอร์แก้ไม่ได้)", "External users sign in here and see only the sites assigned to them · they can register sites, set rates and issue bills (meter readings can't be edited)", "外部用户在此登录后只能看到分配的站点 · 可登记站点、设置单价并自行开具账单（电表读数不可修改）"))))), all === undefined ? React.createElement("div", {
     style: mtPCard()
   }, React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")) : !list.length ? React.createElement("div", {
+  }, mtT("กำลังโหลด…", "Loading…", "加载中…"))) : !list.length ? React.createElement("div", {
     style: window.mtPanel({
       padding: "34px 24px",
       textAlign: "center",
@@ -828,12 +845,12 @@ function MtPartnerAdmin({
       fontSize: 15,
       fontWeight: 700
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1E\u0E32\u0E23\u0E4C\u0E17\u0E40\u0E19\u0E2D\u0E23\u0E4C"), React.createElement("div", {
+  }, mtT("ยังไม่มีบัญชีพาร์ทเนอร์", "No partner accounts yet", "暂无合作方账户")), React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\u0E01\u0E14 \"\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1A\u0E31\u0E0D\u0E0A\u0E35\" \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E23\u0E01\u0E41\u0E25\u0E30\u0E21\u0E2D\u0E1A\u0E44\u0E0B\u0E15\u0E4C\u0E43\u0E2B\u0E49")) : React.createElement("div", {
+  }, mtT('กด "เพิ่มบัญชี" เพื่อสร้างบัญชีแรกและมอบไซต์ให้', 'Press "Add account" to create the first account and assign sites', "点击“添加账户”创建第一个账户并分配站点"))) : React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
@@ -927,7 +944,7 @@ function MtPartnerAdmin({
         background: off ? "var(--tint-red-bg)" : "var(--tint-ok-bg)",
         color: off ? "var(--tint-red-tx)" : "var(--tint-ok-tx)"
       }
-    }, off ? "ปิดบัญชี" : "ใช้งาน")), React.createElement("div", {
+    }, off ? mtT("ปิดบัญชี", "Disabled", "已停用") : mtT("ใช้งาน", "Active", "使用中"))), React.createElement("div", {
       style: {
         display: "flex",
         gap: 6,
@@ -948,24 +965,25 @@ function MtPartnerAdmin({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E21\u0E2D\u0E1A\u0E44\u0E0B\u0E15\u0E4C")), !(p.company && p.company.name) && React.createElement("div", {
+    }, mtT("ยังไม่ได้มอบไซต์", "No sites assigned", "未分配站点"))), !(p.company && p.company.name) && React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--tint-amber-tx)"
       }
-    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17 (\u0E2B\u0E31\u0E27\u0E1A\u0E34\u0E25\u0E08\u0E30\u0E27\u0E48\u0E32\u0E07)"));
+    }, mtT("ยังไม่กรอกข้อมูลบริษัท (หัวบิลจะว่าง)", "Company details missing (bill header will be blank)", "尚未填写公司信息（账单抬头将为空）")));
   })));
 }
 function PartnerApp() {
   const uid = window.FBAUTH && window.FBAUTH.currentUser ? window.FBAUTH.currentUser.uid : "";
   const me = useMtRef(uid ? "mtPartners/" + uid : "");
   const [view, setView] = React.useState("sites");
+  useMtLang();
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const logout = async () => {
     const ok = window.askConfirm ? await window.askConfirm({
-      title: "ออกจากระบบ?",
-      body: "ต้องใส่ชื่อล็อกอินและรหัสอีกครั้งเมื่อกลับมา",
-      ok: "ออกจากระบบ",
+      title: mtT("ออกจากระบบ?", "Sign out?", "退出登录？"),
+      body: mtT("ต้องใส่ชื่อล็อกอินและรหัสอีกครั้งเมื่อกลับมา", "You'll need your username and password to come back", "返回时需要重新输入登录名和密码"),
+      ok: mtT("ออกจากระบบ", "Sign out", "退出登录"),
       icon: "power"
     }) : true;
     if (!ok) return;
@@ -1000,7 +1018,7 @@ function PartnerApp() {
       fontSize: 13,
       padding: 24
     }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")));
+  }, mtT("กำลังโหลด…", "Loading…", "加载中…"))));
   if (!me || me.active === false) return React.createElement("div", {
     style: wrap
   }, React.createElement("div", {
@@ -1026,27 +1044,27 @@ function PartnerApp() {
       fontSize: 16,
       fontWeight: 700
     }
-  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E16\u0E39\u0E01\u0E1B\u0E34\u0E14\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"), React.createElement("div", {
+  }, mtT("บัญชีนี้ถูกปิดหรือไม่พบข้อมูล", "This account is disabled or not found", "此账户已停用或不存在")), React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-2)"
     }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E14\u0E39\u0E41\u0E25\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E1A\u0E31\u0E0D\u0E0A\u0E35"), React.createElement("button", {
+  }, mtT("ติดต่อผู้ดูแลระบบเพื่อเปิดบัญชี", "Contact the administrator to enable it", "请联系管理员启用账户")), React.createElement("button", {
     className: "btn",
     onClick: logout
-  }, "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A"))));
+  }, mtT("ออกจากระบบ", "Sign out", "退出登录")))));
   const c = me.company || {};
   const opts = [{
     value: "sites",
-    label: "ไซต์ของฉัน",
+    label: mtT("ไซต์ของฉัน", "My sites", "我的站点"),
     icon: "sun"
   }, {
     value: "company",
-    label: "บริษัท",
+    label: mtT("บริษัท", "Company", "公司"),
     icon: "building"
   }, {
     value: "pin",
-    label: "รหัสผ่าน",
+    label: mtT("รหัสผ่าน", "Password", "密码"),
     icon: "lock"
   }];
   const nsite = Object.keys(me.sites || {}).length;
@@ -1059,7 +1077,7 @@ function PartnerApp() {
       padding: isMobile ? "12px 14px" : "12px 18px",
       display: "flex",
       alignItems: "center",
-      gap: 14,
+      gap: isMobile ? 10 : 14,
       flexWrap: "wrap"
     })
   }, React.createElement("div", {
@@ -1114,30 +1132,40 @@ function PartnerApp() {
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, me.name, " \xB7 ", nsite, " \u0E44\u0E0B\u0E15\u0E4C \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E41\u0E25\u0E30\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F"))), window.Segmented && React.createElement("div", {
+  }, me.name, " \xB7 ", mtT(nsite + " ไซต์ · ระบบติดตามโซลาร์และบิลค่าไฟ", nsite + (nsite === 1 ? " site" : " sites") + " · solar monitoring & billing", nsite + " 个站点 · 太阳能监控与电费")))), window.Segmented && React.createElement("div", {
     style: {
       overflowX: "auto",
       maxWidth: "100%",
       order: isMobile ? 3 : 0,
-      flexBasis: isMobile ? "100%" : "auto"
+      flex: isMobile ? "1 1 0" : "0 1 auto",
+      minWidth: 0
     }
   }, React.createElement(window.Segmented, {
     value: view,
     onChange: setView,
     options: opts
-  })), React.createElement("button", {
+  })), React.createElement(MtLangPick, {
+    compact: isMobile
+  }), isMobile && React.createElement("div", {
+    style: {
+      order: 2,
+      flexBasis: "100%",
+      height: 0
+    }
+  }), React.createElement("button", {
     className: "btn btn-sm",
     onClick: logout,
-    title: "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A",
+    title: mtT("ออกจากระบบ", "Sign out", "退出登录"),
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6
+      gap: 6,
+      order: isMobile ? 4 : 0
     }
   }, React.createElement(Icon, {
     name: "power",
     size: 13
-  }), isMobile ? "" : "ออกจากระบบ")), view === "sites" && !c.name && React.createElement("div", {
+  }), isMobile ? "" : mtT("ออกจากระบบ", "Sign out", "退出登录"))), view === "sites" && !c.name && React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -1158,10 +1186,10 @@ function PartnerApp() {
       fontWeight: 600,
       color: "var(--tint-amber-tx)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17 \u2014 \u0E2B\u0E31\u0E27\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E08\u0E30\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E2D\u0E2D\u0E01\u0E1A\u0E34\u0E25"), React.createElement("button", {
+  }, mtT("ยังไม่ได้กรอกข้อมูลบริษัท — หัวบิลค่าไฟจะยังไม่มีชื่อผู้ออกบิล", "Company details not filled in — bills won't show an issuer name yet", "尚未填写公司信息 — 电费单暂不显示开具方名称")), React.createElement("button", {
     className: "btn btn-sm btn-soft",
     onClick: () => setView("company")
-  }, "\u0E01\u0E23\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")), view === "company" ? React.createElement(MtCompanyForm, {
+  }, mtT("กรอกข้อมูลบริษัท", "Fill in company details", "填写公司信息"))), view === "company" ? React.createElement(MtCompanyForm, {
     key: "c" + (me.updated_at || ""),
     pid: me.id,
     company: c,
@@ -1175,7 +1203,7 @@ function PartnerApp() {
       color: "var(--text-3)",
       paddingTop: 4
     }
-  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E2D\u0E48\u0E32\u0E19\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E17\u0E38\u0E01 1 \u0E19\u0E32\u0E17\u0E35 \xB7 \u0E43\u0E2B\u0E49\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E23\u0E30\u0E1A\u0E1A\u0E42\u0E14\u0E22 ", React.createElement("span", {
+  }, mtT("ข้อมูลมิเตอร์อ่านอัตโนมัติทุก 1 นาที · ให้บริการระบบโดย ", "Meter data is read automatically every minute · service by ", "电表数据每分钟自动读取 · 系统服务商 "), React.createElement("span", {
     style: {
       fontFamily: "var(--brand-font, var(--display))",
       fontWeight: 700
