@@ -728,7 +728,7 @@ function MtMonView({ role, currentUser, partner }) {
         <MtStat label="ไซต์ออนไลน์" value={online + "/" + list.length} unit="ไซต์" />
         <MtStat label="กำลังไฟรวมตอนนี้" value={mtNum(kwNow, 1)} unit="kW" sub="รวมทุกมิเตอร์" />
         {!partner && <MtStat label="agent บน VPS" value={ag ? (now - Date.parse(ag.at || ag.seen) < 5 * 60e3 ? "ปกติ" : "เงียบ") : "—"} unit=""
-          sub={ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") : "ยังไม่ได้ติดตั้ง"} />}
+          sub={ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") + (ag.ver ? " · รุ่น v" + ag.ver : "") : "ยังไม่ได้ติดตั้ง"} />}
       </div>
       {isAdmin && (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

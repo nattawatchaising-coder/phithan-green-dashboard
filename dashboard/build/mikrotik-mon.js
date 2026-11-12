@@ -1832,7 +1832,7 @@ function MtMonView({
     label: "agent \u0E1A\u0E19 VPS",
     value: ag ? now - Date.parse(ag.at || ag.seen) < 5 * 60e3 ? "ปกติ" : "เงียบ" : "—",
     unit: "",
-    sub: ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") : "ยังไม่ได้ติดตั้ง"
+    sub: ag ? "ติดต่อล่าสุด " + new Date(ag.at || ag.seen).toLocaleTimeString("th-TH") + (ag.ver ? " · รุ่น v" + ag.ver : "") : "ยังไม่ได้ติดตั้ง"
   })), isAdmin && React.createElement("div", {
     style: {
       display: "flex",
