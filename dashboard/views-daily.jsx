@@ -144,7 +144,19 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
 /* ── ตารางขั้นงาน ──
    งานบ้าน: ระบบเติมให้เอง แก้ได้แค่ % (วันจริงมาจากประวัติการเลื่อนขั้น ไม่ให้พิมพ์ทับ)
    งานโครงการ: กรอก/เพิ่ม/ลบหัวข้อได้เอง เพราะแผนงานแต่ละโครงการไม่เหมือนกัน */
-function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight, rename }) {
+/* ช่วงวันแบบสั้น — เดือนเดียวกันรวมเป็น "8–10 พ.ย." · มีวันเดียวเป็น "8 พ.ย. –" */
+const drRange = (a, b) => {
+  const A = a ? String(a).slice(0, 10) : "", B = b ? String(b).slice(0, 10) : "";
+  if (!A && !B) return "—";
+  if (A && B) {
+    if (A === B) return window.drShort(A);
+    if (A.slice(0, 7) === B.slice(0, 7)) return (+A.slice(8, 10)) + "–" + window.drShort(B);
+    return window.drShort(A) + " – " + window.drShort(B);
+  }
+  return A ? window.drShort(A) + " –" : "– " + window.drShort(B);
+};
+
+function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight, rename, today }) {
   const list = steps || [];
   /* ย้อนกลับ — เก็บตารางก่อนแก้แต่ละครั้งไว้ในเครื่อง (ผู้ใช้ขอ 2026-11-10 "เผื่อลบผิด แก้ผิด")
      พิมพ์ช่องเดิมต่อเนื่องนับเป็นครั้งเดียว ไม่งั้นต้องกดย้อนทีละตัวอักษร
@@ -193,6 +205,15 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
   const [tune, setTune] = React.useState(false);
   const showW = weight && tune;
   const canRow = can && (!weight || tune);
+  /* งานโครงการ (มีวันแผน/วันจริง) — ผู้ใช้ พ.ย. 2026: ตาราง 40 แถว × 6 ช่องกรอก "ดูแล้วลายตามาก" เลือกแบบ ก
+     โหมด "อัปเดตวันนี้" (ค่าเริ่มต้น): โชว์เป็นข้อความ + แถบ % พับตามหัวข้อใหญ่ แตะแถวไหนค่อยกางช่องแก้แถวนั้นแถวเดียว
+     โหมด "แก้แผนงาน": ตารางช่องกรอกเต็มแบบเดิม (ชื่อ · วันแผน · เพิ่ม/ลบ · คืนชุดมาตรฐาน) ใช้ตอนวางแผนครั้งเดียว */
+  const proj = !!(plan || dates);
+  const [planMode, setPlanMode] = React.useState(false);
+  const [openRow, setOpenRow] = React.useState(-1);
+  const [openG, setOpenG] = React.useState(null);   /* null = กางอัตโนมัติ (หัวข้อที่กำลังทำ) */
+  /* จอแคบ (มือถือ ~266px ในฟอร์ม) — แถบ % ย้ายไปใต้ชื่อ ไม่งั้นชื่อขั้นเหลือกว้าง 30px */
+  const narrow = window.matchMedia("(max-width: 560px)").matches;
   /* แก้ไม่ได้ก็ไม่ต้องขึ้นเป็นช่องกรอก — งานบ้านมีวันแผนแค่ขั้นติดตั้ง
      ถ้าโชว์ช่องว่างที่กดไม่ได้ทั้งตาราง จะดูเหมือนฟอร์มเสียมากกว่าเป็นข้อมูล */
   const dateBox = (i, k, r) => (can ? (
@@ -208,8 +229,188 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
       <Icon name="undo" size={14} /> ย้อนกลับ{nHist ? " (" + nHist + ")" : ""}
     </button>
   );
+
+  /* ── งานโครงการ: แถบสลับโหมด ── */
+  const segBtn = (on, label, onClick) => (
+    <button type="button" onClick={onClick} aria-pressed={on}
+      style={{ padding: "7px 13px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit",
+        fontSize: 12.5, fontWeight: 700, boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+        background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary)" : "var(--text-2)" }}>{label}</button>
+  );
+  const linkBtn = { padding: "4px 2px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit",
+    fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" };
+  const pctOf = (r) => Math.max(0, Math.min(100, +(r && r.pct) || 0));
+  /* กลุ่มตามหัวข้อใหญ่ — นับหัวแบบเดียวกับกราฟในใบพิมพ์ (head !== false) % หัวข้อ = เฉลี่ยขั้นย่อย */
+  const groups = [];
+  if (proj) rows.forEach((r, i) => {
+    if (r.head !== false || !groups.length) groups.push({ h: i, kids: [] });
+    else groups[groups.length - 1].kids.push(i);
+  });
+  const infos = groups.map((g) => {
+    const h = rows[g.h];
+    const ks = g.kids.map((k) => rows[k]);
+    const all = [h].concat(ks);
+    const pct = Math.round(ks.length ? ks.reduce((a, r) => a + pctOf(r), 0) / ks.length : pctOf(h));
+    const ds = (k) => all.map((r) => r[k]).filter(Boolean).map((v) => String(v).slice(0, 10)).sort();
+    const started = pct > 0 || all.some((r) => r.actStart);
+    return { pct: pct, ps: ds("planStart")[0] || "", pe: ds("planEnd").slice(-1)[0] || "",
+      state: pct >= 100 ? "done" : started ? "doing" : "todo", nDone: ks.filter((r) => pctOf(r) >= 100).length };
+  });
+  const auto = {};
+  infos.forEach((x, gi) => { if (x.state === "doing") auto[gi] = true; });
+  if (!Object.keys(auto).length) { const f0 = infos.findIndex((x) => x.state !== "done"); if (f0 >= 0) auto[f0] = true; }
+  const isOpen = (gi) => (openG ? !!openG[gi] : !!auto[gi]);
+  const toggleG = (gi) => setOpenG((p) => Object.assign({}, p || auto, { [gi]: !(p ? p[gi] : auto[gi]) }));
+  const foldAll = (v) => { const m = {}; if (v) groups.forEach((_, gi) => { m[gi] = true; }); setOpenG(m); };
+  /* ใส่ % แล้ววันเริ่ม/จบจริงที่ยังว่าง เติมเป็นวันที่ของใบนี้ให้ (แก้ทีหลังได้ · กดย้อนกลับได้) */
+  const setPct = (i, raw) => {
+    const r = list[i] || {};
+    const n = raw === "" ? "" : Math.max(0, Math.min(100, +raw || 0));
+    const up = { pct: n };
+    if (today && n !== "" && n > 0 && !r.actStart) up.actStart = today;
+    if (today && n !== "" && n >= 100 && !r.actEnd) up.actEnd = today;
+    commit(list.map((x, k) => (k === i ? Object.assign({}, x, up) : x)), i + ":pct");
+  };
+  const bar = (p, full) => (
+    <span style={{ display: "block", width: full ? "100%" : 72, height: full ? 4 : 6, marginTop: full ? 5 : 0, borderRadius: 3,
+      background: "var(--divider)", overflow: "hidden", flexShrink: 0 }}>
+      <span style={{ display: "block", height: "100%", width: p + "%", borderRadius: 3, background: p >= 100 ? "#10B981" : "var(--primary)" }} />
+    </span>
+  );
+  const pctTx = (p, bold) => (
+    <span style={{ width: 38, textAlign: "right", flexShrink: 0, fontFamily: "var(--mono)", fontSize: 12, fontWeight: bold ? 800 : 600,
+      color: p >= 100 ? "#10B981" : p > 0 ? "var(--text-1)" : "var(--text-3)" }}>{p}%</span>
+  );
+  const ST = { done: ["เสร็จ", "#10B981"], doing: ["กำลังทำ", "var(--primary)"], todo: ["ยังไม่เริ่ม", "var(--text-3)"] };
+  const editor = (i, r) => (
+    <div style={{ padding: "10px 12px 13px " + (narrow ? 12 : 30) + "px", background: "var(--surface2)", borderTop: "1px solid var(--divider)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, maxWidth: 420 }}>
+        {[["actStart", "เริ่มจริง"], ["actEnd", "เสร็จจริง"]].map(([k, lb]) => (
+          <label key={k} style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
+            {lb}
+            <input type="date" value={r[k] || ""} onChange={(e) => set(i, k, e.target.value)}
+              style={Object.assign({}, DR_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)", marginTop: 4 })} />
+          </label>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginRight: 2 }}>ทำไปแล้ว</span>
+        {[0, 25, 50, 75, 100].map((v) => {
+          const on = r.pct !== "" && r.pct != null && pctOf(r) === v;
+          return (
+            <button key={v} type="button" onClick={() => setPct(i, v)}
+              style={{ minWidth: 42, padding: "6px 9px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "var(--mono)",
+                fontSize: 12, fontWeight: 800, boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+                background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary)" : "var(--text-2)" }}>{v}</button>
+          );
+        })}
+        <input value={r.pct === 0 || r.pct ? String(r.pct) : ""} inputMode="numeric" aria-label="ทำไปแล้ว %"
+          onChange={(e) => setPct(i, e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+          style={Object.assign({}, DR_INPUT, { width: 58, padding: "6px 8px", fontSize: 12.5, fontFamily: "var(--mono)", textAlign: "right" })} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>%</span>
+      </div>
+      {today ? <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 7 }}>ใส่ % แล้ววันเริ่ม/เสร็จจริงที่ยังว่างจะเติมเป็นวันของใบนี้ให้</div> : null}
+    </div>
+  );
+  const rowLine = (i, solo, first) => {
+    const r = rows[i];
+    const on = openRow === i;
+    const p = pctOf(r);
+    const sub = [(r.planStart || r.planEnd) ? "แผน " + drRange(r.planStart, r.planEnd) : "",
+      (r.actStart || r.actEnd) ? "จริง " + drRange(r.actStart, r.actEnd) : ""].filter(Boolean).join(" · ") || "ยังไม่มีวัน";
+    return (
+      <React.Fragment key={"r" + i}>
+        <button type="button" onClick={can ? () => setOpenRow(on ? -1 : i) : undefined} aria-expanded={can ? on : undefined}
+          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px 9px " + (solo || narrow ? 12 : 30) + "px",
+            background: on ? "var(--surface2)" : "none", border: "none", borderTop: first ? "none" : "1px solid var(--divider)",
+            cursor: can ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
+          <span style={{ width: solo ? 22 : narrow ? 26 : 30, flexShrink: 0, fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: solo ? 800 : 500,
+            color: solo ? "var(--primary)" : "var(--text-3)" }}>{r.no}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 12.5, fontWeight: solo || on ? 700 : 500, color: "var(--text-1)",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: on || narrow ? "normal" : "nowrap" }}>{r.th || "—"}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{sub}</span>
+            {narrow && bar(p, true)}
+          </span>
+          {!narrow && bar(p)}
+          {pctTx(p)}
+          {can && <Icon name={on ? "chevronDown" : "pen"} size={13} color={on ? "var(--primary)" : "var(--text-3)"}
+            style={{ flexShrink: 0, transform: on ? "rotate(180deg)" : "none" }} />}
+        </button>
+        {on && editor(i, r)}
+      </React.Fragment>
+    );
+  };
+  const modeBar = proj && can ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+      {segBtn(!planMode, "อัปเดตวันนี้", () => setPlanMode(false))}
+      {segBtn(planMode, "แก้แผนงาน", () => { setPlanMode(true); setOpenRow(-1); })}
+      <span style={{ flex: 1 }} />
+      {!planMode && groups.some((g) => g.kids.length) && (
+        <React.Fragment>
+          <button type="button" onClick={() => foldAll(true)} style={linkBtn}>กางทั้งหมด</button>
+          <span style={{ color: "var(--text-3)", fontSize: 11 }}>·</span>
+          <button type="button" onClick={() => foldAll(false)} style={linkBtn}>พับทั้งหมด</button>
+        </React.Fragment>
+      )}
+      {!planMode && !!nHist && undoBtn}
+    </div>
+  ) : null;
+
+  if (proj && !(can && planMode)) {
+    return (
+      <div>
+        {modeBar}
+        {!groups.length && (
+          <div style={{ padding: "14px 4px", fontSize: 12.5, color: "var(--text-3)" }}>
+            ยังไม่มีขั้นงาน{can ? " — กด \"แก้แผนงาน\" เพื่อเพิ่มหัวข้อ" : ""}
+          </div>
+        )}
+        {groups.map((g, gi) => {
+          const x = infos[gi];
+          const h = rows[g.h];
+          const open = isOpen(gi);
+          return (
+            <div key={"g" + gi} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
+              overflow: "hidden", marginBottom: 8 }}>
+              {g.kids.length ? (
+                <button type="button" onClick={() => toggleG(gi)} aria-expanded={open}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", border: "none",
+                    background: "none", cursor: "pointer", fontFamily: "inherit",
+                    textAlign: "left", color: "inherit" }}>
+                  <span style={{ width: 22, flexShrink: 0, fontFamily: "var(--mono)", fontSize: 12, fontWeight: 800, color: "var(--primary)" }}>{h.no}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: narrow ? "normal" : "nowrap" }}>{h.th || "—"}</span>
+                    <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>
+                      {(x.ps || x.pe) ? drRange(x.ps, x.pe) + " · " : ""}
+                      <b style={{ color: ST[x.state][1], fontWeight: 700 }}>{ST[x.state][0]}</b>
+                      {" · " + x.nDone + "/" + g.kids.length + " ขั้น"}
+                    </span>
+                    {narrow && bar(x.pct, true)}
+                  </span>
+                  {!narrow && bar(x.pct)}
+                  {pctTx(x.pct, true)}
+                  <Icon name="chevronDown" size={14} color="var(--primary)"
+                    style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+                </button>
+              ) : rowLine(g.h, true, true)}
+              {g.kids.length > 0 && open && g.kids.map((k) => rowLine(k, false, false))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div>
+      {modeBar}
+      {proj && can && (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", margin: "-2px 0 8px" }}>
+          แก้ชื่อหัวข้อ · วันแผน · เพิ่ม/ลบขั้น — เสร็จแล้วกด "อัปเดตวันนี้" กลับไปกรอกความคืบหน้า
+        </div>
+      )}
       {/* ปุ่มย้อนกลับไว้บนหัวตารางด้วย — ตาราง 40 แถว ลบแถวกลางตารางแล้วไม่ต้องเลื่อนลงไปหาปุ่มล่าง */}
       {can && !!nHist && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>{undoBtn}</div>}
       <div style={{ overflowX: "auto" }}>
@@ -738,10 +939,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 )}
               </div>
               <div style={{ marginTop: 6 }}>
-                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
+                <DrLabel hint={isProject ? "แตะแถวเพื่ออัปเดต · แก้หัวข้อ/วันแผนที่ \"แก้แผนงาน\"" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
                 {/* งานบ้านไม่มีวันแผน/วันจริงรายหัวข้อ — มีแค่ช่วงวันติดตั้งช่วงเดียวของทั้งงาน
                     เหลือ เนื้องาน · น้ำหนักงาน · ทำไปแล้ว กี่ % กรอกบนมือถือหน้างานได้จริง */}
-                <DrStepTable key={date} steps={form.steps} disabled={locked} editable
+                <DrStepTable key={date} steps={form.steps} disabled={locked} editable today={date}
                   plan={isProject} dates={isProject} weight={!isProject} rename={isProject}
                   onReset={isProject ? window.drWhaSteps : window.drHomeSteps}
                   onChange={(v) => edit({ steps: v })} />

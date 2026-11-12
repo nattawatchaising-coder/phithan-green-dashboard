@@ -311,6 +311,17 @@ function DrRows({
     size: 14
   }), " ", addLabel || "เพิ่มแถว"));
 }
+const drRange = (a, b) => {
+  const A = a ? String(a).slice(0, 10) : "",
+    B = b ? String(b).slice(0, 10) : "";
+  if (!A && !B) return "—";
+  if (A && B) {
+    if (A === B) return window.drShort(A);
+    if (A.slice(0, 7) === B.slice(0, 7)) return +A.slice(8, 10) + "–" + window.drShort(B);
+    return window.drShort(A) + " – " + window.drShort(B);
+  }
+  return A ? window.drShort(A) + " –" : "– " + window.drShort(B);
+};
 function DrStepTable({
   steps,
   onChange,
@@ -320,7 +331,8 @@ function DrStepTable({
   plan,
   dates,
   weight,
-  rename
+  rename,
+  today
 }) {
   const list = steps || [];
   const hist = React.useRef([]);
@@ -399,6 +411,11 @@ function DrStepTable({
   const [tune, setTune] = React.useState(false);
   const showW = weight && tune;
   const canRow = can && (!weight || tune);
+  const proj = !!(plan || dates);
+  const [planMode, setPlanMode] = React.useState(false);
+  const [openRow, setOpenRow] = React.useState(-1);
+  const [openG, setOpenG] = React.useState(null);
+  const narrow = window.matchMedia("(max-width: 560px)").matches;
   const dateBox = (i, k, r) => can ? React.createElement("input", {
     type: "date",
     value: r[k] || "",
@@ -430,7 +447,398 @@ function DrStepTable({
     name: "undo",
     size: 14
   }), " \u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A", nHist ? " (" + nHist + ")" : "");
-  return React.createElement("div", null, can && !!nHist && React.createElement("div", {
+  const segBtn = (on, label, onClick) => React.createElement("button", {
+    type: "button",
+    onClick: onClick,
+    "aria-pressed": on,
+    style: {
+      padding: "7px 13px",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+      background: on ? "var(--primary-soft)" : "var(--surface)",
+      color: on ? "var(--primary)" : "var(--text-2)"
+    }
+  }, label);
+  const linkBtn = {
+    padding: "4px 2px",
+    border: "none",
+    background: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "var(--text-3)"
+  };
+  const pctOf = r => Math.max(0, Math.min(100, +(r && r.pct) || 0));
+  const groups = [];
+  if (proj) rows.forEach((r, i) => {
+    if (r.head !== false || !groups.length) groups.push({
+      h: i,
+      kids: []
+    });else groups[groups.length - 1].kids.push(i);
+  });
+  const infos = groups.map(g => {
+    const h = rows[g.h];
+    const ks = g.kids.map(k => rows[k]);
+    const all = [h].concat(ks);
+    const pct = Math.round(ks.length ? ks.reduce((a, r) => a + pctOf(r), 0) / ks.length : pctOf(h));
+    const ds = k => all.map(r => r[k]).filter(Boolean).map(v => String(v).slice(0, 10)).sort();
+    const started = pct > 0 || all.some(r => r.actStart);
+    return {
+      pct: pct,
+      ps: ds("planStart")[0] || "",
+      pe: ds("planEnd").slice(-1)[0] || "",
+      state: pct >= 100 ? "done" : started ? "doing" : "todo",
+      nDone: ks.filter(r => pctOf(r) >= 100).length
+    };
+  });
+  const auto = {};
+  infos.forEach((x, gi) => {
+    if (x.state === "doing") auto[gi] = true;
+  });
+  if (!Object.keys(auto).length) {
+    const f0 = infos.findIndex(x => x.state !== "done");
+    if (f0 >= 0) auto[f0] = true;
+  }
+  const isOpen = gi => openG ? !!openG[gi] : !!auto[gi];
+  const toggleG = gi => setOpenG(p => Object.assign({}, p || auto, {
+    [gi]: !(p ? p[gi] : auto[gi])
+  }));
+  const foldAll = v => {
+    const m = {};
+    if (v) groups.forEach((_, gi) => {
+      m[gi] = true;
+    });
+    setOpenG(m);
+  };
+  const setPct = (i, raw) => {
+    const r = list[i] || {};
+    const n = raw === "" ? "" : Math.max(0, Math.min(100, +raw || 0));
+    const up = {
+      pct: n
+    };
+    if (today && n !== "" && n > 0 && !r.actStart) up.actStart = today;
+    if (today && n !== "" && n >= 100 && !r.actEnd) up.actEnd = today;
+    commit(list.map((x, k) => k === i ? Object.assign({}, x, up) : x), i + ":pct");
+  };
+  const bar = (p, full) => React.createElement("span", {
+    style: {
+      display: "block",
+      width: full ? "100%" : 72,
+      height: full ? 4 : 6,
+      marginTop: full ? 5 : 0,
+      borderRadius: 3,
+      background: "var(--divider)",
+      overflow: "hidden",
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: p + "%",
+      borderRadius: 3,
+      background: p >= 100 ? "#10B981" : "var(--primary)"
+    }
+  }));
+  const pctTx = (p, bold) => React.createElement("span", {
+    style: {
+      width: 38,
+      textAlign: "right",
+      flexShrink: 0,
+      fontFamily: "var(--mono)",
+      fontSize: 12,
+      fontWeight: bold ? 800 : 600,
+      color: p >= 100 ? "#10B981" : p > 0 ? "var(--text-1)" : "var(--text-3)"
+    }
+  }, p, "%");
+  const ST = {
+    done: ["เสร็จ", "#10B981"],
+    doing: ["กำลังทำ", "var(--primary)"],
+    todo: ["ยังไม่เริ่ม", "var(--text-3)"]
+  };
+  const editor = (i, r) => React.createElement("div", {
+    style: {
+      padding: "10px 12px 13px " + (narrow ? 12 : 30) + "px",
+      background: "var(--surface2)",
+      borderTop: "1px solid var(--divider)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+      gap: 8,
+      maxWidth: 420
+    }
+  }, [["actStart", "เริ่มจริง"], ["actEnd", "เสร็จจริง"]].map(([k, lb]) => React.createElement("label", {
+    key: k,
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, lb, React.createElement("input", {
+    type: "date",
+    value: r[k] || "",
+    onChange: e => set(i, k, e.target.value),
+    style: Object.assign({}, DR_INPUT, {
+      padding: "7px 9px",
+      fontSize: 12.5,
+      fontFamily: "var(--mono)",
+      marginTop: 4
+    })
+  })))), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
+      marginTop: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      marginRight: 2
+    }
+  }, "\u0E17\u0E33\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27"), [0, 25, 50, 75, 100].map(v => {
+    const on = r.pct !== "" && r.pct != null && pctOf(r) === v;
+    return React.createElement("button", {
+      key: v,
+      type: "button",
+      onClick: () => setPct(i, v),
+      style: {
+        minWidth: 42,
+        padding: "6px 9px",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "var(--mono)",
+        fontSize: 12,
+        fontWeight: 800,
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        color: on ? "var(--primary)" : "var(--text-2)"
+      }
+    }, v);
+  }), React.createElement("input", {
+    value: r.pct === 0 || r.pct ? String(r.pct) : "",
+    inputMode: "numeric",
+    "aria-label": "\u0E17\u0E33\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 %",
+    onChange: e => setPct(i, e.target.value.replace(/[^0-9]/g, "").slice(0, 3)),
+    style: Object.assign({}, DR_INPUT, {
+      width: 58,
+      padding: "6px 8px",
+      fontSize: 12.5,
+      fontFamily: "var(--mono)",
+      textAlign: "right"
+    })
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "%")), today ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 7
+    }
+  }, "\u0E43\u0E2A\u0E48 % \u0E41\u0E25\u0E49\u0E27\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21/\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E08\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07\u0E08\u0E30\u0E40\u0E15\u0E34\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E27\u0E31\u0E19\u0E02\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E43\u0E2B\u0E49") : null);
+  const rowLine = (i, solo, first) => {
+    const r = rows[i];
+    const on = openRow === i;
+    const p = pctOf(r);
+    const sub = [r.planStart || r.planEnd ? "แผน " + drRange(r.planStart, r.planEnd) : "", r.actStart || r.actEnd ? "จริง " + drRange(r.actStart, r.actEnd) : ""].filter(Boolean).join(" · ") || "ยังไม่มีวัน";
+    return React.createElement(React.Fragment, {
+      key: "r" + i
+    }, React.createElement("button", {
+      type: "button",
+      onClick: can ? () => setOpenRow(on ? -1 : i) : undefined,
+      "aria-expanded": can ? on : undefined,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "9px 12px 9px " + (solo || narrow ? 12 : 30) + "px",
+        background: on ? "var(--surface2)" : "none",
+        border: "none",
+        borderTop: first ? "none" : "1px solid var(--divider)",
+        cursor: can ? "pointer" : "default",
+        fontFamily: "inherit",
+        textAlign: "left",
+        color: "inherit"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: solo ? 22 : narrow ? 26 : 30,
+        flexShrink: 0,
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        fontWeight: solo ? 800 : 500,
+        color: solo ? "var(--primary)" : "var(--text-3)"
+      }
+    }, r.no), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        fontWeight: solo || on ? 700 : 500,
+        color: "var(--text-1)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: on || narrow ? "normal" : "nowrap"
+      }
+    }, r.th || "—"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)",
+        marginTop: 1
+      }
+    }, sub), narrow && bar(p, true)), !narrow && bar(p), pctTx(p), can && React.createElement(Icon, {
+      name: on ? "chevronDown" : "pen",
+      size: 13,
+      color: on ? "var(--primary)" : "var(--text-3)",
+      style: {
+        flexShrink: 0,
+        transform: on ? "rotate(180deg)" : "none"
+      }
+    })), on && editor(i, r));
+  };
+  const modeBar = proj && can ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
+      marginBottom: 10
+    }
+  }, segBtn(!planMode, "อัปเดตวันนี้", () => setPlanMode(false)), segBtn(planMode, "แก้แผนงาน", () => {
+    setPlanMode(true);
+    setOpenRow(-1);
+  }), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), !planMode && groups.some(g => g.kids.length) && React.createElement(React.Fragment, null, React.createElement("button", {
+    type: "button",
+    onClick: () => foldAll(true),
+    style: linkBtn
+  }, "\u0E01\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontSize: 11
+    }
+  }, "\xB7"), React.createElement("button", {
+    type: "button",
+    onClick: () => foldAll(false),
+    style: linkBtn
+  }, "\u0E1E\u0E31\u0E1A\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), !planMode && !!nHist && undoBtn) : null;
+  if (proj && !(can && planMode)) {
+    return React.createElement("div", null, modeBar, !groups.length && React.createElement("div", {
+      style: {
+        padding: "14px 4px",
+        fontSize: 12.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19", can ? " — กด \"แก้แผนงาน\" เพื่อเพิ่มหัวข้อ" : ""), groups.map((g, gi) => {
+      const x = infos[gi];
+      const h = rows[g.h];
+      const open = isOpen(gi);
+      return React.createElement("div", {
+        key: "g" + gi,
+        style: {
+          background: "var(--surface)",
+          boxShadow: "var(--shadow-sm)",
+          borderRadius: "var(--r-tile)",
+          overflow: "hidden",
+          marginBottom: 8
+        }
+      }, g.kids.length ? React.createElement("button", {
+        type: "button",
+        onClick: () => toggleG(gi),
+        "aria-expanded": open,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          padding: "10px 12px",
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          color: "inherit"
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 22,
+          flexShrink: 0,
+          fontFamily: "var(--mono)",
+          fontSize: 12,
+          fontWeight: 800,
+          color: "var(--primary)"
+        }
+      }, h.no), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13,
+          fontWeight: 800,
+          color: "var(--text-1)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: narrow ? "normal" : "nowrap"
+        }
+      }, h.th || "—"), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 11,
+          color: "var(--text-3)",
+          marginTop: 1
+        }
+      }, x.ps || x.pe ? drRange(x.ps, x.pe) + " · " : "", React.createElement("b", {
+        style: {
+          color: ST[x.state][1],
+          fontWeight: 700
+        }
+      }, ST[x.state][0]), " · " + x.nDone + "/" + g.kids.length + " ขั้น"), narrow && bar(x.pct, true)), !narrow && bar(x.pct), pctTx(x.pct, true), React.createElement(Icon, {
+        name: "chevronDown",
+        size: 14,
+        color: "var(--primary)",
+        style: {
+          flexShrink: 0,
+          transform: open ? "rotate(180deg)" : "none",
+          transition: "transform .18s"
+        }
+      })) : rowLine(g.h, true, true), g.kids.length > 0 && open && g.kids.map(k => rowLine(k, false, false)));
+    }));
+  }
+  return React.createElement("div", null, modeBar, proj && can && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      margin: "-2px 0 8px"
+    }
+  }, "\u0E41\u0E01\u0E49\u0E0A\u0E37\u0E48\u0E2D\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \xB7 \u0E27\u0E31\u0E19\u0E41\u0E1C\u0E19 \xB7 \u0E40\u0E1E\u0E34\u0E48\u0E21/\u0E25\u0E1A\u0E02\u0E31\u0E49\u0E19 \u2014 \u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 \"\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\" \u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E01\u0E23\u0E2D\u0E01\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32"), can && !!nHist && React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",
@@ -1488,12 +1896,13 @@ function DailyReportModal({
       marginTop: 6
     }
   }, React.createElement(DrLabel, {
-    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"
+    hint: isProject ? "แตะแถวเพื่ออัปเดต · แก้หัวข้อ/วันแผนที่ \"แก้แผนงาน\"" : "กรอกแค่ \"ทำไปแล้ว %\" ของแต่ละหัวข้อ — ระบบรวมเป็น % ของทั้งงานให้เอง"
   }, isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"), React.createElement(DrStepTable, {
     key: date,
     steps: form.steps,
     disabled: locked,
     editable: true,
+    today: date,
     plan: isProject,
     dates: isProject,
     weight: !isProject,
