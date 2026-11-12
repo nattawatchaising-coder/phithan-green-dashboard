@@ -271,7 +271,8 @@ function PartnerApp() {
     try { localStorage.removeItem("solarflow_session_v1"); } catch (e) {}
     (window.FBAUTH ? window.FBAUTH.signOut() : Promise.resolve()).then(() => location.reload(), () => location.reload());
   };
-  const wrap = { minHeight: "100vh", background: "var(--bg)", color: "var(--text-1)" };
+  /* body ของแอปเป็น overflow:hidden (แอปพนักงานเลื่อนในกล่องตัวเอง) → หน้านี้ต้องเป็นกล่องเลื่อนเอง ไม่งั้นลูกกลิ้งเลื่อนไม่ได้ (ผู้ใช้ 2026-11-12) */
+  const wrap = { height: "calc(100dvh - var(--kb, 0px))", overflowY: "auto", WebkitOverflowScrolling: "touch", background: "var(--bg)", color: "var(--text-1)" };
   const inner = { maxWidth: 1200, margin: "0 auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14, boxSizing: "border-box" };
   if (me === undefined) return <div style={wrap}><div style={inner}><div style={{ color: "var(--text-3)", fontSize: 13 }}>กำลังโหลด…</div></div></div>;
   if (!me || me.active === false) return (

@@ -652,7 +652,9 @@ function PartnerApp() {
     (window.FBAUTH ? window.FBAUTH.signOut() : Promise.resolve()).then(() => location.reload(), () => location.reload());
   };
   const wrap = {
-    minHeight: "100vh",
+    height: "calc(100dvh - var(--kb, 0px))",
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
     background: "var(--bg)",
     color: "var(--text-1)"
   };
