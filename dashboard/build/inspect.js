@@ -161,10 +161,10 @@ function useJobInspections(jobId) {
       updatedByName: (user || {}).name || ""
     }));
   }, [jobId]);
-  const create = React.useCallback((job, kind, user) => {
+  const create = React.useCallback((job, kind, user, extra) => {
     if (!jobId || !_IRFB()) return null;
     const id = "IR-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const rec = Object.assign(irBlank(job, irNextNo(list), kind), {
+    const rec = Object.assign(irBlank(job, irNextNo(list), kind), extra || {}, {
       id: id,
       createdAt: new Date().toISOString(),
       createdBy: (user || {}).id || null,
@@ -261,12 +261,28 @@ function InspectionListModal({
   const store = useJobInspections(job ? job.id : null);
   const [openId, setOpenId] = React.useState(null);
   const [picking, setPicking] = React.useState(false);
-  const [ask, setAsk] = React.useState(null);
   if (!job) return null;
   const editing = openId ? store.list.find(x => x.id === openId) : null;
   const startNew = kind => {
-    const rec = store.create(job, kind, currentUser);
+    const rec = store.create(job, kind, currentUser, kind ? {
+      items: irPresetItems(kind).map(n => irNewItem(n))
+    } : null);
     setPicking(false);
+    if (rec) setOpenId(rec.id);
+  };
+  const recheck = src => {
+    const its = src.items || [];
+    const fails = its.filter(x => x.result === "fail");
+    const items = (fails.length ? fails : its).map(x => Object.assign(irNewItem(x.name), {
+      note: x.note || ""
+    }));
+    const rec = store.create(job, src.kind, currentUser, {
+      refIr: src.no || "",
+      reqItems: "ตรวจซ้ำตามใบ " + (src.no || "") + (fails.length ? " · " + fails.length + " ข้อที่ไม่ผ่าน" : ""),
+      to: src.to || "",
+      reqBy: src.reqBy || "",
+      items: items
+    });
     if (rec) setOpenId(rec.id);
   };
   return React.createElement(React.Fragment, null, React.createElement("div", {
@@ -367,51 +383,45 @@ function InspectionListModal({
     }
   }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"), !store.loading && !store.list.length && React.createElement("div", {
     style: {
-      padding: 34,
-      textAlign: "center",
+      padding: "6px 2px",
       color: "var(--text-3)",
-      fontSize: 13,
-      background: "var(--surface)",
-      border: "1px dashed var(--border-strong)",
-      borderRadius: "var(--r-tile)"
+      fontSize: 12.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E01\u0E14 \u201C\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E43\u0E2B\u0E21\u0E48\u201D \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E2D\u0E30\u0E44\u0E23"), store.list.map(x => {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E14 \u201C\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E43\u0E2B\u0E21\u0E48\u201D \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E2D\u0E30\u0E44\u0E23"), store.list.map(x => {
     const r = IR_RESULT_BY[x.result];
-    return React.createElement("div", {
+    const t = irItemTally(x.items);
+    const c = r ? r.color : "#94A3B8";
+    return React.createElement("button", {
       key: x.id,
-      style: {
-        border: "none",
-        boxShadow: "var(--shadow-sm)",
-        borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
-        borderRadius: "var(--r-chip)",
-        background: "var(--surface)",
-        overflow: "hidden"
-      }
-    }, React.createElement("button", {
+      className: "act-row",
       onClick: () => setOpenId(x.id),
       style: {
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 13px",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        textAlign: "left"
+        marginBottom: 0
       }
     }, React.createElement("span", {
+      className: "ic-chip",
+      style: {
+        background: "color-mix(in srgb, " + c + " 13%, transparent)"
+      }
+    }, React.createElement(Icon, {
+      name: "clipboard",
+      size: 17,
+      color: c
+    })), React.createElement("span", {
       style: {
         flex: 1,
-        minWidth: 0
+        minWidth: 0,
+        textAlign: "left"
       }
     }, React.createElement("span", {
       style: {
         display: "block",
         fontSize: 13.5,
         fontWeight: 700,
-        color: "var(--text-1)"
+        color: "var(--text-1)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
       }
     }, React.createElement("span", {
       style: {
@@ -420,89 +430,27 @@ function InspectionListModal({
         fontSize: 11.5,
         marginRight: 7
       }
-    }, x.no), x.kind), React.createElement("span", {
+    }, x.no), x.kind || "ยังไม่ระบุประเภท"), React.createElement("span", {
       style: {
         display: "block",
         fontSize: 11.5,
-        color: r ? r.color : "var(--text-3)",
-        fontWeight: r ? 700 : 400,
-        marginTop: 2
+        marginTop: 2,
+        color: "var(--text-3)"
       }
-    }, r ? "ผลตรวจ: " + r.th : "ยังไม่สรุปผลการตรวจ", x.reqDate ? " · ขอตรวจ " + (window.drDateTH ? window.drDateTH(x.reqDate) : x.reqDate) : "")), React.createElement(Icon, {
+    }, React.createElement("b", {
+      style: {
+        color: c,
+        fontWeight: 700
+      }
+    }, r ? r.th : "ยังไม่สรุปผล"), t.total ? " · ผ่าน " + t.pass + "/" + t.total + " ข้อ" + (t.fail ? " · ไม่ผ่าน " + t.fail : "") : "", x.reqDate ? " · " + (window.drDateTH ? window.drDateTH(x.reqDate) : x.reqDate) : "")), React.createElement(Icon, {
       name: "arrowRight",
       size: 16,
       color: "var(--text-3)"
-    })), ask === x.id ? React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        flexWrap: "wrap",
-        padding: "10px 13px",
-        borderTop: "1px solid var(--divider)"
-      }
-    }, React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 150,
-        fontSize: 12,
-        fontWeight: 700,
-        color: "var(--tint-red-tx2)",
-        lineHeight: 1.5
-      }
-    }, "\u0E25\u0E1A\u0E43\u0E1A ", x.no, " ? \u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A\u0E44\u0E27\u0E49\u0E08\u0E30\u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48 \u0E41\u0E15\u0E48\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E08\u0E30\u0E2B\u0E32\u0E22\u0E44\u0E1B"), React.createElement("button", {
-      onClick: () => {
-        store.remove(x.id);
-        setAsk(null);
-      },
-      style: {
-        padding: "7px 13px",
-        borderRadius: 9,
-        border: "none",
-        background: "#EF4444",
-        color: "#fff",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: "pointer"
-      }
-    }, "\u0E25\u0E1A\u0E40\u0E25\u0E22"), React.createElement("button", {
-      onClick: () => setAsk(null),
-      style: {
-        padding: "7px 13px",
-        borderRadius: 9,
-        border: "none",
-        boxShadow: "var(--shadow-sm)",
-        background: "var(--surface)",
-        color: "var(--text-2)",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: "pointer"
-      }
-    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("div", {
-      style: {
-        padding: "0 13px 10px"
-      }
-    }, React.createElement("button", {
-      onClick: () => setAsk(x.id),
-      style: {
-        padding: "5px 10px",
-        borderRadius: 8,
-        border: "none",
-        boxShadow: "var(--shadow-sm)",
-        background: "var(--surface)",
-        color: "var(--tint-red-tx2)",
-        fontFamily: "inherit",
-        fontSize: 11.5,
-        fontWeight: 700,
-        cursor: "pointer"
-      }
-    }, "\u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49")));
+    }));
   }), picking && React.createElement("div", {
     style: {
-      border: "1px solid var(--border-strong)",
-      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 12,
       background: "var(--surface)"
     }
@@ -541,7 +489,8 @@ function InspectionListModal({
       textAlign: "left",
       padding: "10px 12px",
       borderRadius: "var(--r-chip)",
-      border: "1px dashed var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -559,19 +508,6 @@ function InspectionListModal({
       gap: 10
     }
   }, React.createElement("button", {
-    onClick: onClose,
-    style: {
-      padding: "12px 18px",
-      borderRadius: "var(--r-chip)",
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontWeight: 700,
-      fontFamily: "inherit",
-      fontSize: 13.5,
-      cursor: "pointer"
-    }
-  }, "\u0E1B\u0E34\u0E14"), React.createElement("button", {
     onClick: () => setPicking(v => !v),
     style: {
       flex: 1,
@@ -595,10 +531,16 @@ function InspectionListModal({
     color: "#fff",
     sw: 2.4
   }), " ", picking ? "ปิดรายการประเภท" : "สร้างใบตรวจใหม่")))), editing && React.createElement(InspectionFormModal, {
+    key: editing.id,
     job: job,
     rec: editing,
     currentUser: currentUser,
     onSave: patch => store.save(editing.id, patch, currentUser),
+    onRemove: () => {
+      store.remove(editing.id);
+      setOpenId(null);
+    },
+    onRecheck: recheck,
     onClose: () => setOpenId(null)
   }));
 }
@@ -729,7 +671,9 @@ function InspectionFormModal({
   rec,
   currentUser,
   onSave,
-  onClose
+  onClose,
+  onRemove,
+  onRecheck
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const path = irPhotoPath(job ? job.id : "", rec);
@@ -748,18 +692,59 @@ function InspectionFormModal({
   const signN = ["issueBy", "inspectedBy", "approvedBy", "clientBy"].filter(k => String(f[k] || "").trim()).length;
   const atTH = f.inspAt ? (window.drDateTH ? window.drDateTH(f.inspAt) : f.inspAt.slice(0, 10)) + (f.inspAt.length > 10 ? " " + f.inspAt.slice(11, 16) : "") : "";
   const headLine = [f.no || "ไม่มีเลขที่", f.to ? "เรียน " + f.to : "ยังไม่ใส่ผู้รับ", atTH ? "ตรวจ " + atTH : "ยังไม่ใส่วันตรวจ", f.reqBy ? "ขอโดย " + f.reqBy : "", "ลงนาม " + signN + "/4"].filter(Boolean).join(" · ");
+  const dirty = React.useRef(false);
+  const gone = React.useRef(false);
+  const tmr = React.useRef(null);
+  const fRef = React.useRef(f);
+  fRef.current = f;
+  const saveRef = React.useRef(onSave);
+  saveRef.current = onSave;
   const set = (k, v) => {
+    dirty.current = true;
+    setSaved(false);
     setF(p => Object.assign({}, p, {
       [k]: v
     }));
-    setSaved(false);
+  };
+  React.useEffect(() => {
+    if (!dirty.current || gone.current) return;
+    clearTimeout(tmr.current);
+    tmr.current = setTimeout(() => {
+      if (gone.current) return;
+      saveRef.current(fRef.current);
+      dirty.current = false;
+      setSaved(true);
+    }, 800);
+  }, [f]);
+  const flush = () => {
+    clearTimeout(tmr.current);
+    if (dirty.current && !gone.current) {
+      saveRef.current(fRef.current);
+      dirty.current = false;
+    }
+  };
+  React.useEffect(() => () => flush(), []);
+  const close = () => {
+    flush();
+    onClose();
   };
   const fillPreset = () => set("items", irPresetItems(f.kind).map(n => irNewItem(n)));
-  const doSave = () => {
-    onSave(f);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+  const askRemove = () => {
+    window.askConfirm({
+      title: "ลบใบ " + (f.no || "นี้") + "?",
+      body: "รูปที่แนบไว้ยังอยู่ แต่ใบนี้จะหายไป — เรียกคืนไม่ได้",
+      ok: "ลบใบนี้",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (!ok) return;
+      gone.current = true;
+      clearTimeout(tmr.current);
+      onRemove();
+    });
   };
+  const failN = (f.items || []).filter(x => x.result === "fail").length;
+  const canRecheck = !!onRecheck && (f.result === "rejected" || f.result === "rectified" || failN > 0);
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
@@ -836,7 +821,7 @@ function InspectionFormModal({
     }
   }, job.code, " \xB7 ", job.name)), React.createElement("button", {
     className: "x-close",
-    onClick: onClose,
+    onClick: close,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
       flexShrink: 0,
@@ -1057,7 +1042,33 @@ function InspectionFormModal({
     onChange: e => set("resultOther", e.target.value),
     placeholder: "\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08",
     style: inp
-  })), React.createElement(IrField, {
+  }), canRecheck && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      flush();
+      onRecheck(fRef.current);
+    },
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 13px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "undo",
+    size: 14,
+    color: "var(--primary)"
+  }), " \u0E15\u0E23\u0E27\u0E08\u0E0B\u0E49\u0E33 \u2014 \u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48", failN ? " จาก " + failN + " ข้อที่ไม่ผ่าน" : "")), React.createElement(IrField, {
     label: "Summary",
     thai: "\u0E2A\u0E23\u0E38\u0E1B\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08",
     wide: true,
@@ -1337,12 +1348,46 @@ function InspectionFormModal({
     value: f.clientBy,
     onChange: e => set("clientBy", e.target.value),
     style: inp
-  })))))), rec && rec.updatedAt && React.createElement("div", {
+  })))))), React.createElement("div", {
     style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, rec && rec.updatedAt ? React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 160,
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14 ", window.drDateTH ? window.drDateTH(rec.updatedAt, true) : rec.updatedAt, rec.updatedByName ? " · โดย " + rec.updatedByName : "")), React.createElement("div", {
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14 ", window.drDateTH ? window.drDateTH(rec.updatedAt, true) : rec.updatedAt, rec.updatedByName ? " · โดย " + rec.updatedByName : "") : React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), onRemove && React.createElement("button", {
+    type: "button",
+    onClick: askRemove,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 11px",
+      borderRadius: 9,
+      border: "none",
+      background: "none",
+      color: "var(--tint-red-tx2)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#EF4444"
+  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))), React.createElement("div", {
     style: {
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
@@ -1352,28 +1397,26 @@ function InspectionFormModal({
       gap: 10,
       flexWrap: "wrap"
     }
-  }, React.createElement("button", {
-    onClick: onClose,
+  }, React.createElement("span", {
     style: {
-      padding: "12px 18px",
-      borderRadius: "var(--r-chip)",
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontWeight: 700,
-      fontFamily: "inherit",
-      fontSize: 13.5,
-      cursor: "pointer"
+      flex: "1 1 100%",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      display: isMobile ? "block" : "none"
     }
-  }, "\u0E1B\u0E34\u0E14"), React.createElement("button", {
-    onClick: () => setPaper(true),
+  }, saved ? "✓ บันทึกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), React.createElement("button", {
+    onClick: () => {
+      flush();
+      setPaper(true);
+    },
     style: {
       display: "inline-flex",
       alignItems: "center",
       gap: 7,
       padding: "12px 16px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--primary-dark)",
       fontWeight: 700,
@@ -1384,23 +1427,31 @@ function InspectionFormModal({
   }, React.createElement(Icon, {
     name: "file",
     size: 16,
-    color: "var(--primary-dark)"
-  }), " \u0E14\u0E39\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), React.createElement("button", {
-    onClick: doSave,
+    color: "var(--primary)"
+  }), " \u0E14\u0E39\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), !isMobile && React.createElement("span", {
     style: {
       flex: 1,
-      minWidth: 150,
-      padding: 12,
+      alignSelf: "center",
+      textAlign: "right",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, saved ? "✓ บันทึกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), React.createElement("button", {
+    onClick: close,
+    style: {
+      flex: isMobile ? 1 : "0 0 auto",
+      minWidth: 120,
+      padding: "12px 20px",
       borderRadius: "var(--r-chip)",
       border: "none",
-      background: saved ? "var(--tint-green-tx)" : "var(--primary)",
+      background: "var(--primary)",
       color: "#fff",
       fontWeight: 700,
       fontFamily: "inherit",
       fontSize: 14,
       cursor: "pointer"
     }
-  }, saved ? "บันทึกแล้ว" : "บันทึก")))), paper && window.InspectionPaper && React.createElement(window.InspectionPaper, {
+  }, "\u0E40\u0E2A\u0E23\u0E47\u0E08")))), paper && window.InspectionPaper && React.createElement(window.InspectionPaper, {
     job: job,
     rec: f,
     photos: photos.photos,

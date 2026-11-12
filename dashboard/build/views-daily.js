@@ -972,7 +972,9 @@ function DailyReportModal({
   const mine = window.useDrMySign((currentUser || {}).id);
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
-  const [delAsk, setDelAsk] = React.useState(false);
+  const [more, setMore] = React.useState(false);
+  const [signOpen, setSignOpen] = React.useState(false);
+  const dateRef = React.useRef(null);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
   React.useEffect(() => {
@@ -982,8 +984,11 @@ function DailyReportModal({
     if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
     if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
-  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan]);
-  React.useEffect(() => setDelAsk(false), [date]);
+  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan, store.dates.filter(d => d < date).length]);
+  React.useEffect(() => {
+    setMore(false);
+    setSignOpen(false);
+  }, [date]);
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role, job, currentUser, form);
   const noEe = window.drNoEe(job);
@@ -1074,7 +1079,30 @@ function DailyReportModal({
   const doDelete = () => {
     clearTimeout(timer.current);
     store.remove(date);
-    setDelAsk(false);
+  };
+  const askDelete = () => {
+    setMore(false);
+    window.askConfirm({
+      title: "ลบรายงานวันที่ " + window.drDateTH(date) + "?",
+      body: "ลบทั้งใบ รวมรูปและลายเซ็นของวันนั้น — เรียกคืนไม่ได้",
+      ok: "ลบใบนี้",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) doDelete();
+    });
+  };
+  const openCal = () => {
+    const el = dateRef.current;
+    if (!el) return;
+    try {
+      if (el.showPicker) {
+        el.showPicker();
+        return;
+      }
+    } catch (e) {}
+    el.focus();
+    el.click();
   };
   const reopen = () => {
     sigs.clear("app");
@@ -1150,20 +1178,16 @@ function DailyReportModal({
       borderRadius: "var(--r-pill)",
       padding: "2px 10px"
     }
-  }, st.th), locked ? React.createElement("span", {
+  }, st.th), isProject && React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
       borderRadius: "var(--r-pill)",
       padding: "2px 9px",
-      color: isProject ? "#7C5CFC" : "#F59E0B",
-      background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c"
+      color: "#7C5CFC",
+      background: "#7C5CFC1c"
     }
-  }, isProject ? "แบบจัดเต็ม" : "แบบปกติ") : React.createElement(DrModeSwitch, {
-    value: form.mode,
-    onChange: setMode,
-    disabled: locked
-  })), React.createElement("div", {
+  }, "\u0E41\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E40\u0E15\u0E47\u0E21")), React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-3)",
@@ -1197,16 +1221,17 @@ function DailyReportModal({
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      marginTop: 11,
-      flexWrap: "wrap"
+      gap: 6,
+      marginTop: 11
     }
   }, React.createElement("button", {
     onClick: () => setDate(window.drAddDays(date, -1)),
     title: "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+    "aria-label": "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
     style: {
       width: 32,
       height: 32,
+      flexShrink: 0,
       borderRadius: 9,
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -1222,24 +1247,63 @@ function DailyReportModal({
     style: {
       transform: "rotate(180deg)"
     }
-  })), React.createElement("input", {
+  })), React.createElement("span", {
+    style: {
+      position: "relative",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    type: "button",
+    onClick: openCal,
+    title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E08\u0E32\u0E01\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 11px",
+      borderRadius: 9,
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "calendar",
+    size: 14,
+    color: "var(--primary)"
+  }), " ", window.drDateTH(date, !isMobile)), React.createElement("input", {
+    ref: dateRef,
     type: "date",
     value: date,
     max: window.drToday(),
+    tabIndex: -1,
+    "aria-hidden": "true",
     onChange: e => setDate(e.target.value || window.drToday()),
-    style: Object.assign({}, DR_INPUT, {
-      width: "auto",
-      padding: "7px 10px",
-      fontFamily: "var(--mono)",
-      fontSize: 12.5
-    })
-  }), React.createElement("button", {
+    style: {
+      position: "absolute",
+      left: 0,
+      bottom: 0,
+      width: 1,
+      height: 1,
+      opacity: 0,
+      pointerEvents: "none",
+      border: "none",
+      padding: 0
+    }
+  })), React.createElement("button", {
     onClick: () => setDate(window.drAddDays(date, 1)),
     disabled: date >= window.drToday(),
     title: "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    "aria-label": "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
     style: {
       width: 32,
       height: 32,
+      flexShrink: 0,
       borderRadius: 9,
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -1253,25 +1317,15 @@ function DailyReportModal({
   }, React.createElement(Icon, {
     name: "chevronRight",
     size: 15
-  })), React.createElement("span", {
+  })), store.dates.length > 0 && React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, window.drDateTH(date, true)), !!store.dates.length && React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      marginLeft: "auto"
-    }
-  }, "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27 ", store.dates.length, " \u0E27\u0E31\u0E19")), store.dates.length > 0 && React.createElement("div", {
-    style: {
+      flex: 1,
+      minWidth: 0,
       display: "flex",
       gap: 6,
-      marginTop: 9,
       overflowX: "auto",
-      paddingBottom: 2
+      padding: "2px 2px 3px",
+      marginLeft: 4
     }
   }, store.dates.slice(0, 14).map(d => {
     const s = window.drStatusOf((store.byDate[d] || {}).status);
@@ -1279,6 +1333,7 @@ function DailyReportModal({
     return React.createElement("button", {
       key: d,
       onClick: () => setDate(d),
+      title: s.th,
       style: {
         display: "inline-flex",
         alignItems: "center",
@@ -1303,7 +1358,7 @@ function DailyReportModal({
         background: s.color
       }
     }), window.drShort(d));
-  }))), React.createElement("div", {
+  })))), React.createElement("div", {
     style: {
       padding: isMobile ? "14px 13px 90px" : "18px 20px 100px"
     }
@@ -1723,42 +1778,122 @@ function DailyReportModal({
       th: "ผู้รับผิดชอบ",
       w: 150
     }]
-  })))), React.createElement(DrSection, {
-    n: isProject ? "9" : "5",
-    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
-    tone: "#7C5CFC",
-    hint: "\u0E40\u0E0B\u0E47\u0E19\u0E14\u0E49\u0E27\u0E22\u0E19\u0E34\u0E49\u0E27\u0E1A\u0E19\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E21\u0E32\u0E2A\u0E4C\u0E1A\u0E19\u0E04\u0E2D\u0E21"
-  }, React.createElement("div", {
+  })))), (() => {
+    const hasBy = !!(sigs.signs.by && sigs.signs.by.img);
+    const hasApp = !!(sigs.signs.app && sigs.signs.app.img);
+    return React.createElement(DrSection, {
+      n: isProject ? "9" : "5",
+      title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+      tone: "#7C5CFC",
+      hint: signOpen ? "เซ็นด้วยนิ้วบนมือถือ หรือเมาส์บนคอม" : ""
+    }, !signOpen ? React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 190,
+        fontSize: 12.5,
+        color: "var(--text-2)",
+        lineHeight: 1.6
+      }
+    }, "\u0E1C\u0E39\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", React.createElement("b", {
+      style: {
+        color: hasBy ? "#10B981" : "var(--text-3)"
+      }
+    }, hasBy ? "เซ็นแล้ว" : "ยังไม่เซ็น"), " · ", "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 ", React.createElement("b", {
+      style: {
+        color: hasApp ? "#10B981" : "var(--text-3)"
+      }
+    }, hasApp ? "เซ็นแล้ว" : "รอเซ็น"), !locked && !hasBy && form.status !== "sent" && React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E01\u0E14 \u201C\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u201D \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E43\u0E2B\u0E49\u0E40\u0E0B\u0E47\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2A\u0E48\u0E07\u0E40\u0E2D\u0E07")), React.createElement("button", {
+      type: "button",
+      onClick: () => setSignOpen(true),
+      style: {
+        padding: "7px 12px",
+        borderRadius: 9,
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, hasBy || hasApp ? "ดูลายเซ็น" : "เซ็นเอง")) : React.createElement(React.Fragment, null, React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        gap: 12
+      }
+    }, React.createElement(DrSignSlot, {
+      title: "\u0E1C\u0E39\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 (\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
+      sub: form.byName || (currentUser || {}).name || "-",
+      sig: sigs.signs.by,
+      canSign: !locked,
+      saved: mine.sign,
+      onUseSaved: () => sigs.sign("by", mine.sign.img, currentUser),
+      onSign: () => setPad({
+        slot: "by",
+        title: "ลายเซ็นผู้บันทึก"
+      }),
+      onClear: () => sigs.clear("by")
+    }), React.createElement(DrSignSlot, {
+      title: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 (\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
+      sub: form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น"),
+      sig: sigs.signs.app,
+      canSign: canApprove && form.status !== "approved",
+      saved: mine.sign,
+      onUseSaved: () => sigs.sign("app", mine.sign.img, currentUser),
+      onSign: () => setPad({
+        slot: "app",
+        title: "ลายเซ็นผู้อนุมัติ"
+      }),
+      onClear: () => sigs.clear("app")
+    })), React.createElement("button", {
+      type: "button",
+      onClick: () => setSignOpen(false),
+      style: {
+        marginTop: 10,
+        padding: "6px 11px",
+        borderRadius: 9,
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "\u0E1E\u0E31\u0E1A\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19")));
+  })(), !locked && React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-      gap: 12
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      padding: "2px 2px"
     }
-  }, React.createElement(DrSignSlot, {
-    title: "\u0E1C\u0E39\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 (\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
-    sub: form.byName || (currentUser || {}).name || "-",
-    sig: sigs.signs.by,
-    canSign: !locked,
-    saved: mine.sign,
-    onUseSaved: () => sigs.sign("by", mine.sign.img, currentUser),
-    onSign: () => setPad({
-      slot: "by",
-      title: "ลายเซ็นผู้บันทึก"
-    }),
-    onClear: () => sigs.clear("by")
-  }), React.createElement(DrSignSlot, {
-    title: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 (\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
-    sub: form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น"),
-    sig: sigs.signs.app,
-    canSign: canApprove && form.status !== "approved",
-    saved: mine.sign,
-    onUseSaved: () => sigs.sign("app", mine.sign.img, currentUser),
-    onSign: () => setPad({
-      slot: "app",
-      title: "ลายเซ็นผู้อนุมัติ"
-    }),
-    onClear: () => sigs.clear("app")
-  })))), React.createElement("div", {
+  }, React.createElement(DrModeSwitch, {
+    value: form.mode,
+    onChange: setMode,
+    disabled: locked
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, (DR_MODES.find(m => m.key === form.mode) || DR_MODES[0]).hint))), React.createElement("div", {
     style: {
       position: "sticky",
       bottom: 0,
@@ -1773,69 +1908,70 @@ function DailyReportModal({
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: delAsk ? "#EF4444" : "var(--text-3)",
-      fontWeight: delAsk ? 700 : 400,
+      color: "var(--text-3)",
       flex: 1,
       minWidth: 100
     }
-  }, delAsk ? "ลบใบของวันนี้ทั้งใบ (รูปและลายเซ็นด้วย) เรียกคืนไม่ได้" : locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), canDelete && saved && (delAsk ? React.createElement(React.Fragment, null, React.createElement("button", {
-    onClick: () => setDelAsk(false),
+  }, locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), canDelete && saved && React.createElement("span", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "10px 15px",
-      borderRadius: "var(--r-chip)",
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 13,
-      fontWeight: 700,
-      color: "var(--text-2)"
+      position: "relative"
     }
-  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
-    onClick: doDelete,
+  }, React.createElement("button", {
+    onClick: () => setMore(m => !m),
+    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21",
+    "aria-label": "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21",
+    "aria-expanded": more,
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "10px 16px",
+      width: 40,
+      height: 40,
       borderRadius: "var(--r-chip)",
       border: "none",
-      background: "#EF4444",
-      color: "#fff",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 13,
-      fontWeight: 700
-    }
-  }, React.createElement(Icon, {
-    name: "trash",
-    size: 15,
-    color: "#fff"
-  }), " \u0E25\u0E1A\u0E40\u0E25\u0E22")) : React.createElement("button", {
-    onClick: () => setDelAsk(true),
-    title: "\u0E25\u0E1A\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "10px 13px",
-      borderRadius: "var(--r-chip)",
-      border: "1px solid var(--tint-red-bd)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 18,
+      fontWeight: 800,
+      lineHeight: 1
+    }
+  }, "\u22EF"), more && React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: "calc(100% + 6px)",
+      left: 0,
+      zIndex: 5,
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-pop)",
+      borderRadius: "var(--r-tile)",
+      padding: 6,
+      minWidth: 200
+    }
+  }, React.createElement("button", {
+    onClick: askDelete,
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "9px 11px",
+      border: "none",
+      background: "none",
+      borderRadius: 9,
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 13,
       fontWeight: 700,
-      color: "var(--tint-red-tx2)"
+      color: "var(--tint-red-tx2)",
+      textAlign: "left"
     }
   }, React.createElement(Icon, {
     name: "trash",
     size: 15,
     color: "#EF4444"
-  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49")), React.createElement("button", {
+  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"))), React.createElement("button", {
     onClick: () => {
       flush();
       setPaper(true);

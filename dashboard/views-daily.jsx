@@ -484,8 +484,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
   /* pad = { slot, title, then } — เปิดแผ่นเซ็น แล้วทำงานต่อ (ส่ง/อนุมัติ) ให้อัตโนมัติหลังเซ็นเสร็จ */
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
-  /* ถามยืนยันก่อนลบในแถบปุ่มเลย — ใบทั้งวันหายถาวร กดพลาดแล้วเรียกคืนไม่ได้ */
-  const [delAsk, setDelAsk] = React.useState(false);
+  /* จัดใหม่ พ.ย. 2026: ลบใบย้ายเข้าเมนู ⋯ (ยืนยันด้วย askConfirm) · ลายเซ็นพับเป็นบรรทัดสรุป · ปฏิทินซ่อนในปุ่มวันที่ */
+  const [more, setMore] = React.useState(false);
+  const [signOpen, setSignOpen] = React.useState(false);
+  const dateRef = React.useRef(null);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
 
@@ -499,9 +501,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
     if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
     if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
-  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan]);
+    /* ใบก่อนหน้าโหลดตามมาทีหลัง — ต้องตั้งใบเปล่าใหม่เมื่อมาถึง ไม่งั้นทีมช่างจากเมื่อวานไม่ถูกดึงมา (ใบเปิดครั้งแรก) */
+  }, [job ? job.id : null, date, saved ? saved.updatedAt : null, !!store.plan, store.dates.filter((d) => d < date).length]);
 
-  React.useEffect(() => setDelAsk(false), [date]);
+  React.useEffect(() => { setMore(false); setSignOpen(false); }, [date]);
 
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role, job, currentUser, form);
@@ -588,7 +591,18 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
   const doDelete = () => {
     clearTimeout(timer.current);
     store.remove(date);
-    setDelAsk(false);
+  };
+  const askDelete = () => {
+    setMore(false);
+    window.askConfirm({ title: "ลบรายงานวันที่ " + window.drDateTH(date) + "?", body: "ลบทั้งใบ รวมรูปและลายเซ็นของวันนั้น — เรียกคืนไม่ได้",
+      ok: "ลบใบนี้", danger: true, icon: "trash" }).then((ok) => { if (ok) doDelete(); });
+  };
+  /* เปิดปฏิทินของเบราว์เซอร์จากปุ่มวันที่ — ช่องวันที่จริงซ่อนอยู่ใต้ปุ่ม (showPicker ไม่มีในเบราว์เซอร์เก่า → โฟกัสช่องแทน) */
+  const openCal = () => {
+    const el = dateRef.current;
+    if (!el) return;
+    try { if (el.showPicker) { el.showPicker(); return; } } catch (e) { /* ตกไปโฟกัส */ }
+    el.focus(); el.click();
   };
   const reopen = () => {
     sigs.clear("app");
@@ -614,14 +628,9 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                   <span style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวันหน้างาน</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, background: st.color + "1c",
                     border: "none", borderRadius: "var(--r-pill)", padding: "2px 10px" }}>{st.th}</span>
-                  {/* ใบที่ล็อกแล้วแก้ไม่ได้ — โชว์เป็นป้ายบอกว่าใบนี้เขียนด้วยแบบไหน แทนปุ่มที่กดไม่ลง */}
-                  {locked ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: "var(--r-pill)", padding: "2px 9px",
-                      color: isProject ? "#7C5CFC" : "#F59E0B", background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c" }}>
-                      {isProject ? "แบบจัดเต็ม" : "แบบปกติ"}
-                    </span>
-                  ) : (
-                    <DrModeSwitch value={form.mode} onChange={setMode} disabled={locked} />
+                  {/* สวิตช์ ปกติ/จัดเต็ม ย้ายไปท้ายฟอร์ม (เลือกครั้งเดียวต่องาน) — หัวเหลือป้ายบอกเมื่อใช้แบบจัดเต็ม */}
+                  {isProject && (
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: "var(--r-pill)", padding: "2px 9px", color: "#7C5CFC", background: "#7C5CFC1c" }}>แบบจัดเต็ม</span>
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -635,44 +644,48 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
               </button>
             </div>
 
-            {/* เลือกวัน — วันไหนมีรายงานแล้วขึ้นจุดสี กดข้ามไปดู/แก้ได้ */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 11, flexWrap: "wrap" }}>
-              <button onClick={() => setDate(window.drAddDays(date, -1))} title="วันก่อนหน้า"
-                style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+            {/* เลือกวัน — แถวเดียว: ลูกศร · ปุ่มวันที่ (แตะ = ปฏิทิน) · ชิปวันที่เขียนไว้แล้ว (จุดสี = สถานะ) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 11 }}>
+              <button onClick={() => setDate(window.drAddDays(date, -1))} title="วันก่อนหน้า" aria-label="วันก่อนหน้า"
+                style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} />
               </button>
-              <input type="date" value={date} max={window.drToday()} onChange={(e) => setDate(e.target.value || window.drToday())}
-                style={Object.assign({}, DR_INPUT, { width: "auto", padding: "7px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
-              <button onClick={() => setDate(window.drAddDays(date, 1))} disabled={date >= window.drToday()} title="วันถัดไป"
-                style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+              <span style={{ position: "relative", flexShrink: 0 }}>
+                <button type="button" onClick={openCal} title="เลือกวันจากปฏิทิน"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 11px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
+                    background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap" }}>
+                  <Icon name="calendar" size={14} color="var(--primary)" /> {window.drDateTH(date, !isMobile)}
+                </button>
+                <input ref={dateRef} type="date" value={date} max={window.drToday()} tabIndex={-1} aria-hidden="true"
+                  onChange={(e) => setDate(e.target.value || window.drToday())}
+                  style={{ position: "absolute", left: 0, bottom: 0, width: 1, height: 1, opacity: 0, pointerEvents: "none", border: "none", padding: 0 }} />
+              </span>
+              <button onClick={() => setDate(window.drAddDays(date, 1))} disabled={date >= window.drToday()} title="วันถัดไป" aria-label="วันถัดไป"
+                style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: date >= window.drToday() ? "default" : "pointer", opacity: date >= window.drToday() ? 0.4 : 1,
                   display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="chevronRight" size={15} />
               </button>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{window.drDateTH(date, true)}</span>
-              {!!store.dates.length && (
-                <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto" }}>เขียนไว้แล้ว {store.dates.length} วัน</span>
+              {store.dates.length > 0 && (
+                <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 6, overflowX: "auto", padding: "2px 2px 3px", marginLeft: 4 }}>
+                  {store.dates.slice(0, 14).map((d) => {
+                    const s = window.drStatusOf((store.byDate[d] || {}).status);
+                    const on = d === date;
+                    return (
+                      <button key={d} onClick={() => setDate(d)} title={s.th}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-pill)", flexShrink: 0,
+                          border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                          color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: s.color }} />
+                        {window.drShort(d)}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
-            {store.dates.length > 0 && (
-              <div style={{ display: "flex", gap: 6, marginTop: 9, overflowX: "auto", paddingBottom: 2 }}>
-                {store.dates.slice(0, 14).map((d) => {
-                  const s = window.drStatusOf((store.byDate[d] || {}).status);
-                  const on = d === date;
-                  return (
-                    <button key={d} onClick={() => setDate(d)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-pill)", flexShrink: 0,
-                        border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)",
-                        cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
-                        color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: s.color }} />
-                      {window.drShort(d)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* เนื้อฟอร์ม */}
@@ -825,49 +838,84 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 </DrSection>
               </React.Fragment>
             )}
-            {/* ลายเซ็น — เซ็นในระบบได้เลย ไม่ต้องปรินต์ออกมาเซ็นแล้วสแกนกลับ */}
-            <DrSection n={isProject ? "9" : "5"} title="ลายเซ็น" tone="#7C5CFC" hint="เซ็นด้วยนิ้วบนมือถือ หรือเมาส์บนคอม">
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <DrSignSlot title="ผู้บันทึก (ช่างหน้างาน)" sub={form.byName || (currentUser || {}).name || "-"}
-                  sig={sigs.signs.by} canSign={!locked} saved={mine.sign}
-                  onUseSaved={() => sigs.sign("by", mine.sign.img, currentUser)}
-                  onSign={() => setPad({ slot: "by", title: "ลายเซ็นผู้บันทึก" })}
-                  onClear={() => sigs.clear("by")} />
-                <DrSignSlot title="ผู้อนุมัติ (หัวหน้างาน)" sub={form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น")}
-                  sig={sigs.signs.app} canSign={canApprove && form.status !== "approved"} saved={mine.sign}
-                  onUseSaved={() => sigs.sign("app", mine.sign.img, currentUser)}
-                  onSign={() => setPad({ slot: "app", title: "ลายเซ็นผู้อนุมัติ" })}
-                  onClear={() => sigs.clear("app")} />
+            {/* ลายเซ็น — เซ็นในระบบได้เลย ไม่ต้องปรินต์ออกมาเซ็นแล้วสแกนกลับ
+                พับเป็นบรรทัดสรุป: ปุ่ม "ส่งให้วิศวกร" / "อนุมัติ" ให้เซ็นก่อนเองอยู่แล้ว (needSign) ส่วนนี้จึงไม่ต้องกางทุกวัน */}
+            {(() => {
+              const hasBy = !!(sigs.signs.by && sigs.signs.by.img);
+              const hasApp = !!(sigs.signs.app && sigs.signs.app.img);
+              return (
+                <DrSection n={isProject ? "9" : "5"} title="ลายเซ็น" tone="#7C5CFC" hint={signOpen ? "เซ็นด้วยนิ้วบนมือถือ หรือเมาส์บนคอม" : ""}>
+                  {!signOpen ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <span style={{ flex: 1, minWidth: 190, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
+                        ผู้บันทึก <b style={{ color: hasBy ? "#10B981" : "var(--text-3)" }}>{hasBy ? "เซ็นแล้ว" : "ยังไม่เซ็น"}</b>
+                        {" · "}ผู้อนุมัติ <b style={{ color: hasApp ? "#10B981" : "var(--text-3)" }}>{hasApp ? "เซ็นแล้ว" : "รอเซ็น"}</b>
+                        {!locked && !hasBy && form.status !== "sent" && (
+                          <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>กด “ส่งให้วิศวกร” ด้านล่าง ระบบจะให้เซ็นก่อนส่งเอง</span>
+                        )}
+                      </span>
+                      <button type="button" onClick={() => setSignOpen(true)}
+                        style={{ padding: "7px 12px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+                        {hasBy || hasApp ? "ดูลายเซ็น" : "เซ็นเอง"}
+                      </button>
+                    </div>
+                  ) : (
+                    <React.Fragment>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                        <DrSignSlot title="ผู้บันทึก (ช่างหน้างาน)" sub={form.byName || (currentUser || {}).name || "-"}
+                          sig={sigs.signs.by} canSign={!locked} saved={mine.sign}
+                          onUseSaved={() => sigs.sign("by", mine.sign.img, currentUser)}
+                          onSign={() => setPad({ slot: "by", title: "ลายเซ็นผู้บันทึก" })}
+                          onClear={() => sigs.clear("by")} />
+                        <DrSignSlot title="ผู้อนุมัติ (หัวหน้างาน)" sub={form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น")}
+                          sig={sigs.signs.app} canSign={canApprove && form.status !== "approved"} saved={mine.sign}
+                          onUseSaved={() => sigs.sign("app", mine.sign.img, currentUser)}
+                          onSign={() => setPad({ slot: "app", title: "ลายเซ็นผู้อนุมัติ" })}
+                          onClear={() => sigs.clear("app")} />
+                      </div>
+                      <button type="button" onClick={() => setSignOpen(false)}
+                        style={{ marginTop: 10, padding: "6px 11px", borderRadius: 9, border: "none", background: "none", cursor: "pointer",
+                          fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>พับลายเซ็น</button>
+                    </React.Fragment>
+                  )}
+                </DrSection>
+              );
+            })()}
+
+            {/* แบบฟอร์ม ปกติ/จัดเต็ม — ย้ายจากหัวฟอร์มมาไว้ท้าย เพราะเลือกครั้งเดียวต่องาน ไม่ใช่ของที่ต้องเห็นทุกวัน */}
+            {!locked && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 2px" }}>
+                <DrModeSwitch value={form.mode} onChange={setMode} disabled={locked} />
+                <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{(DR_MODES.find((m) => m.key === form.mode) || DR_MODES[0]).hint}</span>
               </div>
-            </DrSection>
+            )}
           </div>
 
           {/* แถบปุ่มล่าง */}
           <div style={{ position: "sticky", bottom: 0, background: "var(--surface)", borderTop: "1px solid var(--divider)",
             padding: isMobile ? "11px 13px" : "13px 20px", display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11.5, color: delAsk ? "#EF4444" : "var(--text-3)", fontWeight: delAsk ? 700 : 400, flex: 1, minWidth: 100 }}>
-              {delAsk ? "ลบใบของวันนี้ทั้งใบ (รูปและลายเซ็นด้วย) เรียกคืนไม่ได้" : locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
+            <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, minWidth: 100 }}>
+              {locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
             </span>
-            {canDelete && saved && (delAsk ? (
-              <React.Fragment>
-                <button onClick={() => setDelAsk(false)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
-                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-                    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
-                <button onClick={doDelete}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
-                    background: "#EF4444", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
-                  <Icon name="trash" size={15} color="#fff" /> ลบเลย
-                </button>
-              </React.Fragment>
-            ) : (
-              <button onClick={() => setDelAsk(true)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 13px", borderRadius: "var(--r-chip)",
-                  border: "1px solid var(--tint-red-bd)", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
-                <Icon name="trash" size={15} color="#EF4444" /> ลบใบนี้
-              </button>
-            ))}
+            {/* ลบใบ — อยู่ในเมนู ⋯ (เดิมปุ่มแดงอยู่ข้างปุ่มส่งตลอดเวลา กดพลาดง่าย) */}
+            {canDelete && saved && (
+              <span style={{ position: "relative" }}>
+                <button onClick={() => setMore((m) => !m)} title="เพิ่มเติม" aria-label="เพิ่มเติม" aria-expanded={more}
+                  style={{ width: 40, height: 40, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                    cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontFamily: "inherit", fontSize: 18, fontWeight: 800, lineHeight: 1 }}>⋯</button>
+                {more && (
+                  <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, zIndex: 5, background: "var(--surface)", boxShadow: "var(--shadow-pop)",
+                    borderRadius: "var(--r-tile)", padding: 6, minWidth: 200 }}>
+                    <button onClick={askDelete}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", border: "none", background: "none", borderRadius: 9,
+                        cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--tint-red-tx2)", textAlign: "left" }}>
+                      <Icon name="trash" size={15} color="#EF4444" /> ลบใบของวันนี้
+                    </button>
+                  </div>
+                )}
+              </span>
+            )}
             <button onClick={() => { flush(); setPaper(true); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
                 border: "1px solid var(--primary)", background: "var(--primary-soft)", cursor: "pointer",

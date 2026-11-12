@@ -929,6 +929,7 @@ function PmHandoverModal({
   const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [onlyMissing, setOnlyMissing] = React.useState(false);
   const fileRef = React.useRef(null);
   const rec = store.rec;
   const started = !!(rec && rec.meta);
@@ -1110,6 +1111,24 @@ function PmHandoverModal({
   };
   const nextSec = prog.missing.length ? prog.missing[0].section : null;
   const signed = !!(rec && rec.meta && rec.meta.status === "signed");
+  const order = groups.reduce((a, g) => a.concat(g.secs), []);
+  const oi = order.indexOf(tab);
+  const prevKey = oi > 0 ? order[oi - 1] : null;
+  const nextKey = oi >= 0 && oi < order.length - 1 ? order[oi + 1] : null;
+  const missSet = {};
+  prog.missing.forEach(m => {
+    if (m.section === tab) missSet[m.key] = true;
+  });
+  const missN = Object.keys(missSet).length;
+  const canFilter = !!(cur && (cur.kind === "fields" || cur.kind === "checklist"));
+  const markGroup = (g, val) => {
+    const docs = rec && rec.docs || {};
+    const up = {};
+    (g.items || []).forEach(it => {
+      if (docs[it.key] !== "y" && docs[it.key] !== "n") up[it.key] = val;
+    });
+    if (Object.keys(up).length) store.patch("docs", up, currentUser);
+  };
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       position: "fixed",
@@ -1543,105 +1562,183 @@ function PmHandoverModal({
         color: "var(--text-3)"
       }));
     })));
-  })) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
-    key: g.key,
-    style: {
-      marginBottom: 18
-    }
-  }, React.createElement("div", {
+  })) : null, canFilter && React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "baseline",
-      gap: 8,
-      marginBottom: 9,
-      paddingBottom: 4,
-      borderBottom: "1px solid var(--divider)"
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 14,
+      flexWrap: "wrap"
     }
-  }, React.createElement("span", {
+  }, React.createElement("button", {
+    onClick: () => setOnlyMissing(v => !v),
+    "aria-pressed": onlyMissing,
     style: {
-      flex: 1,
-      minWidth: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 12px",
+      borderRadius: "var(--r-pill)",
+      cursor: "pointer",
+      fontFamily: "inherit",
       fontSize: 12,
-      fontWeight: 800,
-      color: "var(--text-1)"
+      fontWeight: 700,
+      border: "none",
+      boxShadow: onlyMissing ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+      background: onlyMissing ? "var(--primary-soft)" : "var(--surface)",
+      color: onlyMissing ? "var(--primary-dark)" : "var(--text-2)"
     }
-  }, g.en, " ", React.createElement("span", {
+  }, onlyMissing ? React.createElement(Icon, {
+    name: "check",
+    size: 13,
+    color: "var(--primary)"
+  }) : null, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E02\u0E32\u0E14", missN ? " (" + missN + ")" : ""), onlyMissing && !missN ? React.createElement("span", {
     style: {
-      fontWeight: 400,
-      color: "var(--text-3)"
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--tint-green-tx)"
     }
-  }, "(", g.th, ")"), g.optional ? React.createElement("span", {
-    style: {
-      fontWeight: 400,
-      color: "var(--text-3)"
-    }
-  }, " \xB7 \u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A") : null), g.repeat && g.setNo === g.setCount && g.setCount > 1 ? React.createElement("button", {
-    onClick: () => removeSet(g),
-    style: {
-      flexShrink: 0,
+  }, "\u2713 \u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27") : null), cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => {
+    const fl = onlyMissing ? (g.fields || []).filter(x => missSet[x.key]) : g.fields || [];
+    if (onlyMissing && !fl.length) return null;
+    return React.createElement("div", {
+      key: g.key,
+      style: {
+        marginBottom: 18
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginBottom: 9,
+        paddingBottom: 4,
+        borderBottom: "1px solid var(--divider)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, g.en, " ", React.createElement("span", {
+      style: {
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, "(", g.th, ")"), g.optional ? React.createElement("span", {
+      style: {
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, " \xB7 \u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A") : null), g.repeat && g.setNo === g.setCount && g.setCount > 1 ? React.createElement("button", {
+      onClick: () => removeSet(g),
+      style: {
+        flexShrink: 0,
+        padding: "4px 9px",
+        borderRadius: 8,
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
+        background: "var(--surface)",
+        color: "var(--text-3)",
+        fontFamily: "inherit",
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "\u0E25\u0E1A\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49") : null), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        columnGap: 14
+      }
+    }, fl.map(f => React.createElement(PmField, {
+      key: f.key,
+      field: f,
+      value: sum[f.key],
+      prefilled: window.pmIsPrefilled(rec, f.key) && !!f.from,
+      onCommit: setField
+    }))), g.repeat && g.setNo === g.setCount && g.setCount < g.repeat.max ? React.createElement("button", {
+      onClick: () => addSet(g),
+      style: {
+        marginTop: 2,
+        padding: "8px 13px",
+        borderRadius: 9,
+        border: "1px dashed var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--primary-dark)",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "+ ", g.repeat.addTh) : null);
+  }), cur && cur.kind === "checklist" && (cur.groups || []).map(g => {
+    const its = onlyMissing ? (g.items || []).filter(it => missSet[it.key]) : g.items || [];
+    if (onlyMissing && !its.length) return null;
+    const docs = rec.docs || {};
+    const blankN = (g.items || []).filter(it => docs[it.key] !== "y" && docs[it.key] !== "n").length;
+    const bulk = {
       padding: "4px 9px",
       borderRadius: 8,
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
-      color: "var(--text-3)",
       fontFamily: "inherit",
-      fontSize: 11,
-      fontWeight: 700,
-      cursor: "pointer"
-    }
-  }, "\u0E25\u0E1A\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49") : null), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-      columnGap: 14
-    }
-  }, (g.fields || []).map(f => React.createElement(PmField, {
-    key: f.key,
-    field: f,
-    value: sum[f.key],
-    prefilled: window.pmIsPrefilled(rec, f.key) && !!f.from,
-    onCommit: setField
-  }))), g.repeat && g.setNo === g.setCount && g.setCount < g.repeat.max ? React.createElement("button", {
-    onClick: () => addSet(g),
-    style: {
-      marginTop: 2,
-      padding: "8px 13px",
-      borderRadius: 9,
-      border: "1px dashed var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--primary-dark)",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      cursor: "pointer"
-    }
-  }, "+ ", g.repeat.addTh) : null)), cur && cur.kind === "checklist" && (cur.groups || []).map(g => React.createElement("div", {
-    key: g.key,
-    style: {
-      marginBottom: 18
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 12,
+      fontSize: 11.5,
       fontWeight: 800,
-      color: "var(--text-1)",
-      marginBottom: 4,
-      paddingBottom: 4,
-      borderBottom: "1px solid var(--divider)"
-    }
-  }, g.en, " ", React.createElement("span", {
-    style: {
-      fontWeight: 400,
-      color: "var(--text-3)"
-    }
-  }, "(", g.th, ")")), (g.items || []).map(it => React.createElement(PmDocRow, {
-    key: it.key,
-    item: it,
-    job: job,
-    value: (rec.docs || {})[it.key],
-    onSet: setDoc
-  })))), cur && cur.kind === "table" && (cur.tables || []).map(tb => React.createElement(PmTableBlock, {
+      cursor: "pointer",
+      flexShrink: 0
+    };
+    return React.createElement("div", {
+      key: g.key,
+      style: {
+        marginBottom: 18
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 4,
+        paddingBottom: 4,
+        borderBottom: "1px solid var(--divider)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, g.en, " ", React.createElement("span", {
+      style: {
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, "(", g.th, ")")), blankN ? React.createElement(React.Fragment, null, React.createElement("button", {
+      onClick: () => markGroup(g, "y"),
+      title: "ติ๊ก √ ให้ " + blankN + " ข้อที่ยังว่างในกลุ่มนี้",
+      style: Object.assign({}, bulk, {
+        color: "#16A34A"
+      })
+    }, "\u221A \u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D"), React.createElement("button", {
+      onClick: () => markGroup(g, "n"),
+      title: "ติ๊ก – (ไม่มี/ไม่เกี่ยว) ให้ " + blankN + " ข้อที่ยังว่าง",
+      style: Object.assign({}, bulk, {
+        color: "#64748B"
+      })
+    }, "\u2013 \u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D")) : null), its.map(it => React.createElement(PmDocRow, {
+      key: it.key,
+      item: it,
+      job: job,
+      value: docs[it.key],
+      onSet: setDoc
+    })));
+  }), cur && cur.kind === "table" && (cur.tables || []).map(tb => React.createElement(PmTableBlock, {
     key: tb.key,
     table: tb,
     mobile: isMobile,
@@ -1803,7 +1900,52 @@ function PmHandoverModal({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, "\u0E23\u0E39\u0E1B\u0E16\u0E39\u0E01\u0E22\u0E48\u0E2D\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E40\u0E1B\u0E25\u0E37\u0E2D\u0E07\u0E40\u0E19\u0E47\u0E15\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E44\u0E1F\u0E25\u0E4C Excel \u0E1D\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E41\u0E1C\u0E48\u0E19 Photos \u0E43\u0E19\u0E19\u0E31\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E23\u0E1A\u0E31\u0E0D\u0E17\u0E35\u0E48\u0E2D\u0E49\u0E32\u0E07\u0E40\u0E25\u0E02\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19 PDF"))), React.createElement("div", {
+  }, "\u0E23\u0E39\u0E1B\u0E16\u0E39\u0E01\u0E22\u0E48\u0E2D\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E40\u0E1B\u0E25\u0E37\u0E2D\u0E07\u0E40\u0E19\u0E47\u0E15\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E44\u0E1F\u0E25\u0E4C Excel \u0E1D\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E41\u0E1C\u0E48\u0E19 Photos \u0E43\u0E19\u0E19\u0E31\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E23\u0E1A\u0E31\u0E0D\u0E17\u0E35\u0E48\u0E2D\u0E49\u0E32\u0E07\u0E40\u0E25\u0E02\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19 PDF")), tab !== "home" && (prevKey || nextKey) ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 18
+    }
+  }, prevKey ? React.createElement("button", {
+    onClick: () => setTab(prevKey),
+    title: secTh(prevKey),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "10px 13px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 14
+  }), " \u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32") : null, nextKey ? React.createElement("button", {
+    className: "btn btn-pri",
+    onClick: () => setTab(nextKey),
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E16\u0E31\u0E14\u0E44\u0E1B \xB7 ", secTh(nextKey)), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 15,
+    color: "#fff"
+  })) : null) : null), React.createElement("div", {
     style: {
       flexShrink: 0,
       borderTop: "1px solid var(--divider)",

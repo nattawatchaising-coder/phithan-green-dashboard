@@ -171,10 +171,10 @@ function useJobInspections(jobId) {
     }));
   }, [jobId]);
 
-  const create = React.useCallback((job, kind, user) => {
+  const create = React.useCallback((job, kind, user, extra) => {
     if (!jobId || !_IRFB()) return null;
     const id = "IR-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const rec = Object.assign(irBlank(job, irNextNo(list), kind), {
+    const rec = Object.assign(irBlank(job, irNextNo(list), kind), extra || {}, {
       id: id, createdAt: new Date().toISOString(),
       createdBy: (user || {}).id || null, createdByName: (user || {}).name || "",
     });
@@ -246,14 +246,25 @@ function InspectionListModal({ job, currentUser, onClose }) {
   const store = useJobInspections(job ? job.id : null);
   const [openId, setOpenId] = React.useState(null);
   const [picking, setPicking] = React.useState(false);
-  const [ask, setAsk] = React.useState(null);
 
   if (!job) return null;
   const editing = openId ? store.list.find((x) => x.id === openId) : null;
 
+  /* สร้างใบใหม่ = ใส่รายการตรวจมาตรฐานของประเภทนั้นให้เลย (เดิมต้องกด "ใส่รายการมาตรฐาน" อีกครั้งในฟอร์ม) */
   const startNew = (kind) => {
-    const rec = store.create(job, kind, currentUser);
+    const rec = store.create(job, kind, currentUser, kind ? { items: irPresetItems(kind).map((n) => irNewItem(n)) } : null);
     setPicking(false);
+    if (rec) setOpenId(rec.id);
+  };
+  /* ตรวจซ้ำ — ใบใหม่อ้างเลขใบเดิม ยกมาเฉพาะข้อที่ไม่ผ่าน (ไม่มีข้อไม่ผ่าน = ยกมาทุกข้อ) ผลรายข้อเริ่มว่าง */
+  const recheck = (src) => {
+    const its = (src.items || []);
+    const fails = its.filter((x) => x.result === "fail");
+    const items = (fails.length ? fails : its).map((x) => Object.assign(irNewItem(x.name), { note: x.note || "" }));
+    const rec = store.create(job, src.kind, currentUser, {
+      refIr: src.no || "", reqItems: "ตรวจซ้ำตามใบ " + (src.no || "") + (fails.length ? " · " + fails.length + " ข้อที่ไม่ผ่าน" : ""),
+      to: src.to || "", reqBy: src.reqBy || "", items: items,
+    });
     if (rec) setOpenId(rec.id);
   };
 
@@ -282,55 +293,41 @@ function InspectionListModal({ job, currentUser, onClose }) {
             {store.loading && <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</div>}
 
             {!store.loading && !store.list.length && (
-              <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13,
-                background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
-                ยังไม่มีใบตรวจของงานนี้<br />กด “สร้างใบตรวจใหม่” แล้วเลือกว่าตรวจเรื่องอะไร
+              <div style={{ padding: "6px 2px", color: "var(--text-3)", fontSize: 12.5 }}>
+                ยังไม่มีใบตรวจของงานนี้ — กด “สร้างใบตรวจใหม่” แล้วเลือกว่าตรวจเรื่องอะไร
               </div>
             )}
 
+            {/* จัดใหม่ พ.ย. 2026: ใบละแถวเดียว (เลขใบ · ประเภท · ผลตรวจ · ผ่านกี่ข้อ · วันที่) ไม่มีแถบสีซ้าย
+                ปุ่มลบย้ายเข้าไปในฟอร์ม — เดิมปุ่ม "ลบใบนี้" ติดอยู่ใต้ทุกใบ */}
             {store.list.map((x) => {
               const r = IR_RESULT_BY[x.result];
+              const t = irItemTally(x.items);
+              const c = r ? r.color : "#94A3B8";
               return (
-                <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
-                  borderRadius: "var(--r-chip)", background: "var(--surface)", overflow: "hidden" }}>
-                  <button onClick={() => setOpenId(x.id)}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 13px",
-                      background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>
-                        <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)", fontSize: 11.5, marginRight: 7 }}>{x.no}</span>
-                        {x.kind}
-                      </span>
-                      <span style={{ display: "block", fontSize: 11.5, color: r ? r.color : "var(--text-3)", fontWeight: r ? 700 : 400, marginTop: 2 }}>
-                        {r ? "ผลตรวจ: " + r.th : "ยังไม่สรุปผลการตรวจ"}
-                        {x.reqDate ? " · ขอตรวจ " + (window.drDateTH ? window.drDateTH(x.reqDate) : x.reqDate) : ""}
-                      </span>
+                <button key={x.id} className="act-row" onClick={() => setOpenId(x.id)} style={{ marginBottom: 0 }}>
+                  <span className="ic-chip" style={{ background: "color-mix(in srgb, " + c + " 13%, transparent)" }}>
+                    <Icon name="clipboard" size={17} color={c} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)", fontSize: 11.5, marginRight: 7 }}>{x.no}</span>
+                      {x.kind || "ยังไม่ระบุประเภท"}
                     </span>
-                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                  </button>
-                  {ask === x.id ? (
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 13px", borderTop: "1px solid var(--divider)" }}>
-                      <span style={{ flex: 1, minWidth: 150, fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)", lineHeight: 1.5 }}>
-                        ลบใบ {x.no} ? รูปที่แนบไว้จะยังอยู่ แต่ใบนี้จะหายไป
-                      </span>
-                      <button onClick={() => { store.remove(x.id); setAsk(null); }} style={{ padding: "7px 13px", borderRadius: 9, border: "none",
-                        background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ลบเลย</button>
-                      <button onClick={() => setAsk(null)} style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
-                        background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
-                    </div>
-                  ) : (
-                    <div style={{ padding: "0 13px 10px" }}>
-                      <button onClick={() => setAsk(x.id)} style={{ padding: "5px 10px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
-                        background: "var(--surface)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>ลบใบนี้</button>
-                    </div>
-                  )}
-                </div>
+                    <span style={{ display: "block", fontSize: 11.5, marginTop: 2, color: "var(--text-3)" }}>
+                      <b style={{ color: c, fontWeight: 700 }}>{r ? r.th : "ยังไม่สรุปผล"}</b>
+                      {t.total ? " · ผ่าน " + t.pass + "/" + t.total + " ข้อ" + (t.fail ? " · ไม่ผ่าน " + t.fail : "") : ""}
+                      {x.reqDate ? " · " + (window.drDateTH ? window.drDateTH(x.reqDate) : x.reqDate) : ""}
+                    </span>
+                  </span>
+                  <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                </button>
               );
             })}
 
             {/* เลือกประเภทก่อนสร้าง — ตั้งชื่อใบให้ตรงเรื่องตั้งแต่แรก ดีกว่าสร้างเปล่าแล้วลืมแก้ */}
             {picking && (
-              <div style={{ border: "1px solid var(--border-strong)", borderRadius: "var(--r-chip)", padding: 12, background: "var(--surface)" }}>
+              <div style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 12, background: "var(--surface)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 9 }}>ตรวจเรื่องอะไร</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {IR_KINDS.map((k) => (
@@ -339,7 +336,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                       fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{k}</button>
                   ))}
                   <button onClick={() => startNew("")} style={{ textAlign: "left", padding: "10px 12px", borderRadius: "var(--r-chip)",
-                    border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)",
                     fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>อื่น ๆ — พิมพ์เองในใบ</button>
                 </div>
               </div>
@@ -348,8 +345,6 @@ function InspectionListModal({ job, currentUser, onClose }) {
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
             borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
-              background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
             <button onClick={() => setPicking((v) => !v)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
               padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
               <Icon name="plus" size={16} color="#fff" sw={2.4} /> {picking ? "ปิดรายการประเภท" : "สร้างใบตรวจใหม่"}
@@ -358,9 +353,12 @@ function InspectionListModal({ job, currentUser, onClose }) {
         </div>
       </div>
 
+      {/* key = id ใบ — กดตรวจซ้ำแล้วสลับไปใบใหม่ ฟอร์มต้องเริ่มจากใบใหม่ ไม่ค้างค่าของใบเดิม */}
       {editing && (
-        <InspectionFormModal job={job} rec={editing} currentUser={currentUser}
+        <InspectionFormModal key={editing.id} job={job} rec={editing} currentUser={currentUser}
           onSave={(patch) => store.save(editing.id, patch, currentUser)}
+          onRemove={() => { store.remove(editing.id); setOpenId(null); }}
+          onRecheck={recheck}
           onClose={() => setOpenId(null)} />
       )}
     </React.Fragment>
@@ -421,7 +419,7 @@ function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
   );
 }
 
-function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
+function InspectionFormModal({ job, rec, currentUser, onSave, onClose, onRemove, onRecheck }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const path = irPhotoPath(job ? job.id : "", rec);
   const photos = useIrPhotos(path);
@@ -441,13 +439,42 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
   const headLine = [f.no || "ไม่มีเลขที่", f.to ? "เรียน " + f.to : "ยังไม่ใส่ผู้รับ", atTH ? "ตรวจ " + atTH : "ยังไม่ใส่วันตรวจ",
     f.reqBy ? "ขอโดย " + f.reqBy : "", "ลงนาม " + signN + "/4"].filter(Boolean).join(" · ");
 
-  const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setSaved(false); };
-  const fillPreset = () => set("items", irPresetItems(f.kind).map((n) => irNewItem(n)));
-  const doSave = () => {
-    onSave(f);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+  /* บันทึกอัตโนมัติ (จัดใหม่ พ.ย. 2026) — เดิมต้องกด "บันทึก" เอง ปิดก่อนกด = ที่กรอกหายทั้งหมด
+     หน่วง 800ms หลังหยุดพิมพ์ · ปิดฟอร์มทางไหนก็เขียนของที่ค้างให้ก่อน (ทั้งปุ่มและตอนถูกถอดออกจากจอ)
+     ลบใบแล้ว (gone) ต้องไม่เขียนกลับ ไม่งั้นใบที่เพิ่งลบเด้งกลับมา */
+  const dirty = React.useRef(false);
+  const gone = React.useRef(false);
+  const tmr = React.useRef(null);
+  const fRef = React.useRef(f);
+  fRef.current = f;
+  const saveRef = React.useRef(onSave);
+  saveRef.current = onSave;
+  const set = (k, v) => { dirty.current = true; setSaved(false); setF((p) => Object.assign({}, p, { [k]: v })); };
+  React.useEffect(() => {
+    if (!dirty.current || gone.current) return;
+    clearTimeout(tmr.current);
+    tmr.current = setTimeout(() => {
+      if (gone.current) return;
+      saveRef.current(fRef.current); dirty.current = false; setSaved(true);
+    }, 800);
+  }, [f]);
+  const flush = () => {
+    clearTimeout(tmr.current);
+    if (dirty.current && !gone.current) { saveRef.current(fRef.current); dirty.current = false; }
   };
+  React.useEffect(() => () => flush(), []);
+  const close = () => { flush(); onClose(); };
+  const fillPreset = () => set("items", irPresetItems(f.kind).map((n) => irNewItem(n)));
+  const askRemove = () => {
+    window.askConfirm({ title: "ลบใบ " + (f.no || "นี้") + "?", body: "รูปที่แนบไว้ยังอยู่ แต่ใบนี้จะหายไป — เรียกคืนไม่ได้",
+      ok: "ลบใบนี้", danger: true, icon: "trash" }).then((ok) => {
+      if (!ok) return;
+      gone.current = true; clearTimeout(tmr.current);
+      onRemove();
+    });
+  };
+  const failN = (f.items || []).filter((x) => x.result === "fail").length;
+  const canRecheck = !!onRecheck && (f.result === "rejected" || f.result === "rectified" || failN > 0);
 
   const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const sub = { fontSize: 10.5, color: "var(--text-3)", fontWeight: 500, textTransform: "none", letterSpacing: 0 };
@@ -471,7 +498,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
+            <button className="x-close" onClick={close} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
 
@@ -559,6 +586,15 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
               </div>
               {f.result === "others" && (
                 <input value={f.resultOther} onChange={(e) => set("resultOther", e.target.value)} placeholder="ระบุผลการตรวจ" style={inp} />
+              )}
+              {/* ตรวจซ้ำ — ใบใหม่อ้างเลขใบนี้ ยกมาเฉพาะข้อที่ไม่ผ่าน */}
+              {canRecheck && (
+                <button type="button" onClick={() => { flush(); onRecheck(fRef.current); }}
+                  style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 13px", borderRadius: "var(--r-chip)",
+                    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--primary-dark)",
+                    fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  <Icon name="undo" size={14} color="var(--primary)" /> ตรวจซ้ำ — สร้างใบใหม่{failN ? " จาก " + failN + " ข้อที่ไม่ผ่าน" : ""}
+                </button>
               )}
             </div>
 
@@ -655,26 +691,37 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
               )}
             </div>
 
-            {rec && rec.updatedAt && (
-              <div style={{ fontSize: 11, color: "var(--text-3)" }}>
-                แก้ไขล่าสุด {window.drDateTH ? window.drDateTH(rec.updatedAt, true) : rec.updatedAt}
-                {rec.updatedByName ? " · โดย " + rec.updatedByName : ""}
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {rec && rec.updatedAt ? (
+                <span style={{ flex: 1, minWidth: 160, fontSize: 11, color: "var(--text-3)" }}>
+                  แก้ไขล่าสุด {window.drDateTH ? window.drDateTH(rec.updatedAt, true) : rec.updatedAt}
+                  {rec.updatedByName ? " · โดย " + rec.updatedByName : ""}
+                </span>
+              ) : <span style={{ flex: 1 }} />}
+              {onRemove && (
+                <button type="button" onClick={askRemove}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 11px", borderRadius: 9, border: "none", background: "none",
+                    color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  <Icon name="trash" size={13} color="#EF4444" /> ลบใบนี้
+                </button>
+              )}
+            </div>
           </div>
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
             borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
-              background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
-            <button onClick={() => setPaper(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 16px", borderRadius: "var(--r-chip)",
-              border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+            <span style={{ flex: "1 1 100%", fontSize: 11.5, color: "var(--text-3)", display: isMobile ? "block" : "none" }}>
+              {saved ? "✓ บันทึกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
+            </span>
+            <button onClick={() => { flush(); setPaper(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 16px", borderRadius: "var(--r-chip)",
+              border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--primary-dark)",
               fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
-              <Icon name="file" size={16} color="var(--primary-dark)" /> ดูเอกสาร · บันทึก PDF
+              <Icon name="file" size={16} color="var(--primary)" /> ดูเอกสาร · บันทึก PDF
             </button>
-            <button onClick={doSave} style={{ flex: 1, minWidth: 150, padding: 12, borderRadius: "var(--r-chip)", border: "none",
-              background: saved ? "var(--tint-green-tx)" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
-              {saved ? "บันทึกแล้ว" : "บันทึก"}
+            {!isMobile && <span style={{ flex: 1, alignSelf: "center", textAlign: "right", fontSize: 11.5, color: "var(--text-3)" }}>{saved ? "✓ บันทึกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}</span>}
+            <button onClick={close} style={{ flex: isMobile ? 1 : "0 0 auto", minWidth: 120, padding: "12px 20px", borderRadius: "var(--r-chip)", border: "none",
+              background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
+              เสร็จ
             </button>
           </div>
         </div>

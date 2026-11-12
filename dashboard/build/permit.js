@@ -1364,7 +1364,8 @@ function PermitShotCard({
   shot,
   busy,
   onPick,
-  onRemove
+  onRemove,
+  onFromJob
 }) {
   const inputRef = React.useRef(null);
   const [sample, setSample] = React.useState(false);
@@ -1443,11 +1444,17 @@ function PermitShotCard({
       color: warn ? "var(--tint-red-tx)" : "var(--text-3)",
       fontWeight: warn ? 600 : 400
     }
-  }, slot.hint), React.createElement("button", {
+  }, slot.hint), React.createElement("span", {
+    style: {
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      marginTop: 4
+    }
+  }, React.createElement("button", {
     type: "button",
     onClick: () => setSample(true),
     style: {
-      marginTop: 4,
       padding: 0,
       border: "none",
       background: "none",
@@ -1463,8 +1470,29 @@ function PermitShotCard({
   }, React.createElement(Icon, {
     name: "image",
     size: 12,
-    color: "var(--primary-dark)"
-  }), " \u0E14\u0E39\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07")), React.createElement("input", {
+    color: "var(--primary)"
+  }), " \u0E14\u0E39\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07"), onFromJob && React.createElement("button", {
+    type: "button",
+    onClick: onFromJob,
+    disabled: busy,
+    style: {
+      padding: 0,
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, React.createElement(Icon, {
+    name: "folder",
+    size: 12,
+    color: "var(--primary)"
+  }), " \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E07\u0E32\u0E19"))), React.createElement("input", {
     ref: inputRef,
     type: "file",
     accept: "image/*",
@@ -1526,6 +1554,175 @@ function PermitShotCard({
     size: 14
   })))));
 }
+function PermitJobPhotoPick({
+  job,
+  slot,
+  onPick,
+  onClose
+}) {
+  const j = job || {};
+  const [tab, setTab] = React.useState("daily");
+  const daily = window.useDailyReports ? window.useDailyReports(j.id) : {
+    dates: []
+  };
+  const dates = daily.dates || [];
+  const [day, setDay] = React.useState("");
+  React.useEffect(() => {
+    if (!day && dates.length) setDay(dates[0]);
+  }, [dates.length]);
+  const dayPhotos = window.useDailyPhotos ? window.useDailyPhotos(j.id, tab === "daily" ? day : null) : {
+    photos: []
+  };
+  const media = window.useJobMedia ? window.useJobMedia(tab === "job" ? j.id : null) : {
+    photos: []
+  };
+  const list = tab === "daily" ? dayPhotos.photos || [] : media.photos || [];
+  const tabBtn = (id, label) => React.createElement("button", {
+    onClick: () => setTab(id),
+    style: {
+      padding: "7px 12px",
+      borderRadius: "var(--r-pill)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      border: "none",
+      boxShadow: tab === id ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+      background: tab === id ? "var(--primary-soft)" : "var(--surface)",
+      color: tab === id ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, label);
+  return ReactDOM.createPortal(React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) onClose();
+    },
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 200,
+      background: "rgba(8,20,14,.5)",
+      overflow: "auto",
+      padding: "18px 12px"
+    }
+  }, React.createElement("div", {
+    style: {
+      maxWidth: 640,
+      margin: "0 auto",
+      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-modal)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "13px 15px",
+      borderBottom: "1px solid var(--divider)"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E39\u0E1B\u0E43\u0E2A\u0E48\u0E0A\u0E48\u0E2D\u0E07 \u201C", slot.label, "\u201D"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E15\u0E30\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23 \u2014 ", slot.hint.replace(/^⚠\s*/, ""))), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    "aria-label": "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "var(--r-tile)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15
+  }))), React.createElement("div", {
+    style: {
+      padding: 15
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      marginBottom: 12,
+      alignItems: "center"
+    }
+  }, tabBtn("daily", "รูปรายงานประจำวัน"), tabBtn("job", "รูปหน้างาน"), tab === "daily" && dates.length > 0 && React.createElement("select", {
+    value: day,
+    onChange: e => setDay(e.target.value),
+    style: Object.assign({}, P_INPUT, {
+      width: "auto",
+      padding: "7px 10px",
+      fontSize: 12.5,
+      border: "none",
+      boxShadow: "var(--shadow-inset)"
+    })
+  }, dates.map(d => React.createElement("option", {
+    key: d,
+    value: d
+  }, window.drDateTH ? window.drDateTH(d) : d)))), tab === "daily" && !dates.length ? React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      padding: "8px 2px"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19") : !list.length ? React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      padding: "8px 2px"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E19\u0E35\u0E49") : React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(104px,1fr))",
+      gap: 8
+    }
+  }, list.map(p => React.createElement("button", {
+    key: p.id,
+    onClick: () => onPick(p),
+    title: p.cap || p.caption || "ใช้รูปนี้",
+    style: {
+      padding: 0,
+      border: "none",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      cursor: "pointer"
+    }
+  }, React.createElement("img", {
+    src: p.dataUrl,
+    alt: "",
+    style: {
+      display: "block",
+      width: "100%",
+      height: 84,
+      objectFit: "cover"
+    }
+  }))))))), document.body);
+}
 function PermitWizard({
   job,
   onClose,
@@ -1539,6 +1736,7 @@ function PermitWizard({
   const bdClose = window.useBackdropClose(onClose);
   const [step, setStep] = React.useState(1);
   const [busySlot, setBusySlot] = React.useState(null);
+  const [jobPick, setJobPick] = React.useState(null);
   const [gpsBusy, setGpsBusy] = React.useState(false);
   const [gpsErr, setGpsErr] = React.useState("");
   const media = usePermitPhotos(job ? job.id : null);
@@ -2264,8 +2462,19 @@ function PermitWizard({
       shot: media.photos[s.key],
       busy: busySlot === s.key,
       onPick: file => pickPhoto(s.key, file),
-      onRemove: () => media.removePhoto(s.key)
+      onRemove: () => media.removePhoto(s.key),
+      onFromJob: locked ? null : () => setJobPick(s)
     }))));
+  }), jobPick && React.createElement(PermitJobPhotoPick, {
+    job: job,
+    slot: jobPick,
+    onClose: () => setJobPick(null),
+    onPick: p => {
+      media.setPhoto(jobPick.key, p.dataUrl, currentUser, {
+        src: "job"
+      });
+      setJobPick(null);
+    }
   })), step === 5 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: prog.missing.length ? "⚠️ ยังขาดอีก " + prog.missing.length + " อย่าง" : "✅ เก็บครบแล้ว",
     sub: prog.missing.length ? "แตะรายการเพื่อกระโดดไปหน้าที่ต้องแก้" : "กดส่งต่อได้เลย ฝ่ายขออนุญาตจะได้รับแจ้งเตือนทันที"

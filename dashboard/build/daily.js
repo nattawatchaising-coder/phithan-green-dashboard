@@ -298,7 +298,7 @@ function drBlank(job, date, user, prev, plan) {
     work: "",
     pct: typeof (job || {}).progressPct === "number" ? job.progressPct : 0,
     steps: drRenumber(pl && !prevNewer ? pl.steps : prev && prev.steps && prev.steps.length ? prev.steps : mode === "project" ? drWhaSteps() : drHomeSteps(job)),
-    team: "",
+    team: prev && prev.team || "",
     weatherAm: "",
     weatherPm: "",
     problem: "",

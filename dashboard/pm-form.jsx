@@ -479,6 +479,8 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  /* เฉพาะที่ยังขาด — ซ่อนช่อง/ข้อที่กรอกแล้วในหมวดแบบช่องกรอกและรายการเอกสาร (จัดใหม่ พ.ย. 2026) */
+  const [onlyMissing, setOnlyMissing] = React.useState(false);
   const fileRef = React.useRef(null);
 
   const rec = store.rec;
@@ -623,6 +625,22 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   /* ทำต่อ = หมวดแรกที่ยังมีรายการขาด ตามลำดับเล่ม */
   const nextSec = prog.missing.length ? prog.missing[0].section : null;
   const signed = !!(rec && rec.meta && rec.meta.status === "signed");
+  /* ลำดับหมวดตามกลุ่ม — ปุ่ม ก่อนหน้า/ถัดไป ท้ายทุกหมวด ไม่ต้องย้อนขึ้นไปเลือกหมวดเอง */
+  const order = groups.reduce((a, g) => a.concat(g.secs), []);
+  const oi = order.indexOf(tab);
+  const prevKey = oi > 0 ? order[oi - 1] : null;
+  const nextKey = oi >= 0 && oi < order.length - 1 ? order[oi + 1] : null;
+  const missSet = {};
+  prog.missing.forEach((m) => { if (m.section === tab) missSet[m.key] = true; });
+  const missN = Object.keys(missSet).length;
+  const canFilter = !!(cur && (cur.kind === "fields" || cur.kind === "checklist"));
+  /* ติ๊กทั้งกลุ่ม — ใส่ค่าให้เฉพาะข้อที่ยังว่าง ข้อที่เลือกไว้แล้วไม่ถูกทับ */
+  const markGroup = (g, val) => {
+    const docs = (rec && rec.docs) || {};
+    const up = {};
+    (g.items || []).forEach((it) => { if (docs[it.key] !== "y" && docs[it.key] !== "n") up[it.key] = val; });
+    if (Object.keys(up).length) store.patch("docs", up, currentUser);
+  };
 
   return (
     <React.Fragment>
@@ -805,7 +823,24 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   </div>
                 ) : null}
 
-                {cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map((g) => (
+                {canFilter && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                    <button onClick={() => setOnlyMissing((v) => !v)} aria-pressed={onlyMissing}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                        fontFamily: "inherit", fontSize: 12, fontWeight: 700, border: "none",
+                        boxShadow: onlyMissing ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+                        background: onlyMissing ? "var(--primary-soft)" : "var(--surface)", color: onlyMissing ? "var(--primary-dark)" : "var(--text-2)" }}>
+                      {onlyMissing ? <Icon name="check" size={13} color="var(--primary)" /> : null}
+                      เฉพาะที่ยังขาด{missN ? " (" + missN + ")" : ""}
+                    </button>
+                    {onlyMissing && !missN ? <span style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-green-tx)" }}>✓ หมวดนี้ครบแล้ว</span> : null}
+                  </div>
+                )}
+
+                {cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map((g) => {
+                  const fl = onlyMissing ? (g.fields || []).filter((x) => missSet[x.key]) : (g.fields || []);
+                  if (onlyMissing && !fl.length) return null;
+                  return (
                   <div key={g.key} style={{ marginBottom: 18 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9,
                       paddingBottom: 4, borderBottom: "1px solid var(--divider)" }}>
@@ -825,7 +860,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       ) : null}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 14 }}>
-                      {(g.fields || []).map((f) => (
+                      {fl.map((f) => (
                         <PmField key={f.key} field={f} value={sum[f.key]}
                           prefilled={window.pmIsPrefilled(rec, f.key) && !!f.from} onCommit={setField} />
                       ))}
@@ -841,19 +876,36 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       </button>
                     ) : null}
                   </div>
-                ))}
+                  );
+                })}
 
-                {cur && cur.kind === "checklist" && (cur.groups || []).map((g) => (
+                {cur && cur.kind === "checklist" && (cur.groups || []).map((g) => {
+                  const its = onlyMissing ? (g.items || []).filter((it) => missSet[it.key]) : (g.items || []);
+                  if (onlyMissing && !its.length) return null;
+                  const docs = rec.docs || {};
+                  const blankN = (g.items || []).filter((it) => docs[it.key] !== "y" && docs[it.key] !== "n").length;
+                  const bulk = { padding: "4px 9px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                    fontFamily: "inherit", fontSize: 11.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
+                  return (
                   <div key={g.key} style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)", marginBottom: 4,
-                      paddingBottom: 4, borderBottom: "1px solid var(--divider)" }}>
-                      {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, paddingBottom: 4, borderBottom: "1px solid var(--divider)" }}>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>
+                        {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
+                      </span>
+                      {/* ติ๊กทั้งกลุ่ม — ใส่ให้เฉพาะข้อที่ยังว่าง (เดิมต้องกดทีละข้อ 35 ข้อ) */}
+                      {blankN ? (
+                        <React.Fragment>
+                          <button onClick={() => markGroup(g, "y")} title={"ติ๊ก √ ให้ " + blankN + " ข้อที่ยังว่างในกลุ่มนี้"} style={Object.assign({}, bulk, { color: "#16A34A" })}>√ ที่เหลือ</button>
+                          <button onClick={() => markGroup(g, "n")} title={"ติ๊ก – (ไม่มี/ไม่เกี่ยว) ให้ " + blankN + " ข้อที่ยังว่าง"} style={Object.assign({}, bulk, { color: "#64748B" })}>– ที่เหลือ</button>
+                        </React.Fragment>
+                      ) : null}
                     </div>
-                    {(g.items || []).map((it) => (
-                      <PmDocRow key={it.key} item={it} job={job} value={(rec.docs || {})[it.key]} onSet={setDoc} />
+                    {its.map((it) => (
+                      <PmDocRow key={it.key} item={it} job={job} value={docs[it.key]} onSet={setDoc} />
                     ))}
                   </div>
-                ))}
+                  );
+                })}
 
                 {cur && cur.kind === "table" && (cur.tables || []).map((tb) => (
                   <PmTableBlock key={tb.key} table={tb} mobile={isMobile} job={job} sum={rec.sum || {}}
@@ -930,6 +982,25 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     </div>
                   </React.Fragment>
                 )}
+
+                {tab !== "home" && (prevKey || nextKey) ? (
+                  <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                    {prevKey ? (
+                      <button onClick={() => setTab(prevKey)} title={secTh(prevKey)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 13px", borderRadius: "var(--r-chip)", border: "none",
+                          boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5,
+                          fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                        <Icon name="chevronLeft" size={14} /> ก่อนหน้า
+                      </button>
+                    ) : null}
+                    {nextKey ? (
+                      <button className="btn btn-pri" onClick={() => setTab(nextKey)} style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>ถัดไป · {secTh(nextKey)}</span>
+                        <Icon name="arrowRight" size={15} color="#fff" />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               {/* รายการที่ยังขาด + ปุ่มออกรายงาน */}

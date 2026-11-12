@@ -283,7 +283,8 @@ function drBlank(job, date, user, prev, plan) {
     work: "", pct: typeof (job || {}).progressPct === "number" ? job.progressPct : 0,
     /* ขั้นงานคัดลอกมาจากตารางของงาน (หรือใบก่อนหน้า) ช่างจะได้ไม่ต้องกรอกใหม่ทุกวัน */
     steps: drRenumber(pl && !prevNewer ? pl.steps : prev && prev.steps && prev.steps.length ? prev.steps : (mode === "project" ? drWhaSteps() : drHomeSteps(job))),
-    team: "", weatherAm: "", weatherPm: "",
+    /* ทีมช่างส่วนใหญ่ชุดเดิมทุกวัน — ดึงจากใบก่อนหน้ามาให้ แก้ทับได้ (จัดใหม่ พ.ย. 2026 · เดิมต้องพิมพ์ใหม่ทุกวัน) */
+    team: (prev && prev.team) || "", weatherAm: "", weatherPm: "",
     problem: "", nextDay: "",
     materials: [], machines: [], manpower: [], certs: [],
     jsa: "", permitCold: "", permitHot: "", clean: {},
