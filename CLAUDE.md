@@ -46,6 +46,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | Sungrow iSolarCloud (`isolarcloud.mjs` `isolarcloud-probe/mock`) | `docs/isolarcloud.md` |
 | ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 | Huawei FusionSolar · หน้าไซต์ทั้งหมด · ซิงก์ไซต์/อุปกรณ์/ข้อมูลผลิต (`fusionsolar.jsx` `fusionsolar-scene.jsx` `fusionsolar-house.jsx` `api/_lib/fusionsolar.mjs` `api/cron/fusionsolar.mjs`) | `docs/fusionsolar.md` |
+| Master Schedule งานโครงการ (การ์ดในใบงาน · แกนต์ · ผู้รับผิดชอบ · PDF A3 · `master.jsx`) | `docs/master-schedule.md` |
 | รายงานประจำวันหน้างาน · ตารางขั้นงาน · กราฟในใบรายงาน (`daily.jsx` `views-daily.jsx` `liff-daily.jsx`) | `docs/daily.md` |
 | ใบแจ้งหนี้/ใบกำกับภาษีทำเอง · ผู้ออกเอกสาร · เลขที่รายเดือน (`invoice.jsx`) | `docs/invoice.md` |
 | ไซต์ MikroTik · WireGuard · สคริปต์ RouterOS · สถานะไซต์ · agent บน VPS · มิเตอร์ · บิลค่าไฟ · **พาร์ทเนอร์ภายนอก** (`mtpartner.jsx` `api/_lib/mtpartner.mjs`) (`mikrotik*.jsx` `api/_lib/mikrotik.mjs` `api/mikrotik/*` `tools/mt-agent/` · `npm test`) | `docs/mikrotik.md` |

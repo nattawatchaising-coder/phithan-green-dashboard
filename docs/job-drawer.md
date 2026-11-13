@@ -45,3 +45,5 @@
 
 ## ทดสอบบน localhost ที่ไม่มีฐานทดสอบ
 ยังไม่ล็อกอินก็ทดสอบได้ (ยังไม่ล็อกอิน = อ่านฐานไม่ได้ ฟอร์มข้างในค้าง "กำลังโหลด…" → แทน `FBDB.ref` ด้วยฐานในหน่วยความจำที่รองรับ on/once/set/update/push/transaction แทนการกันเขียนอย่างเดียว): ครอบ `FBDB.ref` กันการเขียน → `SF.deriveJob({...SF.SEED[0], id: "__fake", ...})` → `ReactDOM.createRoot` ใน div แยก render `DetailDrawer` + `ConfirmHost` (ไม่มี ConfirmHost = `askConfirm` ตกไปใช้ `window.confirm`) แล้ว callback ทุกตัวแค่จดชื่อ · จบแล้ว unmount และคืน `FBDB.ref`
+
+- **การ์ด Master Schedule** (แท็บภาพรวม ใต้นัดหมายและทีม · เฉพาะงานโครงการ) — ดู `docs/master-schedule.md`

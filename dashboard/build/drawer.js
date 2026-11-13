@@ -1824,7 +1824,11 @@ function DetailDrawer({
         rowGap: 4
       }
     }, crew)));
-  })(), permitMode && React.createElement(PermitJobSummary, {
+  })(), job.type === "project" && window.MsCard && React.createElement(window.MsCard, {
+    job: job,
+    canEdit: !roMode && !!onEdit,
+    currentUser: currentUser
+  }), permitMode && React.createElement(PermitJobSummary, {
     job: job,
     onOpenReview: onOpenReview
   }), salesMode && window.SalesJobSummary && React.createElement(window.SalesJobSummary, {

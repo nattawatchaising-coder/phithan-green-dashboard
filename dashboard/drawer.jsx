@@ -766,6 +766,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 );
               })()}
 
+              {/* Master Schedule — เฉพาะงานโครงการ (ดู docs/master-schedule.md) · งานติดตั้งดึง % จากรายงานประจำวัน */}
+              {job.type === "project" && window.MsCard && <window.MsCard job={job} canEdit={!roMode && !!onEdit} currentUser={currentUser} />}
+
               {permitMode && <PermitJobSummary job={job} onOpenReview={onOpenReview} />}
               {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} />}
 
