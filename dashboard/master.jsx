@@ -193,8 +193,8 @@ function MsRing({ pct, size }) {
   return (
     <svg width={s} height={s} viewBox={"0 0 " + s + " " + s} style={{ flexShrink: 0 }}>
       <circle cx={s / 2} cy={s / 2} r={r} fill="none" stroke={MS_TRACK} strokeWidth="7" />
-      <circle cx={s / 2} cy={s / 2} r={r} fill="none" stroke="var(--primary)" strokeWidth="7" strokeLinecap="round"
-        strokeDasharray={(c * pct) / 100 + " " + c} transform={"rotate(-90 " + s / 2 + " " + s / 2 + ")"} />
+      {pct > 0 && <circle cx={s / 2} cy={s / 2} r={r} fill="none" stroke="var(--primary)" strokeWidth="7" strokeLinecap="round"
+        strokeDasharray={(c * pct) / 100 + " " + c} transform={"rotate(-90 " + s / 2 + " " + s / 2 + ")"} />}
       <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" style={{ fontFamily: "var(--mono)", fontSize: s * 0.24, fontWeight: 800, fill: "var(--text-1)" }}>{pct}%</text>
     </svg>
   );
@@ -463,9 +463,9 @@ function msPrintHTML(job, C, today) {
   const td = msDay(today), days = C.lo != null ? C.hi - C.lo + 1 : null, left = C.hi != null && td != null ? C.hi - td : null;
   const leftTx = left == null ? "—" : C.pct >= 100 ? "เสร็จแล้ว" : left > 0 ? "เหลือ " + left + " วัน" : left === 0 ? "ครบกำหนดวันนี้" : "เลยกำหนด " + -left + " วัน";
   const R = 34, Cc = 2 * Math.PI * R;
-  const ring = '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#D5EEE5" stroke-width="10"/>' +
+  const ring = '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#D5EEE5" stroke-width="10"/>' + (C.pct > 0 ?
     '<circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#1B9B75" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + ((Cc * C.pct) / 100).toFixed(2) + " " + Cc.toFixed(2) +
-    '" transform="rotate(-90 46 46)"/><text x="46" y="46" dominant-baseline="central" text-anchor="middle" font-size="20" font-weight="800" fill="#15211A" font-family="monospace">' + C.pct + "%</text></svg>";
+    '" transform="rotate(-90 46 46)"/>' : "") + '<text x="46" y="46" dominant-baseline="central" text-anchor="middle" font-size="20" font-weight="800" fill="#15211A" font-family="monospace">' + C.pct + "%</text></svg>";
   const kpi = (lab, v, cls) => '<div class="k ' + (cls || "") + '"><span>' + lab + "</span><b>" + v + "</b></div>";
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")],
     ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter((x) => x[1]);
