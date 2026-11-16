@@ -6745,7 +6745,11 @@ function SolarWorkspace({
     foot: foot,
     panel: panel,
     colorOf: suColor,
-    invs: ccInvs
+    invs: ccInvs,
+    opt: optPlan ? Object.assign({}, optPlan, {
+      model: optSel.model || "",
+      mpptMax: +inv.mpptMax || 0
+    }) : null
   }), !isMicro && inv.model && window.CcAcCard && React.createElement(window.CcAcCard, {
     job: job,
     ver: ver,

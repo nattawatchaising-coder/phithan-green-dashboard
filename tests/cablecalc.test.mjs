@@ -53,6 +53,15 @@ test("สาย DC ไม่ต่ำกว่าขั้นต่ำ 4 mm² �
   assert.equal(o.use, 4);
 });
 
+test("สตริงมีตัวคุมแผง: แรงดันถูกกดเหลือช่วงอินเวอร์เตอร์ กระแสขึ้นแต่ไม่เกิน iOutMax", () => {
+  const m = { vmp: 45.8, imp: 14.74, voc: 54.6, isc: 15.41 };
+  const o = CC.dcString({ n: 28, len: 100 }, m, { vdLim: 3, minSize: 4, opt: { per: 1, vOutMax: 80, iOutMax: 15, mpptMax: 1000 } });
+  near(o.vStr, 1000, 1e-9); near(o.iOp, 15, 1e-9); near(o.id, 18.75, 1e-9); assert.equal(o.units, 28);
+  near(o.pct, 2 * 15 * CC.pvR90(4) * 100 / 1000 / 1000 * 100, 0.006);
+  const plain = CC.dcString({ n: 28, len: 100 }, m, { vdLim: 3, minSize: 4 });   // ไม่มีตัวคุม = แบบเดิม
+  near(plain.vStr, 1282.4, 1e-9); near(plain.iOp, 14.74, 1e-9); assert.ok(o.pct > plain.pct);
+});
+
 test("ตาราง Ca/Cg/PE", () => {
   assert.equal(CC.ca(40), 1); assert.equal(CC.ca(45), 0.96); assert.equal(CC.ca(52), 0.84);
   assert.equal(CC.cg("V-H", 2, 3), 0.81); assert.equal(CC.cg("L-H", 1, 6), 0.93); assert.equal(CC.cg("manual", 1, 1, 0.7), 0.7);

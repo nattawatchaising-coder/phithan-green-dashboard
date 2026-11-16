@@ -3598,7 +3598,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
 
                 {/* ตารางสาย DC ต่อสตริง · แรงดันตก (cableui.jsx · เฟส 2) */}
                 {!isMicro && plan && plan.strings && plan.strings.length > 0 && window.CcDcCard && (
-                  <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} invs={ccInvs} />
+                  <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} invs={ccInvs}
+                    opt={optPlan ? Object.assign({}, optPlan, { model: optSel.model || "", mpptMax: +inv.mpptMax || 0 }) : null} />
                 )}
                 {/* สาย AC อินเวอร์เตอร์ → ตู้ → MDB + หม้อแปลง (เฟส 3) */}
                 {!isMicro && inv.model && window.CcAcCard && (

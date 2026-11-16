@@ -35,7 +35,8 @@ function CcDcCard({
   foot,
   panel,
   colorOf,
-  invs
+  invs,
+  opt
 }) {
   const CC = window.CC,
     B = window.BOQ || {},
@@ -86,6 +87,13 @@ function CcDcCard({
     imp: +panel.imp || 0,
     isc: +panel.isc || 0
   };
+  const optC = opt ? {
+    per: +opt.per || 1,
+    vOutMax: +opt.vOutMax || 0,
+    iOutMax: +opt.iOutMax || 0,
+    mpptMax: +opt.mpptMax || 0
+  } : null;
+  const optKey = optC ? [optC.per, optC.vOutMax, optC.iOutMax, optC.mpptMax].join() : "";
   const rows = React.useMemo(() => (strings || []).map(s => {
     const e = est[s.id],
       ed = dcEdit[s.id] || {};
@@ -100,7 +108,8 @@ function CcDcCard({
       cg: Cg,
       vdLim,
       minSize,
-      tempK: +R.pvWireTempK || 1
+      tempK: +R.pvWireTempK || 1,
+      opt: optC
     }) : {};
     return Object.assign(r, {
       id: s.id,
@@ -109,7 +118,7 @@ function CcDcCard({
       edited: +ed.len > 0,
       ovr: ed.ovr || ""
     });
-  }), [strings, est, D.dc, mod.vmp, mod.imp, mod.isc, kDC, Ca, Cg, vdLim, minSize]);
+  }), [strings, est, D.dc, mod.vmp, mod.imp, mod.isc, kDC, Ca, Cg, vdLim, minSize, optKey]);
   const ok = rows.filter(r => r.valid);
   const maxPct = ok.length ? Math.max.apply(null, ok.map(r => r.pct || 0)) : 0;
   const bad = ok.filter(r => !r.ok).length;
@@ -190,7 +199,8 @@ function CcDcCard({
     invs: invs || [],
     tMin: +R.tMin || 15,
     bif: ccBif(panel),
-    stations: stations.length
+    stations: stations.length,
+    opt: opt || null
   };
   if (!CC || !strings || !strings.length) return null;
   const nEdited = Object.keys(dcEdit).length;
@@ -274,7 +284,9 @@ function CcDcCard({
         cg: v > 0 && v !== 1 ? v : null
       });
     }
-  })), React.createElement("span", null, "Id = Isc ", mod.isc, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(mod.isc * kDC * 100) / 100, " A")), React.createElement("span", null, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33 ", minSize, " mm\xB2 \xB7 \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30 \xD7", spare), React.createElement("span", {
+  })), optC && optC.iOutMax > 0 ? React.createElement("span", {
+    title: "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07\u0E08\u0E33\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"
+  }, "\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 ", opt.model || "", " \xB7 Id = Iout ", optC.iOutMax, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(optC.iOutMax * kDC * 100) / 100, " A")) : React.createElement("span", null, "Id = Isc ", mod.isc, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(mod.isc * kDC * 100) / 100, " A")), React.createElement("span", null, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33 ", minSize, " mm\xB2 \xB7 \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30 \xD7", spare), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -288,7 +300,9 @@ function CcDcCard({
     className: "su-scroll"
   }, React.createElement("table", {
     className: "su-tb"
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "INV / MPPT"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "Vmp \u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", {
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "INV / MPPT"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", {
+    title: optC ? "ตัวคุมแผงกดแรงดันสตริงให้ไม่เกินช่วง MPPT ของอินเวอร์เตอร์ → กระแสสูงขึ้นตาม (ไม่เกิน Iout ของตัวคุม)" : "Vmp × จำนวนแผง · กระแส = Imp"
+  }, optC ? "V / I ใช้งาน" : "Vmp สตริง"), React.createElement("th", {
     title: "\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 L \u0E43\u0E19\u0E2A\u0E39\u0E15\u0E23 VD = 2 \xD7 Imp \xD7 R90 \xD7 L"
   }, "\u0E23\u0E30\u0E22\u0E30 L (\u0E21.)"), React.createElement("th", null, "\u0E2A\u0E32\u0E22 PV1-F"), React.createElement("th", {
     title: "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 \xD7 Ca \xD7 Cg \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34 \u0E15\u0E49\u0E2D\u0E07 \u2265 Id"
@@ -311,7 +325,11 @@ function CcDcCard({
     style: {
       whiteSpace: "nowrap"
     }
-  }, r.addr || "—"), React.createElement("td", null, React.createElement("b", null, r.n)), React.createElement("td", null, isFinite(r.vStr) ? Math.round(r.vStr) + " V" : "—"), React.createElement("td", null, React.createElement("input", {
+  }, r.addr || "—"), React.createElement("td", null, React.createElement("b", null, r.n)), React.createElement("td", {
+    style: {
+      whiteSpace: "nowrap"
+    }
+  }, isFinite(r.vStr) ? Math.round(r.vStr) + " V" : "—", optC && isFinite(r.iOp) ? " · " + r.iOp + " A" : ""), React.createElement("td", null, React.createElement("input", {
     className: "p3-inp",
     type: "number",
     step: "0.5",
@@ -395,7 +413,7 @@ function CcDcCard({
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 ", React.createElement("b", null, missing), " \u0E2A\u0E15\u0E23\u0E34\u0E07")), React.createElement("span", {
     className: "p3-note"
-  }, "\u0E23\u0E30\u0E22\u0E30 = (\u0E2A\u0E32\u0E22 + \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E41\u0E23\u0E01 + \u0E2A\u0E32\u0E22 \u2212 \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u0E16\u0E36\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E2A\u0E38\u0E14 \u0E40\u0E14\u0E34\u0E19\u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 + \u0E25\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E2A\u0E32\u0E22\u0E02\u0E49\u0E32\u0E21\u0E41\u0E16\u0E27) \xF7 2 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D ", spare, " \xB7 VD = 2 \xD7 Imp \xD7 R90 \xD7 L \xB7 R90 = 1.275 \xD7 R20 (\u0E2A\u0E32\u0E22 PV class 5) \xB7 %VD \u0E40\u0E17\u0E35\u0E22\u0E1A Vmp \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 EN 50618 (\u0E40\u0E17\u0E35\u0E22\u0E1A datasheet \u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E32\u0E22) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E27\u0E21\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49 BOQ \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49 (\u0E2B\u0E19\u0E49\u0E32 BOQ \u203A \u0E2A\u0E32\u0E22\u0E44\u0E1F PV)"));
+  }, "\u0E23\u0E30\u0E22\u0E30 = (\u0E2A\u0E32\u0E22 + \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E41\u0E23\u0E01 + \u0E2A\u0E32\u0E22 \u2212 \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u0E16\u0E36\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E2A\u0E38\u0E14 \u0E40\u0E14\u0E34\u0E19\u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 + \u0E25\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E2A\u0E32\u0E22\u0E02\u0E49\u0E32\u0E21\u0E41\u0E16\u0E27) \xF7 2 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D ", spare, " \xB7", optC ? "มีตัวคุมแผง: V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดของอินเวอร์เตอร์) · I = กำลังสตริง ÷ V (ไม่เกิน Iout) · VD = 2 × I × R90 × L · %VD เทียบ V ใช้งาน ·" : "VD = 2 × Imp × R90 × L · %VD เทียบ Vmp × จำนวนแผง ·", " R90 = 1.275 \xD7 R20 (\u0E2A\u0E32\u0E22 PV class 5) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 EN 50618 (\u0E40\u0E17\u0E35\u0E22\u0E1A datasheet \u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E32\u0E22) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E27\u0E21\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49 BOQ \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49 (\u0E2B\u0E19\u0E49\u0E32 BOQ \u203A \u0E2A\u0E32\u0E22\u0E44\u0E1F PV)"));
 }
 const ccDdStyle = {
   fontSize: 11.5,
@@ -895,16 +913,29 @@ function ccReportHTML(job, ver, L) {
     const ns = Array.from(new Set(dc.rows.map(r => r.n).filter(x => x > 0))).sort((a, b) => b - a);
     const tc = +P.tcVoc < 0 ? +P.tcVoc : -0.25;
     const vmaxInv = Math.min.apply(null, (dc.invs || []).map(x => +x.maxVdc).filter(x => x > 0).concat([Infinity]));
-    body += sec(++n, "แรงดันวงจรเปิดสูงสุดของสตริง (Voc ที่อุณหภูมิต่ำสุด)");
-    body += '<p class="f">Voc,max = จำนวนแผง × Voc × [1 + (β/100) × (Tmin − 25)] · β = ' + tc + " %/°C · Tmin = " + dc.tMin + " °C</p>";
-    body += tbl(["แผงต่อสตริง", "Voc แผง (V)", "Voc,max สตริง (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map(k => {
-      const v = window.CC.vocMax(k, +P.voc, tc, dc.tMin);
-      return [k, ccF(P.voc, 2), ccF(v, 1), isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", isFinite(vmaxInv) ? ok(v <= vmaxInv) : "—"];
-    }));
+    const O = dc.opt;
+    if (O) {
+      body += sec(++n, "ตัวคุมแผง (Optimizer) ต่อสตริง");
+      body += '<p class="f">' + ccEsc(O.model || "ตัวคุมแผง") + " · " + (+O.per || 1) + " แผง/ตัว · Vout สูงสุด " + ccF(O.vOutMax, 0) + " V · Iout สูงสุด " + ccF(O.iOutMax, 1) + " A" + (+O.vOff > 0 ? " · แรงดันตอนสั่งปิด " + O.vOff + " V/ตัว" : "") + " — แรงดันสตริงถูกตัวคุมจำกัดให้อยู่ในช่วงของอินเวอร์เตอร์ จึงไม่คิด Voc × จำนวนแผง</p>";
+      body += tbl(["แผงต่อสตริง", "ตัวคุม (ตัว)", "ช่วงที่คู่มือกำหนด", "แรงดันตอนสั่งปิด (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map(k => {
+        const u = Math.ceil(k / Math.max(1, +O.per || 1)),
+          off = u * (+O.vOff || 0);
+        const inR = (!(+O.minPerStr > 0) || u >= +O.minPerStr) && (!(+O.maxPerStr > 0) || u <= +O.maxPerStr);
+        const okOff = !(isFinite(vmaxInv) && off > vmaxInv);
+        return [k, u, (+O.minPerStr > 0 ? O.minPerStr : "—") + " – " + (+O.maxPerStr > 0 ? O.maxPerStr : "—"), +O.vOff > 0 ? ccF(off, 1) : "—", isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", ok(inR && okOff)];
+      }));
+    } else {
+      body += sec(++n, "แรงดันวงจรเปิดสูงสุดของสตริง (Voc ที่อุณหภูมิต่ำสุด)");
+      body += '<p class="f">Voc,max = จำนวนแผง × Voc × [1 + (β/100) × (Tmin − 25)] · β = ' + tc + " %/°C · Tmin = " + dc.tMin + " °C</p>";
+      body += tbl(["แผงต่อสตริง", "Voc แผง (V)", "Voc,max สตริง (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map(k => {
+        const v = window.CC.vocMax(k, +P.voc, tc, dc.tMin);
+        return [k, ccF(P.voc, 2), ccF(v, 1), isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", isFinite(vmaxInv) ? ok(v <= vmaxInv) : "—"];
+      }));
+    }
     body += sec(++n, "สายไฟ DC ต่อสตริง (แผง → อินเวอร์เตอร์)");
-    body += kv([["แผง", ccEsc(P.model || "") + " · Vmp " + ccF(m.vmp, 2) + " V · Imp " + ccF(m.imp, 2) + " A · Isc " + ccF(m.isc, 2) + " A" + (dc.bif ? " · สองหน้า" : "")], ["กระแสออกแบบ", "Id = Isc × " + ccF(dc.kDC, 3) + " = " + ccF(m.isc * dc.kDC, 2) + " A" + (dc.bif ? " (รวมตัวคูณแผงสองหน้า)" : "")], ["ตัวคูณ", "Ca = " + dc.Ca + " · Cg = " + dc.Cg], ["ระยะสาย", dc.stations ? "ประมาณจากแบบ 3D (แผงแรก/แผงสุดท้าย → จุดอินเวอร์เตอร์ แนวฉาก + ลงหลังคา + สายข้ามแถว) ÷ 2 × เผื่อ " + dc.spare + " · ช่องที่มี * = แก้ตามหน้างาน" : "กรอกตามหน้างาน"]]);
-    body += '<p class="f">R90 = R20 × (1 + 0.00393 × 70) ≈ 1.275 × R20 · VD = 2 × Imp × R90 × L ÷ 1000 · %VD = VD ÷ (Vmp × จำนวนแผง) × 100 · Iz = พิกัดสาย × Ca × Cg ≥ Id</p>';
-    body += tbl(["สตริง", "INV / MPPT", "แผง", "Vmp สตริง (V)", "L (ม.)", "สาย (mm²)", "R90 (Ω/km)", "Iz (A)", "VD (V)", "%VD", "ผล"], dc.rows.map(r => ["#" + r.id, ccEsc(r.addr || "—"), r.n, ccF(r.vStr, 0), isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", isFinite(r.use) ? r.use : "—", ccF(r.r90, 3), ccF(r.iz, 1), ccF(r.vd, 2), isFinite(r.pct) ? ccF(r.pct, 2) + "%" : "—", r.valid ? ok(r.ok) : "รอระยะ"]), "sm");
+    body += kv([["แผง", ccEsc(P.model || "") + " · Vmp " + ccF(m.vmp, 2) + " V · Imp " + ccF(m.imp, 2) + " A · Isc " + ccF(m.isc, 2) + " A" + (dc.bif ? " · สองหน้า" : "")], ["กระแสออกแบบ", O && +O.iOutMax > 0 ? "Id = Iout ตัวคุม × " + ccF(dc.kDC, 3) + " = " + ccF(O.iOutMax * dc.kDC, 2) + " A" : "Id = Isc × " + ccF(dc.kDC, 3) + " = " + ccF(m.isc * dc.kDC, 2) + " A" + (dc.bif ? " (รวมตัวคูณแผงสองหน้า)" : "")], ["ตัวคูณ", "Ca = " + dc.Ca + " · Cg = " + dc.Cg], ["ระยะสาย", dc.stations ? "ประมาณจากแบบ 3D (แผงแรก/แผงสุดท้าย → จุดอินเวอร์เตอร์ แนวฉาก + ลงหลังคา + สายข้ามแถว) ÷ 2 × เผื่อ " + dc.spare + " · ช่องที่มี * = แก้ตามหน้างาน" : "กรอกตามหน้างาน"]]);
+    body += '<p class="f">R90 = R20 × (1 + 0.00393 × 70) ≈ 1.275 × R20 · ' + (O ? "V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดอินเวอร์เตอร์ " + ccF(O.mpptMax, 0) + " V) · I = Vmp × Imp × แผง ÷ V ใช้งาน (ไม่เกิน Iout) · VD = 2 × I × R90 × L ÷ 1000 · %VD = VD ÷ V ใช้งาน × 100" : "VD = 2 × Imp × R90 × L ÷ 1000 · %VD = VD ÷ (Vmp × จำนวนแผง) × 100") + " · Iz = พิกัดสาย × Ca × Cg ≥ Id</p>";
+    body += tbl(["สตริง", "INV / MPPT", "แผง", O ? "V / I ใช้งาน" : "Vmp สตริง (V)", "L (ม.)", "สาย (mm²)", "R90 (Ω/km)", "Iz (A)", "VD (V)", "%VD", "ผล"], dc.rows.map(r => ["#" + r.id, ccEsc(r.addr || "—"), r.n, O ? ccF(r.vStr, 0) + " V · " + ccF(r.iOp, 2) + " A" : ccF(r.vStr, 0), isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", isFinite(r.use) ? r.use : "—", ccF(r.r90, 3), ccF(r.iz, 1), ccF(r.vd, 2), isFinite(r.pct) ? ccF(r.pct, 2) + "%" : "—", r.valid ? ok(r.ok) : "รอระยะ"]), "sm");
     const v = dc.rows.filter(r => r.valid),
       per = Math.round(v.reduce((t, r) => t + r.len, 0));
     body += '<p class="sum">สรุป: ' + v.length + " สตริง · %VD สูงสุด <b>" + ccF(Math.max.apply(null, v.map(r => r.pct).concat([0])), 2) + "%</b> · ความยาวสายต่อขั้ว " + ccF(per, 0) + " ม. (แดง + ดำ " + ccF(per * 2, 0) + " ม.)" + (v.some(r => !r.ok) ? ' · <b class="ng">มีสตริงไม่ผ่าน</b>' : "") + "</p>";

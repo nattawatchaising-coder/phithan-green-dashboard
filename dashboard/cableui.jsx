@@ -31,7 +31,8 @@ const ccLiveOf = (job, ver) => { const k = ((job && job.id) || "") + "/" + Strin
 const ccBif = (P) => !!P && (P.bifacial === true || (P.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(P.model || ""))));
 
 /* props: job, ver, st (แบบ 3D), strings (plan.strings), paths (wirePaths), foot (p3FootAll), panel (สเปคแผง), colorOf */
-function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) {
+/* opt = ตัวคุมแผง (optimizer) ของงาน { model, per, vOutMax, iOutMax, vOff, mpptMax } · null = สตริงธรรมดา */
+function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs, opt }) {
   const CC = window.CC, B = window.BOQ || {}, R = B.RULES || {};
   const store = useCcStore(job && job.id, ver);
   const D = store.data || {};
@@ -55,13 +56,15 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
   const kDC = (+R.pvWireK || 1.25) * (ccBif(panel) ? (+R.bifacialK || 1.1) : 1);
   const Ca = +D.ca > 0 ? +D.ca : 1, Cg = +D.cg > 0 ? +D.cg : 1;
   const mod = { vmp: +panel.vmp || 0, imp: +panel.imp || 0, isc: +panel.isc || 0 };
+  const optC = opt ? { per: +opt.per || 1, vOutMax: +opt.vOutMax || 0, iOutMax: +opt.iOutMax || 0, mpptMax: +opt.mpptMax || 0 } : null;
+  const optKey = optC ? [optC.per, optC.vOutMax, optC.iOutMax, optC.mpptMax].join() : "";
 
   const rows = React.useMemo(() => (strings || []).map((s) => {
     const e = est[s.id], ed = dcEdit[s.id] || {};
     const len = +ed.len > 0 ? +ed.len : e ? e.len : NaN;
-    const r = CC ? CC.dcString({ n: s.n, len, ovr: ed.ovr }, mod, { kDC, ca: Ca, cg: Cg, vdLim, minSize, tempK: +R.pvWireTempK || 1 }) : {};
+    const r = CC ? CC.dcString({ n: s.n, len, ovr: ed.ovr }, mod, { kDC, ca: Ca, cg: Cg, vdLim, minSize, tempK: +R.pvWireTempK || 1, opt: optC }) : {};
     return Object.assign(r, { id: s.id, addr: s.addr, est: e ? e.len : null, edited: +ed.len > 0, ovr: ed.ovr || "" });
-  }), [strings, est, D.dc, mod.vmp, mod.imp, mod.isc, kDC, Ca, Cg, vdLim, minSize]); // eslint-disable-line
+  }), [strings, est, D.dc, mod.vmp, mod.imp, mod.isc, kDC, Ca, Cg, vdLim, minSize, optKey]); // eslint-disable-line
 
   const ok = rows.filter((r) => r.valid);
   const maxPct = ok.length ? Math.max.apply(null, ok.map((r) => r.pct || 0)) : 0;
@@ -98,7 +101,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
     .then((y) => { if (y) store.patch({ dc: null }); });
 
   /* ให้ปุ่มรายงานคำนวณหยิบผลชุดเดียวกับที่โชว์ */
-  ccLiveOf(job, ver).dc = { rows, kDC, Ca, Cg, vdLim, minSize, spare, mod, panel, invs: invs || [], tMin: +R.tMin || 15, bif: ccBif(panel), stations: stations.length };
+  ccLiveOf(job, ver).dc = { rows, kDC, Ca, Cg, vdLim, minSize, spare, mod, panel, invs: invs || [], tMin: +R.tMin || 15, bif: ccBif(panel), stations: stations.length, opt: opt || null };
   if (!CC || !strings || !strings.length) return null;
   const nEdited = Object.keys(dcEdit).length;
   const pct = (v) => (isFinite(v) ? v.toFixed(2) + "%" : "—");
@@ -122,7 +125,9 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }} title="ตัวคูณจัดกลุ่ม — หลายสตริงในท่อ/รางเดียวกันระบายความร้อนแย่ลง (ตาราง 5-40 หรือ datasheet สาย) · เส้นเดียว = 1">
           Cg <input className="p3-inp" type="number" step="0.01" min="0.2" max="1" defaultValue={Cg} key={"cg" + Cg} style={inp}
             onBlur={(e) => { const v = +e.target.value; store.patch({ cg: v > 0 && v !== 1 ? v : null }); }} /></label>
-        <span>Id = Isc {mod.isc} × {Math.round(kDC * 1000) / 1000} = <b>{Math.round(mod.isc * kDC * 100) / 100} A</b></span>
+        {optC && optC.iOutMax > 0
+          ? <span title="ตัวคุมแผงจำกัดกระแสออก — เลือกพิกัดสายจากกระแสออกสูงสุดของตัวคุม">มีตัวคุมแผง {opt.model || ""} · Id = Iout {optC.iOutMax} × {Math.round(kDC * 1000) / 1000} = <b>{Math.round(optC.iOutMax * kDC * 100) / 100} A</b></span>
+          : <span>Id = Isc {mod.isc} × {Math.round(kDC * 1000) / 1000} = <b>{Math.round(mod.isc * kDC * 100) / 100} A</b></span>}
         <span>ขั้นต่ำ {minSize} mm² · เผื่อระยะ ×{spare}</span>
         <span style={{ flex: 1 }} />
         {nEdited > 0 && <button className="p3-lnk" onClick={resetAll}>คืนค่าที่แก้เอง ({nEdited})</button>}
@@ -131,7 +136,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
 
       <div className="su-scroll">
         <table className="su-tb">
-          <thead><tr><th>สตริง</th><th>INV / MPPT</th><th>แผง</th><th>Vmp สตริง</th>
+          <thead><tr><th>สตริง</th><th>INV / MPPT</th><th>แผง</th><th title={optC ? "ตัวคุมแผงกดแรงดันสตริงให้ไม่เกินช่วง MPPT ของอินเวอร์เตอร์ → กระแสสูงขึ้นตาม (ไม่เกิน Iout ของตัวคุม)" : "Vmp × จำนวนแผง · กระแส = Imp"}>{optC ? "V / I ใช้งาน" : "Vmp สตริง"}</th>
             <th title="ความยาวทางเดียว L ในสูตร VD = 2 × Imp × R90 × L">ระยะ L (ม.)</th><th>สาย PV1-F</th>
             <th title="พิกัดสาย × Ca × Cg × ตัวคูณอุณหภูมิ ต้อง ≥ Id">Iz (A)</th><th>VD (V)</th><th>%VD</th><th>ผล</th></tr></thead>
           <tbody>
@@ -141,7 +146,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
                   <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: colorOf ? colorOf(r.id) : "var(--primary)" }} /><b>#{r.id}</b></span></td>
                 <td style={{ whiteSpace: "nowrap" }}>{r.addr || "—"}</td>
                 <td><b>{r.n}</b></td>
-                <td>{isFinite(r.vStr) ? Math.round(r.vStr) + " V" : "—"}</td>
+                <td style={{ whiteSpace: "nowrap" }}>{isFinite(r.vStr) ? Math.round(r.vStr) + " V" : "—"}{optC && isFinite(r.iOp) ? " · " + r.iOp + " A" : ""}</td>
                 <td>
                   <input className="p3-inp" type="number" step="0.5" min="0" style={Object.assign({}, inp, { fontWeight: r.edited ? 800 : 500, color: r.edited ? "var(--acd)" : undefined })}
                     value={draft[r.id] != null ? draft[r.id] : isFinite(r.len) ? r.len : ""}
@@ -176,7 +181,8 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) 
       </div>
       <span className="p3-note">
         ระยะ = (สาย + จากแผงแรก + สาย − จากแผงสุดท้าย ถึงจุดอินเวอร์เตอร์ที่ใกล้สุด เดินแนวฉาก + ลงจากหลังคา + สายข้ามแถว) ÷ 2 × เผื่อ {spare} ·
-        VD = 2 × Imp × R90 × L · R90 = 1.275 × R20 (สาย PV class 5) · %VD เทียบ Vmp × จำนวนแผง · พิกัดสาย EN 50618 (เทียบ datasheet ผู้ผลิตสาย) ·
+        {optC ? "มีตัวคุมแผง: V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดของอินเวอร์เตอร์) · I = กำลังสตริง ÷ V (ไม่เกิน Iout) · VD = 2 × I × R90 × L · %VD เทียบ V ใช้งาน ·"
+          : "VD = 2 × Imp × R90 × L · %VD เทียบ Vmp × จำนวนแผง ·"} R90 = 1.275 × R20 (สาย PV class 5) · พิกัดสาย EN 50618 (เทียบ datasheet ผู้ผลิตสาย) ·
         ความยาวรวมส่งให้ BOQ ใช้ได้ (หน้า BOQ › สายไฟ PV)
       </span>
     </div>
@@ -404,22 +410,40 @@ function ccReportHTML(job, ver, L) {
     const ns = Array.from(new Set(dc.rows.map((r) => r.n).filter((x) => x > 0))).sort((a, b) => b - a);
     const tc = +P.tcVoc < 0 ? +P.tcVoc : -0.25;
     const vmaxInv = Math.min.apply(null, (dc.invs || []).map((x) => +x.maxVdc).filter((x) => x > 0).concat([Infinity]));
-    body += sec(++n, "แรงดันวงจรเปิดสูงสุดของสตริง (Voc ที่อุณหภูมิต่ำสุด)");
-    body += '<p class="f">Voc,max = จำนวนแผง × Voc × [1 + (β/100) × (Tmin − 25)] · β = ' + tc + " %/°C · Tmin = " + dc.tMin + " °C</p>";
-    body += tbl(["แผงต่อสตริง", "Voc แผง (V)", "Voc,max สตริง (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map((k) => {
-      const v = window.CC.vocMax(k, +P.voc, tc, dc.tMin);
-      return [k, ccF(P.voc, 2), ccF(v, 1), isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", isFinite(vmaxInv) ? ok(v <= vmaxInv) : "—"];
-    }));
+    const O = dc.opt;
+    if (O) {
+      /* มีตัวคุมแผง: แรงดันสตริงถูกตัวคุมจำกัดไว้ จึงไม่ใช้ Voc × แผง ตรวจจำนวนตัวคุมต่อสตริง + แรงดันตอนสั่งปิดแทน (เหมือน scOptStringCheck) */
+      body += sec(++n, "ตัวคุมแผง (Optimizer) ต่อสตริง");
+      body += '<p class="f">' + ccEsc(O.model || "ตัวคุมแผง") + " · " + (+O.per || 1) + " แผง/ตัว · Vout สูงสุด " + ccF(O.vOutMax, 0) + " V · Iout สูงสุด " + ccF(O.iOutMax, 1) + " A" +
+        (+O.vOff > 0 ? " · แรงดันตอนสั่งปิด " + O.vOff + " V/ตัว" : "") + " — แรงดันสตริงถูกตัวคุมจำกัดให้อยู่ในช่วงของอินเวอร์เตอร์ จึงไม่คิด Voc × จำนวนแผง</p>";
+      body += tbl(["แผงต่อสตริง", "ตัวคุม (ตัว)", "ช่วงที่คู่มือกำหนด", "แรงดันตอนสั่งปิด (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map((k) => {
+        const u = Math.ceil(k / Math.max(1, +O.per || 1)), off = u * (+O.vOff || 0);
+        const inR = (!(+O.minPerStr > 0) || u >= +O.minPerStr) && (!(+O.maxPerStr > 0) || u <= +O.maxPerStr);
+        const okOff = !(isFinite(vmaxInv) && off > vmaxInv);
+        return [k, u, (+O.minPerStr > 0 ? O.minPerStr : "—") + " – " + (+O.maxPerStr > 0 ? O.maxPerStr : "—"), +O.vOff > 0 ? ccF(off, 1) : "—",
+          isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", ok(inR && okOff)];
+      }));
+    } else {
+      body += sec(++n, "แรงดันวงจรเปิดสูงสุดของสตริง (Voc ที่อุณหภูมิต่ำสุด)");
+      body += '<p class="f">Voc,max = จำนวนแผง × Voc × [1 + (β/100) × (Tmin − 25)] · β = ' + tc + " %/°C · Tmin = " + dc.tMin + " °C</p>";
+      body += tbl(["แผงต่อสตริง", "Voc แผง (V)", "Voc,max สตริง (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map((k) => {
+        const v = window.CC.vocMax(k, +P.voc, tc, dc.tMin);
+        return [k, ccF(P.voc, 2), ccF(v, 1), isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", isFinite(vmaxInv) ? ok(v <= vmaxInv) : "—"];
+      }));
+    }
     body += sec(++n, "สายไฟ DC ต่อสตริง (แผง → อินเวอร์เตอร์)");
     body += kv([
       ["แผง", ccEsc(P.model || "") + " · Vmp " + ccF(m.vmp, 2) + " V · Imp " + ccF(m.imp, 2) + " A · Isc " + ccF(m.isc, 2) + " A" + (dc.bif ? " · สองหน้า" : "")],
-      ["กระแสออกแบบ", "Id = Isc × " + ccF(dc.kDC, 3) + " = " + ccF(m.isc * dc.kDC, 2) + " A" + (dc.bif ? " (รวมตัวคูณแผงสองหน้า)" : "")],
+      ["กระแสออกแบบ", O && +O.iOutMax > 0 ? "Id = Iout ตัวคุม × " + ccF(dc.kDC, 3) + " = " + ccF(O.iOutMax * dc.kDC, 2) + " A"
+        : "Id = Isc × " + ccF(dc.kDC, 3) + " = " + ccF(m.isc * dc.kDC, 2) + " A" + (dc.bif ? " (รวมตัวคูณแผงสองหน้า)" : "")],
       ["ตัวคูณ", "Ca = " + dc.Ca + " · Cg = " + dc.Cg],
       ["ระยะสาย", dc.stations ? "ประมาณจากแบบ 3D (แผงแรก/แผงสุดท้าย → จุดอินเวอร์เตอร์ แนวฉาก + ลงหลังคา + สายข้ามแถว) ÷ 2 × เผื่อ " + dc.spare + " · ช่องที่มี * = แก้ตามหน้างาน" : "กรอกตามหน้างาน"],
     ]);
-    body += '<p class="f">R90 = R20 × (1 + 0.00393 × 70) ≈ 1.275 × R20 · VD = 2 × Imp × R90 × L ÷ 1000 · %VD = VD ÷ (Vmp × จำนวนแผง) × 100 · Iz = พิกัดสาย × Ca × Cg ≥ Id</p>';
-    body += tbl(["สตริง", "INV / MPPT", "แผง", "Vmp สตริง (V)", "L (ม.)", "สาย (mm²)", "R90 (Ω/km)", "Iz (A)", "VD (V)", "%VD", "ผล"], dc.rows.map((r) => [
-      "#" + r.id, ccEsc(r.addr || "—"), r.n, ccF(r.vStr, 0), isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", isFinite(r.use) ? r.use : "—",
+    body += '<p class="f">R90 = R20 × (1 + 0.00393 × 70) ≈ 1.275 × R20 · ' + (O
+      ? "V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดอินเวอร์เตอร์ " + ccF(O.mpptMax, 0) + " V) · I = Vmp × Imp × แผง ÷ V ใช้งาน (ไม่เกิน Iout) · VD = 2 × I × R90 × L ÷ 1000 · %VD = VD ÷ V ใช้งาน × 100"
+      : "VD = 2 × Imp × R90 × L ÷ 1000 · %VD = VD ÷ (Vmp × จำนวนแผง) × 100") + " · Iz = พิกัดสาย × Ca × Cg ≥ Id</p>";
+    body += tbl(["สตริง", "INV / MPPT", "แผง", O ? "V / I ใช้งาน" : "Vmp สตริง (V)", "L (ม.)", "สาย (mm²)", "R90 (Ω/km)", "Iz (A)", "VD (V)", "%VD", "ผล"], dc.rows.map((r) => [
+      "#" + r.id, ccEsc(r.addr || "—"), r.n, O ? ccF(r.vStr, 0) + " V · " + ccF(r.iOp, 2) + " A" : ccF(r.vStr, 0), isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", isFinite(r.use) ? r.use : "—",
       ccF(r.r90, 3), ccF(r.iz, 1), ccF(r.vd, 2), isFinite(r.pct) ? ccF(r.pct, 2) + "%" : "—", r.valid ? ok(r.ok) : "รอระยะ"]), "sm");
     const v = dc.rows.filter((r) => r.valid), per = Math.round(v.reduce((t, r) => t + r.len, 0));
     body += '<p class="sum">สรุป: ' + v.length + " สตริง · %VD สูงสุด <b>" + ccF(Math.max.apply(null, v.map((r) => r.pct).concat([0])), 2) + "%</b> · ความยาวสายต่อขั้ว " + ccF(per, 0) +

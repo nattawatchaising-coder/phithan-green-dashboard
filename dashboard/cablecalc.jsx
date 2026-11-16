@@ -80,21 +80,34 @@
   }
 
   /* สาย DC ต่อสตริง — s = { n (แผง), len (ม. ทางเดียว), ovr (mm² บังคับ) } · m = { vmp, imp, voc, isc, beta }
-     o = { kDC 1.25, ca 1, cg 1, vdLim % (3), minSize mm² (4), tempK ตัวคูณพิกัด } */
+     o = { kDC 1.25, ca 1, cg 1, vdLim % (3), minSize mm² (4), tempK ตัวคูณพิกัด,
+           opt: { per แผงต่อตัว, vOutMax V/ตัว, iOutMax A, mpptMax V อินเวอร์เตอร์ } = มีตัวคุมแผง (optimizer) }
+     มีตัวคุมแผง (ผู้ใช้ 16 พ.ย. 2026 "ติดตั้ง Optimizer ต้องคิด"): ตัวคุมกดแรงดันสตริงให้อยู่ในช่วงของอินเวอร์เตอร์ → กระแสสูงขึ้นตาม
+       V ใช้งาน = min(แผง × Vmp, ตัวคุม × vOutMax, mpptMax) · I ใช้งาน = กำลังสตริง ÷ V ใช้งาน (ไม่เกิน iOutMax)
+       Id (เลือกพิกัด) = kDC × iOutMax (กระแสออกสูงสุดของตัวคุม) · ไม่มี iOutMax = kDC × Isc เดิม */
   function dcString(s, m, o) {
     o = o || {};
     const kDC = num(o.kDC) || 1.25, Ca = num(o.ca) || 1, Cg = num(o.cg) || 1, lim = (num(o.vdLim) || 3) / 100, min = num(o.minSize) || 4;
-    const tk = num(o.tempK) || 1;
-    const n = num(s.n), L = num(s.len), id = kDC * num(m.isc), vStr = n * num(m.vmp);
-    const out = { n, len: L, id: r2(id), vStr: r2(vStr), valid: isFinite(n) && n > 0 && isFinite(L) && L > 0 };
-    const rmax = out.valid ? lim * vStr * 1000 / (2 * num(m.imp) * L) : Infinity;   // R90 สูงสุดที่ยังผ่านแรงดันตก
+    const tk = num(o.tempK) || 1, P = o.opt || null;
+    const n = num(s.n), L = num(s.len), vRaw = n * num(m.vmp);
+    let vStr = vRaw, iOp = num(m.imp), id = kDC * num(m.isc), units = NaN;
+    if (P) {
+      units = Math.ceil(n / Math.max(1, num(P.per) || 1));
+      const caps = [vRaw, num(P.vOutMax) > 0 ? units * num(P.vOutMax) : Infinity, num(P.mpptMax) > 0 ? num(P.mpptMax) : Infinity];
+      vStr = Math.min.apply(null, caps);
+      iOp = vStr > 0 ? vRaw * num(m.imp) / vStr : NaN;
+      if (num(P.iOutMax) > 0) { iOp = Math.min(iOp, num(P.iOutMax)); id = kDC * num(P.iOutMax); }
+      id = Math.max(id, iOp);
+    }
+    const out = { n, len: L, id: r2(id), vStr: r2(vStr), iOp: r2(iOp), opt: !!P, units, valid: isFinite(n) && n > 0 && isFinite(L) && L > 0 };
+    const rmax = out.valid ? lim * vStr * 1000 / (2 * iOp * L) : Infinity;   // R90 สูงสุดที่ยังผ่านแรงดันตก
     const pick = PV.find((p) => p.s >= min && p.a * tk * Ca * Cg >= id && p.r90 <= rmax);
     out.auto = pick ? pick.s : NaN;
     out.use = has(s.ovr) ? num(s.ovr) : out.auto;
     const p = pvOf(out.use);
     out.iz = p ? r2(p.a * tk * Ca * Cg) : NaN;
     out.ampOk = isFinite(out.iz) && out.iz >= id;
-    const v = out.valid && p ? dcVd(num(m.imp), L, out.use, vStr) : null;
+    const v = out.valid && p ? dcVd(iOp, L, out.use, vStr) : null;
     out.vd = v ? r2(v.vd) : NaN;
     out.pct = v ? r2(v.pct) : NaN;
     out.r90 = p ? Math.round(p.r90 * 1000) / 1000 : NaN;
