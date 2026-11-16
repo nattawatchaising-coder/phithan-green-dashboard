@@ -933,7 +933,20 @@ function SuLayout2D({
     return () => ro.disconnect();
   }, []);
   const upx = box0.w && box0.h ? 1 / Math.min(box0.w / v.w, box0.h / v.h) : v.w / 600;
-  const [showInv, setShowInv] = React.useState(false);
+  const [showInv, setShowInv0] = React.useState(() => {
+    try {
+      return localStorage.getItem("suInvColor") !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  const setShowInv = fn => setShowInv0(x => {
+    const n = typeof fn === "function" ? fn(x) : fn;
+    try {
+      localStorage.setItem("suInvColor", n ? "1" : "0");
+    } catch (e) {}
+    return n;
+  });
   const invTags = React.useMemo(() => {
     if (!invOf || !paths || !paths.length) return [];
     const g = paths.filter(q => q.pts.length && invOf[q.id] != null).map(q => ({

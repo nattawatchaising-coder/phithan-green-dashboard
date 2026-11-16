@@ -595,7 +595,9 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     return () => ro.disconnect();
   }, []);
   const upx = box0.w && box0.h ? 1 / Math.min(box0.w / v.w, box0.h / v.h) : v.w / 600;
-  const [showInv, setShowInv] = React.useState(false);   // สีแผงตามอินเวอร์เตอร์ (แทนสีสตริง)
+  /* สีแผงตามอินเวอร์เตอร์เป็นค่าเริ่มต้น (ผู้ใช้ 16 พ.ย. 2026 "อยากให้สตริงเป็นสีเดียวกันเลย จะได้มองออก") · ปุ่ม INV สลับกลับสีตามสตริง · จำต่อเครื่อง */
+  const [showInv, setShowInv0] = React.useState(() => { try { return localStorage.getItem("suInvColor") !== "0"; } catch (e) { return true; } });
+  const setShowInv = (fn) => setShowInv0((x) => { const n = typeof fn === "function" ? fn(x) : fn; try { localStorage.setItem("suInvColor", n ? "1" : "0"); } catch (e) {} return n; });
   /* ป้าย INV บนผัง — สตริงของอินเวอร์เตอร์เดียวกันที่อยู่ใกล้กันรวมเป็นก้อน ป้ายละก้อน (ตัวเดียวกระจายหลายหลังคาได้หลายป้าย) */
   const invTags = React.useMemo(() => {
     if (!invOf || !paths || !paths.length) return [];
