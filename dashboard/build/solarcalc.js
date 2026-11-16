@@ -1191,31 +1191,6 @@ function scFillFrom(L, uid, n, taken) {
 }
 function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
   opt = opt || {};
-  const Z = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
-  if (Z) {
-    const zk = u => {
-      const z = Math.round(+Z[u] || 0);
-      return z >= 1 ? z : 0;
-    };
-    const bp = {},
-      cnt = {};
-    Object.keys(byPanel || {}).forEach(u => {
-      const k = byPanel[u] + "@z" + zk(u);
-      bp[u] = k;
-      cnt[k] = (cnt[k] || 0) + 1;
-    });
-    const zs = Array.from(new Set(Object.keys(bp).map(u => zk(u)))).sort((a, b) => (a || 1e9) - (b || 1e9));
-    const g2 = [];
-    zs.forEach(z => (groups || []).forEach(g => {
-      const k = g.key + "@z" + z;
-      if (cnt[k]) g2.push(Object.assign({}, g, {
-        key: k,
-        count: cnt[k]
-      }));
-    }));
-    byPanel = bp;
-    groups = g2;
-  }
   const L = scLayoutOrder(footPanels, byPanel, opt.dir);
   const plan = scAutoStrings(groups, panel, inv, env, Object.assign({}, opt, {
     align: L.lineLen
@@ -1230,6 +1205,32 @@ function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
     for (let j = 0; j < s.n && i < pool.length; j++) assign[pool[i++]] = sid;
     at[s.groupKey] = i;
   });
+  const Z = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
+  if (Z && sid > 1) {
+    const cnt = {};
+    Object.keys(assign).forEach(u => {
+      const z = Math.round(+Z[u] || 0);
+      if (z >= 1) {
+        const c = cnt[assign[u]] = cnt[assign[u]] || {};
+        c[z] = (c[z] || 0) + 1;
+      }
+    });
+    const zOf = id => {
+      const c = cnt[id];
+      if (!c) return 1e9;
+      return +Object.keys(c).sort((x, y) => c[y] - c[x] || x - y)[0];
+    };
+    const ids = [];
+    for (let i = 1; i <= sid; i++) ids.push(i);
+    ids.sort((x, y) => zOf(x) - zOf(y) || x - y);
+    const re = {};
+    ids.forEach((id, i) => {
+      re[id] = i + 1;
+    });
+    Object.keys(assign).forEach(u => {
+      assign[u] = re[assign[u]];
+    });
+  }
   return assign;
 }
 function scMicroAssign(panels, byPanel, groups, per) {

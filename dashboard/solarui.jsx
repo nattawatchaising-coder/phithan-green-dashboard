@@ -417,6 +417,9 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
 /* สีประจำสตริง — ไล่โทนให้แยกออกจากกันชัดแม้อยู่ติดกัน */
 const SU_SCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
+/* สีโซนอินเวอร์เตอร์ — 12 สีไม่ซ้ำ (งานใหญ่ 11 ตัว · suColor มี 10 สี INV11 จะซ้ำ INV1) และเป็น hex ล้วน ต่อท้ายความทึบได้ */
+const SU_ZCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "#DC2626", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5", "#0D9488", "#A16207"];
+const suZColor = (i) => SU_ZCOLOR[(i - 1 + SU_ZCOLOR.length) % SU_ZCOLOR.length];
 
 /* ── แนวเดินสายของสตริงที่คร่อมหลายช่วง (ผู้ใช้: เส้นต้องไม่ทับกัน) ──
    ลำดับงูเลื้อยของผัง (lay.rank) ต่อช่วงแผงที่แยกกันตามลำดับรวมทั้งผัง → สายจัมเปอร์ลากย้อนข้ามช่วงอื่นได้
@@ -2116,6 +2119,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
     uids.forEach((u) => { if (zoneInv > 0) z[u] = zoneInv; else delete z[u]; });
     set({ zone: Object.keys(z).length ? z : null });
   };
+  /* ผังตอนวาดโซน: แผงในโซน = สีทึบของตัวนั้น · นอกโซน = สีจาง ๆ ของตัวที่สตริงของแผงนั้นลงขั้วอยู่ตอนนี้ (เห็นผลลัพธ์ระหว่างวาด) */
+  const zoneView = React.useMemo(() => {
+    const out = {};
+    ((plan && plan.strings) || []).forEach((x) => { if (x.inv != null) (x.keys || []).forEach((u) => { out[u] = x.inv + 1; }); });
+    Object.keys(zoneMap).forEach((u) => { out[u] = zoneMap[u]; });
+    return out;
+  }, [plan, zoneMap]);
   const strIds = plan && plan.strings ? plan.strings.map((s) => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
   /* แตะไล่สตริง: แตะแผงว่าง = เก็บแผงต่อจากใบนั้นตามแนวเดินสายจนครบ serN ใบ ใส่สตริงที่เลือก
@@ -3213,13 +3223,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                     <div className="su-strs" data-full={bigMap ? "1" : "0"}>
                       <div className="su-strs-map">
                         {tool === "zone"
-                          ? <SuLayout2D foot={foot} assign={zoneMap} active={true} onPaint={() => {}} onPaintMany={paintZone}
-                              colorOf={(u, k) => suColor(k)} sel={zoneInv || null} mode="zone" height="100%" unitName="INV" />
+                          ? <SuLayout2D foot={foot} assign={zoneView} active={true} onPaint={() => {}} onPaintMany={paintZone}
+                              colorOf={(u, k) => (zoneMap[u] ? suZColor(k) : suZColor(k) + "4D")} mode="zone" height="100%" unitName="INV" />
                           : <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
                               onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
                               mode={tool} height="100%" />}
                         <span className="su-mode">
-                          <span className="d" style={{ background: tool === "zone" ? (zoneInv ? suColor(zoneInv) : "var(--tint-red-tx)") : activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }} />
+                          <span className="d" style={{ background: tool === "zone" ? (zoneInv ? suZColor(zoneInv) : "var(--tint-red-tx)") : activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }} />
                           {T.g} {T.name} · {tool === "zone" ? (zoneInv ? "ลากกรอบ = โซน INV" + zoneInv : "ลากกรอบ = ลบโซน") : activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)")}
                           {(tool !== "seq" || activeStr === 0) && <i>Esc กลับ</i>}
                         </span>
@@ -3267,9 +3277,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                                     <button key={k} type="button" onClick={() => { setTool("zone"); setZoneInv(k); }}
                                       title={"INV" + k + " · " + (per[k] ? per[k].s + " สตริง · " + per[k].p + " แผง" : "ยังไม่มีสตริง") + (zc[k] ? " · โซน " + zc[k] + " แผง" : "") + " — กดเพื่อวาดโซนของตัวนี้"}
                                       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit",
-                                        fontSize: 11, fontWeight: 700, background: on ? suColor(k) : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
+                                        fontSize: 11, fontWeight: 700, background: on ? suZColor(k) : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
                                         boxShadow: on ? "none" : "var(--shadow-sm)" }}>
-                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : suColor(k), opacity: zc[k] ? 1 : 0.45 }} />
+                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : suZColor(k), opacity: zc[k] ? 1 : 0.45 }} />
                                       INV{k}<span style={{ fontWeight: 500, opacity: 0.8 }}>{per[k] ? per[k].s : 0}</span>
                                     </button>
                                   );

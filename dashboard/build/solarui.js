@@ -623,6 +623,8 @@ function SuVoltBand({
 }
 const SU_SCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = i => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
+const SU_ZCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "#DC2626", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5", "#0D9488", "#A16207"];
+const suZColor = i => SU_ZCOLOR[(i - 1 + SU_ZCOLOR.length) % SU_ZCOLOR.length];
 function suRouteFix(us, ctr, jump) {
   const runs = [];
   us.forEach((u, i) => {
@@ -3999,6 +4001,18 @@ function SolarWorkspace({
       zone: Object.keys(z).length ? z : null
     });
   };
+  const zoneView = React.useMemo(() => {
+    const out = {};
+    (plan && plan.strings || []).forEach(x => {
+      if (x.inv != null) (x.keys || []).forEach(u => {
+        out[u] = x.inv + 1;
+      });
+    });
+    Object.keys(zoneMap).forEach(u => {
+      out[u] = zoneMap[u];
+    });
+    return out;
+  }, [plan, zoneMap]);
   const strIds = plan && plan.strings ? plan.strings.map(s => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
   const fillAt = uid => {
@@ -6151,12 +6165,11 @@ function SolarWorkspace({
       className: "su-strs-map"
     }, tool === "zone" ? React.createElement(SuLayout2D, {
       foot: foot,
-      assign: zoneMap,
+      assign: zoneView,
       active: true,
       onPaint: () => {},
       onPaintMany: paintZone,
-      colorOf: (u, k) => suColor(k),
-      sel: zoneInv || null,
+      colorOf: (u, k) => zoneMap[u] ? suZColor(k) : suZColor(k) + "4D",
       mode: "zone",
       height: "100%",
       unitName: "INV"
@@ -6178,7 +6191,7 @@ function SolarWorkspace({
     }, React.createElement("span", {
       className: "d",
       style: {
-        background: tool === "zone" ? zoneInv ? suColor(zoneInv) : "var(--tint-red-tx)" : activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
+        background: tool === "zone" ? zoneInv ? suZColor(zoneInv) : "var(--tint-red-tx)" : activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
       }
     }), T.g, " ", T.name, " \xB7 ", tool === "zone" ? zoneInv ? "ลากกรอบ = โซน INV" + zoneInv : "ลากกรอบ = ลบโซน" : activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)"), (tool !== "seq" || activeStr === 0) && React.createElement("i", null, "Esc \u0E01\u0E25\u0E31\u0E1A"))), React.createElement("aside", {
       className: "su-strs-side"
@@ -6275,7 +6288,7 @@ function SolarWorkspace({
             fontFamily: "inherit",
             fontSize: 11,
             fontWeight: 700,
-            background: on ? suColor(k) : "var(--surface)",
+            background: on ? suZColor(k) : "var(--surface)",
             color: on ? "#fff" : "var(--text-2)",
             boxShadow: on ? "none" : "var(--shadow-sm)"
           }
@@ -6284,7 +6297,7 @@ function SolarWorkspace({
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: on ? "#fff" : suColor(k),
+            background: on ? "#fff" : suZColor(k),
             opacity: zc[k] ? 1 : 0.45
           }
         }), "INV", k, React.createElement("span", {
