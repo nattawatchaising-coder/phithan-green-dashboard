@@ -593,11 +593,36 @@ function scAreaPins(L, items, capOf, load0, owner0, posOf, gap) {
   isl.sort((a, b) => { const ca = ctr(a), cb = ctr(b); return Math.abs(ca[1] - cb[1]) > 8 ? ca[1] - cb[1] : ca[0] - cb[0]; });
   const raw = isl.map((g) => nOf(g) * live.length / T);
   const cnt = raw.map((r) => Math.max(1, Math.floor(r)));
+  /* เกาะต้องได้ตัวพอขั้วสำหรับสตริงของมัน (ขั้วเฉลี่ยต่อตัวจากตัวแรกของงาน) */
+  const pinAvg = Math.max(1, U[live[0]].mppt * U[live[0]].phys);
+  isl.forEach((g, i) => { cnt[i] = Math.max(cnt[i], Math.ceil(g.length / pinAvg)); });
   let sum = cnt.reduce((a, b) => a + b, 0);
   const ord = raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0]);
   for (let t = 0; sum < live.length && t < ord.length * 4; t++) { cnt[ord[t % ord.length][1]]++; sum++; }
   while (sum > live.length) { const bi = cnt.indexOf(Math.max.apply(null, cnt)); if (cnt[bi] <= 1) break; cnt[bi]--; sum--; }
-  /* 3) ผ่าครึ่งซ้ำ ๆ · us = รายชื่อตัว · idx = สตริง */
+  /* ขั้วที่แต่ละตัวยังรับได้ (สตริง) — ผ่าครึ่งต้องไม่ให้ฝั่งไหนเกินขั้วที่มี ไม่งั้นล้นไปตัวอื่นกลายเป็นก้อนแยก
+     (ผู้ใช้ 16 พ.ย. 2026 แบบ 6 ตัว: INV4 ได้สองก้อนห่างกัน · INV6 ได้ 3 สตริงขณะตัวอื่น 10) */
+  const pinsOf = (u) => { const a = []; for (let slot = 0; slot < u.phys; slot++) for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) a.push({ m, pin: L.pinAt(m, slot) }); return a; };
+  const PO = U.map(pinsOf);
+  const capU = U.map((u, ui) => {
+    let c = 0;
+    for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) {
+      const fp = PO[ui].filter((x) => x.m === m && !owner[x.pin]).length;
+      c += Math.max(0, Math.min(fp, capOf(m) - (load[m] || 0)));
+    }
+    return c;
+  });
+  items.forEach((it, i) => { if (unitOf[i] >= 0) capU[unitOf[i]]--; });
+  const capOfUs = (us) => us.reduce((a, i) => a + Math.max(0, capU[i]), 0);
+  /* หลังคาของสตริง = หลังคาที่แผงส่วนใหญ่อยู่ (uid = "หลังคา|ตำแหน่ง") */
+  const roofOf = items.map((it) => {
+    const c = {}; (it.keys || []).forEach((u) => { const r = String(u).split("|")[0]; c[r] = (c[r] || 0) + 1; });
+    return Object.keys(c).sort((x, y) => c[y] - c[x])[0] || "";
+  });
+  /* 3) ผ่าครึ่งซ้ำ ๆ แบบ "หลังคาก่อน" (ผู้ใช้: "หลังคาเดียวกันก็ควรอยู่ในโซนเดียวกัน ถ้าจำเป็นจริง ๆ ลงล็อกไม่ได้ค่อยข้ามหลังคา")
+     เรียงสตริงเป็นก้อนตามหลังคา (หลังคาเรียงตามแกนยาว ในหลังคาเรียงตามตำแหน่ง) แล้วหาจุดตัด:
+     ตัดตรงขอบหลังคาได้ถ้าคลาดจากขนาดที่ควรได้ไม่เกิน 15% ต่อตัว · ไม่งั้นตัดกลางหลังคาที่คร่อมจุดนั้น (หลังคาอื่นยังอยู่ครบ)
+     จุดตัดต้องไม่ทำให้ฝั่งไหนมีสตริงเกินขั้วที่รับได้ */
   const cut = (idx, us) => {
     if (!idx.length || !us.length) return;
     if (us.length === 1) { idx.forEach((i) => { unitOf[i] = us[0]; }); return; }
@@ -606,17 +631,36 @@ function scAreaPins(L, items, capOf, load0, owner0, posOf, gap) {
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     idx.forEach((i) => { x0 = Math.min(x0, P[i][0]); x1 = Math.max(x1, P[i][0]); y0 = Math.min(y0, P[i][1]); y1 = Math.max(y1, P[i][1]); });
     const ax = x1 - x0 >= y1 - y0 ? 0 : 1, bx = 1 - ax;
-    const srt = idx.slice().sort((p, q) => P[p][ax] - P[q][ax] || P[p][bx] - P[q][bx]);
+    const rc = {};
+    idx.forEach((i) => { const r = roofOf[i]; const c = (rc[r] = rc[r] || { s: 0, n: 0 }); c.s += P[i][ax]; c.n++; });
+    const srt = idx.slice().sort((p, q) => {
+      const rp = roofOf[p], rq = roofOf[q];
+      if (rp !== rq) return rc[rp].s / rc[rp].n - rc[rq].s / rc[rq].n || (rp < rq ? -1 : 1);
+      return P[p][ax] - P[q][ax] || P[p][bx] - P[q][bx];
+    });
     const tot = nOf(srt), goal = tot * wa / ((wa + wb) || 1);
-    let acc = 0, k = 0;
-    while (k < srt.length && acc + scNum(items[srt[k]].n, 0) / 2 <= goal) { acc += scNum(items[srt[k]].n, 0); k++; }
+    const n = srt.length, kMin = Math.max(1, n - capOfUs(B)), kMax = Math.min(n - 1, capOfUs(A));
+    const pre = [0]; srt.forEach((i) => pre.push(pre[pre.length - 1] + scNum(items[i].n, 0)));
+    /* จุดตัดตามขนาด */
+    let k = 0;
+    while (k < n && pre[k] + scNum(items[srt[k]].n, 0) / 2 <= goal) k++;
+    /* ขอบหลังคาที่ใกล้พอ */
+    const tol = 0.15 * (tot / us.length) * Math.min(A.length, B.length);
+    let best = -1, bd = 1e18;
+    for (let j = 1; j < n; j++) {
+      if (roofOf[srt[j]] === roofOf[srt[j - 1]] || j < kMin || j > kMax) continue;
+      const d = Math.abs(pre[j] - goal);
+      if (d <= tol && d < bd) { bd = d; best = j; }
+    }
+    if (best > 0) k = best;
+    if (kMax >= kMin) k = Math.max(kMin, Math.min(kMax, k));
     cut(srt.slice(0, k), A); cut(srt.slice(k), B);
   };
   let off = 0;
   isl.forEach((g, gi) => { const us = live.slice(off, off + cnt[gi]); off += cnt[gi]; cut(g, us.length ? us : [live[live.length - 1]]); });
-  /* 4) ลงขั้ว — ในตัวเดียวกันเรียงตามเลขสตริง */
-  const pinsOf = (u) => { const a = []; for (let slot = 0; slot < u.phys; slot++) for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) a.push({ m, pin: L.pinAt(m, slot) }); return a; };
-  const PO = U.map(pinsOf);
+  /* 4) ลงขั้ว — ในตัวเดียวกันเรียงตามเลขสตริง · ตัวเต็มแล้วล้นไปตัวที่ก้อนอยู่ใกล้ที่สุด (ไม่ใช่ตัวเลขถัดไป) */
+  const uc = U.map(() => [0, 0, 0]);
+  items.forEach((it, i) => { if (unitOf[i] >= 0 && P[i]) { const c = uc[unitOf[i]]; c[0] += P[i][0]; c[1] += P[i][1]; c[2]++; } });
   const take = (ui) => {
     const p = PO[ui].find((x) => !owner[x.pin] && (load[x.m] || 0) < capOf(x.m));
     if (!p) return null;
@@ -626,7 +670,15 @@ function scAreaPins(L, items, capOf, load0, owner0, posOf, gap) {
   items.forEach((it, i) => {
     const u0 = unitOf[i] >= 0 ? unitOf[i] : live[0];
     let pin = take(u0);
-    for (let d = 1; pin == null && d < U.length; d++) pin = take((u0 + d) % U.length);
+    if (pin == null) {
+      const me = P[i] || [0, 0];
+      const near = U.map((u, j) => j).filter((j) => j !== u0).sort((x, y) => {
+        const cx = uc[x][2] ? Math.hypot(uc[x][0] / uc[x][2] - me[0], uc[x][1] / uc[x][2] - me[1]) : 1e9;
+        const cy = uc[y][2] ? Math.hypot(uc[y][0] / uc[y][2] - me[0], uc[y][1] / uc[y][2] - me[1]) : 1e9;
+        return cx - cy || x - y;
+      });
+      for (let d = 0; pin == null && d < near.length; d++) pin = take(near[d]);
+    }
     out[i] = pin;
   });
   return out;
