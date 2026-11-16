@@ -2241,10 +2241,18 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
      dxf = { prep, i } · prep จาก p3PrepSet (เตรียมภาพพื้นหลังครั้งเดียว ดูตัวอย่าง/ดาวน์โหลดใช้ชุดเดียวกัน) */
   const [dxf, setDxf] = React.useState(null);
   const [dxfBusy, setDxfBusy] = React.useState("");
+  /* ตารางคำนวณสาย (cableui.jsx) — ขนาดสายจริงต่อสตริง/วงจร AC ส่งต่อให้ SLD ทาง design.cc (เฟส 4)
+     cc = { dc: { s<สตริง>: mm² }, ac: [{ id, from, to, ct, use, n, sys, at, pe }] } · ยังไม่เคยเปิดการ์ด = null (SLD ใช้สูตรเดิม) */
+  const ccStore = window.useCcStore ? window.useCcStore(job && job.id, ver) : { data: null };
+  const ccD = ccStore.data || null;
+  const ccDesign = ccD && ((ccD.sum && ccD.sum.bySid) || (ccD.sumAc && ccD.sumAc.cables))
+    ? { dc: (ccD.sum && ccD.sum.bySid) || null, ac: ((ccD.sumAc && ccD.sumAc.cables) || []).map((c) => ({ id: c.id, from: c.from, to: c.to, ct: c.ct, use: c.use, n: c.n, sys: c.sys, at: c.at, pe: c.pe })) }
+    : null;
   const dxfDesign = () => ({
     strings: isMicro || !plan ? [] : plan.strings.map((x) => ({ id: x.id, n: x.n, inv: x.inv, addr: x.addr })),
     paths: wirePaths,
     lay: !isMicro && plan ? { mpptPerInv: pinLay.mpptPerInv, phys: pinLay.phys, nInv: pinLay.nInv, mixed: !!inv2 } : null,
+    cc: ccDesign,
   });
   const dxfSt = () => Object.assign({}, st, { sys: S });
   /* เก็บการจัดสตริง + แนวเดินสาย (design ที่ชุดแบบใช้) ไว้ที่ plan3dSldDesign/{งาน}/{เวอร์ชันแบบ} — ใบลูกค้า/ใบงานกดดู SLD ได้โดยไม่ต้องเปิดหน้านี้
@@ -2255,7 +2263,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
     if (!job || !job.id || !window.FBDB || isMicro || !plan || !plan.strings.length) return;
     const d = dxfDesign();
     /* paths = แนวเดินสายสตริง (แผ่นผังสตริง · รูปการเดินสาย · ตารางพื้นที่) — ผู้ใช้ขอดูทั้งชุดแบบ ไม่ใช่แค่ SLD */
-    const v = JSON.parse(JSON.stringify({ strings: d.strings, lay: d.lay || null, paths: d.paths || [] }));
+    const v = JSON.parse(JSON.stringify({ strings: d.strings, lay: d.lay || null, paths: d.paths || [], cc: d.cc || null }));
     const canon = (x) => (Array.isArray(x) ? "[" + x.map(canon).join(",") + "]" : x && typeof x === "object" ? "{" + Object.keys(x).sort().filter((k) => x[k] != null).map((k) => k + ":" + canon(x[k])).join(",") + "}" : JSON.stringify(x));
     const js = canon(v);
     if (js === sldLast.current) return;
@@ -2264,12 +2272,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
       ref.once("value").then((s) => {
         const o = s.val();
         sldLast.current = js;
-        if (o && canon({ strings: o.strings, lay: o.lay || null, paths: o.paths || [] }) === js) return null;
+        if (o && canon({ strings: o.strings, lay: o.lay || null, paths: o.paths || [], cc: o.cc || null }) === js) return null;
         return ref.set(Object.assign({ at: Date.now() }, v));
       }).catch(() => {});
     }, 1500);
     return () => clearTimeout(t);
-  }, [job && job.id, ver, isMicro, plan, pinLay, inv2]);
+  }, [job && job.id, ver, isMicro, plan, pinLay, inv2, JSON.stringify(ccDesign)]);
   async function openDxf() {
     if (typeof p3PrepSet !== "function") return;
     setDxfBusy("กำลังเตรียมชุดแบบ");
@@ -2341,6 +2349,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
      ค่าตั้งต้นดึงจากข้อมูลงาน (job.phase) แก้ทับได้ในหน้านี้ */
   const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
   const phases = S.phases == null ? jobPhase : (scNum(S.phases, 1) === 3 ? 3 : 1);
+  /* อินเวอร์เตอร์ทีละรุ่นให้ตารางสาย AC + เช็ก Voc ในรายงานคำนวณสาย (cableui.jsx) */
+  const ccInvs = [{ model: inv.model, n: scNum(S.invCount, 1), phase: inv.phase || phases, outA: inv.outA, kw: inv.kw, maxVdc: inv.maxVdc }]
+    .concat(invX.map((e) => ({ model: e.model, n: e.n, phase: e.spec.phase || phases, outA: e.spec.outA, kw: e.spec.kw, maxVdc: e.spec.maxVdc })));
   /* ── เลือกอินเวอร์เตอร์: ยี่ห้อก่อน แล้วค่อยรุ่น ──
      คลังมีหลายยี่ห้อหลายสิบรุ่น ดรอปดาวน์เดียวยาวหาไม่เจอ · รุ่นบอก kW · เฟส · Hybrid/On-grid
      รุ่นที่เฟสตรงกับงานขึ้นก่อน ที่ไม่ตรงแยกไว้กลุ่มท้าย (ยังเลือกได้ เผื่องานพิเศษ) */
@@ -3587,13 +3598,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
 
                 {/* ตารางสาย DC ต่อสตริง · แรงดันตก (cableui.jsx · เฟส 2) */}
                 {!isMicro && plan && plan.strings && plan.strings.length > 0 && window.CcDcCard && (
-                  <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} />
+                  <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} invs={ccInvs} />
                 )}
                 {/* สาย AC อินเวอร์เตอร์ → ตู้ → MDB + หม้อแปลง (เฟส 3) */}
                 {!isMicro && inv.model && window.CcAcCard && (
-                  <window.CcAcCard job={job} ver={ver} st={st}
-                    invs={[{ model: inv.model, n: scNum(S.invCount, 1), phase: inv.phase || phases, outA: inv.outA, kw: inv.kw }]
-                      .concat(invX.map((e) => ({ model: e.model, n: e.n, phase: e.spec.phase || phases, outA: e.spec.outA, kw: e.spec.kw })))} />
+                  <window.CcAcCard job={job} ver={ver} st={st} invs={ccInvs} />
                 )}
 
                 {warns.map((w, i) => (

@@ -22,10 +22,16 @@ function useCcStore(jobId, ver) {
   return { data, key, patch };
 }
 
+/* เทียบเนื้อหาแบบเรียงคีย์ (Firebase คืนคีย์เรียงใหม่ · ค่า null ถูกตัดทิ้ง) */
+const ccCanon = (x) => (Array.isArray(x) ? "[" + x.map(ccCanon).join(",") + "]" : x && typeof x === "object"
+  ? "{" + Object.keys(x).sort().filter((k) => x[k] != null && !(typeof x[k] === "number" && isNaN(x[k]))).map((k) => k + ":" + ccCanon(x[k])).join(",") + "}" : JSON.stringify(x));
+/* ผลล่าสุดของการ์ด DC/AC ต่องาน+เวอร์ชัน — ปุ่มรายงานอ่านจากตรงนี้ (ไม่ต้องคำนวณซ้ำ ได้ตัวเลขเดียวกับจอ) */
+const CC_LIVE = {};
+const ccLiveOf = (job, ver) => { const k = ((job && job.id) || "") + "/" + String(ver || "1"); return (CC_LIVE[k] = CC_LIVE[k] || {}); };
 const ccBif = (P) => !!P && (P.bifacial === true || (P.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(P.model || ""))));
 
 /* props: job, ver, st (แบบ 3D), strings (plan.strings), paths (wirePaths), foot (p3FootAll), panel (สเปคแผง), colorOf */
-function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf }) {
+function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs }) {
   const CC = window.CC, B = window.BOQ || {}, R = B.RULES || {};
   const store = useCcStore(job && job.id, ver);
   const D = store.data || {};
@@ -61,16 +67,17 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf }) {
   const maxPct = ok.length ? Math.max.apply(null, ok.map((r) => r.pct || 0)) : 0;
   const bad = ok.filter((r) => !r.ok).length;
   const perPole = Math.round(ok.reduce((t, r) => t + r.len, 0));
-  const sizes = {}; ok.forEach((r) => { if (isFinite(r.use)) sizes[r.use] = (sizes[r.use] || 0) + 1; });
+  const sizes = {}, bySid = {};
+  ok.forEach((r) => { if (isFinite(r.use)) { sizes["mm" + r.use] = (sizes["mm" + r.use] || 0) + 1; bySid["s" + r.id] = r.use; } });
   const missing = rows.length - ok.length;
 
   /* สรุปให้ BOQ — เขียนเมื่อเปลี่ยนจริง หน่วง 1.5 วิ (ระหว่างลากจัดสตริงจะได้ไม่ยิงถี่ · แบบเดียวกับ plan3dSldDesign) */
-  const sumJs = JSON.stringify({ strings: ok.length, perPole, maxPct, sizes });
+  const sumObj = { strings: ok.length, perPole, maxPct, sizes, bySid }, sumJs = ccCanon(sumObj);
   React.useEffect(() => {
     if (store.data === undefined || !ok.length || !job || !job.id) return;
-    const cur = D.sum ? JSON.stringify({ strings: D.sum.strings, perPole: D.sum.perPole, maxPct: D.sum.maxPct, sizes: D.sum.sizes }) : "";
+    const cur = D.sum ? ccCanon({ strings: D.sum.strings, perPole: D.sum.perPole, maxPct: D.sum.maxPct, sizes: D.sum.sizes, bySid: D.sum.bySid }) : "";
     if (cur === sumJs) return;
-    const t = setTimeout(() => store.patch({ sum: Object.assign(JSON.parse(sumJs), { at: new Date().toISOString() }) }), 1500);
+    const t = setTimeout(() => store.patch({ sum: Object.assign({}, sumObj, { at: new Date().toISOString() }) }), 1500);
     return () => clearTimeout(t);
   }, [sumJs, store.data === undefined]); // eslint-disable-line
 
@@ -90,6 +97,8 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf }) {
   const resetAll = () => window.askConfirm({ title: "คืนระยะสายที่แก้เองทั้งหมด?", body: "ทุกสตริงกลับไปใช้ระยะที่ระบบประมาณจากแบบ 3D และขนาดสายอัตโนมัติ", ok: "คืนค่า", danger: true })
     .then((y) => { if (y) store.patch({ dc: null }); });
 
+  /* ให้ปุ่มรายงานคำนวณหยิบผลชุดเดียวกับที่โชว์ */
+  ccLiveOf(job, ver).dc = { rows, kDC, Ca, Cg, vdLim, minSize, spare, mod, panel, invs: invs || [], tMin: +R.tMin || 15, bif: ccBif(panel), stations: stations.length };
   if (!CC || !strings || !strings.length) return null;
   const nEdited = Object.keys(dcEdit).length;
   const pct = (v) => (isFinite(v) ? v.toFixed(2) + "%" : "—");
@@ -117,6 +126,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf }) {
         <span>ขั้นต่ำ {minSize} mm² · เผื่อระยะ ×{spare}</span>
         <span style={{ flex: 1 }} />
         {nEdited > 0 && <button className="p3-lnk" onClick={resetAll}>คืนค่าที่แก้เอง ({nEdited})</button>}
+        <CcReportBtn job={job} ver={ver} />
       </div>
 
       <div className="su-scroll">
@@ -161,7 +171,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf }) {
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
         <span className="p3-stat">สาย PV ต่อขั้ว <b>{perPole.toLocaleString()}</b> ม.</span>
         <span className="p3-stat">แดง + ดำ <b>{(perPole * 2).toLocaleString()}</b> ม.</span>
-        {Object.keys(sizes).sort((a, b) => a - b).map((s) => <span key={s} className="p3-stat">{s} mm² <b>{sizes[s]}</b> สตริง</span>)}
+        {Object.keys(sizes).sort((a, b) => a.slice(2) - b.slice(2)).map((s) => <span key={s} className="p3-stat">{s.slice(2)} mm² <b>{sizes[s]}</b> สตริง</span>)}
         {missing > 0 && <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>ยังไม่มีระยะ <b>{missing}</b> สตริง</span>}
       </div>
       <span className="p3-note">
@@ -230,12 +240,14 @@ function CcAcCard({ job, ver, st, invs }) {
   const bad = ok.filter((r) => !r.ok).length;
   const xf = A.xf || null, xr = xf && CC && +xf.kva > 0 ? CC.xfmr(+xf.kva, +xf.hv || 22000, +xf.lv || 400, +xf.z || 6) : null;
 
-  const sumJs = JSON.stringify({ maxPct, bad, cables: ok.map((r) => ({ id: r.id, from: r.from, to: r.to, cable: r.cable, len: r.len, at: r.at, af: r.af, pe: r.pe, pct: r.pct })) });
+  /* cables = ขนาดสายจริงให้ SLD (ผ่าน plan3dSldDesign.cc) + รายงาน · ct/use/n/sys ไว้ให้ SLD จัดรูปชื่อสายเอง */
+  const sumObj = { maxPct, bad, cables: ok.map((r) => ({ id: r.id, from: r.from, to: r.to, cable: r.cable, len: r.len, at: r.at, af: r.af, pe: r.pe, pct: r.pct,
+    ct: r.ct, use: r.use, n: r.n, sys: r.sys })) }, sumJs = ccCanon(sumObj);
   React.useEffect(() => {
     if (store.data === undefined || !ok.length || !job || !job.id) return;
-    const s = D.sumAc ? JSON.stringify({ maxPct: D.sumAc.maxPct, bad: D.sumAc.bad, cables: D.sumAc.cables }) : "";
+    const s = D.sumAc ? ccCanon({ maxPct: D.sumAc.maxPct, bad: D.sumAc.bad, cables: D.sumAc.cables }) : "";
     if (s === sumJs) return;
-    const t = setTimeout(() => store.patch({ sumAc: Object.assign(JSON.parse(sumJs), { at: new Date().toISOString() }) }), 1500);
+    const t = setTimeout(() => store.patch({ sumAc: Object.assign({}, sumObj, { at: new Date().toISOString() }) }), 1500);
     return () => clearTimeout(t);
   }, [sumJs, store.data === undefined]); // eslint-disable-line
 
@@ -248,6 +260,7 @@ function CcAcCard({ job, ver, st, invs }) {
   const resetAll = () => window.askConfirm({ title: "คืนค่าสาย AC ที่แก้เองทั้งหมด?", body: "ปลายทาง ระยะ ขนาดสาย ชุดขนาน ทุกวงจรกลับไปใช้ค่าที่ระบบคิดให้", ok: "คืนค่า", danger: true })
     .then((y) => { if (y) store.patch({ "ac/rows": null }); });
 
+  ccLiveOf(job, ver).ac = { rows, ta, cgm, arr, vdLim, xf, xr, ca: CC.ca(ta) };
   if (!CC || !CC.acPlan || !rows.length) return null;
   const nEdited = Object.keys(E).length;
   const boardOpts = ["MDB", "SMDB-1", "SMDB-2", "SMDB-3"].map((b) => ({ value: b, label: b }));
@@ -278,6 +291,7 @@ function CcAcCard({ job, ver, st, invs }) {
           <CcDd value={arr} options={CC_ARR} onChange={(v) => setA("arr", v === "Trefoil" ? null : v)} style={{ width: 170 }} /></label>
         <span style={{ flex: 1 }} />
         {nEdited > 0 && <button className="p3-lnk" onClick={resetAll}>คืนค่าที่แก้เอง ({nEdited})</button>}
+        <CcReportBtn job={job} ver={ver} />
       </div>
 
       <div className="su-scroll">
@@ -346,4 +360,129 @@ function CcAcCard({ job, ver, st, invs }) {
   );
 }
 
-Object.assign(window, { CcDcCard, CcAcCard, CcDd, CcNum, useCcStore });
+/* ==================================================================
+   รายงานคำนวณสาย (เฟส 4) — A4 แยกไฟล์ของตัวเอง (ผู้ใช้ 16 พ.ย. 2026: ไม่ใส่ในเล่ม PDF รวม)
+   ชื่อไฟล์ CC_รหัส_ชื่องาน_วันที่ (rpFileName) · เปิดใน SuReportView แล้ว "บันทึก PDF"
+   ใช้ผลชุดเดียวกับที่การ์ดโชว์ (CC_LIVE) — ตัวเลขในรายงานจึงตรงกับจอเสมอ
+   ================================================================== */
+const ccEsc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ccF = (v, d) => (isFinite(v) && v !== null && v !== "" ? (+v).toLocaleString("en-US", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 2 : d }) : "—");
+function ccThDate(d) {
+  const M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  return d.getDate() + " " + M[d.getMonth()] + " " + (d.getFullYear() + 543);
+}
+
+function ccReportHTML(job, ver, L) {
+  job = job || {};
+  const B = window.BRANDING || {}, dc = L.dc || null, ac = L.ac || null, now = new Date();
+  const title = window.rpFileName ? window.rpFileName(job, "CC") : "CC " + (job.code || "");
+  let logo = ""; try { logo = new URL(B.docMark || "dashboard/assets/flashplussolar-mark.png", location.href).href; } catch (e) { logo = ""; }
+  const ok = (b) => (b ? '<b class="ok">ผ่าน</b>' : '<b class="ng">ไม่ผ่าน</b>');
+  const tbl = (head, rows, cls) => '<table class="t ' + (cls || "") + '"><thead><tr>' + head.map((h) => "<th>" + h + "</th>").join("") + "</tr></thead><tbody>" +
+    rows.map((r) => "<tr" + (r.cls ? ' class="' + r.cls + '"' : "") + ">" + (r.c || r).map((c) => "<td>" + c + "</td>").join("") + "</tr>").join("") + "</tbody></table>";
+  const kv = (rows) => '<table class="kv">' + rows.filter((x) => x && x[1] !== "" && x[1] != null).map((x) => "<tr><td>" + x[0] + "</td><td>" + x[1] + "</td></tr>").join("") + "</table>";
+  const sec = (no, t) => '<h2><span>' + no + "</span>" + t + "</h2>";
+  let n = 0, body = "";
+
+  /* 1. ข้อมูลโครงการ + เกณฑ์ */
+  body += sec(++n, "ข้อมูลโครงการและเกณฑ์ออกแบบ");
+  body += '<div class="two">' + kv([
+    ["โครงการ", ccEsc([job.code, job.name].filter(Boolean).join(" · "))],
+    ["สถานที่", ccEsc([job.address, job.province].filter(Boolean).join(" "))],
+    ["ขนาดระบบ", job.kw ? ccF(job.kw) + " kWp" : ""],
+    ["แบบ 3D เวอร์ชัน", ccEsc(String(ver || "1"))],
+  ]) + kv([
+    ["มาตรฐานอ้างอิง", "วสท. 022001-22 (มาตรฐานการติดตั้งทางไฟฟ้าฯ พ.ศ. 2564) · IEC 62548 · EN 50618 (สาย PV)"],
+    ["แรงดันตกสาย DC", dc ? "≤ " + dc.vdLim + "% ต่อสตริง" : ""],
+    ["แรงดันตกสาย AC", ac ? "≤ " + ac.vdLim + "% ต่อวงจร" : ""],
+    ["สาย DC ขนาดเล็กสุด", dc ? dc.minSize + " mm² (PV1-F / H1Z2Z2-K)" : ""],
+  ]) + "</div>";
+
+  /* 2. ฝั่ง DC */
+  if (dc && dc.rows && dc.rows.length) {
+    const P = dc.panel || {}, m = dc.mod || {};
+    const ns = Array.from(new Set(dc.rows.map((r) => r.n).filter((x) => x > 0))).sort((a, b) => b - a);
+    const tc = +P.tcVoc < 0 ? +P.tcVoc : -0.25;
+    const vmaxInv = Math.min.apply(null, (dc.invs || []).map((x) => +x.maxVdc).filter((x) => x > 0).concat([Infinity]));
+    body += sec(++n, "แรงดันวงจรเปิดสูงสุดของสตริง (Voc ที่อุณหภูมิต่ำสุด)");
+    body += '<p class="f">Voc,max = จำนวนแผง × Voc × [1 + (β/100) × (Tmin − 25)] · β = ' + tc + " %/°C · Tmin = " + dc.tMin + " °C</p>";
+    body += tbl(["แผงต่อสตริง", "Voc แผง (V)", "Voc,max สตริง (V)", "แรงดันสูงสุดอินเวอร์เตอร์ (V)", "ผล"], ns.map((k) => {
+      const v = window.CC.vocMax(k, +P.voc, tc, dc.tMin);
+      return [k, ccF(P.voc, 2), ccF(v, 1), isFinite(vmaxInv) ? ccF(vmaxInv, 0) : "—", isFinite(vmaxInv) ? ok(v <= vmaxInv) : "—"];
+    }));
+    body += sec(++n, "สายไฟ DC ต่อสตริง (แผง → อินเวอร์เตอร์)");
+    body += kv([
+      ["แผง", ccEsc(P.model || "") + " · Vmp " + ccF(m.vmp, 2) + " V · Imp " + ccF(m.imp, 2) + " A · Isc " + ccF(m.isc, 2) + " A" + (dc.bif ? " · สองหน้า" : "")],
+      ["กระแสออกแบบ", "Id = Isc × " + ccF(dc.kDC, 3) + " = " + ccF(m.isc * dc.kDC, 2) + " A" + (dc.bif ? " (รวมตัวคูณแผงสองหน้า)" : "")],
+      ["ตัวคูณ", "Ca = " + dc.Ca + " · Cg = " + dc.Cg],
+      ["ระยะสาย", dc.stations ? "ประมาณจากแบบ 3D (แผงแรก/แผงสุดท้าย → จุดอินเวอร์เตอร์ แนวฉาก + ลงหลังคา + สายข้ามแถว) ÷ 2 × เผื่อ " + dc.spare + " · ช่องที่มี * = แก้ตามหน้างาน" : "กรอกตามหน้างาน"],
+    ]);
+    body += '<p class="f">R90 = R20 × (1 + 0.00393 × 70) ≈ 1.275 × R20 · VD = 2 × Imp × R90 × L ÷ 1000 · %VD = VD ÷ (Vmp × จำนวนแผง) × 100 · Iz = พิกัดสาย × Ca × Cg ≥ Id</p>';
+    body += tbl(["สตริง", "INV / MPPT", "แผง", "Vmp สตริง (V)", "L (ม.)", "สาย (mm²)", "R90 (Ω/km)", "Iz (A)", "VD (V)", "%VD", "ผล"], dc.rows.map((r) => [
+      "#" + r.id, ccEsc(r.addr || "—"), r.n, ccF(r.vStr, 0), isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", isFinite(r.use) ? r.use : "—",
+      ccF(r.r90, 3), ccF(r.iz, 1), ccF(r.vd, 2), isFinite(r.pct) ? ccF(r.pct, 2) + "%" : "—", r.valid ? ok(r.ok) : "รอระยะ"]), "sm");
+    const v = dc.rows.filter((r) => r.valid), per = Math.round(v.reduce((t, r) => t + r.len, 0));
+    body += '<p class="sum">สรุป: ' + v.length + " สตริง · %VD สูงสุด <b>" + ccF(Math.max.apply(null, v.map((r) => r.pct).concat([0])), 2) + "%</b> · ความยาวสายต่อขั้ว " + ccF(per, 0) +
+      " ม. (แดง + ดำ " + ccF(per * 2, 0) + " ม.)" + (v.some((r) => !r.ok) ? ' · <b class="ng">มีสตริงไม่ผ่าน</b>' : "") + "</p>";
+  }
+
+  /* 3. ฝั่ง AC */
+  if (ac && ac.rows && ac.rows.length) {
+    const cgTh = (window.CC.CG[ac.cgm] || {}).th || ac.cgm;
+    body += sec(++n, "สายไฟ AC (อินเวอร์เตอร์ → ตู้ย่อย → MDB)");
+    body += kv([
+      ["สภาพการเดินสาย", "สาย XLPE 90°C (CV) บนราง · " + ccEsc(cgTh) + " · จัดวาง " + ({ Trefoil: "สามเหลี่ยม", Flat: "แนวราบชิดกัน", Spaced: "แนวราบเว้นระยะ" }[ac.arr] || ac.arr)],
+      ["อุณหภูมิแวดล้อม", ac.ta + " °C → Ca = " + ac.ca + " (ตาราง 5-43)"],
+    ]);
+    body += '<p class="f">AT = ขั้นแรกที่ ≥ Imax × 1.25 (สายเมนตู้ย่อย × 1) · It = AT ÷ (Ca × Cg × ชุด) · Iz = พิกัดตาราง 5-33 × Ca × Cg × ชุด ≥ AT · VD = mV/A/m (ตาราง ฐ.3/ฐ.4) × (Imax ÷ ชุด) × L ÷ 1000 · สายดิน (PE) ตาราง 4-2</p>';
+    body += tbl(["วงจร", "Imax (A)", "AT/AF", "Cg", "It (A)", "สาย", "Iz (A)", "L (ม.)", "mV/A/m", "%VD", "ถึง MDB", "PE (mm²)", "ผล"], ac.rows.map((r) => ({ cls: r.kind === "feed" ? "fd" : "", c: [
+      ccEsc(r.from + " → " + r.to), ccF(r.imax, 1), isFinite(r.at) ? r.at + "/" + r.af : "—", ccF(r.cg, 2), ccF(r.it, 1), ccEsc(r.cable || "—"), ccF(r.iz, 1),
+      isFinite(r.len) ? ccF(r.len, 1) + (r.edited ? "*" : "") : "—", r.mv != null ? r.mv : "—", isFinite(r.pct) ? ccF(r.pct, 2) + "%" : "—",
+      isFinite(r.pctTotal) ? ccF(r.pctTotal, 2) + "%" : "—", ccF(r.pe, 0), r.valid ? ok(r.ok) : "รอระยะ"] })), "sm");
+    if (ac.xr) {
+      const x = ac.xf || {};
+      body += sec(++n, "หม้อแปลง");
+      body += '<p class="f">In = kVA × 1000 ÷ (√3 × V) · Isc(LV) = In(LV) × 100 ÷ %Z</p>';
+      body += tbl(["ขนาด (kVA)", "HV / LV (V)", "%Z", "In HV (A)", "Ib HV × 1.25 (A)", "In LV (A)", "Isc LV (kA)"],
+        [[ccF(x.kva, 0), ccF(+x.hv || 22000, 0) + " / " + ccF(+x.lv || 400, 0), ccF(+x.z || 6, 1), ccF(ac.xr.inHv, 2), ccF(ac.xr.ibHv, 2), ccF(ac.xr.inLv, 2), ccF(ac.xr.iscLv, 2)]]);
+    }
+  }
+
+  const sign = (t) => '<div class="sg"><div class="ln"></div><div>(' + "&nbsp;".repeat(46) + ')</div><b>' + t + '</b><div class="lic">เลขทะเบียนใบอนุญาต ................................</div><div>วันที่ ........../........../..........</div></div>';
+  const css = "@page{size:A4 portrait;margin:12mm 11mm 14mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+    "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10px;background:#fff}" +
+    ".hd{display:flex;align-items:center;gap:12px;border-bottom:2.5px solid #1B9B75;padding-bottom:8px;margin-bottom:6px}.hd img{height:38px}" +
+    ".hd .t{flex:1}.hd h1{margin:0;font-size:17px;letter-spacing:.01em}.hd .e{font-size:10px;color:#4A5A51;letter-spacing:.06em}.hd .r{text-align:right;font-size:9.5px;color:#4A5A51;line-height:1.5}" +
+    "h2{font-size:12px;margin:14px 0 6px;display:flex;align-items:center;gap:7px;break-after:avoid}h2 span{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:5px;background:#1B9B75;color:#fff;font-size:10.5px}" +
+    ".two{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}table.kv{border-collapse:collapse;margin-bottom:3px}table.kv td{padding:2px 10px 2px 0;vertical-align:top;font-size:10px}table.kv td:first-child{color:#6A7A71;white-space:nowrap}" +
+    "p.f{margin:5px 0 6px;padding:5px 9px;background:#F3F6F4;border-radius:6px;font-size:9.5px;color:#334139;line-height:1.55}" +
+    "table.t{width:100%;border-collapse:collapse;margin:3px 0}table.t th{background:#1B5E4A;color:#fff;font-weight:700;font-size:9px;padding:4px 4px;text-align:center}" +
+    "table.t td{padding:3px 4px;border-bottom:1px solid #E1E8E4;text-align:center;font-variant-numeric:tabular-nums;font-size:9.5px}table.t tr{break-inside:avoid}" +
+    "table.sm td,table.sm th{font-size:8.6px;padding:3px 3px}tr.fd td{background:#EEF4F0;font-weight:700}" +
+    "b.ok{color:#15803D}b.ng{color:#B91C1C}p.sum{margin:5px 0 0;font-size:10px}" +
+    ".sgs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px;break-inside:avoid}.sg{text-align:center;font-size:9.5px;line-height:1.75}.sg .ln{border-bottom:1px dotted #333;height:34px;margin:0 8px 4px}.sg b{font-size:10.5px}.sg .lic{color:#4A5A51}" +
+    ".ft{margin-top:14px;font-size:8.5px;color:#7A8A81;display:flex;justify-content:space-between;border-top:1px solid #E1E8E4;padding-top:5px}";
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + ccEsc(title) + "</title>" +
+    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" +
+    '<div class="hd">' + (logo ? '<img src="' + ccEsc(logo) + '" alt="">' : "") + '<div class="t"><h1>รายการคำนวณขนาดสายไฟฟ้าและแรงดันตก</h1><div class="e">CABLE SIZING &amp; VOLTAGE DROP CALCULATION</div></div>' +
+    '<div class="r">' + ccEsc(B.legalTH || B.legal || "") + "<br>เอกสาร " + ccEsc(title) + "<br>วันที่ " + ccThDate(now) + "</div></div>" +
+    body +
+    '<div class="sgs">' + sign("ผู้คำนวณ") + sign("ผู้ตรวจสอบ") + sign("ผู้อนุมัติ (วิศวกรไฟฟ้า)") + "</div>" +
+    '<div class="ft"><span>* = ระยะที่แก้ตามหน้างาน · ตัวเลขจากหน้าออกแบบระบบ ณ วันที่ออกเอกสาร</span><span>' + ccEsc(B.legal || "") + "</span></div></body></html>";
+}
+
+/* ปุ่มเปิดรายงาน — มีทั้งในการ์ด DC และ AC (รายงานเดียวกัน รวมทั้งสองฝั่ง) */
+function CcReportBtn({ job, ver }) {
+  const [html, setHtml] = React.useState(null);
+  const open = () => setHtml(ccReportHTML(job, ver, ccLiveOf(job, ver)));
+  return (
+    <>
+      <button className="p3-lnk" onClick={open} title="รายงานคำนวณสาย DC + AC แยกไฟล์ A4 พร้อมช่องลงนาม" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--acd)" }}>
+        <P3Icon name="doc" size={13} />รายงานคำนวณสาย (PDF)</button>
+      {html && window.SuReportView && ReactDOM.createPortal(
+        <window.SuReportView html={html} title="รายการคำนวณขนาดสายไฟฟ้าและแรงดันตก" onClose={() => setHtml(null)} />, document.body)}
+    </>
+  );
+}
+
+Object.assign(window, { CcDcCard, CcAcCard, CcDd, CcNum, CcReportBtn, useCcStore, ccReportHTML });

@@ -4177,6 +4177,24 @@ function SolarWorkspace({
   }, [isMicro, foot, effAssign, lay]);
   const [dxf, setDxf] = React.useState(null);
   const [dxfBusy, setDxfBusy] = React.useState("");
+  const ccStore = window.useCcStore ? window.useCcStore(job && job.id, ver) : {
+    data: null
+  };
+  const ccD = ccStore.data || null;
+  const ccDesign = ccD && (ccD.sum && ccD.sum.bySid || ccD.sumAc && ccD.sumAc.cables) ? {
+    dc: ccD.sum && ccD.sum.bySid || null,
+    ac: (ccD.sumAc && ccD.sumAc.cables || []).map(c => ({
+      id: c.id,
+      from: c.from,
+      to: c.to,
+      ct: c.ct,
+      use: c.use,
+      n: c.n,
+      sys: c.sys,
+      at: c.at,
+      pe: c.pe
+    }))
+  } : null;
   const dxfDesign = () => ({
     strings: isMicro || !plan ? [] : plan.strings.map(x => ({
       id: x.id,
@@ -4190,7 +4208,8 @@ function SolarWorkspace({
       phys: pinLay.phys,
       nInv: pinLay.nInv,
       mixed: !!inv2
-    } : null
+    } : null,
+    cc: ccDesign
   });
   const dxfSt = () => Object.assign({}, st, {
     sys: S
@@ -4202,7 +4221,8 @@ function SolarWorkspace({
     const v = JSON.parse(JSON.stringify({
       strings: d.strings,
       lay: d.lay || null,
-      paths: d.paths || []
+      paths: d.paths || [],
+      cc: d.cc || null
     }));
     const canon = x => Array.isArray(x) ? "[" + x.map(canon).join(",") + "]" : x && typeof x === "object" ? "{" + Object.keys(x).sort().filter(k => x[k] != null).map(k => k + ":" + canon(x[k])).join(",") + "}" : JSON.stringify(x);
     const js = canon(v);
@@ -4215,7 +4235,8 @@ function SolarWorkspace({
         if (o && canon({
           strings: o.strings,
           lay: o.lay || null,
-          paths: o.paths || []
+          paths: o.paths || [],
+          cc: o.cc || null
         }) === js) return null;
         return ref.set(Object.assign({
           at: Date.now()
@@ -4223,7 +4244,7 @@ function SolarWorkspace({
       }).catch(() => {});
     }, 1500);
     return () => clearTimeout(t);
-  }, [job && job.id, ver, isMicro, plan, pinLay, inv2]);
+  }, [job && job.id, ver, isMicro, plan, pinLay, inv2, JSON.stringify(ccDesign)]);
   async function openDxf() {
     if (typeof p3PrepSet !== "function") return;
     setDxfBusy("กำลังเตรียมชุดแบบ");
@@ -4329,6 +4350,21 @@ function SolarWorkspace({
   const microUnassigned = isMicro ? foot.panels.filter(p => !microAssign[p.uid]).length : 0;
   const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
   const phases = S.phases == null ? jobPhase : scNum(S.phases, 1) === 3 ? 3 : 1;
+  const ccInvs = [{
+    model: inv.model,
+    n: scNum(S.invCount, 1),
+    phase: inv.phase || phases,
+    outA: inv.outA,
+    kw: inv.kw,
+    maxVdc: inv.maxVdc
+  }].concat(invX.map(e => ({
+    model: e.model,
+    n: e.n,
+    phase: e.spec.phase || phases,
+    outA: e.spec.outA,
+    kw: e.spec.kw,
+    maxVdc: e.spec.maxVdc
+  })));
   const invBrandOf = p => String(p && p.group || "").trim() || "ไม่ระบุยี่ห้อ";
   const invBrands = (() => {
     const m = {};
@@ -6708,24 +6744,13 @@ function SolarWorkspace({
     paths: wirePaths,
     foot: foot,
     panel: panel,
-    colorOf: suColor
+    colorOf: suColor,
+    invs: ccInvs
   }), !isMicro && inv.model && window.CcAcCard && React.createElement(window.CcAcCard, {
     job: job,
     ver: ver,
     st: st,
-    invs: [{
-      model: inv.model,
-      n: scNum(S.invCount, 1),
-      phase: inv.phase || phases,
-      outA: inv.outA,
-      kw: inv.kw
-    }].concat(invX.map(e => ({
-      model: e.model,
-      n: e.n,
-      phase: e.spec.phase || phases,
-      outA: e.spec.outA,
-      kw: e.spec.kw
-    })))
+    invs: ccInvs
   }), warns.map((w, i) => React.createElement("div", {
     key: i,
     className: "su-alert warn"

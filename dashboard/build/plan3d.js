@@ -4517,6 +4517,37 @@ function p3PvWire(PS, isc, R) {
     tk = +R.pvWireTempK > 0 ? +R.pvWireTempK : 1;
   return sizes.find(sz => sz >= min && amp[sz] * tk >= need) || sizes[sizes.length - 1];
 }
+function p3CcDcSize(design) {
+  const m = design && design.cc && design.cc.dc;
+  if (!m) return null;
+  const ids = design.strings && design.strings.length ? design.strings.map(x => "s" + x.id) : Object.keys(m);
+  const v = ids.map(k => +m[k]).filter(x => x > 0);
+  return v.length ? Math.max.apply(null, v) : null;
+}
+function p3CcAcLabel(c) {
+  if (!c || !(+c.use > 0)) return "";
+  const ph3 = c.sys !== "1P",
+    one = c.ct === "MC" ? (ph3 ? "4" : "2") + "Cx" + c.use : (ph3 ? "4" : "2") + "x1Cx" + c.use;
+  return "CV " + (+c.n > 1 ? c.n + "x(" + one + ")" : one) + " Sq.mm. 0.6/1kV";
+}
+function p3SldFromCc(M, design, def) {
+  const L = design && design.cc && design.cc.ac;
+  if (!L || !L.length) return;
+  M.acCableOf = M.acCableOf || {};
+  M.acGndOf = M.acGndOf || {};
+  L.filter(c => /^i\d+$/.test(c.id)).forEach(c => {
+    const no = +c.id.slice(1),
+      lb = p3CcAcLabel(c);
+    if (lb && !M.acCableOf[no]) M.acCableOf[no] = lb;
+    if (+c.pe > 0 && !M.acGndOf[no]) M.acGndOf[no] = p3GndLabel(c.pe + " sq");
+  });
+  const first = L.find(c => /^i\d+$/.test(c.id) && (!M.only || M.only.indexOf(+c.id.slice(1)) >= 0));
+  if (first && M.acCable === def.ac) M.acCable = p3CcAcLabel(first) || M.acCable;
+  const feed = L.find(c => c.kind === "feed" || /^f:/.test(c.id)) || (L.length === 1 ? L[0] : null);
+  if (feed && M.mainCable && M.mainCable[0] === def.main) {
+    M.mainCable = [p3CcAcLabel(feed) || M.mainCable[0], +feed.pe > 0 && M.mainCable[1] === def.gnd ? p3GndLabel(feed.pe + " sq") : M.mainCable[1]];
+  }
+}
 const p3Brand = (model, fb) => {
   const w = String(model || "").trim().split(/[\s\-_]/)[0];
   return w ? w.toUpperCase() : fb || "-";
@@ -4804,7 +4835,7 @@ function p3SldModel(st, job, design, only) {
       dcDev,
       dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC",
       dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,
-      dcCable: "PV1-F (H1Z2Z2-K) 1x" + p3PvWire(PS, isc, R) + " Sq.mm. 1.5kV DC",
+      dcCable: "PV1-F (H1Z2Z2-K) 1x" + (p3CcDcSize(design) || p3PvWire(PS, isc, R)) + " Sq.mm. 1.5kV DC",
       acSpd,
       spdBk,
       ivBrk,
@@ -4910,7 +4941,13 @@ function p3SldModel(st, job, design, only) {
     no: 1
   });
   M.only = only || null;
+  const ccDef = {
+    ac: M.acCable,
+    main: M.mainCable && M.mainCable[0],
+    gnd: M.mainCable && M.mainCable[1]
+  };
   p3SldFromBoq(M, job && job.boq || null, nPh);
+  p3SldFromCc(M, design, ccDef);
   p3SldMon(M, job, inv.model);
   return p3SldApply(M, st.sldEdit);
 }
