@@ -524,6 +524,113 @@ function scEvenPins(L, items, capOf, load0, owner0) {
   });
   return out;
 }
+/* ── ลงขั้วแบบ "ตามพื้นที่" (ผู้ใช้ 16 พ.ย. 2026: "Inverter โซนแต่ละโซน ไม่ควรแยกกัน หรืออยู่ห่างกัน หรือไม่อยู่คนละอาคาร") ──
+   แบ่งตามเลขสตริงแล้วตัวเดียวคร่อมอาคาร (LD-030 INV7 มีสตริงทั้งอาคาร 1 และ 2) จึงแบ่งตามตำแหน่งจริงแทน
+   1) เกาะแผง: สตริงที่มีแผงห่างกันไม่เกิน gap ม. (ค่าเริ่ม 10) = เกาะเดียวกัน (อาคาร/ผืนที่แยกกันจริง)
+   2) แบ่งจำนวนอินเวอร์เตอร์ให้แต่ละเกาะตามสัดส่วนแผง (เกาะเล็กไม่ถึงครึ่งตัว = ฝากเกาะที่ใกล้ที่สุด)
+   3) ในเกาะผ่าครึ่งตามแกนยาวซ้ำ ๆ (recursive bisection) ให้แต่ละตัวได้ก้อนสี่เหลี่ยมติดกัน ขนาดตามสัดส่วน kW
+   4) ในตัวเดียวกันวน MPPT1→N ช่อง 1 ก่อน (เหมือน scEvenPins) · เต็มแล้วล้นไปตัวถัดไป
+   items = [{ keys, n, zone }] · posOf(uid) = [x, z] · มีโซน = สตริงในโซนลงตัวนั้น ที่เหลือแบ่งตามพื้นที่ด้วยส่วนที่แต่ละตัวยังขาด */
+function scAreaPins(L, items, capOf, load0, owner0, posOf, gap) {
+  const load = Object.assign({}, load0 || {}), owner = {};
+  Object.keys(owner0 || {}).forEach((k) => { owner[k] = true; });
+  const U = L.units, out = items.map(() => null);
+  if (!U.length || !items.length) return out;
+  gap = gap || 10;   // ทางเดิน/ช่องว่างในอาคารเดียวกันไม่ถึง 10 ม. · ระหว่างอาคารห่างกว่านี้ (4 ม. เคยแยกบล็อกเล็กในอาคารเดียวกันเป็นตัวละก้อน แผงต่อตัวต่างกัน 172–288)
+  const w = U.map((u) => scNum(u.spec && u.spec.kw, 0) || u.pins), W = w.reduce((a, b) => a + b, 0) || 1;
+  const Tall = items.reduce((a, it) => a + scNum(it.n, 0), 0);
+  const zoned = U.map(() => 0);
+  items.forEach((it) => { if (it.zone >= 0 && it.zone < U.length) zoned[it.zone] += scNum(it.n, 0); });
+  const need = U.map((u, i) => Math.max(0, Tall * w[i] / W - zoned[i]));
+  /* จุดกึ่งกลางสตริง */
+  const P = items.map((it) => {
+    let x = 0, y = 0, c = 0;
+    (it.keys || []).forEach((u) => { const p = posOf && posOf(u); if (p) { x += p[0]; y += p[1]; c++; } });
+    return c ? [x / c, y / c] : null;
+  });
+  const freeIdx = items.map((it, i) => i).filter((i) => !(items[i].zone >= 0 && items[i].zone < U.length) && P[i]);
+  const unitOf = items.map((it) => (it.zone >= 0 && it.zone < U.length ? it.zone : -1));
+  /* 1) เกาะแผง — กริดช่องละ gap ม. ดูแผงช่องข้าง ๆ */
+  const par = {}; freeIdx.forEach((i) => { par[i] = i; });
+  const fd = (i) => (par[i] === i ? i : (par[i] = fd(par[i])));
+  const grid = {}, cell = (x) => Math.floor(x / gap);
+  freeIdx.forEach((i) => (items[i].keys || []).forEach((u) => {
+    const p = posOf(u); if (!p) return;
+    const k = cell(p[0]) + "," + cell(p[1]);
+    (grid[k] = grid[k] || []).push([p[0], p[1], i]);
+  }));
+  Object.keys(grid).forEach((k) => {
+    const [cx, cy] = k.split(",").map(Number);
+    grid[k].forEach((a) => {
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const g = grid[(cx + dx) + "," + (cy + dy)]; if (!g) continue;
+        g.forEach((b) => { if (b[2] !== a[2] && Math.abs(a[0] - b[0]) <= gap && Math.abs(a[1] - b[1]) <= gap) { const ra = fd(a[2]), rb = fd(b[2]); if (ra !== rb) par[ra] = rb; } });
+      }
+    });
+  });
+  let isl = {};
+  freeIdx.forEach((i) => { const r = fd(i); (isl[r] = isl[r] || []).push(i); });
+  isl = Object.keys(isl).map((k) => isl[k]);
+  const nOf = (arr) => arr.reduce((a, i) => a + scNum(items[i].n, 0), 0);
+  const ctr = (arr) => { let x = 0, y = 0, t = 0; arr.forEach((i) => { const n = scNum(items[i].n, 1); x += P[i][0] * n; y += P[i][1] * n; t += n; }); return [x / t, y / t]; };
+  /* 2) จำนวนตัวต่อเกาะ — ตัวที่ยังมีส่วนต้องรับ (need > 0) เรียงตามเลข */
+  const live = U.map((u, i) => i).filter((i) => need[i] > 1e-9);
+  if (!live.length) return scEvenPins(L, items, capOf, load0, owner0);
+  const T = isl.reduce((a, g) => a + nOf(g), 0) || 1, N = need.reduce((a, b) => a + b, 0) || 1;
+  /* เกาะเล็กเกินครึ่งตัว = ฝากเกาะที่ใกล้ที่สุด (กล่องรวมของทั้งสองไม่ต้องติดกัน แต่อยู่ตัวเดียวกัน) */
+  const avgUnit = T / live.length;
+  isl.sort((a, b) => nOf(b) - nOf(a));
+  for (let changed = true; changed && isl.length > 1;) {
+    changed = false;
+    for (let k = isl.length - 1; k >= 1; k--) {
+      if (nOf(isl[k]) >= avgUnit * 0.5) continue;
+      const c = ctr(isl[k]); let best = 0, bd = 1e18;
+      for (let j = 0; j < isl.length; j++) { if (j === k) continue; const d = ctr(isl[j]); const dd = Math.hypot(d[0] - c[0], d[1] - c[1]); if (dd < bd) { bd = dd; best = j; } }
+      isl[best] = isl[best].concat(isl[k]); isl.splice(k, 1); changed = true; break;
+    }
+  }
+  /* เรียงเกาะจากซ้ายบน → ขวาล่าง ให้เลขอินเวอร์เตอร์ไล่ตามผัง */
+  isl.sort((a, b) => { const ca = ctr(a), cb = ctr(b); return Math.abs(ca[1] - cb[1]) > 8 ? ca[1] - cb[1] : ca[0] - cb[0]; });
+  const raw = isl.map((g) => nOf(g) * live.length / T);
+  const cnt = raw.map((r) => Math.max(1, Math.floor(r)));
+  let sum = cnt.reduce((a, b) => a + b, 0);
+  const ord = raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0]);
+  for (let t = 0; sum < live.length && t < ord.length * 4; t++) { cnt[ord[t % ord.length][1]]++; sum++; }
+  while (sum > live.length) { const bi = cnt.indexOf(Math.max.apply(null, cnt)); if (cnt[bi] <= 1) break; cnt[bi]--; sum--; }
+  /* 3) ผ่าครึ่งซ้ำ ๆ · us = รายชื่อตัว · idx = สตริง */
+  const cut = (idx, us) => {
+    if (!idx.length || !us.length) return;
+    if (us.length === 1) { idx.forEach((i) => { unitOf[i] = us[0]; }); return; }
+    const h = Math.floor(us.length / 2), A = us.slice(0, h), B = us.slice(h);
+    const wa = A.reduce((a, i) => a + need[i], 0), wb = B.reduce((a, i) => a + need[i], 0);
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    idx.forEach((i) => { x0 = Math.min(x0, P[i][0]); x1 = Math.max(x1, P[i][0]); y0 = Math.min(y0, P[i][1]); y1 = Math.max(y1, P[i][1]); });
+    const ax = x1 - x0 >= y1 - y0 ? 0 : 1, bx = 1 - ax;
+    const srt = idx.slice().sort((p, q) => P[p][ax] - P[q][ax] || P[p][bx] - P[q][bx]);
+    const tot = nOf(srt), goal = tot * wa / ((wa + wb) || 1);
+    let acc = 0, k = 0;
+    while (k < srt.length && acc + scNum(items[srt[k]].n, 0) / 2 <= goal) { acc += scNum(items[srt[k]].n, 0); k++; }
+    cut(srt.slice(0, k), A); cut(srt.slice(k), B);
+  };
+  let off = 0;
+  isl.forEach((g, gi) => { const us = live.slice(off, off + cnt[gi]); off += cnt[gi]; cut(g, us.length ? us : [live[live.length - 1]]); });
+  /* 4) ลงขั้ว — ในตัวเดียวกันเรียงตามเลขสตริง */
+  const pinsOf = (u) => { const a = []; for (let slot = 0; slot < u.phys; slot++) for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) a.push({ m, pin: L.pinAt(m, slot) }); return a; };
+  const PO = U.map(pinsOf);
+  const take = (ui) => {
+    const p = PO[ui].find((x) => !owner[x.pin] && (load[x.m] || 0) < capOf(x.m));
+    if (!p) return null;
+    owner[p.pin] = true; load[p.m] = (load[p.m] || 0) + 1;
+    return p.pin;
+  };
+  items.forEach((it, i) => {
+    const u0 = unitOf[i] >= 0 ? unitOf[i] : live[0];
+    let pin = take(u0);
+    for (let d = 1; pin == null && d < U.length; d++) pin = take((u0 + d) % U.length);
+    out[i] = pin;
+  });
+  return out;
+}
 function scPinAddr(pin, inv, nInv, inv2, nInv2) {
   const L = inv && inv.units ? inv : scPinLayout(inv, nInv, inv2, nInv2);
   const u = L.unitOfPin(pin);
@@ -730,7 +837,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const capM = (m) => Math.min(perMpptOf(m), LAY.physOf(m));
   /* แบ่งเท่ากันทุกตัว / โซนอินเวอร์เตอร์ (ผู้ใช้ 16 พ.ย. 2026) — ลงขั้วด้วย scEvenPins แทนการเกลี่ยทั้งระบบ */
   const zoneOf = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
-  if (opt.pinMode === "even" || zoneOf) {
+  if (opt.pinMode === "even" || opt.pinMode === "area" || zoneOf) {
     rest.forEach((s) => {
       s.zone = -1;
       if (!zoneOf) return;
@@ -739,7 +846,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
       const best = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
       if (best) s.zone = +best - 1;
     });
-    const pins = scEvenPins(LAY, rest, capM, load, owner);
+    const pins = opt.pinMode === "area" && opt.posOf ? scAreaPins(LAY, rest, capM, load, owner, opt.posOf) : scEvenPins(LAY, rest, capM, load, owner);
     rest.forEach((s, i) => { if (pins[i] != null) place(s, pins[i]); });
   }
   const mR = scSpreadMppt(LAY, rest.filter((s) => s.pin == null), capM, load);
