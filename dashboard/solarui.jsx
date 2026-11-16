@@ -2244,6 +2244,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
   /* ตารางคำนวณสาย (cableui.jsx) — ขนาดสายจริงต่อสตริง/วงจร AC ส่งต่อให้ SLD ทาง design.cc (เฟส 4)
      cc = { dc: { s<สตริง>: mm² }, ac: [{ id, from, to, ct, use, n, sys, at, pe }] } · ยังไม่เคยเปิดการ์ด = null (SLD ใช้สูตรเดิม) */
   const ccStore = window.useCcStore ? window.useCcStore(job && job.id, ver) : { data: null };
+  /* ย่อตาราง "ผังการต่อ" ได้ (สตริงเยอะ 100+ แถว ยาวมาก · ผู้ใช้ 16 พ.ย. 2026) — จำต่อเครื่อง */
+  const [foldMap, toggleFoldMap] = window.useCcFold ? window.useCcFold("map") : [false, () => {}];
   const ccD = ccStore.data || null;
   const ccDesign = ccD && ((ccD.sum && ccD.sum.bySid) || (ccD.sumAc && ccD.sumAc.cables))
     ? { dc: (ccD.sum && ccD.sum.bySid) || null, ac: ((ccD.sumAc && ccD.sumAc.cables) || []).map((c) => ({ id: c.id, from: c.from, to: c.to, ct: c.ct, use: c.use, n: c.n, sys: c.sys, at: c.at, pe: c.pe })) }
@@ -3317,9 +3319,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
 
                 {!isMicro && plan && (
                   <div className="p3-card">
-                    <span className="p3-eb"><P3Icon name="layers" size={13} />ผังการต่อ<span className="ln" />
-                      <span style={{ fontWeight: 600 }}>{plan.strings.length} สตริง · {plan.panels} แผง</span></span>
-                    <div className="su-scroll">
+                    <span className="p3-eb" style={window.CC_EB_CLICK} onClick={toggleFoldMap}><P3Icon name="layers" size={13} />ผังการต่อ<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{plan.strings.length} สตริง · {plan.panels} แผง</span>
+                      {window.CcFoldBtn && <window.CcFoldBtn fold={foldMap} onToggle={toggleFoldMap} />}</span>
+                    <div className="su-scroll" style={foldMap ? { display: "none" } : undefined}>
                       <table className="su-tb">
                         {/* ติดตัวคุมแผงแล้วสองคอลัมน์นี้คนละความหมายกับตอนไม่มี — ต้องเปลี่ยนหัวตารางด้วย
                             ไม่งั้นคนอ่านจะนึกว่าเป็น Voc ของแผงที่ลดลงมาเอง */}

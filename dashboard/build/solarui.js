@@ -4180,6 +4180,7 @@ function SolarWorkspace({
   const ccStore = window.useCcStore ? window.useCcStore(job && job.id, ver) : {
     data: null
   };
+  const [foldMap, toggleFoldMap] = window.useCcFold ? window.useCcFold("map") : [false, () => {}];
   const ccD = ccStore.data || null;
   const ccDesign = ccD && (ccD.sum && ccD.sum.bySid || ccD.sumAc && ccD.sumAc.cables) ? {
     dc: ccD.sum && ccD.sum.bySid || null,
@@ -6336,7 +6337,9 @@ function SolarWorkspace({
   })(), !isMicro && plan && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
-    className: "p3-eb"
+    className: "p3-eb",
+    style: window.CC_EB_CLICK,
+    onClick: toggleFoldMap
   }, React.createElement(P3Icon, {
     name: "layers",
     size: 13
@@ -6346,8 +6349,14 @@ function SolarWorkspace({
     style: {
       fontWeight: 600
     }
-  }, plan.strings.length, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 ", plan.panels, " \u0E41\u0E1C\u0E07")), React.createElement("div", {
-    className: "su-scroll"
+  }, plan.strings.length, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 ", plan.panels, " \u0E41\u0E1C\u0E07"), window.CcFoldBtn && React.createElement(window.CcFoldBtn, {
+    fold: foldMap,
+    onToggle: toggleFoldMap
+  })), React.createElement("div", {
+    className: "su-scroll",
+    style: foldMap ? {
+      display: "none"
+    } : undefined
   }, React.createElement("table", {
     className: "su-tb"
   }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "\u0E01\u0E25\u0E38\u0E48\u0E21"), React.createElement("th", null, "\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A \xB7 INV / MPPT / \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("th", null, optPlan ? "ตัวคุมแผง" : "Voc เย็น"), React.createElement("th", null, optPlan ? "แรงดันตอนปิด" : "ช่วงทำงาน"), React.createElement("th", null, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, plan.strings.map((s, i) => React.createElement("tr", {

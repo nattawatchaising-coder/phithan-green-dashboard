@@ -25,6 +25,66 @@ const ccLiveOf = (job, ver) => {
   const k = (job && job.id || "") + "/" + String(ver || "1");
   return CC_LIVE[k] = CC_LIVE[k] || {};
 };
+function useCcFold(name) {
+  const k = "ccFold:" + name;
+  const [fold, setFold] = React.useState(() => {
+    try {
+      return localStorage.getItem(k) === "1";
+    } catch (e) {
+      return false;
+    }
+  });
+  const toggle = React.useCallback(e => {
+    if (e && e.target && e.target.closest && e.target.closest("input,select,a")) return;
+    setFold(v => {
+      const n = !v;
+      try {
+        localStorage.setItem(k, n ? "1" : "0");
+      } catch (er) {}
+      return n;
+    });
+  }, [k]);
+  return [fold, toggle];
+}
+const CC_EB_CLICK = {
+  cursor: "pointer",
+  userSelect: "none"
+};
+function CcFoldBtn({
+  fold,
+  onToggle
+}) {
+  return React.createElement("button", {
+    type: "button",
+    className: "p3-lnk",
+    title: fold ? "ขยาย" : "ย่อ",
+    style: {
+      marginLeft: 8,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3
+    },
+    onClick: e => {
+      e.stopPropagation();
+      onToggle();
+    }
+  }, fold ? "ขยาย" : "ย่อ", React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      transform: fold ? "none" : "rotate(180deg)",
+      transition: "transform .15s"
+    }
+  }, React.createElement("path", {
+    d: "M4 6l4 4 4-4"
+  })));
+}
 const ccBif = P => !!P && (P.bifacial === true || P.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(P.model || "")));
 function CcDcCard({
   job,
@@ -45,6 +105,7 @@ function CcDcCard({
   const D = store.data || {};
   const dcEdit = D.dc || {};
   const [draft, setDraft] = React.useState({});
+  const [fold, toggleFold] = useCcFold("dc");
   const stations = React.useMemo(() => (st && st.obstacles || []).filter(o => o && o.p3sType === "invst").map(o => ({
     id: o.id,
     x: +o.x || 0,
@@ -204,6 +265,16 @@ function CcDcCard({
   };
   if (!CC || !strings || !strings.length) return null;
   const nEdited = Object.keys(dcEdit).length;
+  const ovrs = rows.map(r => r.ovr === "" || r.ovr == null ? "" : String(r.ovr));
+  const allOvr = ovrs.every(x => x === "") ? "auto" : ovrs.every(x => x === ovrs[0]) ? ovrs[0] : "mixed";
+  const setAllOvr = v => {
+    if (v === "mixed" || v === allOvr) return;
+    const p = {};
+    rows.forEach(r => {
+      p["dc/" + r.id + "/ovr"] = v === "auto" ? null : +v;
+    });
+    store.patch(p);
+  };
   const pct = v => isFinite(v) ? v.toFixed(2) + "%" : "—";
   const inp = {
     padding: "5px 7px",
@@ -215,7 +286,9 @@ function CcDcCard({
   return React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
-    className: "p3-eb"
+    className: "p3-eb",
+    style: CC_EB_CLICK,
+    onClick: toggleFold
   }, React.createElement(P3Icon, {
     name: "bolt",
     size: 13
@@ -226,7 +299,10 @@ function CcDcCard({
       fontWeight: 600,
       color: bad ? "var(--tint-red-tx)" : undefined
     }
-  }, ok.length ? "สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " สตริง" : " · ผ่านทุกสตริง") : "ยังไม่มีระยะสาย")), !stations.length && React.createElement("div", {
+  }, ok.length ? "สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " สตริง" : " · ผ่านทุกสตริง") : "ยังไม่มีระยะสาย"), React.createElement(CcFoldBtn, {
+    fold: fold,
+    onToggle: toggleFold
+  })), !fold && React.createElement(React.Fragment, null, !stations.length && React.createElement("div", {
     className: "su-alert info"
   }, React.createElement(P3Icon, {
     name: "bulb",
@@ -286,7 +362,30 @@ function CcDcCard({
     }
   })), optC && optC.iOutMax > 0 ? React.createElement("span", {
     title: "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07\u0E08\u0E33\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"
-  }, "\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 ", opt.model || "", " \xB7 Id = Iout ", optC.iOutMax, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(optC.iOutMax * kDC * 100) / 100, " A")) : React.createElement("span", null, "Id = Isc ", mod.isc, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(mod.isc * kDC * 100) / 100, " A")), React.createElement("span", null, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33 ", minSize, " mm\xB2 \xB7 \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30 \xD7", spare), React.createElement("span", {
+  }, "\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 ", opt.model || "", " \xB7 Id = Iout ", optC.iOutMax, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(optC.iOutMax * kDC * 100) / 100, " A")) : React.createElement("span", null, "Id = Isc ", mod.isc, " \xD7 ", Math.round(kDC * 1000) / 1000, " = ", React.createElement("b", null, Math.round(mod.isc * kDC * 100) / 100, " A")), React.createElement("span", null, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33 ", minSize, " mm\xB2 \xB7 \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30 \xD7", spare), React.createElement("label", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    },
+    title: "\u0E15\u0E31\u0E49\u0E07\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 PV1-F \u0E43\u0E2B\u0E49\u0E17\u0E38\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 (\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E01/\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E21\u0E48\u0E1C\u0E48\u0E32\u0E19\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E41\u0E14\u0E07)"
+  }, "\u0E17\u0E38\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07", React.createElement(CcDd, {
+    value: allOvr,
+    style: {
+      width: 128
+    },
+    onChange: setAllOvr,
+    options: (allOvr === "mixed" ? [{
+      value: "mixed",
+      label: "ผสม (แก้รายเส้น)"
+    }] : []).concat([{
+      value: "auto",
+      label: "อัตโนมัติ"
+    }]).concat(CC.PV.filter(p => p.s >= minSize && p.s <= 16).map(p => ({
+      value: String(p.s),
+      label: p.s + " mm² ทั้งหมด"
+    })))
+  })), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -413,7 +512,7 @@ function CcDcCard({
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 ", React.createElement("b", null, missing), " \u0E2A\u0E15\u0E23\u0E34\u0E07")), React.createElement("span", {
     className: "p3-note"
-  }, "\u0E23\u0E30\u0E22\u0E30 = (\u0E2A\u0E32\u0E22 + \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E41\u0E23\u0E01 + \u0E2A\u0E32\u0E22 \u2212 \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u0E16\u0E36\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E2A\u0E38\u0E14 \u0E40\u0E14\u0E34\u0E19\u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 + \u0E25\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E2A\u0E32\u0E22\u0E02\u0E49\u0E32\u0E21\u0E41\u0E16\u0E27) \xF7 2 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D ", spare, " \xB7", optC ? "มีตัวคุมแผง: V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดของอินเวอร์เตอร์) · I = กำลังสตริง ÷ V (ไม่เกิน Iout) · VD = 2 × I × R90 × L · %VD เทียบ V ใช้งาน ·" : "VD = 2 × Imp × R90 × L · %VD เทียบ Vmp × จำนวนแผง ·", " R90 = 1.275 \xD7 R20 (\u0E2A\u0E32\u0E22 PV class 5) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 EN 50618 (\u0E40\u0E17\u0E35\u0E22\u0E1A datasheet \u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E32\u0E22) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E27\u0E21\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49 BOQ \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49 (\u0E2B\u0E19\u0E49\u0E32 BOQ \u203A \u0E2A\u0E32\u0E22\u0E44\u0E1F PV)"));
+  }, "\u0E23\u0E30\u0E22\u0E30 = (\u0E2A\u0E32\u0E22 + \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E41\u0E23\u0E01 + \u0E2A\u0E32\u0E22 \u2212 \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u0E16\u0E36\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E2A\u0E38\u0E14 \u0E40\u0E14\u0E34\u0E19\u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 + \u0E25\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E2A\u0E32\u0E22\u0E02\u0E49\u0E32\u0E21\u0E41\u0E16\u0E27) \xF7 2 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D ", spare, " \xB7", optC ? "มีตัวคุมแผง: V ใช้งาน = ต่ำสุดของ (Vmp × แผง, ตัวคุม × Vout สูงสุด, MPPT สูงสุดของอินเวอร์เตอร์) · I = กำลังสตริง ÷ V (ไม่เกิน Iout) · VD = 2 × I × R90 × L · %VD เทียบ V ใช้งาน ·" : "VD = 2 × Imp × R90 × L · %VD เทียบ Vmp × จำนวนแผง ·", " R90 = 1.275 \xD7 R20 (\u0E2A\u0E32\u0E22 PV class 5) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 EN 50618 (\u0E40\u0E17\u0E35\u0E22\u0E1A datasheet \u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E32\u0E22) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E27\u0E21\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49 BOQ \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49 (\u0E2B\u0E19\u0E49\u0E32 BOQ \u203A \u0E2A\u0E32\u0E22\u0E44\u0E1F PV)")));
 }
 const ccDdStyle = {
   fontSize: 11.5,
@@ -508,6 +607,7 @@ function CcAcCard({
   const D = store.data || {},
     A = D.ac || {},
     E = A.rows || {};
+  const [fold, toggleFold] = useCcFold("ac");
   const vdLim = +R.vdAc > 0 ? +R.vdAc : 3;
   const ta = +A.ta > 0 ? +A.ta : 40,
     cgm = A.cgm || "L-2D",
@@ -638,7 +738,9 @@ function CcAcCard({
   return React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
-    className: "p3-eb"
+    className: "p3-eb",
+    style: CC_EB_CLICK,
+    onClick: toggleFold
   }, React.createElement(P3Icon, {
     name: "bolt",
     size: 13
@@ -649,7 +751,10 @@ function CcAcCard({
       fontWeight: 600,
       color: bad ? "var(--tint-red-tx)" : undefined
     }
-  }, ok.length ? "แรงดันตกถึง MDB สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " วงจร" : " · ผ่านทุกวงจร") : "ยังไม่มีระยะสาย")), !hasMdb && React.createElement("div", {
+  }, ok.length ? "แรงดันตกถึง MDB สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " วงจร" : " · ผ่านทุกวงจร") : "ยังไม่มีระยะสาย"), React.createElement(CcFoldBtn, {
+    fold: fold,
+    onToggle: toggleFold
+  })), !fold && React.createElement(React.Fragment, null, !hasMdb && React.createElement("div", {
     className: "su-alert info"
   }, React.createElement(P3Icon, {
     name: "bulb",
@@ -870,7 +975,7 @@ function CcAcCard({
     onClick: () => setA("xf/z", 6)
   }, "+ \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07")), React.createElement("span", {
     className: "p3-note"
-  }, "CB = \u0E02\u0E31\u0E49\u0E19\u0E41\u0E23\u0E01\u0E17\u0E35\u0E48 \u2265 Imax \xD7 1.25 (\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22 \xD7 1) \xB7 It = AT \xF7 (Ca \xD7 Cg \xD7 \u0E0A\u0E38\u0E14) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07 5-33 \u0E01\u0E25\u0E38\u0E48\u0E21 7 (XLPE 90\xB0C \u0E1A\u0E19\u0E23\u0E32\u0E07) \xB7 \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E01 = mV/A/m (\u0E10.3/\u0E10.4) \xD7 Imax \xF7 \u0E0A\u0E38\u0E14 \xD7 \u0E23\u0E30\u0E22\u0E30 \xF7 1000 \xB7 PE \u0E15\u0E32\u0E23\u0E32\u0E07 4-2 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 = \u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2192 \u0E15\u0E39\u0E49 MDB \u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 \xD7 1.1 + 2 \u0E21. \xB7 \u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22\u0E02\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C 5 \u0E21."));
+  }, "CB = \u0E02\u0E31\u0E49\u0E19\u0E41\u0E23\u0E01\u0E17\u0E35\u0E48 \u2265 Imax \xD7 1.25 (\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22 \xD7 1) \xB7 It = AT \xF7 (Ca \xD7 Cg \xD7 \u0E0A\u0E38\u0E14) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07 5-33 \u0E01\u0E25\u0E38\u0E48\u0E21 7 (XLPE 90\xB0C \u0E1A\u0E19\u0E23\u0E32\u0E07) \xB7 \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E01 = mV/A/m (\u0E10.3/\u0E10.4) \xD7 Imax \xF7 \u0E0A\u0E38\u0E14 \xD7 \u0E23\u0E30\u0E22\u0E30 \xF7 1000 \xB7 PE \u0E15\u0E32\u0E23\u0E32\u0E07 4-2 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 = \u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2192 \u0E15\u0E39\u0E49 MDB \u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 \xD7 1.1 + 2 \u0E21. \xB7 \u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22\u0E02\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C 5 \u0E21.")));
 }
 const ccEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({
   "&": "&amp;",
@@ -990,6 +1095,9 @@ function CcReportBtn({
   }), document.body));
 }
 Object.assign(window, {
+  useCcFold,
+  CcFoldBtn,
+  CC_EB_CLICK,
   CcDcCard,
   CcAcCard,
   CcDd,

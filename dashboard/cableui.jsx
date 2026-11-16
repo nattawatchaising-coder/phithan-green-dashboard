@@ -28,6 +28,28 @@ const ccCanon = (x) => (Array.isArray(x) ? "[" + x.map(ccCanon).join(",") + "]" 
 /* ผลล่าสุดของการ์ด DC/AC ต่องาน+เวอร์ชัน — ปุ่มรายงานอ่านจากตรงนี้ (ไม่ต้องคำนวณซ้ำ ได้ตัวเลขเดียวกับจอ) */
 const CC_LIVE = {};
 const ccLiveOf = (job, ver) => { const k = ((job && job.id) || "") + "/" + String(ver || "1"); return (CC_LIVE[k] = CC_LIVE[k] || {}); };
+/* ── ย่อ/ขยายการ์ด (ผู้ใช้ 16 พ.ย. 2026 "กดย่อแท็บให้เล็กลงได้") ──
+   จำต่อเครื่องใน localStorage (ของเฉพาะคนดู ไม่ต้องลงฐานข้อมูล) · กดหัวการ์ดหรือปุ่มย่อ/ขยาย */
+function useCcFold(name) {
+  const k = "ccFold:" + name;
+  const [fold, setFold] = React.useState(() => { try { return localStorage.getItem(k) === "1"; } catch (e) { return false; } });
+  const toggle = React.useCallback((e) => {
+    if (e && e.target && e.target.closest && e.target.closest("input,select,a")) return;
+    setFold((v) => { const n = !v; try { localStorage.setItem(k, n ? "1" : "0"); } catch (er) { /* โหมดส่วนตัว */ } return n; });
+  }, [k]);
+  return [fold, toggle];
+}
+const CC_EB_CLICK = { cursor: "pointer", userSelect: "none" };
+function CcFoldBtn({ fold, onToggle }) {
+  return (
+    <button type="button" className="p3-lnk" title={fold ? "ขยาย" : "ย่อ"} style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 3 }}
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+      {fold ? "ขยาย" : "ย่อ"}
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transform: fold ? "none" : "rotate(180deg)", transition: "transform .15s" }}><path d="M4 6l4 4 4-4" /></svg>
+    </button>
+  );
+}
 const ccBif = (P) => !!P && (P.bifacial === true || (P.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(P.model || ""))));
 
 /* props: job, ver, st (แบบ 3D), strings (plan.strings), paths (wirePaths), foot (p3FootAll), panel (สเปคแผง), colorOf */
@@ -38,6 +60,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs, op
   const D = store.data || {};
   const dcEdit = D.dc || {};
   const [draft, setDraft] = React.useState({});   // ช่องที่กำลังพิมพ์ (ยังไม่ออกจากช่อง)
+  const [fold, toggleFold] = useCcFold("dc");
 
   /* จุดอินเวอร์เตอร์ในแบบ 3D + ความสูงแผงต่อใบ */
   const stations = React.useMemo(() => ((st && st.obstacles) || []).filter((o) => o && o.p3sType === "invst")
@@ -104,14 +127,23 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs, op
   ccLiveOf(job, ver).dc = { rows, kDC, Ca, Cg, vdLim, minSize, spare, mod, panel, invs: invs || [], tMin: +R.tMin || 15, bif: ccBif(panel), stations: stations.length, opt: opt || null };
   if (!CC || !strings || !strings.length) return null;
   const nEdited = Object.keys(dcEdit).length;
+  const ovrs = rows.map((r) => (r.ovr === "" || r.ovr == null ? "" : String(r.ovr)));
+  const allOvr = ovrs.every((x) => x === "") ? "auto" : ovrs.every((x) => x === ovrs[0]) ? ovrs[0] : "mixed";
+  const setAllOvr = (v) => {
+    if (v === "mixed" || v === allOvr) return;
+    const p = {};
+    rows.forEach((r) => { p["dc/" + r.id + "/ovr"] = v === "auto" ? null : +v; });
+    store.patch(p);
+  };
   const pct = (v) => (isFinite(v) ? v.toFixed(2) + "%" : "—");
   const inp = { padding: "5px 7px", fontSize: 11.5, width: 66, textAlign: "right", fontFamily: "inherit" };
   return (
     <div className="p3-card">
-      <span className="p3-eb"><P3Icon name="bolt" size={13} />สาย DC ต่อสตริง · แรงดันตก<span className="ln" />
+      <span className="p3-eb" style={CC_EB_CLICK} onClick={toggleFold}><P3Icon name="bolt" size={13} />สาย DC ต่อสตริง · แรงดันตก<span className="ln" />
         <span style={{ fontWeight: 600, color: bad ? "var(--tint-red-tx)" : undefined }}>
           {ok.length ? "สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " สตริง" : " · ผ่านทุกสตริง") : "ยังไม่มีระยะสาย"}
-        </span></span>
+        </span><CcFoldBtn fold={fold} onToggle={toggleFold} /></span>
+      {!fold && (<>
 
       {!stations.length && (
         <div className="su-alert info"><P3Icon name="bulb" size={14} />
@@ -129,6 +161,12 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs, op
           ? <span title="ตัวคุมแผงจำกัดกระแสออก — เลือกพิกัดสายจากกระแสออกสูงสุดของตัวคุม">มีตัวคุมแผง {opt.model || ""} · Id = Iout {optC.iOutMax} × {Math.round(kDC * 1000) / 1000} = <b>{Math.round(optC.iOutMax * kDC * 100) / 100} A</b></span>
           : <span>Id = Isc {mod.isc} × {Math.round(kDC * 1000) / 1000} = <b>{Math.round(mod.isc * kDC * 100) / 100} A</b></span>}
         <span>ขั้นต่ำ {minSize} mm² · เผื่อระยะ ×{spare}</span>
+        {/* ตั้งขนาดสายทุกสตริงทีเดียว (ผู้ใช้ 16 พ.ย. 2026: แบบมักกำหนดเบอร์เดียวทั้งงาน เช่น 4 หรือ 6 ทั้งหมด)
+            เขียนเฉพาะช่อง ovr ของทุกสตริงใน update เดียว — ระยะที่แก้เองยังอยู่ · อัตโนมัติ = ล้าง ovr ทุกสตริง */}
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }} title="ตั้งขนาดสาย PV1-F ให้ทุกสตริงเป็นเบอร์เดียวกัน (สตริงที่แรงดันตก/พิกัดไม่ผ่านจะขึ้นแดง)">ทุกสตริง
+          <CcDd value={allOvr} style={{ width: 128 }} onChange={setAllOvr}
+            options={(allOvr === "mixed" ? [{ value: "mixed", label: "ผสม (แก้รายเส้น)" }] : []).concat([{ value: "auto", label: "อัตโนมัติ" }])
+              .concat(CC.PV.filter((p) => p.s >= minSize && p.s <= 16).map((p) => ({ value: String(p.s), label: p.s + " mm² ทั้งหมด" })))} /></label>
         <span style={{ flex: 1 }} />
         {nEdited > 0 && <button className="p3-lnk" onClick={resetAll}>คืนค่าที่แก้เอง ({nEdited})</button>}
         <CcReportBtn job={job} ver={ver} />
@@ -185,6 +223,7 @@ function CcDcCard({ job, ver, st, strings, paths, foot, panel, colorOf, invs, op
           : "VD = 2 × Imp × R90 × L · %VD เทียบ Vmp × จำนวนแผง ·"} R90 = 1.275 × R20 (สาย PV class 5) · พิกัดสาย EN 50618 (เทียบ datasheet ผู้ผลิตสาย) ·
         ความยาวรวมส่งให้ BOQ ใช้ได้ (หน้า BOQ › สายไฟ PV)
       </span>
+      </>)}
     </div>
   );
 }
@@ -225,6 +264,7 @@ function CcAcCard({ job, ver, st, invs }) {
   const CC = window.CC, R = ((window.BOQ || {}).RULES) || {};
   const store = useCcStore(job && job.id, ver);
   const D = store.data || {}, A = D.ac || {}, E = A.rows || {};
+  const [fold, toggleFold] = useCcFold("ac");
   const vdLim = +R.vdAc > 0 ? +R.vdAc : 3;
   const ta = +A.ta > 0 ? +A.ta : 40, cgm = A.cgm || "L-2D", arr = A.arr || "Trefoil";
   const obs = (st && st.obstacles) || [];
@@ -278,10 +318,11 @@ function CcAcCard({ job, ver, st, invs }) {
   const lab = { display: "inline-flex", alignItems: "center", gap: 6 };
   return (
     <div className="p3-card">
-      <span className="p3-eb"><P3Icon name="bolt" size={13} />สาย AC · อินเวอร์เตอร์ → ตู้ → MDB<span className="ln" />
+      <span className="p3-eb" style={CC_EB_CLICK} onClick={toggleFold}><P3Icon name="bolt" size={13} />สาย AC · อินเวอร์เตอร์ → ตู้ → MDB<span className="ln" />
         <span style={{ fontWeight: 600, color: bad ? "var(--tint-red-tx)" : undefined }}>
           {ok.length ? "แรงดันตกถึง MDB สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " วงจร" : " · ผ่านทุกวงจร") : "ยังไม่มีระยะสาย"}
-        </span></span>
+        </span><CcFoldBtn fold={fold} onToggle={toggleFold} /></span>
+      {!fold && (<>
 
       {!hasMdb && (
         <div className="su-alert info"><P3Icon name="bulb" size={14} />
@@ -362,6 +403,7 @@ function CcAcCard({ job, ver, st, invs }) {
         CB = ขั้นแรกที่ ≥ Imax × 1.25 (สายเมนตู้ย่อย × 1) · It = AT ÷ (Ca × Cg × ชุด) · พิกัดตาราง 5-33 กลุ่ม 7 (XLPE 90°C บนราง) ·
         แรงดันตก = mV/A/m (ฐ.3/ฐ.4) × Imax ÷ ชุด × ระยะ ÷ 1000 · PE ตาราง 4-2 · ระยะประมาณ = จุดอินเวอร์เตอร์ → ตู้ MDB แนวฉาก × 1.1 + 2 ม. · ตู้ย่อยข้างอินเวอร์เตอร์ 5 ม.
       </span>
+      </>)}
     </div>
   );
 }
@@ -509,4 +551,4 @@ function CcReportBtn({ job, ver }) {
   );
 }
 
-Object.assign(window, { CcDcCard, CcAcCard, CcDd, CcNum, CcReportBtn, useCcStore, ccReportHTML });
+Object.assign(window, { useCcFold, CcFoldBtn, CC_EB_CLICK, CcDcCard, CcAcCard, CcDd, CcNum, CcReportBtn, useCcStore, ccReportHTML });
