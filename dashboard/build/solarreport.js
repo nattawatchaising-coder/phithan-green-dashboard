@@ -1268,7 +1268,8 @@ function suReportHTML(D) {
       cls: r.cum >= 0 ? "ok" : ""
     }])) + '<p class="note">สมมติฐาน: ค่าไฟ ' + R.tariff + " บาท/หน่วย ปรับขึ้นปีละ " + R.escal + "% · " + (roi.split ? "ใช้ไฟเอง " + scR((roi.split.direct + roi.split.dis) * 100, 1) + "% และขายคืน " + scR(roi.split.exp * 100, 1) + "% (มาจากการจำลองชั่วโมงต่อชั่วโมงในหัวข้อการใช้ไฟ ไม่ใช่ค่าที่ตั้งเอง)" : "ใช้ไฟเอง " + R.selfUse + "% ส่วนที่เหลือ") + " ขายคืนหน่วยละ " + R.exportRate + " บาท · ค่าดูแลรักษาปีละ " + R.om + "% ของค่าติดตั้ง · อัตราคิดลด " + R.discount + "%" + (scNum(R.invRepCost) ? " · เผื่อเปลี่ยนอินเวอร์เตอร์ปีที่ " + R.invRepYear + " เป็นเงิน " + rpN(R.invRepCost) + " บาท" : "") + (roi.battCapex > 0 ? " · เงินลงทุนแยกเป็นโซลาร์ " + rpN(roi.pvCapex) + " บาท และแบตเตอรี่ " + rpN(roi.battCapex) + " บาท ซึ่งเผื่อเปลี่ยนใหม่ทุก " + (D.dis && D.dis.battLife ? Math.round(D.dis.battLife) : "—") + " ปี" : "") + (roi.kYield < 1 ? " · คิดที่ระดับความมั่นใจ P90 คือใช้ผลผลิตต่ำกว่าค่ากลาง " + scR((1 - roi.kYield) * 100, 1) + "%" : " · คิดที่ผลผลิตค่ากลาง P50") + "</p>";
   }
-  const warnList = (D.warns || []).length ? '<ul class="find">' + D.warns.map(w => '<li class="warn">' + RP_ESC(w) + "</li>").join("") + "</ul>" : '<p class="ok-box">ไม่พบข้อควรแก้ในการออกแบบ</p>';
+  const warnsRp = (D.warns || []).filter(w => !/ทิศ\/มุมปนกัน/.test(String(w)));
+  const warnList = warnsRp.length ? '<ul class="find">' + warnsRp.map(w => '<li class="warn">' + RP_ESC(w) + "</li>").join("") + "</ul>" : '<p class="ok-box">ไม่พบข้อควรแก้ในการออกแบบ</p>';
   const secs = [];
   const addSec = (on, title, body, sub) => {
     if (on && body) secs.push(sec(secs.length + 1, title, body, sub));

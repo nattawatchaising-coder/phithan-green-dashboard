@@ -1706,8 +1706,11 @@ function suReportHTML(D) {
         : " · คิดที่ผลผลิตค่ากลาง P50") + "</p>";
   }
 
-  const warnList = (D.warns || []).length
-    ? '<ul class="find">' + D.warns.map((w) => '<li class="warn">' + RP_ESC(w) + "</li>").join("") + "</ul>"
+  /* สตริงคร่อมทิศ/มุม (s.mixed) เป็นคำเตือนให้คนออกแบบเห็นบนจอเท่านั้น ไม่ลงรายงาน (ผู้ใช้ 16 พ.ย. 2026 "ใน Report ไม่ต้องมีข้อมูลนี้แสดง")
+     งานใหญ่มีหลายสิบบรรทัด และหลายงานจงใจต่อคร่อมเพราะมีตัวคุมแผง/มุมต่างกันนิดเดียว */
+  const warnsRp = (D.warns || []).filter((w) => !/ทิศ\/มุมปนกัน/.test(String(w)));
+  const warnList = warnsRp.length
+    ? '<ul class="find">' + warnsRp.map((w) => '<li class="warn">' + RP_ESC(w) + "</li>").join("") + "</ul>"
     : '<p class="ok-box">ไม่พบข้อควรแก้ในการออกแบบ</p>';
 
   /* ── เรียงหัวข้อตามที่ติ๊กเลือกไว้ แล้วค่อยแจกเลข ── */
