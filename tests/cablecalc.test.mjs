@@ -70,6 +70,20 @@ test("ประมาณระยะสาย DC จาก 3D: แนวฉา�
   assert.deepEqual(Object.keys(CC.dcRoutes([{ id: 2, pts: [[0, 0]] }], [], {})), []);   // ไม่มีจุดอินเวอร์เตอร์ = ไม่ประมาณ
 });
 
+test("ผังวงจร AC: 2 อินเวอร์เตอร์ → SMDB-1 → MDB ได้ผลเท่าชุดอ้างอิง", () => {
+  const p = CC.acPlan([{ model: "SG150CX", n: 1, phase: 3, outA: 240.6 }, { model: "SG50CX-P2", n: 1, phase: 3, outA: 83.6 }],
+    { ta: 40, cgm: "L-2D", arr: "Trefoil", vdLim: 2, edits: { i1: { len: 6.5 }, i2: { len: 8 } }, est: { feed: 20 } });
+  const [a, b, f] = p.rows;
+  assert.equal(p.boards.join(), "SMDB-1");
+  assert.equal(a.at, 320); assert.equal(a.use, 185);
+  assert.equal(b.at, 125); assert.equal(b.use, 35);
+  assert.equal(f.kind, "feed"); near(f.imax, 324.2, 1e-9); assert.equal(f.at, 350); assert.equal(f.use, 240); near(f.pct, 0.36, 0.006);
+  near(a.pctTotal, a.pct + f.pct, 0.011); assert.equal(f.est, 20); assert.ok(a.edited && !f.edited);
+  const one = CC.acPlan([{ model: "X", n: 1, phase: 3, kw: 50 }], { est: { feed: 30 } });
+  assert.equal(one.rows.length, 1); assert.equal(one.rows[0].to, "MDB"); assert.equal(one.rows[0].len, 30);
+  near(CC.mvOf(240, "3P", "1C", "Trefoil"), 0.22, 1e-9); assert.equal(CC.mvOf(240, "3P", "1C"), 0.27);   // ไม่รู้การวาง = คอลัมน์ค่าสูงสุด
+});
+
 test("หม้อแปลง 3000 kVA 22000/800 V %Z 6", () => {
   const x = CC.xfmr(3000, 22000, 800, 6);
   near(x.inHv, 78.73, 0.01); near(x.inLv, 2165.06, 0.01); near(x.iscLv, 36.08, 0.01);

@@ -1412,7 +1412,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
     const volts = ph === 3 ? (+wcVolt || 400) : (wcPhase === 3 ? 230 : (+wcVolt || 230));
     // เดินขนานหลายชุด = แต่ละชุดรับกระแส ÷ จำนวนชุด
-    return window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / Math.max(1, +c.sets || 1), size, volts, ins, phase: ph, dc: false });
+    return window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / Math.max(1, +c.sets || 1), size, volts, ins, phase: ph, dc: false, core: window.BOQ.cableCoreType(type) });
   };
   /* รวมเส้นทางไฟ: DC สูงสุด + AC สูงสุด — มาตรฐานคุมทั้งเส้นทางไม่ให้เกิน 5% */
   const vdropSum = React.useMemo(() => {
@@ -1713,7 +1713,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       if (amp == null || amp * sets < req) continue;
       let vd = null;
       if (len > 0 && window.BOQ.calcVdrop) {
-        vd = window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / sets, size: sz, volts: cabVolts(ph), ins: window.BOQ.cableInsClass(gen), phase: ph, dc: false });
+        vd = window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / sets, size: sz, volts: cabVolts(ph), ins: window.BOQ.cableInsClass(gen), phase: ph, dc: false, core: window.BOQ.cableCoreType(gen) });
         if (vd && !vd.ok) continue;
       }
       const stock = cabStockName[cabNorm(gen)];

@@ -305,20 +305,20 @@ function CcDcCard({
       fontWeight: 800,
       color: "var(--acd)"
     }
-  }, "\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07")), React.createElement("td", null, React.createElement("select", {
-    className: "p3-inp",
-    style: {
-      padding: "5px 7px",
-      fontSize: 11.5
-    },
+  }, "\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07")), React.createElement("td", null, React.createElement(CcDd, {
     value: r.ovr,
-    onChange: e => setRow(r.id, "ovr", e.target.value === "" ? "" : +e.target.value)
-  }, React.createElement("option", {
-    value: ""
-  }, isFinite(r.auto) ? "อัตโนมัติ · " + r.auto + " mm²" : "อัตโนมัติ · —"), CC.PV.filter(p => p.s >= 2.5 && p.s <= 16).map(p => React.createElement("option", {
-    key: p.s,
-    value: p.s
-  }, p.s, " mm\xB2")))), React.createElement("td", {
+    style: {
+      width: 130
+    },
+    onChange: v => setRow(r.id, "ovr", v === "" ? "" : +v),
+    options: [{
+      value: "",
+      label: isFinite(r.auto) ? "อัตโนมัติ · " + r.auto + " mm²" : "อัตโนมัติ · —"
+    }].concat(CC.PV.filter(p => p.s >= 2.5 && p.s <= 16).map(p => ({
+      value: String(p.s),
+      label: p.s + " mm²"
+    })))
+  })), React.createElement("td", {
     style: {
       color: r.valid && !r.ampOk ? "var(--tint-red-tx)" : undefined
     }
@@ -365,7 +365,449 @@ function CcDcCard({
     className: "p3-note"
   }, "\u0E23\u0E30\u0E22\u0E30 = (\u0E2A\u0E32\u0E22 + \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E41\u0E23\u0E01 + \u0E2A\u0E32\u0E22 \u2212 \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u0E16\u0E36\u0E07\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E2A\u0E38\u0E14 \u0E40\u0E14\u0E34\u0E19\u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 + \u0E25\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E2A\u0E32\u0E22\u0E02\u0E49\u0E32\u0E21\u0E41\u0E16\u0E27) \xF7 2 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D ", spare, " \xB7 VD = 2 \xD7 Imp \xD7 R90 \xD7 L \xB7 R90 = 1.275 \xD7 R20 (\u0E2A\u0E32\u0E22 PV class 5) \xB7 %VD \u0E40\u0E17\u0E35\u0E22\u0E1A Vmp \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 EN 50618 (\u0E40\u0E17\u0E35\u0E22\u0E1A datasheet \u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E32\u0E22) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E27\u0E21\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49 BOQ \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49 (\u0E2B\u0E19\u0E49\u0E32 BOQ \u203A \u0E2A\u0E32\u0E22\u0E44\u0E1F PV)"));
 }
+const ccDdStyle = {
+  fontSize: 11.5,
+  fontWeight: 600,
+  padding: "5px 8px",
+  borderRadius: 8,
+  boxShadow: "var(--shadow-inset)",
+  minWidth: 0
+};
+function CcDd({
+  value,
+  options,
+  onChange,
+  style
+}) {
+  const Dd = window.Dropdown;
+  const v = String(value == null ? "" : value);
+  if (Dd) return React.createElement(Dd, {
+    value: v,
+    options: options,
+    onChange: onChange,
+    style: Object.assign({}, ccDdStyle, style)
+  });
+  return React.createElement("select", {
+    className: "p3-inp",
+    style: Object.assign({}, ccDdStyle, style),
+    value: v,
+    onChange: e => onChange(e.target.value)
+  }, options.map(o => React.createElement("option", {
+    key: o.value,
+    value: o.value
+  }, o.label)));
+}
+function CcNum({
+  value,
+  placeholder,
+  onCommit,
+  width,
+  bold,
+  title,
+  step
+}) {
+  const [d, setD] = React.useState(null);
+  return React.createElement("input", {
+    className: "p3-inp",
+    type: "number",
+    step: step || "any",
+    min: "0",
+    title: title,
+    style: {
+      padding: "5px 7px",
+      fontSize: 11.5,
+      width: width || 62,
+      textAlign: "right",
+      fontFamily: "inherit",
+      fontWeight: bold ? 800 : 500,
+      color: bold ? "var(--acd)" : undefined
+    },
+    value: d != null ? d : value != null && isFinite(value) ? value : "",
+    placeholder: placeholder,
+    onChange: e => setD(e.target.value),
+    onBlur: () => {
+      if (d == null) return;
+      const x = d;
+      setD(null);
+      onCommit(x === "" ? null : +x);
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter") e.target.blur();
+    }
+  });
+}
+const CC_ARR = [{
+  value: "Trefoil",
+  label: "สามเหลี่ยม (Trefoil)"
+}, {
+  value: "Flat",
+  label: "แนวราบชิดกัน"
+}, {
+  value: "Spaced",
+  label: "แนวราบเว้นระยะ"
+}];
+function CcAcCard({
+  job,
+  ver,
+  st,
+  invs
+}) {
+  const CC = window.CC,
+    R = (window.BOQ || {}).RULES || {};
+  const store = useCcStore(job && job.id, ver);
+  const D = store.data || {},
+    A = D.ac || {},
+    E = A.rows || {};
+  const vdLim = +R.vdAc > 0 ? +R.vdAc : 3;
+  const ta = +A.ta > 0 ? +A.ta : 40,
+    cgm = A.cgm || "L-2D",
+    arr = A.arr || "Trefoil";
+  const obs = st && st.obstacles || [];
+  const hasMdb = !!obs.find(o => o && o.p3sType === "mdb");
+  const hasXfObj = !!obs.find(o => o && o.p3sType === "xfmr");
+  const est = React.useMemo(() => {
+    const ivs = obs.filter(o => o && o.p3sType === "invst"),
+      mdb = obs.find(o => o && o.p3sType === "mdb");
+    if (!mdb || !ivs.length) return {
+      inv: 5
+    };
+    const d = Math.min.apply(null, ivs.map(o => Math.abs((+o.x || 0) - (+mdb.x || 0)) + Math.abs((+o.z || 0) - (+mdb.z || 0))));
+    return {
+      inv: 5,
+      feed: Math.ceil(d * 1.1 + 2)
+    };
+  }, [st]);
+  const plan = React.useMemo(() => CC && CC.acPlan ? CC.acPlan(invs, {
+    edits: E,
+    ta,
+    cgm,
+    arr,
+    vdLim,
+    est
+  }) : {
+    rows: [],
+    boards: []
+  }, [JSON.stringify(invs), JSON.stringify(E), ta, cgm, arr, vdLim, est]);
+  const rows = plan.rows,
+    ok = rows.filter(r => r.valid);
+  const maxPct = ok.length ? Math.max.apply(null, ok.map(r => r.pctTotal || 0)) : 0;
+  const bad = ok.filter(r => !r.ok).length;
+  const xf = A.xf || null,
+    xr = xf && CC && +xf.kva > 0 ? CC.xfmr(+xf.kva, +xf.hv || 22000, +xf.lv || 400, +xf.z || 6) : null;
+  const sumJs = JSON.stringify({
+    maxPct,
+    bad,
+    cables: ok.map(r => ({
+      id: r.id,
+      from: r.from,
+      to: r.to,
+      cable: r.cable,
+      len: r.len,
+      at: r.at,
+      af: r.af,
+      pe: r.pe,
+      pct: r.pct
+    }))
+  });
+  React.useEffect(() => {
+    if (store.data === undefined || !ok.length || !job || !job.id) return;
+    const s = D.sumAc ? JSON.stringify({
+      maxPct: D.sumAc.maxPct,
+      bad: D.sumAc.bad,
+      cables: D.sumAc.cables
+    }) : "";
+    if (s === sumJs) return;
+    const t = setTimeout(() => store.patch({
+      sumAc: Object.assign(JSON.parse(sumJs), {
+        at: new Date().toISOString()
+      })
+    }), 1500);
+    return () => clearTimeout(t);
+  }, [sumJs, store.data === undefined]);
+  const setA = (k, v) => store.patch({
+    ["ac/" + k]: v === "" || v == null ? null : v
+  });
+  const setRow = (id, k, v) => {
+    const cur = Object.assign({}, E[id] || {});
+    if (v === "" || v == null) delete cur[k];else cur[k] = v;
+    store.patch({
+      ["ac/rows/" + id]: Object.keys(cur).length ? cur : null
+    });
+  };
+  const resetAll = () => window.askConfirm({
+    title: "คืนค่าสาย AC ที่แก้เองทั้งหมด?",
+    body: "ปลายทาง ระยะ ขนาดสาย ชุดขนาน ทุกวงจรกลับไปใช้ค่าที่ระบบคิดให้",
+    ok: "คืนค่า",
+    danger: true
+  }).then(y => {
+    if (y) store.patch({
+      "ac/rows": null
+    });
+  });
+  if (!CC || !CC.acPlan || !rows.length) return null;
+  const nEdited = Object.keys(E).length;
+  const boardOpts = ["MDB", "SMDB-1", "SMDB-2", "SMDB-3"].map(b => ({
+    value: b,
+    label: b
+  }));
+  const sizeOpts = r => [{
+    value: "",
+    label: isFinite(r.auto) ? "อัตโนมัติ · " + r.auto : "อัตโนมัติ · —"
+  }].concat(CC.SIZES.filter(s => s >= 2.5).map(s => ({
+    value: String(s),
+    label: s + " mm²"
+  })));
+  const cgOpts = Object.keys(CC.CG).map(k => ({
+    value: k,
+    label: k + " · " + CC.CG[k].th
+  }));
+  const red = {
+    color: "var(--tint-red-tx)"
+  };
+  const pct = v => isFinite(v) ? v.toFixed(2) + "%" : "—";
+  const lab = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6
+  };
+  return React.createElement("div", {
+    className: "p3-card"
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "bolt",
+    size: 13
+  }), "\u0E2A\u0E32\u0E22 AC \xB7 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2192 \u0E15\u0E39\u0E49 \u2192 MDB", React.createElement("span", {
+    className: "ln"
+  }), React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: bad ? "var(--tint-red-tx)" : undefined
+    }
+  }, ok.length ? "แรงดันตกถึง MDB สูงสุด " + pct(maxPct) + " · เกณฑ์ ≤ " + vdLim + "%" + (bad ? " · ไม่ผ่าน " + bad + " วงจร" : " · ผ่านทุกวงจร") : "ยังไม่มีระยะสาย")), !hasMdb && React.createElement("div", {
+    className: "su-alert info"
+  }, React.createElement(P3Icon, {
+    name: "bulb",
+    size: 14
+  }), React.createElement("span", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35 ", React.createElement("b", null, "\u0E15\u0E39\u0E49 MDB"), " \u0E43\u0E19\u0E41\u0E1A\u0E1A 3D \u2014 \u0E27\u0E32\u0E07\u0E17\u0E35\u0E48\u0E02\u0E31\u0E49\u0E19 \"\u0E2A\u0E34\u0E48\u0E07\u0E1A\u0E14\u0E1A\u0E31\u0E07\" \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E44\u0E1F\u0E1F\u0E49\u0E32 (\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C) \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E43\u0E2B\u0E49 \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E23\u0E2D\u0E01\u0E23\u0E30\u0E22\u0E30\u0E40\u0E2D\u0E07\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      alignItems: "center",
+      fontSize: 11.5,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("label", {
+    style: lab,
+    title: "\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E41\u0E27\u0E14\u0E25\u0E49\u0E2D\u0E21\u0E17\u0E35\u0E48\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \u2192 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13 Ca \u0E15\u0E32\u0E23\u0E32\u0E07 5-43 (\u0E10\u0E32\u0E19 40\xB0C)"
+  }, "\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34", React.createElement(CcNum, {
+    value: ta,
+    width: 52,
+    onCommit: v => setA("ta", v > 0 && v !== 40 ? v : null)
+  }), "\xB0C \xB7 Ca ", CC.ca(ta)), React.createElement("label", {
+    style: lab,
+    title: "\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E08\u0E31\u0E14\u0E01\u0E25\u0E38\u0E48\u0E21 Cg \u0E15\u0E32\u0E23\u0E32\u0E07 5-40 (\u0E2A\u0E32\u0E22\u0E41\u0E01\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E1A\u0E19\u0E23\u0E32\u0E07) \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E27\u0E07\u0E08\u0E23\u0E43\u0E19\u0E23\u0E32\u0E07\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E02\u0E49\u0E32\u0E15\u0E39\u0E49\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19"
+  }, "\u0E23\u0E32\u0E07\u0E2A\u0E32\u0E22", React.createElement(CcDd, {
+    value: cgm,
+    options: cgOpts,
+    onChange: v => setA("cgm", v === "L-2D" ? null : v),
+    style: {
+      width: 250
+    }
+  })), React.createElement("label", {
+    style: lab,
+    title: "\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E2A\u0E32\u0E22\u0E41\u0E01\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u2192 \u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C mV/A/m \u0E15\u0E32\u0E23\u0E32\u0E07 \u0E10.3"
+  }, "\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07", React.createElement(CcDd, {
+    value: arr,
+    options: CC_ARR,
+    onChange: v => setA("arr", v === "Trefoil" ? null : v),
+    style: {
+      width: 170
+    }
+  })), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), nEdited > 0 && React.createElement("button", {
+    className: "p3-lnk",
+    onClick: resetAll
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07 (", nEdited, ")")), React.createElement("div", {
+    className: "su-scroll"
+  }, React.createElement("table", {
+    className: "su-tb"
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E27\u0E07\u0E08\u0E23"), React.createElement("th", null, "\u0E1B\u0E25\u0E32\u0E22\u0E17\u0E32\u0E07"), React.createElement("th", {
+    title: "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 \xB7 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \xD7 1.25 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C \xB7 \u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22 \xD7 1"
+  }, "Imax (A)"), React.createElement("th", null, "CB AT/AF"), React.createElement("th", {
+    title: "\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 (\u0E21.)"
+  }, "\u0E23\u0E30\u0E22\u0E30 (\u0E21.)"), React.createElement("th", {
+    title: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19"
+  }, "\u0E0A\u0E38\u0E14"), React.createElement("th", null, "\u0E41\u0E01\u0E19"), React.createElement("th", null, "\u0E02\u0E19\u0E32\u0E14 mm\xB2"), React.createElement("th", {
+    title: "It = AT \xF7 (Ca \xD7 Cg \xD7 \u0E0A\u0E38\u0E14) \xB7 Iz = \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07 5-33 \xD7 Ca \xD7 Cg \xD7 \u0E0A\u0E38\u0E14 \u0E15\u0E49\u0E2D\u0E07 \u2265 AT"
+  }, "It / Iz"), React.createElement("th", {
+    title: "mV/A/m \u0E15\u0E32\u0E23\u0E32\u0E07 \u0E10.3/\u0E10.4"
+  }, "mV/A/m"), React.createElement("th", null, "%VD"), React.createElement("th", {
+    title: "\u0E23\u0E27\u0E21\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E16\u0E36\u0E07 MDB (\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C + \u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22)"
+  }, "\u0E16\u0E36\u0E07 MDB"), React.createElement("th", {
+    title: "\u0E2A\u0E32\u0E22\u0E14\u0E34\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07 4-2 (mm\xB2)"
+  }, "PE"), React.createElement("th", null, "\u0E2A\u0E32\u0E22"), React.createElement("th", null, "\u0E1C\u0E25"))), React.createElement("tbody", null, rows.map(r => {
+    const e = E[r.id] || {};
+    return React.createElement("tr", {
+      key: r.id,
+      style: r.kind === "feed" ? {
+        background: "var(--surface2)"
+      } : undefined
+    }, React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement("b", null, r.label), r.model ? React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: "var(--text-3)"
+      }
+    }, r.model) : null), React.createElement("td", null, r.kind === "inv" ? React.createElement(CcDd, {
+      value: r.to,
+      options: boardOpts,
+      onChange: v => setRow(r.id, "to", v),
+      style: {
+        width: 96
+      }
+    }) : "MDB"), React.createElement("td", null, isFinite(r.imax) ? Math.round(r.imax * 10) / 10 : "—"), React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap"
+      }
+    }, isFinite(r.at) ? r.at + "/" + r.af : "—"), React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement(CcNum, {
+      value: r.edited ? r.len : null,
+      placeholder: r.est != null ? String(r.est) : "กรอก",
+      bold: r.edited,
+      title: r.edited ? "แก้เอง · ประมาณได้ " + (r.est != null ? r.est + " ม." : "—") + " (ลบให้ว่างเพื่อใช้ค่าประมาณ)" : r.est != null ? "ประมาณจากแบบ 3D" : "กรอกระยะ",
+      onCommit: v => setRow(r.id, "len", v > 0 && v !== r.est ? v : null)
+    })), React.createElement("td", null, React.createElement(CcNum, {
+      value: +e.n > 1 ? +e.n : null,
+      placeholder: "1",
+      width: 42,
+      step: "1",
+      onCommit: v => setRow(r.id, "n", v > 1 ? Math.round(v) : null)
+    })), React.createElement("td", null, React.createElement(CcDd, {
+      value: r.ct,
+      options: [{
+        value: "1C",
+        label: "แกนเดียว"
+      }, {
+        value: "MC",
+        label: "หลายแกน"
+      }],
+      onChange: v => setRow(r.id, "ct", v),
+      style: {
+        width: 96
+      }
+    })), React.createElement("td", null, React.createElement(CcDd, {
+      value: e.ovr != null ? String(e.ovr) : "",
+      options: sizeOpts(r),
+      onChange: v => setRow(r.id, "ovr", v === "" ? null : +v),
+      style: {
+        width: 124
+      }
+    })), React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap",
+        color: r.valid && !r.ampOk ? "var(--tint-red-tx)" : undefined
+      }
+    }, isFinite(r.it) ? Math.round(r.it) : "—", " / ", isFinite(r.iz) ? Math.round(r.iz) : "—"), React.createElement("td", null, r.mv != null ? r.mv : "—"), React.createElement("td", null, React.createElement("b", {
+      style: r.valid && !r.vdOk ? red : undefined
+    }, pct(r.pct))), React.createElement("td", {
+      style: r.valid && r.pctTotal > vdLim ? red : undefined
+    }, pct(r.pctTotal)), React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap"
+      }
+    }, isFinite(r.pe) ? r.pe : "—"), React.createElement("td", {
+      style: {
+        whiteSpace: "nowrap",
+        fontWeight: 700
+      }
+    }, r.cable || "—"), React.createElement("td", null, !r.valid ? React.createElement("span", {
+      style: {
+        color: "var(--text-3)"
+      }
+    }, "\u0E23\u0E2D\u0E23\u0E30\u0E22\u0E30") : r.ok ? React.createElement("span", {
+      style: {
+        color: "var(--tint-ok-tx)",
+        fontWeight: 800
+      }
+    }, "\u0E1C\u0E48\u0E32\u0E19") : React.createElement("span", {
+      style: {
+        color: "var(--tint-red-tx)",
+        fontWeight: 800
+      },
+      title: [!r.ampOk && "พิกัดกระแสไม่พอ", !r.vdOk && "แรงดันตกเกินเกณฑ์", !r.peOk && "สายดินเล็กกว่าตาราง 4-2"].filter(Boolean).join(" · ")
+    }, "\u0E44\u0E21\u0E48\u0E1C\u0E48\u0E32\u0E19")));
+  })))), hasXfObj || xf ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      alignItems: "center",
+      fontSize: 11.5,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "var(--text)"
+    }
+  }, "\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07"), React.createElement("label", {
+    style: lab
+  }, "kVA ", React.createElement(CcNum, {
+    value: xf && +xf.kva,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 1000",
+    width: 74,
+    onCommit: v => setA("xf/kva", v)
+  })), React.createElement("label", {
+    style: lab
+  }, "HV ", React.createElement(CcNum, {
+    value: xf && +xf.hv,
+    placeholder: "22000",
+    width: 70,
+    onCommit: v => setA("xf/hv", v)
+  }), "V"), React.createElement("label", {
+    style: lab
+  }, "LV ", React.createElement(CcNum, {
+    value: xf && +xf.lv,
+    placeholder: "400",
+    width: 56,
+    onCommit: v => setA("xf/lv", v)
+  }), "V"), React.createElement("label", {
+    style: lab
+  }, "%Z ", React.createElement(CcNum, {
+    value: xf && +xf.z,
+    placeholder: "6",
+    width: 48,
+    onCommit: v => setA("xf/z", v)
+  })), xr && React.createElement(React.Fragment, null, React.createElement("span", {
+    className: "p3-stat"
+  }, "In HV ", React.createElement("b", null, xr.inHv), " A"), React.createElement("span", {
+    className: "p3-stat"
+  }, "In LV ", React.createElement("b", null, xr.inLv.toLocaleString()), " A"), React.createElement("span", {
+    className: "p3-stat"
+  }, "Ib HV \xD71.25 ", React.createElement("b", null, xr.ibHv), " A"), React.createElement("span", {
+    className: "p3-stat",
+    title: "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E25\u0E31\u0E14\u0E27\u0E07\u0E08\u0E23\u0E14\u0E49\u0E32\u0E19 LV = In LV \xD7 100 \xF7 %Z \xB7 \u0E43\u0E0A\u0E49\u0E40\u0E0A\u0E47\u0E01\u0E04\u0E48\u0E32 Icu \u0E02\u0E2D\u0E07\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C"
+  }, "Isc LV ", React.createElement("b", null, xr.iscLv), " kA"))) : React.createElement("div", null, React.createElement("button", {
+    className: "p3-lnk",
+    onClick: () => setA("xf/z", 6)
+  }, "+ \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07")), React.createElement("span", {
+    className: "p3-note"
+  }, "CB = \u0E02\u0E31\u0E49\u0E19\u0E41\u0E23\u0E01\u0E17\u0E35\u0E48 \u2265 Imax \xD7 1.25 (\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22 \xD7 1) \xB7 It = AT \xF7 (Ca \xD7 Cg \xD7 \u0E0A\u0E38\u0E14) \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07 5-33 \u0E01\u0E25\u0E38\u0E48\u0E21 7 (XLPE 90\xB0C \u0E1A\u0E19\u0E23\u0E32\u0E07) \xB7 \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E01 = mV/A/m (\u0E10.3/\u0E10.4) \xD7 Imax \xF7 \u0E0A\u0E38\u0E14 \xD7 \u0E23\u0E30\u0E22\u0E30 \xF7 1000 \xB7 PE \u0E15\u0E32\u0E23\u0E32\u0E07 4-2 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 = \u0E08\u0E38\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2192 \u0E15\u0E39\u0E49 MDB \u0E41\u0E19\u0E27\u0E09\u0E32\u0E01 \xD7 1.1 + 2 \u0E21. \xB7 \u0E15\u0E39\u0E49\u0E22\u0E48\u0E2D\u0E22\u0E02\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C 5 \u0E21."));
+}
 Object.assign(window, {
   CcDcCard,
+  CcAcCard,
+  CcDd,
+  CcNum,
   useCcStore
 });

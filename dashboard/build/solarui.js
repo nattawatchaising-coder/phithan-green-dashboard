@@ -6709,6 +6709,23 @@ function SolarWorkspace({
     foot: foot,
     panel: panel,
     colorOf: suColor
+  }), !isMicro && inv.model && window.CcAcCard && React.createElement(window.CcAcCard, {
+    job: job,
+    ver: ver,
+    st: st,
+    invs: [{
+      model: inv.model,
+      n: scNum(S.invCount, 1),
+      phase: inv.phase || phases,
+      outA: inv.outA,
+      kw: inv.kw
+    }].concat(invX.map(e => ({
+      model: e.model,
+      n: e.n,
+      phase: e.spec.phase || phases,
+      outA: e.spec.outA,
+      kw: e.spec.kw
+    })))
   }), warns.map((w, i) => React.createElement("div", {
     key: i,
     className: "su-alert warn"

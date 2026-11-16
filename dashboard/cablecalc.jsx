@@ -121,9 +121,7 @@
     o.mvMax = lim * o.v * 1000 / ((o.imax / o.n) * o.len);
     const single = r.ct !== "MC";
     const ampKey = (single ? "a1c" : "amc") + (o.sys === "3P" ? "3" : "2");
-    const mvKey = o.sys === "3P"
-      ? (!single ? "v3_mc" : ({ Trefoil: "v3_tre", Flat: "v3_flt", Spaced: "v3_spc" })[r.arr] || "v3_125")
-      : (!single ? "v1_mc" : r.arr === "Spaced" ? "v1_spc" : r.arr === "Group" ? "v1_125" : "v1_tch");
+    const mvKey = mvKeyOf(o.sys, r.ct, r.arr || (o.sys === "1P" ? "Touch" : ""));
     o.ampKey = ampKey; o.mvKey = mvKey;
     let auto = NaN;
     for (let i = 0; i < SIZES.length; i++) {
@@ -142,6 +140,63 @@
     o.ok = o.ampOk && o.vdOk && o.peOk;
     o.cable = isFinite(o.use) ? (o.n > 1 ? o.n + "×" : "") + (single ? (o.sys === "3P" ? "4-1C" : "2-1C") : (o.sys === "3P" ? "4C" : "2C")) + "×" + o.use + " mm²" : "";
     return o;
+  }
+
+  /* mV/A/m ของขนาดหนึ่ง · sys "3P"/"1P" · ct "1C"/"MC" · arr Trefoil/Flat/Spaced/Group/"" (ไม่รู้ = คอลัมน์ค่าสูงสุดของแกนเดียว) */
+  function mvKeyOf(sys, ct, arr) {
+    const single = ct !== "MC";
+    return sys === "1P"
+      ? (!single ? "v1_mc" : arr === "Spaced" ? "v1_spc" : arr === "Group" || !arr ? "v1_125" : "v1_tch")
+      : (!single ? "v3_mc" : ({ Trefoil: "v3_tre", Flat: "v3_flt", Spaced: "v3_spc" })[arr] || "v3_125");
+  }
+  function mvOf(size, sys, ct, arr) { const i = SIZES.indexOf(+size); const v = i >= 0 ? MV[mvKeyOf(sys, ct, arr)][i] : null; return v == null ? null : v; }
+
+  /* ผังวงจร AC ทั้งงาน (เฟส 3) — อินเวอร์เตอร์ทีละตัว → ตู้ย่อย (SMDB) → MDB
+     invs = [{ model, n, phase 1|3, outA, kw }] · o = { edits: { <id>: { to, len, n, ovr, peovr, ct, arr, circ, k } },
+       ta, cgm, arr, vdLim, est: { inv: ม., feed: ม. } (ระยะประมาณจากแบบ 3D · ไม่มี = ต้องกรอก), v3 400, v1 230 }
+     ตัวเดียว = เข้า MDB ตรง · หลายตัว = เข้า SMDB-1 ก่อน (แก้ปลายทางรายตัวได้) · ฟีดเดอร์ตู้ย่อย k = 1 (ตามชุดอ้างอิง HANDOFF)
+     ผล: แถว { id, kind inv|feed, label, model, from, to, len, est, edited, ...ac() , pctTotal (อินเวอร์เตอร์ + ฟีดเดอร์ที่ผ่าน) } */
+  function acPlan(invs, o) {
+    o = o || {};
+    const E = o.edits || {}, est = o.est || {}, v3 = num(o.v3) || 400, v1 = num(o.v1) || 230;
+    const units = [];
+    (invs || []).forEach((m) => {
+      const cnt = Math.max(0, Math.round(num(m.n) || 0));
+      for (let j = 0; j < cnt; j++) units.push(m);
+    });
+    const many = units.length > 1;
+    const base = (id, e) => ({ ta: has(e.ta) ? e.ta : has(o.ta) ? o.ta : 40, cgm: has(e.cgm) ? e.cgm : (o.cgm || "L-2D"), trays: 1,
+      arr: e.arr || o.arr || "Trefoil", n: e.n || 1, ovr: e.ovr, peovr: e.peovr, vdLim: o.vdLim });
+    const pad = (x) => (x < 10 ? "0" : "") + x;
+    const inv = units.map((m, i) => {
+      const id = "i" + (i + 1), e = E[id] || {};
+      const ph = +m.phase === 1 ? 1 : 3, v = ph === 3 ? v3 : v1;
+      const imax = num(m.outA) > 0 ? num(m.outA) : num(m.kw) > 0 ? num(m.kw) * 1000 / (ph === 3 ? Math.sqrt(3) * v : v) : NaN;
+      const to = e.to || (many ? "SMDB-1" : "MDB");
+      return { id, kind: "inv", label: "INV-" + pad(i + 1), model: m.model || "", from: "INV-" + pad(i + 1), to, ph, v, imax, e };
+    });
+    const boards = [];
+    inv.forEach((r) => { if (r.to !== "MDB" && boards.indexOf(r.to) < 0) boards.push(r.to); });
+    const circOf = (to) => inv.filter((r) => r.to === to).length;
+    const rows = [];
+    const run = (r, k, circ, estLen) => {
+      const e = r.e, len = num(e.len) > 0 ? num(e.len) : num(estLen);
+      const ct = e.ct || o.ct || (r.imax * k >= 100 ? "1C" : "MC");
+      const c = ac(Object.assign(base(r.id, e), { sys: r.ph === 3 ? "3P" : "1P", v: r.v, imax: r.imax, k: has(e.k) ? e.k : k, ct, circ: has(e.circ) ? e.circ : circ, len }));
+      return Object.assign(c, { id: r.id, kind: r.kind, label: r.label, model: r.model || "", from: r.from, to: r.to, ct,
+        est: num(estLen) > 0 ? num(estLen) : null, edited: num(e.len) > 0, len: isFinite(len) ? len : NaN });
+    };
+    inv.forEach((r) => rows.push(run(r, 1.25, circOf(r.to), r.to === "MDB" ? (has(est.feed) ? est.feed : est.inv) : est.inv)));
+    const feeds = boards.map((b) => {
+      const mine = inv.filter((r) => r.to === b);
+      /* อินเวอร์เตอร์ 1 เฟสหลายตัวในตู้ 3 เฟส = กระจายลง 3 เฟส ÷ 3 */
+      const imax = mine.reduce((t, r) => t + (r.ph === 3 ? r.imax : r.imax / 3), 0);
+      const id = "f:" + b;
+      return run({ id, kind: "feed", label: b + " → MDB", from: b, to: "MDB", ph: 3, v: v3, imax, e: E[id] || {} }, 1, 1, est.feed);
+    });
+    rows.forEach((r) => { const f = feeds.find((x) => x.from === r.to); r.pctTotal = isFinite(r.pct) ? r2(r.pct + (f && isFinite(f.pct) ? f.pct : 0)) : NaN; });
+    feeds.forEach((f) => { f.pctTotal = f.pct; });
+    return { rows: rows.concat(feeds), boards };
   }
 
   /* หม้อแปลง — In = kVA×1000/(√3·V) · Isc(LV) = In(LV) × 100 / %Z (kA) */
@@ -178,6 +233,6 @@
     return out;
   }
 
-  const CC = { SIZES, AMP, MV, CA, CG, CG_LB, CB_AT, CB_AF, PE, PV, PV_K90, ca, cg, cb, af, pe, pvOf, pvR90, vocMax, dcVd, dcString, ac, xfmr, dcRoutes };
+  const CC = { SIZES, AMP, MV, CA, CG, CG_LB, CB_AT, CB_AF, PE, PV, PV_K90, ca, cg, cb, af, pe, pvOf, pvR90, vocMax, dcVd, dcString, ac, xfmr, dcRoutes, mvOf, mvKeyOf, acPlan };
   (typeof window !== "undefined" ? window : globalThis).CC = CC;
 })();

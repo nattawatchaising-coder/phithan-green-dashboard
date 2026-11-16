@@ -2468,7 +2468,8 @@ function BOQEditor({
       volts,
       ins,
       phase: ph,
-      dc: false
+      dc: false,
+      core: window.BOQ.cableCoreType(type)
     });
   };
   const vdropSum = React.useMemo(() => {
@@ -2921,7 +2922,8 @@ function BOQEditor({
           volts: cabVolts(ph),
           ins: window.BOQ.cableInsClass(gen),
           phase: ph,
-          dc: false
+          dc: false,
+          core: window.BOQ.cableCoreType(gen)
         });
         if (vd && !vd.ok) continue;
       }

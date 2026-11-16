@@ -963,7 +963,10 @@
     /* สาย DC (PV1-F) ใช้ R90 ของสาย PV class 5 จากเอนจินกลาง (cablecalc.jsx · = 1.275 × R20) แทน ρ — ρ ได้ค่าต่ำกว่าจริง ~16%
        ขนาดที่ไม่มีในตาราง PV ใช้ ρ เดิม */
     const r90 = o.dc && window.CC ? window.CC.pvR90 : null;
-    const dvOf = (sz) => (r90 && r90(sz) ? 2 * L * I * r90(sz) / 1000 : k * L * I * rho / sz);
+    /* สาย AC ฉนวน XLPE (CV) ใช้ mV/A/m ตาราง ฐ.3/ฐ.4 ของ วสท. (CC.mvOf · รวมรีแอกแตนซ์ · ที่ 90°C) — ρ ต่ำกว่าตารางถึง ~28% ที่สายใหญ่
+       แกนเดียวไม่รู้การจัดวาง = ใช้คอลัมน์วางชิดแนวราบ (ค่าสูงสุด เผื่อไว้) · PVC (THW) ยังใช้ ρ */
+    const mvOf = !o.dc && o.ins === "xlpe" && window.CC && window.CC.mvOf ? (sz) => window.CC.mvOf(sz, +o.phase === 3 ? "3P" : "1P", o.core === "multi" ? "MC" : "1C", o.arr) : null;
+    const dvOf = (sz) => (r90 && r90(sz) ? 2 * L * I * r90(sz) / 1000 : mvOf && mvOf(sz) ? mvOf(sz) * I * L / 1000 : k * L * I * rho / sz);
     const dv = dvOf(A);
     const pct = dv / V * 100;
     const lim = +o.limit || (o.dc ? VD_LIMIT.dc : VD_LIMIT.ac);
@@ -972,12 +975,12 @@
     const pool = o.dc ? PV_WIRE_SIZES : WIRE_SIZES;
     let minSize = null;
     for (let i = 0; i < pool.length; i++) {
-      const okVd = r90 && r90(pool[i]) ? dvOf(pool[i]) / V * 100 <= lim : pool[i] >= need;
+      const okVd = (r90 && r90(pool[i])) || (mvOf && mvOf(pool[i])) ? dvOf(pool[i]) / V * 100 <= lim : pool[i] >= need;
       if (okVd && (!o.dc || pool[i] >= pvMin())) { minSize = pool[i]; break; }
     }
     return { dv: Math.round(dv * 100) / 100, pct: Math.round(pct * 100) / 100, lim,
       ok: pct <= lim, size: A, need: Math.round(need * 100) / 100, minSize, volts: V, amp: I, length: L,
-      phase: +o.phase === 3 ? 3 : 1 };
+      phase: +o.phase === 3 ? 3 : 1, method: r90 && r90(A) ? "R90" : mvOf && mvOf(A) ? "mV/A/m" : "ρ" };
   }
 
   // หาแผง / อินเวอร์เตอร์จากชื่อรุ่น (สะท้อนคลัง)

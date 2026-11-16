@@ -3589,6 +3589,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                 {!isMicro && plan && plan.strings && plan.strings.length > 0 && window.CcDcCard && (
                   <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} />
                 )}
+                {/* สาย AC อินเวอร์เตอร์ → ตู้ → MDB + หม้อแปลง (เฟส 3) */}
+                {!isMicro && inv.model && window.CcAcCard && (
+                  <window.CcAcCard job={job} ver={ver} st={st}
+                    invs={[{ model: inv.model, n: scNum(S.invCount, 1), phase: inv.phase || phases, outA: inv.outA, kw: inv.kw }]
+                      .concat(invX.map((e) => ({ model: e.model, n: e.n, phase: e.spec.phase || phases, outA: e.spec.outA, kw: e.spec.kw })))} />
+                )}
 
                 {warns.map((w, i) => (
                   <div key={i} className="su-alert warn"><P3Icon name="height" size={14} /><span>{w}</span></div>
