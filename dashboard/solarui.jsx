@@ -2140,8 +2140,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
   }, [isManual, S.assign, autoSeed, idx]);
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
-    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan, pinMode: S.pinMode, zoneOf: S.zone, posOf: panelPos })
-    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.pinMode, S.zone, panelPos]);
+    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan, pinMode: "area", zoneOf: S.zone, posOf: panelPos })
+    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.zone, panelPos]);
+  /* ลงขั้วใช้ "ตามพื้นที่ (หลังคาก่อน)" อย่างเดียว — ผู้ใช้ 16 พ.ย. 2026 "ชอบอันนี้ อันอื่นไม่ต้องมีก็ได้" (เอาปุ่มเติมทีละตัว/เท่ากันตามเลขออก · S.pinMode เดิมไม่อ่านแล้ว) */
   /* ปักช่อง MPPT เอง: เก็บเป็น { สตริงที่: ช่องที่ } · null = คืนให้ระบบไล่ลงช่องว่างให้ */
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
@@ -3318,17 +3319,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                           return (
                             <div className="su-sec">
                               <div className="hd">ลงขั้วอินเวอร์เตอร์<span className="sp" /><span>{pinLay.nInv} ตัว{nZ ? " · มีโซน" : ""}</span></div>
-                              <div className="su-dir" title="วิธีไล่สตริงลงขั้วอินเวอร์เตอร์ (สตริงที่ปักขั้วเองไม่ขยับ)">
-                                {[["", "เติมทีละตัว"], ["even", "เท่ากันตามเลข"], ["area", "ตามพื้นที่"]].map(([k, t]) => (
-                                  <button key={k || "fill"} type="button" data-on={(S.pinMode || "") === k ? "1" : "0"} onClick={() => set({ pinMode: k || null })}>{t}</button>
-                                ))}
-                              </div>
-                              <span className="su-hint">{nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่ง" + (S.pinMode === "area" ? "ตามพื้นที่" : "เท่า ๆ กัน") : S.pinMode === "area"
-                                ? "แต่ละตัวได้ก้อนแผงติดกัน ไม่คร่อมอาคาร · แบ่งจำนวนตัวให้แต่ละอาคารตามจำนวนแผง แล้วผ่าพื้นที่เป็นก้อนเท่า ๆ กัน (ตาม kW)"
-                                : S.pinMode === "even"
-                                ? "แบ่งสตริงตามเลขเป็นก้อนต่อเนื่อง ตัวละเท่า ๆ กัน (ตาม kW) · ในตัวเดียวกันวน MPPT1→" + (pinLay.mpptPerInv || "") + " ช่อง 1 ก่อนค่อยช่อง 2"
-                                : "เติมตัวแรกให้เต็มก่อนค่อยขึ้นตัวถัดไป"}</span>
-                              {nPick > 0 && S.pinMode && <span className="su-hint" style={{ color: "var(--tint-amber-tx, #B45309)" }}>มีขั้วที่ปักเอง {nPick} สตริง — ไม่ขยับตามวิธีนี้ · กด "คืนขั้วที่ปักเอง" ถ้าจะให้ระบบแบ่งใหม่ทั้งหมด</span>}
+                              <span className="su-hint">{nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่งตามพื้นที่"
+                                : "ระบบแบ่งตามพื้นที่ — หลังคาเดียวกันอยู่ตัวเดียวกันก่อน ข้ามหลังคาเมื่อจำเป็น · แต่ละตัวได้ก้อนติดกัน ไม่คร่อมอาคาร (ขนาดตาม kW)"}</span>
+                              {nPick > 0 && <span className="su-hint" style={{ color: "var(--tint-amber-tx, #B45309)" }}>มีขั้วที่ปักเอง {nPick} สตริง — ไม่ขยับตามวิธีนี้ · กด "คืนขั้วที่ปักเอง" ถ้าจะให้ระบบแบ่งใหม่ทั้งหมด</span>}
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                                 {pinLay.units.map((u) => {
                                   const k = u.no + 1, on = tool === "zone" && zoneInv === k;

@@ -4081,10 +4081,10 @@ function SolarWorkspace({
     totalPanels,
     mpptPick: S.mpptPick,
     optimizer: optPlan,
-    pinMode: S.pinMode,
+    pinMode: "area",
     zoneOf: S.zone,
     posOf: panelPos
-  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.pinMode, S.zone, panelPos]);
+  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.zone, panelPos]);
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
     if (slot == null) delete next[sid];else next[sid] = slot;
@@ -6379,19 +6379,9 @@ function SolarWorkspace({
         className: "hd"
       }, "\u0E25\u0E07\u0E02\u0E31\u0E49\u0E27\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C", React.createElement("span", {
         className: "sp"
-      }), React.createElement("span", null, pinLay.nInv, " \u0E15\u0E31\u0E27", nZ ? " · มีโซน" : "")), React.createElement("div", {
-        className: "su-dir",
-        title: "\u0E27\u0E34\u0E18\u0E35\u0E44\u0E25\u0E48\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E07\u0E02\u0E31\u0E49\u0E27\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C (\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E01\u0E02\u0E31\u0E49\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A)"
-      }, [["", "เติมทีละตัว"], ["even", "เท่ากันตามเลข"], ["area", "ตามพื้นที่"]].map(([k, t]) => React.createElement("button", {
-        key: k || "fill",
-        type: "button",
-        "data-on": (S.pinMode || "") === k ? "1" : "0",
-        onClick: () => set({
-          pinMode: k || null
-        })
-      }, t))), React.createElement("span", {
+      }), React.createElement("span", null, pinLay.nInv, " \u0E15\u0E31\u0E27", nZ ? " · มีโซน" : "")), React.createElement("span", {
         className: "su-hint"
-      }, nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่ง" + (S.pinMode === "area" ? "ตามพื้นที่" : "เท่า ๆ กัน") : S.pinMode === "area" ? "แต่ละตัวได้ก้อนแผงติดกัน ไม่คร่อมอาคาร · แบ่งจำนวนตัวให้แต่ละอาคารตามจำนวนแผง แล้วผ่าพื้นที่เป็นก้อนเท่า ๆ กัน (ตาม kW)" : S.pinMode === "even" ? "แบ่งสตริงตามเลขเป็นก้อนต่อเนื่อง ตัวละเท่า ๆ กัน (ตาม kW) · ในตัวเดียวกันวน MPPT1→" + (pinLay.mpptPerInv || "") + " ช่อง 1 ก่อนค่อยช่อง 2" : "เติมตัวแรกให้เต็มก่อนค่อยขึ้นตัวถัดไป"), nPick > 0 && S.pinMode && React.createElement("span", {
+      }, nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่งตามพื้นที่" : "ระบบแบ่งตามพื้นที่ — หลังคาเดียวกันอยู่ตัวเดียวกันก่อน ข้ามหลังคาเมื่อจำเป็น · แต่ละตัวได้ก้อนติดกัน ไม่คร่อมอาคาร (ขนาดตาม kW)"), nPick > 0 && React.createElement("span", {
         className: "su-hint",
         style: {
           color: "var(--tint-amber-tx, #B45309)"
