@@ -618,11 +618,13 @@
      ปริมาณของ = ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 → ได้ระยะต่อ 1 ขั้ว
      แล้วถอดเป็น 2 สี แดง(+) กับ ดำ(−) เท่ากันทั้งคู่ (ไป-กลับของแต่ละสตริง) */
   const PV_DC_SPARE = 1.2;   // ค่าตั้งต้น — ใช้จริง RULES.pvSpare
-  function pvDcLength(farthest, strings) {
+  /* perPoleSet = ระยะต่อขั้วจาก "ตารางสาย DC ต่อสตริง" (cableui.jsx · แถวสาย c.perPole) — รวมระยะจริงทีละสตริง แม่นกว่าไกลสุด × จำนวน */
+  function pvDcLength(farthest, strings, perPoleSet) {
     const L = Math.max(0, +farthest || 0);
     const n = Math.max(1, Math.round(+strings || 1));
-    const perPole = Math.round(L * n * RULES.pvSpare * 100) / 100;
-    return { farthest: L, strings: n, spare: RULES.pvSpare, perPole: perPole, total: Math.round(perPole * 2 * 100) / 100 };
+    const fromTable = +perPoleSet > 0;
+    const perPole = fromTable ? Math.round(+perPoleSet * 100) / 100 : Math.round(L * n * RULES.pvSpare * 100) / 100;
+    return { farthest: L, strings: n, spare: RULES.pvSpare, perPole: perPole, total: Math.round(perPole * 2 * 100) / 100, fromTable: fromTable };
   }
 
   // ── พิกัดกระแสสายไฟ (อ้างอิงมาตรฐาน วสท. — ตัวนำทองแดง แรงดัน 0.6/1 kV) ──
@@ -2442,7 +2444,7 @@
       const len = +c.length || 0;
       if (!t || len <= 0) return;
       if (isPvDcCable(t)) {   // สาย DC → ระยะไกลสุด × สตริง × เผื่อ แล้วถอด 2 สี (แดง+ / ดำ−) เท่ากัน
-        const dc = pvDcLength(len, plan ? plan.strings : 1);
+        const dc = pvDcLength(len, plan ? plan.strings : 1, c.perPole);
         PV_DC_COLORS.forEach((col) => { const nm = pvCableColorName(t, col); cableAgg[nm] = (cableAgg[nm] || 0) + dc.perPole; });
       } else {
         /* สายกำลัง AC: ความยาวเส้นทาง × จำนวนชุดเดินขนาน × เส้นต่อชุด (แกนเดียว 1 เฟส = 2 · 3 เฟส = 4 · หลายแกน = 1)

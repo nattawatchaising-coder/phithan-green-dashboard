@@ -3585,6 +3585,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                   </div>
                 )}
 
+                {/* ตารางสาย DC ต่อสตริง · แรงดันตก (cableui.jsx · เฟส 2) */}
+                {!isMicro && plan && plan.strings && plan.strings.length > 0 && window.CcDcCard && (
+                  <window.CcDcCard job={job} ver={ver} st={st} strings={plan.strings} paths={wirePaths} foot={foot} panel={panel} colorOf={suColor} />
+                )}
+
                 {warns.map((w, i) => (
                   <div key={i} className="su-alert warn"><P3Icon name="height" size={14} /><span>{w}</span></div>
                 ))}

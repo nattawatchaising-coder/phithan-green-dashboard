@@ -3099,7 +3099,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   /* ยอดรวมความยาวสาย = ปริมาณที่ถอดได้จริง ไม่ใช่ผลบวกของตัวเลขที่กรอก
      สาย DC กรอกเป็น "ระยะไกลสุด" ต่อสตริง ของจริงต้อง × จำนวนสตริง × เผื่อ แล้วคูณ 2 ขั้ว (แดง/ดำ) */
   const dcStrings = (result.meta.plan && result.meta.plan.strings) || 1;
-  const dcOf = (c) => window.BOQ.pvDcLength(+c.length || 0, dcStrings);
+  const dcOf = (c) => window.BOQ.pvDcLength(+c.length || 0, dcStrings, c.perPole);
+  /* ตารางสาย DC ต่อสตริง (หน้าออกแบบระบบ · cableui.jsx) ของแบบ 3D ที่ใบนี้ผูก — sum.perPole = ระยะรวมจริงต่อขั้ว */
+  const [ccSum, setCcSum] = React.useState(null);
+  React.useEffect(() => {
+    if (!job || !job.id || !window.FBDB) return;
+    const ref = window.FBDB.ref("cableCalc/" + job.id + "/" + String(b.plan3d || "1") + "/sum");
+    const h = ref.on("value", (s) => setCcSum(s.val() || null), () => setCcSum(null));
+    return () => ref.off("value", h);
+  }, [job && job.id, b.plan3d]);
+  const setCabPerPole = (i, v) => setB((p) => { const cs = p.cables.slice(); const x = Object.assign({}, cs[i]); if (v > 0) x.perPole = v; else delete x.perPole; cs[i] = x; return Object.assign({}, p, { cables: cs }); });
   const cabLenSum = Math.round((b.cables || []).reduce((s, c) =>
     s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total
       : (+c.length || 0) * Math.max(1, +c.sets || 1) * Math.max(1, +c.wires || 1) + (c.gnd ? (+c.length || 0) : 0)), 0));
@@ -4097,10 +4106,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                                 </span>
                               )}
                               {d && (
-                                <span style={{ color: "var(--primary-dark)" }} title="ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน">
-                                  ถอดเข้า BOQ: {d.farthest.toLocaleString()} ม. × {d.strings} สตริง × {d.spare} = <b>{d.perPole.toLocaleString()} ม./ขั้ว</b> · แดง + ดำ = <b>{d.total.toLocaleString()} ม.</b>
+                                <span style={{ color: "var(--primary-dark)" }} title={d.fromTable ? "ระยะต่อขั้ว = ผลรวมระยะจริงทีละสตริงจากตารางสาย DC (หน้าออกแบบระบบ › การต่อสตริง) · ถอดเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน" : "ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน"}>
+                                  ถอดเข้า BOQ: {d.fromTable ? <>จากตารางสายต่อสตริง = </> : <>{d.farthest.toLocaleString()} ม. × {d.strings} สตริง × {d.spare} = </>}<b>{d.perPole.toLocaleString()} ม./ขั้ว</b> · แดง + ดำ = <b>{d.total.toLocaleString()} ม.</b>
                                   {g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""}
                                 </span>
+                              )}
+                              {d && ccSum && +ccSum.perPole > 0 && Math.abs(+ccSum.perPole - d.perPole) > 0.01 && (
+                                <button type="button" className="bq-cabx-link" title={"ตารางสาย DC ต่อสตริง: " + ccSum.strings + " สตริง · %VD สูงสุด " + ccSum.maxPct + "%"}
+                                  onClick={() => setCabPerPole(i, +ccSum.perPole)}>
+                                  {d.fromTable ? "อัปเดตตามตารางสาย (" : "ใช้ระยะจากตารางสายต่อสตริง ("}{(+ccSum.perPole).toLocaleString()} ม./ขั้ว)</button>
+                              )}
+                              {d && d.fromTable && (
+                                <button type="button" className="bq-cabx-link" onClick={() => setCabPerPole(i, 0)}>กลับไปใช้ ไกลสุด × สตริง</button>
                               )}
                             </div>
                           )}
@@ -4234,7 +4251,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--primary-dark)" }}
                             title="ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน">
                             <Icon name="check" size={11} color="var(--primary-dark)" />
-                            {d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = "}
+                            {d.fromTable ? "จากตารางสายต่อสตริง = " : d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = "}
                             <b>{d.perPole.toLocaleString() + " ม./ขั้ว"}</b>
                             {" · แดง " + d.perPole.toLocaleString() + " + ดำ " + d.perPole.toLocaleString() + " = รวม " + d.total.toLocaleString() + " ม."}
                           </span>

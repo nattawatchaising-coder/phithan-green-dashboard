@@ -6121,7 +6121,23 @@ function BOQEditor({
   };
   const CAB_COLS = "minmax(150px,1fr) minmax(0,1.35fr) 88px 34px";
   const dcStrings = result.meta.plan && result.meta.plan.strings || 1;
-  const dcOf = c => window.BOQ.pvDcLength(+c.length || 0, dcStrings);
+  const dcOf = c => window.BOQ.pvDcLength(+c.length || 0, dcStrings, c.perPole);
+  const [ccSum, setCcSum] = React.useState(null);
+  React.useEffect(() => {
+    if (!job || !job.id || !window.FBDB) return;
+    const ref = window.FBDB.ref("cableCalc/" + job.id + "/" + String(b.plan3d || "1") + "/sum");
+    const h = ref.on("value", s => setCcSum(s.val() || null), () => setCcSum(null));
+    return () => ref.off("value", h);
+  }, [job && job.id, b.plan3d]);
+  const setCabPerPole = (i, v) => setB(p => {
+    const cs = p.cables.slice();
+    const x = Object.assign({}, cs[i]);
+    if (v > 0) x.perPole = v;else delete x.perPole;
+    cs[i] = x;
+    return Object.assign({}, p, {
+      cables: cs
+    });
+  });
   const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : (+c.length || 0) * Math.max(1, +c.sets || 1) * Math.max(1, +c.wires || 1) + (c.gnd ? +c.length || 0 : 0)), 0));
   const wireDone = (b.cables || []).filter(c => c.type && +c.length > 0).length;
   const navSecs = [{
@@ -8190,8 +8206,17 @@ function BOQEditor({
         style: {
           color: "var(--primary-dark)"
         },
-        title: "\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D 1.2 = \u0E23\u0E30\u0E22\u0E30\u0E15\u0E48\u0E2D 1 \u0E02\u0E31\u0E49\u0E27 \xB7 \u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E22 2 \u0E2A\u0E35 \u0E41\u0E14\u0E07(+) \u0E01\u0E31\u0E1A \u0E14\u0E33(\u2212) \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"
-      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", d.farthest.toLocaleString(), " \u0E21. \xD7 ", d.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", d.spare, " = ", React.createElement("b", null, d.perPole.toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27"), " \xB7 \u0E41\u0E14\u0E07 + \u0E14\u0E33 = ", React.createElement("b", null, d.total.toLocaleString(), " \u0E21."), g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""))));
+        title: d.fromTable ? "ระยะต่อขั้ว = ผลรวมระยะจริงทีละสตริงจากตารางสาย DC (หน้าออกแบบระบบ › การต่อสตริง) · ถอดเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน" : "ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน"
+      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", d.fromTable ? React.createElement(React.Fragment, null, "\u0E08\u0E32\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2A\u0E32\u0E22\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 = ") : React.createElement(React.Fragment, null, d.farthest.toLocaleString(), " \u0E21. \xD7 ", d.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", d.spare, " = "), React.createElement("b", null, d.perPole.toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27"), " \xB7 \u0E41\u0E14\u0E07 + \u0E14\u0E33 = ", React.createElement("b", null, d.total.toLocaleString(), " \u0E21."), g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""), d && ccSum && +ccSum.perPole > 0 && Math.abs(+ccSum.perPole - d.perPole) > 0.01 && React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        title: "ตารางสาย DC ต่อสตริง: " + ccSum.strings + " สตริง · %VD สูงสุด " + ccSum.maxPct + "%",
+        onClick: () => setCabPerPole(i, +ccSum.perPole)
+      }, d.fromTable ? "อัปเดตตามตารางสาย (" : "ใช้ระยะจากตารางสายต่อสตริง (", (+ccSum.perPole).toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27)"), d && d.fromTable && React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => setCabPerPole(i, 0)
+      }, "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E0A\u0E49 \u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14 \xD7 \u0E2A\u0E15\u0E23\u0E34\u0E07"))));
     })(), powHead && React.createElement("div", {
       className: "bq-cab-hd"
     }, React.createElement(Icon, {
@@ -8471,7 +8496,7 @@ function BOQEditor({
         name: "check",
         size: 11,
         color: "var(--primary-dark)"
-      }), d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = ", React.createElement("b", null, d.perPole.toLocaleString() + " ม./ขั้ว"), " · แดง " + d.perPole.toLocaleString() + " + ดำ " + d.perPole.toLocaleString() + " = รวม " + d.total.toLocaleString() + " ม.");
+      }), d.fromTable ? "จากตารางสายต่อสตริง = " : d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = ", React.createElement("b", null, d.perPole.toLocaleString() + " ม./ขั้ว"), " · แดง " + d.perPole.toLocaleString() + " + ดำ " + d.perPole.toLocaleString() + " = รวม " + d.total.toLocaleString() + " ม.");
     })()), power && (() => {
       const plans = cabPlans[i];
       const ph = cabPh(c);

@@ -225,6 +225,46 @@
       iscLv: r2(inLv * 100 / z / 1000)
     };
   }
+  function dcRoutes(paths, stations, o) {
+    o = o || {};
+    const jump = num(o.jump) || 3,
+      spare = num(o.spare) || 1;
+    const sts = (stations || []).filter(s => isFinite(+s.x) && isFinite(+s.z));
+    const man = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+    const out = {};
+    (paths || []).forEach(p => {
+      const P = p.pts || [];
+      if (!P.length || !sts.length) return;
+      const c = [P.reduce((t, q) => t + q[0], 0) / P.length, P.reduce((t, q) => t + q[1], 0) / P.length];
+      let S = sts[0],
+        best = Infinity;
+      sts.forEach(s => {
+        const d = man(c, [+s.x, +s.z]);
+        if (d < best) {
+          best = d;
+          S = s;
+        }
+      });
+      const sp = [+S.x, +S.z],
+        sy = +S.y || 0,
+        ys = p.ys || [];
+      const leg = i => man(P[i], sp) + Math.max(0, (+ys[i] || 0) - sy);
+      let jmp = 0;
+      for (let i = 1; i < P.length; i++) {
+        if (Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]) > jump) jmp += man(P[i], P[i - 1]);
+      }
+      const pos = leg(0),
+        neg = leg(P.length - 1);
+      out[p.id] = {
+        pos: r2(pos),
+        neg: r2(neg),
+        jump: r2(jmp),
+        len: Math.ceil((pos + neg + jmp) / 2 * spare),
+        station: S.id || null
+      };
+    });
+    return out;
+  }
   const CC = {
     SIZES,
     AMP,
@@ -248,7 +288,8 @@
     dcVd,
     dcString,
     ac,
-    xfmr
+    xfmr,
+    dcRoutes
   };
   (typeof window !== "undefined" ? window : globalThis).CC = CC;
 })();

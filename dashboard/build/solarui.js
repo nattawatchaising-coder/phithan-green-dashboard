@@ -6700,7 +6700,16 @@ function SolarWorkspace({
   }, "\u0E01\u0E23\u0E30\u0E41\u0E2A AC \u0E23\u0E27\u0E21 ", React.createElement("b", null, microSel.acAmpTotal), " A"), microSel.branches > 0 && React.createElement("span", {
     className: "p3-stat",
     title: "ต่อพ่วงได้ " + microSel.perBranch + " ตัวต่อวงจร"
-  }, "\u0E27\u0E07\u0E08\u0E23\u0E22\u0E48\u0E2D\u0E22 AC ", React.createElement("b", null, microSel.branches), " \u0E27\u0E07\u0E08\u0E23"))), warns.map((w, i) => React.createElement("div", {
+  }, "\u0E27\u0E07\u0E08\u0E23\u0E22\u0E48\u0E2D\u0E22 AC ", React.createElement("b", null, microSel.branches), " \u0E27\u0E07\u0E08\u0E23"))), !isMicro && plan && plan.strings && plan.strings.length > 0 && window.CcDcCard && React.createElement(window.CcDcCard, {
+    job: job,
+    ver: ver,
+    st: st,
+    strings: plan.strings,
+    paths: wirePaths,
+    foot: foot,
+    panel: panel,
+    colorOf: suColor
+  }), warns.map((w, i) => React.createElement("div", {
     key: i,
     className: "su-alert warn"
   }, React.createElement(P3Icon, {
