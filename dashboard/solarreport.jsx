@@ -1361,7 +1361,8 @@ function suReportHTML(D) {
           "#" + s.id, s.n, s.label,
           s.pin == null ? "ไม่มีขั้วเหลือ" : (s.addr || ""),
           s.chk.vocCold + " V", s.chk.vmpHot + " – " + s.chk.vmpCold + " V",
-          { v: s.chk.ok ? "ผ่าน · " + s.chk.band : "ไม่ผ่าน", cls: s.chk.ok ? "ok" : "bad" },
+          /* เอกสารบอกแค่ผ่าน/ไม่ผ่าน — ระดับ ดีมาก/ใช้ได้/พอไหว โชว์บนเว็บอย่างเดียว (ผู้ใช้ 16 พ.ย. 2026) */
+          { v: s.chk.ok ? "ผ่าน" : "ไม่ผ่าน", cls: s.chk.ok ? "ok" : "bad" },
         ])) : "");
   /* ── ไมโครในระบบ 3 เฟส: ไมโครเป็นอุปกรณ์ 1 เฟส ต้องกระจายลง L1/L2/L3 ── */
   const phaseSec = D.isMicro && D.phases === 3 && (D.phaseBins || []).length

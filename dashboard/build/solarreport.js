@@ -1130,7 +1130,7 @@ function suReportHTML(D) {
     v: !D.microSel.cur.limSc ? "—" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน",
     cls: !D.microSel.cur.limSc ? "" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ok" : "bad"
   }]])) : "") : D.plan ? rpTable(["สตริง", "แผง", "กลุ่มทิศทาง", "ขั้วที่เสียบ (INV / MPPT / ช่อง)", "Voc ตอนเย็น", "ช่วงแรงดันทำงาน", "ผลตรวจ"], D.plan.strings.map(s => ["#" + s.id, s.n, s.label, s.pin == null ? "ไม่มีขั้วเหลือ" : s.addr || "", s.chk.vocCold + " V", s.chk.vmpHot + " – " + s.chk.vmpCold + " V", {
-    v: s.chk.ok ? "ผ่าน · " + s.chk.band : "ไม่ผ่าน",
+    v: s.chk.ok ? "ผ่าน" : "ไม่ผ่าน",
     cls: s.chk.ok ? "ok" : "bad"
   }])) : "";
   const phaseSec = D.isMicro && D.phases === 3 && (D.phaseBins || []).length ? "<h3>การแบ่งเฟส (ระบบ 3 เฟส)</h3>" + rpTable(["เฟส", "ไมโคร", "แผง", "กำลัง AC", "กระแส", "วงจรย่อย"], D.phaseBins.map(b => [b.label, b.count + " ตัว", b.panels, rpN(b.acKw, 2) + " kW", rpN(b.amps, 1) + " A", b.branches ? b.branches + " วงจร" : "—"])) + (D.phaseBal ? '<p class="' + (D.phaseBal.ok ? "ok-box" : "note") + '">' + (D.phaseBal.ok ? "เฟสสมดุลดี — เฟสที่หนักกับเบาต่างกัน " + D.phaseBal.spread + " ตัว (" + D.phaseBal.pct + "% ของกำลัง) อยู่ในเกณฑ์ " + D.phaseBal.tol + "%" : "<b>เฟสไม่สมดุล</b> — ต่างกัน " + D.phaseBal.pct + "% (" + D.phaseBal.spread + " ตัว) เกินเกณฑ์ " + D.phaseBal.tol + "% ควรเกลี่ยใหม่ก่อนติดตั้ง") + "</p>" : "") + '<p class="note">ไมโครแทบทุกรุ่นเป็นอุปกรณ์ 1 เฟส เมื่อใช้กับระบบ 3 เฟสจึงต้องกระจายตัวลงแต่ละเฟสให้กำลังใกล้เคียงกัน ' + "ไม่งั้นเฟสที่หนักกว่าจะแรงดันตกและกระแสในสายนิวทรัลสูงเกินจำเป็น · ดูว่าตัวไหนลงเฟสอะไรได้ที่ตารางใต้ผังแผง</p>" : "";
