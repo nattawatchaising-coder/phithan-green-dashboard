@@ -476,6 +476,54 @@ function scSpreadMppt(L, items, capOf, load0) {
   });
   return out;
 }
+/* ── ลงขั้วแบบ "แบ่งเท่ากันทุกอินเวอร์เตอร์" (ผู้ใช้ 16 พ.ย. 2026 — เดิมต้องปักเองทีละเส้นให้ได้ตัวละ 10 สตริง) ──
+   items = สตริงที่ยังไม่มีขั้ว เรียงตามเลข { n แผง, zone (เลขตัวนับ 0 · -1 = ไม่มีโซน) }
+   1) มีโซน = ลงตัวนั้น · ไม่มีโซน = แบ่งเป็นก้อนต่อเนื่องตามเลขสตริง ให้จำนวนแผงต่อตัวเป็นสัดส่วนกับ kW ของตัวนั้น
+      (#1–10 INV1 · #11–20 INV2 … สายของสตริงเลขติดกันมักอยู่ติดกันบนหลังคา) · สตริงที่ปักขั้วเองไม่นับในการแบ่ง
+   2) ในตัวเดียวกันวน MPPT1→N ช่อง 1 ก่อน แล้วค่อยช่อง 2 (แต่ละเส้นได้ MPPT ของตัวเองก่อนขนาน)
+   3) ตัวไหนเต็มล้นไปตัวถัดไปที่ยังว่าง · คืนเลขขั้วต่อรายการ (null = ไม่มีที่) */
+function scEvenPins(L, items, capOf, load0, owner0) {
+  const load = Object.assign({}, load0 || {}), owner = {};
+  Object.keys(owner0 || {}).forEach((k) => { owner[k] = true; });
+  const U = L.units, out = items.map(() => null);
+  if (!U.length || !items.length) return out;
+  const w = U.map((u) => scNum(u.spec && u.spec.kw, 0) || u.pins), W = w.reduce((a, b) => a + b, 0) || 1;
+  /* ส่วนแบ่งของสตริงนอกโซน = ส่วนที่ตัวนั้นยังขาด (สัดส่วน kW ของทั้งงาน − แผงที่อยู่ในโซนของตัวนั้นแล้ว) */
+  const Tall = items.reduce((a, it) => a + scNum(it.n, 0), 0);
+  const zoned = U.map(() => 0);
+  items.forEach((it) => { if (it.zone >= 0 && it.zone < U.length) zoned[it.zone] += scNum(it.n, 0); });
+  const need = U.map((u, i) => Math.max(0, Tall * w[i] / W - zoned[i]));
+  const free = items.filter((it) => !(it.zone >= 0 && it.zone < U.length));
+  const T = free.reduce((a, it) => a + scNum(it.n, 0), 0), N = need.reduce((a, b) => a + b, 0) || 1;
+  const bound = []; let acc = 0;
+  U.forEach((u, i) => { acc += T * need[i] / N; bound.push(acc); });
+  let cum = 0;
+  const unitOf = items.map((it) => {
+    if (it.zone >= 0 && it.zone < U.length) return it.zone;
+    const mid = cum + scNum(it.n, 0) / 2; cum += scNum(it.n, 0);
+    for (let i = 0; i < bound.length; i++) if (mid <= bound[i] + 1e-9) return i;
+    return U.length - 1;
+  });
+  const pinsOf = (u) => {
+    const a = [];
+    for (let slot = 0; slot < u.phys; slot++) for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) a.push({ m, pin: L.pinAt(m, slot) });
+    return a;
+  };
+  const PO = U.map(pinsOf);
+  const take = (ui) => {
+    const p = PO[ui].find((x) => !owner[x.pin] && (load[x.m] || 0) < capOf(x.m));
+    if (!p) return null;
+    owner[p.pin] = true; load[p.m] = (load[p.m] || 0) + 1;
+    return p.pin;
+  };
+  items.forEach((it, i) => {
+    const u0 = unitOf[i];
+    let pin = take(u0);
+    for (let d = 1; pin == null && d < U.length; d++) pin = take((u0 + d) % U.length);
+    out[i] = pin;
+  });
+  return out;
+}
 function scPinAddr(pin, inv, nInv, inv2, nInv2) {
   const L = inv && inv.units ? inv : scPinLayout(inv, nInv, inv2, nInv2);
   const u = L.unitOfPin(pin);
@@ -680,8 +728,22 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   /* ที่เหลือเกลี่ยให้ทุก MPPT รับสตริงเท่า ๆ กัน (scSpreadMppt) แล้วเสียบขั้วแรกที่ว่างของช่องนั้น */
   const rest = strings.filter((s) => s.pin == null);
   const capM = (m) => Math.min(perMpptOf(m), LAY.physOf(m));
-  const mR = scSpreadMppt(LAY, rest, capM, load);
-  rest.forEach((s, i) => {
+  /* แบ่งเท่ากันทุกตัว / โซนอินเวอร์เตอร์ (ผู้ใช้ 16 พ.ย. 2026) — ลงขั้วด้วย scEvenPins แทนการเกลี่ยทั้งระบบ */
+  const zoneOf = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
+  if (opt.pinMode === "even" || zoneOf) {
+    rest.forEach((s) => {
+      s.zone = -1;
+      if (!zoneOf) return;
+      const c = {};
+      s.keys.forEach((u) => { const z = Math.round(+zoneOf[u] || 0); if (z >= 1 && z <= LAY.nInv) c[z] = (c[z] || 0) + 1; });
+      const best = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
+      if (best) s.zone = +best - 1;
+    });
+    const pins = scEvenPins(LAY, rest, capM, load, owner);
+    rest.forEach((s, i) => { if (pins[i] != null) place(s, pins[i]); });
+  }
+  const mR = scSpreadMppt(LAY, rest.filter((s) => s.pin == null), capM, load);
+  rest.filter((s) => s.pin == null).forEach((s, i) => {
     const m = mR[i];
     if (m == null) return;
     const u = LAY.unitOfMppt(m);
@@ -841,6 +903,20 @@ function scFillFrom(L, uid, n, taken) {
    opt.dir = "col" | "row" · opt.series = แผง/สตริงที่ผู้ใช้เลือก · ขนาดสตริงตั้งต้นให้ลงตัวกับแถวแผง */
 function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
   opt = opt || {};
+  /* โซนอินเวอร์เตอร์ (opt.zoneOf = { uid: เลขตัว 1.. }) — แยกกลุ่มทิศตามโซนก่อนจัด สตริงจะไม่คร่อมโซน
+     และเลขสตริงเรียงตามโซน (INV1 ได้เลขต้น ๆ) · แผงนอกโซนจัดท้ายสุด */
+  const Z = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
+  if (Z) {
+    const zk = (u) => { const z = Math.round(+Z[u] || 0); return z >= 1 ? z : 0; };
+    const bp = {}, cnt = {};
+    Object.keys(byPanel || {}).forEach((u) => {
+      const k = byPanel[u] + "@z" + zk(u); bp[u] = k; cnt[k] = (cnt[k] || 0) + 1;
+    });
+    const zs = Array.from(new Set(Object.keys(bp).map((u) => zk(u)))).sort((a, b) => (a || 1e9) - (b || 1e9));
+    const g2 = [];
+    zs.forEach((z) => (groups || []).forEach((g) => { const k = g.key + "@z" + z; if (cnt[k]) g2.push(Object.assign({}, g, { key: k, count: cnt[k] })); }));
+    byPanel = bp; groups = g2;
+  }
   const L = scLayoutOrder(footPanels, byPanel, opt.dir);
   const plan = scAutoStrings(groups, panel, inv, env, Object.assign({}, opt, { align: L.lineLen }));
   const assign = {}, at = {}; let sid = 0;

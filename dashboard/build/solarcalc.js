@@ -621,6 +621,64 @@ function scSpreadMppt(L, items, capOf, load0) {
   });
   return out;
 }
+function scEvenPins(L, items, capOf, load0, owner0) {
+  const load = Object.assign({}, load0 || {}),
+    owner = {};
+  Object.keys(owner0 || {}).forEach(k => {
+    owner[k] = true;
+  });
+  const U = L.units,
+    out = items.map(() => null);
+  if (!U.length || !items.length) return out;
+  const w = U.map(u => scNum(u.spec && u.spec.kw, 0) || u.pins),
+    W = w.reduce((a, b) => a + b, 0) || 1;
+  const Tall = items.reduce((a, it) => a + scNum(it.n, 0), 0);
+  const zoned = U.map(() => 0);
+  items.forEach(it => {
+    if (it.zone >= 0 && it.zone < U.length) zoned[it.zone] += scNum(it.n, 0);
+  });
+  const need = U.map((u, i) => Math.max(0, Tall * w[i] / W - zoned[i]));
+  const free = items.filter(it => !(it.zone >= 0 && it.zone < U.length));
+  const T = free.reduce((a, it) => a + scNum(it.n, 0), 0),
+    N = need.reduce((a, b) => a + b, 0) || 1;
+  const bound = [];
+  let acc = 0;
+  U.forEach((u, i) => {
+    acc += T * need[i] / N;
+    bound.push(acc);
+  });
+  let cum = 0;
+  const unitOf = items.map(it => {
+    if (it.zone >= 0 && it.zone < U.length) return it.zone;
+    const mid = cum + scNum(it.n, 0) / 2;
+    cum += scNum(it.n, 0);
+    for (let i = 0; i < bound.length; i++) if (mid <= bound[i] + 1e-9) return i;
+    return U.length - 1;
+  });
+  const pinsOf = u => {
+    const a = [];
+    for (let slot = 0; slot < u.phys; slot++) for (let m = u.mpptFrom; m < u.mpptFrom + u.mppt; m++) a.push({
+      m,
+      pin: L.pinAt(m, slot)
+    });
+    return a;
+  };
+  const PO = U.map(pinsOf);
+  const take = ui => {
+    const p = PO[ui].find(x => !owner[x.pin] && (load[x.m] || 0) < capOf(x.m));
+    if (!p) return null;
+    owner[p.pin] = true;
+    load[p.m] = (load[p.m] || 0) + 1;
+    return p.pin;
+  };
+  items.forEach((it, i) => {
+    const u0 = unitOf[i];
+    let pin = take(u0);
+    for (let d = 1; pin == null && d < U.length; d++) pin = take((u0 + d) % U.length);
+    out[i] = pin;
+  });
+  return out;
+}
 function scPinAddr(pin, inv, nInv, inv2, nInv2) {
   const L = inv && inv.units ? inv : scPinLayout(inv, nInv, inv2, nInv2);
   const u = L.unitOfPin(pin);
@@ -883,8 +941,26 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   });
   const rest = strings.filter(s => s.pin == null);
   const capM = m => Math.min(perMpptOf(m), LAY.physOf(m));
-  const mR = scSpreadMppt(LAY, rest, capM, load);
-  rest.forEach((s, i) => {
+  const zoneOf = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
+  if (opt.pinMode === "even" || zoneOf) {
+    rest.forEach(s => {
+      s.zone = -1;
+      if (!zoneOf) return;
+      const c = {};
+      s.keys.forEach(u => {
+        const z = Math.round(+zoneOf[u] || 0);
+        if (z >= 1 && z <= LAY.nInv) c[z] = (c[z] || 0) + 1;
+      });
+      const best = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
+      if (best) s.zone = +best - 1;
+    });
+    const pins = scEvenPins(LAY, rest, capM, load, owner);
+    rest.forEach((s, i) => {
+      if (pins[i] != null) place(s, pins[i]);
+    });
+  }
+  const mR = scSpreadMppt(LAY, rest.filter(s => s.pin == null), capM, load);
+  rest.filter(s => s.pin == null).forEach((s, i) => {
     const m = mR[i];
     if (m == null) return;
     const u = LAY.unitOfMppt(m);
@@ -1115,6 +1191,31 @@ function scFillFrom(L, uid, n, taken) {
 }
 function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
   opt = opt || {};
+  const Z = opt.zoneOf && Object.keys(opt.zoneOf).length ? opt.zoneOf : null;
+  if (Z) {
+    const zk = u => {
+      const z = Math.round(+Z[u] || 0);
+      return z >= 1 ? z : 0;
+    };
+    const bp = {},
+      cnt = {};
+    Object.keys(byPanel || {}).forEach(u => {
+      const k = byPanel[u] + "@z" + zk(u);
+      bp[u] = k;
+      cnt[k] = (cnt[k] || 0) + 1;
+    });
+    const zs = Array.from(new Set(Object.keys(bp).map(u => zk(u)))).sort((a, b) => (a || 1e9) - (b || 1e9));
+    const g2 = [];
+    zs.forEach(z => (groups || []).forEach(g => {
+      const k = g.key + "@z" + z;
+      if (cnt[k]) g2.push(Object.assign({}, g, {
+        key: k,
+        count: cnt[k]
+      }));
+    }));
+    byPanel = bp;
+    groups = g2;
+  }
   const L = scLayoutOrder(footPanels, byPanel, opt.dir);
   const plan = scAutoStrings(groups, panel, inv, env, Object.assign({}, opt, {
     align: L.lineLen

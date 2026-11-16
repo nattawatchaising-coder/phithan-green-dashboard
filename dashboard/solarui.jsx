@@ -639,7 +639,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     return () => { window.removeEventListener("keydown", dn); window.removeEventListener("keyup", up); window.removeEventListener("blur", bl); };
   }, []);
   const seq = ctl ? mode === "seq" : seqI, blkMode = ctl ? mode === "blk" : blkI;
-  const box = ctl ? mode === "box" : boxI, hand = ctl ? mode === "hand" : handI;
+  const box = ctl ? mode === "box" || mode === "zone" : boxI, hand = ctl ? mode === "hand" : handI;
   const [rect, setRect] = React.useState(null);           // กรอบที่กำลังลาก (พิกัดเทียบกรอบ svg) — ไว้วาดให้เห็น
   /* ตัวจริงที่ใช้ตัดสินว่าแผงไหนอยู่ในกรอบต้องเก็บใน ref ด้วย
      state ของ React ยังไม่ทันอัปเดตถ้า pointermove กับ pointerup มาถึงในจังหวะเดียวกัน
@@ -899,6 +899,7 @@ const SU_TOOLS = [
   { k: "paint", key: "3", g: "✎", name: "ทาทีละแผง", d: "แตะหรือลากผ่านแผง = ย้ายเข้าสตริงที่เลือก · ลากบนที่ว่าง = เลื่อนผัง" },
   { k: "box", key: "4", g: "▢", name: "ลากกรอบ", d: "ลากกรอบคลุมหลายแผง = ย้ายเข้าสตริงที่เลือกทีเดียว" },
   { k: "hand", key: "5", g: "✥", name: "เลื่อนผัง", d: "ลากเพื่อเลื่อนผังอย่างเดียว ไม่แตะแผง" },
+  { k: "zone", key: "6", g: "⬚", name: "โซน INV", d: "ลากกรอบคลุมแผง = ให้แผงชุดนั้นต่อเข้าอินเวอร์เตอร์ที่เลือก (เลือกตัวที่ส่วนลงขั้วอินเวอร์เตอร์) · ระบบจัดสตริงในโซนและลงขั้วของตัวนั้นให้" },
 ];
 
 /* ── กล่องชิปที่ยุบได้ ──
@@ -2070,8 +2071,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
   const alignN = lineLen > 1 ? okSizes.find((n) => n % lineLen === 0 || lineLen % n === 0) || 0 : 0;
   const serN = userSer || alignN || (range ? range.best : 0);
   const autoSeed = React.useMemo(() => (!isMicro && panel.voc && inv.mpptVmin && foot.panels.length
-    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, dir: strDir, series: userSer, optimizer: optPlan })
-    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan]);
+    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, dir: strDir, series: userSer, optimizer: optPlan, zoneOf: S.zone })
+    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan, S.zone]);
   /* จัดสตริงเองที่ติดมาจากเวอร์ชันอื่น (คัดลอกแบบแล้วลบหลังคา) อาจชี้แผงที่ไม่มีแล้ว — นับเฉพาะแผงที่มีอยู่จริงในแบบนี้
      (ผู้ใช้ 2026-11-07 "ทำไมมันยัง 105 อยู่เลย": LD-030 V2 เหลืออาคาร 2 แต่สตริงยังนับครบ 2,704 แผงของ V1) */
   const effAssign = React.useMemo(() => {
@@ -2082,8 +2083,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
   }, [isManual, S.assign, autoSeed, idx]);
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
-    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan })
-    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan]);
+    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan, pinMode: S.pinMode, zoneOf: S.zone })
+    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.pinMode, S.zone]);
   /* ปักช่อง MPPT เอง: เก็บเป็น { สตริงที่: ช่องที่ } · null = คืนให้ระบบไล่ลงช่องว่างให้ */
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
@@ -2103,6 +2104,17 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
     const a = Object.assign({}, effAssign);
     uids.forEach((uid) => { if (!activeStr) delete a[uid]; else a[uid] = activeStr; });
     set({ assign: a, manual: true });
+  };
+  /* ── โซนอินเวอร์เตอร์ (ผู้ใช้ 16 พ.ย. 2026 "วาดโซนต่ออินเวอร์เตอร์") ──
+     S.zone = { uid: เลขอินเวอร์เตอร์ 1.. } · เครื่องมือ "โซน INV" ลากกรอบ = แผงในกรอบเข้าโซนของตัวที่เลือก (0 = ลบโซน)
+     ระบบจัดสตริงในโซนเดียวกันและลงขั้วของตัวนั้น (scAutoAssign / scEvenPins) — สตริงที่จัดเองแล้วโซนมีผลแค่การลงขั้ว */
+  const [zoneInv, setZoneInv] = React.useState(1);
+  const zoneMap = S.zone || {};
+  const paintZone = (uids) => {
+    if (!uids || !uids.length) return;
+    const z = Object.assign({}, zoneMap);
+    uids.forEach((u) => { if (zoneInv > 0) z[u] = zoneInv; else delete z[u]; });
+    set({ zone: Object.keys(z).length ? z : null });
   };
   const strIds = plan && plan.strings ? plan.strings.map((s) => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
@@ -3200,12 +3212,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                   return (
                     <div className="su-strs" data-full={bigMap ? "1" : "0"}>
                       <div className="su-strs-map">
-                        <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
-                          onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
-                          mode={tool} height="100%" />
+                        {tool === "zone"
+                          ? <SuLayout2D foot={foot} assign={zoneMap} active={true} onPaint={() => {}} onPaintMany={paintZone}
+                              colorOf={(u, k) => suColor(k)} sel={zoneInv || null} mode="zone" height="100%" unitName="INV" />
+                          : <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
+                              onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
+                              mode={tool} height="100%" />}
                         <span className="su-mode">
-                          <span className="d" style={{ background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }} />
-                          {T.g} {T.name} · {activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)")}
+                          <span className="d" style={{ background: tool === "zone" ? (zoneInv ? suColor(zoneInv) : "var(--tint-red-tx)") : activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }} />
+                          {T.g} {T.name} · {tool === "zone" ? (zoneInv ? "ลากกรอบ = โซน INV" + zoneInv : "ลากกรอบ = ลบโซน") : activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)")}
                           {(tool !== "seq" || activeStr === 0) && <i>Esc กลับ</i>}
                         </span>
                       </div>
@@ -3228,6 +3243,51 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
                           <span className="su-tdesc">{T.d.replace("N", serN)}</span>
                           <span className="su-hint">Space ค้าง + ลาก = เลื่อนผังทุกโหมด · ลูกกลิ้ง = ซูม · คลิกขวาที่แผง = เอาออก · Esc = กลับโหมดทีละสตริง</span>
                         </div>
+
+                        {/* ลงขั้วอินเวอร์เตอร์ — เติมทีละตัว (เดิม) / แบ่งเท่ากันทุกตัว · โซน (ผู้ใช้ 16 พ.ย. 2026) */}
+                        {pinLay && pinLay.nInv > 1 && (() => {
+                          const zc = {}; Object.keys(zoneMap).forEach((u) => { zc[zoneMap[u]] = (zc[zoneMap[u]] || 0) + 1; });
+                          const nZ = Object.keys(zoneMap).length, nPick = Object.keys(S.mpptPick || {}).length;
+                          const per = {}; strs.forEach((x) => { if (x.inv != null) { const k = x.inv + 1; per[k] = per[k] || { s: 0, p: 0 }; per[k].s++; per[k].p += x.n; } });
+                          return (
+                            <div className="su-sec">
+                              <div className="hd">ลงขั้วอินเวอร์เตอร์<span className="sp" /><span>{pinLay.nInv} ตัว{nZ ? " · มีโซน" : ""}</span></div>
+                              <div className="su-dir" title="วิธีไล่สตริงลงขั้วอินเวอร์เตอร์ (สตริงที่ปักขั้วเองไม่ขยับ)">
+                                {[["", "เติมทีละตัว"], ["even", "แบ่งเท่ากันทุกตัว"]].map(([k, t]) => (
+                                  <button key={k || "fill"} type="button" data-on={(S.pinMode || "") === k ? "1" : "0"} onClick={() => set({ pinMode: k || null })}>{t}</button>
+                                ))}
+                              </div>
+                              <span className="su-hint">{nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่งเท่า ๆ กัน" : (S.pinMode === "even"
+                                ? "แบ่งสตริงตามเลขเป็นก้อนต่อเนื่อง ตัวละเท่า ๆ กัน (ตาม kW) · ในตัวเดียวกันวน MPPT1→" + (pinLay.mpptPerInv || "") + " ช่อง 1 ก่อนค่อยช่อง 2"
+                                : "เติมตัวแรกให้เต็มก่อนค่อยขึ้นตัวถัดไป")}</span>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                                {pinLay.units.map((u) => {
+                                  const k = u.no + 1, on = tool === "zone" && zoneInv === k;
+                                  return (
+                                    <button key={k} type="button" onClick={() => { setTool("zone"); setZoneInv(k); }}
+                                      title={"INV" + k + " · " + (per[k] ? per[k].s + " สตริง · " + per[k].p + " แผง" : "ยังไม่มีสตริง") + (zc[k] ? " · โซน " + zc[k] + " แผง" : "") + " — กดเพื่อวาดโซนของตัวนี้"}
+                                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit",
+                                        fontSize: 11, fontWeight: 700, background: on ? suColor(k) : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
+                                        boxShadow: on ? "none" : "var(--shadow-sm)" }}>
+                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : suColor(k), opacity: zc[k] ? 1 : 0.45 }} />
+                                      INV{k}<span style={{ fontWeight: 500, opacity: 0.8 }}>{per[k] ? per[k].s : 0}</span>
+                                    </button>
+                                  );
+                                })}
+                                {tool === "zone" && (
+                                  <button type="button" onClick={() => setZoneInv(0)} title="ลากกรอบเพื่อลบโซนของแผง"
+                                    style={{ padding: "4px 8px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                                      background: zoneInv === 0 ? "var(--tint-red-tx)" : "var(--surface)", color: zoneInv === 0 ? "#fff" : "var(--tint-red-tx)", boxShadow: "var(--shadow-sm)" }}>ลบโซน</button>
+                                )}
+                              </div>
+                              <div className="su-row">
+                                {nZ > 0 && <button className="p3-b sm" style={{ color: "var(--tint-red-tx)" }} onClick={() => set({ zone: null })} title="ลบโซนอินเวอร์เตอร์ทั้งหมด">ล้างโซน ({nZ} แผง)</button>}
+                                {nPick > 0 && <button className="p3-b sm" onClick={() => set({ mpptPick: {} })} title="คืนขั้วที่ปักเองทุกสตริงให้ระบบลงตามวิธีที่เลือก">คืนขั้วที่ปักเอง ({nPick})</button>}
+                              </div>
+                              {nZ > 0 && isManual && <span className="su-hint">จัดสตริงเองอยู่ — โซนมีผลแค่การลงขั้ว · กด "คืนค่าที่ระบบจัด" ถ้าอยากให้ระบบจัดสตริงใหม่ภายในแต่ละโซน</span>}
+                            </div>
+                          );
+                        })()}
 
                         {/* ขนาดสตริง + แนวเดินสาย */}
                         {range && (

@@ -1006,7 +1006,7 @@ function SuLayout2D({
   }, []);
   const seq = ctl ? mode === "seq" : seqI,
     blkMode = ctl ? mode === "blk" : blkI;
-  const box = ctl ? mode === "box" : boxI,
+  const box = ctl ? mode === "box" || mode === "zone" : boxI,
     hand = ctl ? mode === "hand" : handI;
   const [rect, setRect] = React.useState(null);
   const rectRef = React.useRef(null);
@@ -1487,6 +1487,12 @@ const SU_TOOLS = [{
   g: "✥",
   name: "เลื่อนผัง",
   d: "ลากเพื่อเลื่อนผังอย่างเดียว ไม่แตะแผง"
+}, {
+  k: "zone",
+  key: "6",
+  g: "⬚",
+  name: "โซน INV",
+  d: "ลากกรอบคลุมแผง = ให้แผงชุดนั้นต่อเข้าอินเวอร์เตอร์ที่เลือก (เลือกตัวที่ส่วนลงขั้วอินเวอร์เตอร์) · ระบบจัดสตริงในโซนและลงขั้วของตัวนั้นให้"
 }];
 function SuChipBox({
   nodes,
@@ -3928,8 +3934,9 @@ function SolarWorkspace({
     inv2Count,
     dir: strDir,
     series: userSer,
-    optimizer: optPlan
-  }) : {}, [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan]);
+    optimizer: optPlan,
+    zoneOf: S.zone
+  }) : {}, [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan, S.zone]);
   const effAssign = React.useMemo(() => {
     if (!isManual) return autoSeed;
     const a = S.assign || {},
@@ -3946,8 +3953,10 @@ function SolarWorkspace({
     inv2Count,
     totalPanels,
     mpptPick: S.mpptPick,
-    optimizer: optPlan
-  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan]);
+    optimizer: optPlan,
+    pinMode: S.pinMode,
+    zoneOf: S.zone
+  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan, S.pinMode, S.zone]);
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
     if (slot == null) delete next[sid];else next[sid] = slot;
@@ -3976,6 +3985,18 @@ function SolarWorkspace({
     set({
       assign: a,
       manual: true
+    });
+  };
+  const [zoneInv, setZoneInv] = React.useState(1);
+  const zoneMap = S.zone || {};
+  const paintZone = uids => {
+    if (!uids || !uids.length) return;
+    const z = Object.assign({}, zoneMap);
+    uids.forEach(u => {
+      if (zoneInv > 0) z[u] = zoneInv;else delete z[u];
+    });
+    set({
+      zone: Object.keys(z).length ? z : null
     });
   };
   const strIds = plan && plan.strings ? plan.strings.map(s => s.id || 0).filter(Boolean) : [];
@@ -6128,7 +6149,18 @@ function SolarWorkspace({
       "data-full": bigMap ? "1" : "0"
     }, React.createElement("div", {
       className: "su-strs-map"
-    }, React.createElement(SuLayout2D, {
+    }, tool === "zone" ? React.createElement(SuLayout2D, {
+      foot: foot,
+      assign: zoneMap,
+      active: true,
+      onPaint: () => {},
+      onPaintMany: paintZone,
+      colorOf: (u, k) => suColor(k),
+      sel: zoneInv || null,
+      mode: "zone",
+      height: "100%",
+      unitName: "INV"
+    }) : React.createElement(SuLayout2D, {
       foot: foot,
       assign: effAssign,
       active: activeStr !== null,
@@ -6146,9 +6178,9 @@ function SolarWorkspace({
     }, React.createElement("span", {
       className: "d",
       style: {
-        background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
+        background: tool === "zone" ? zoneInv ? suColor(zoneInv) : "var(--tint-red-tx)" : activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
       }
-    }), T.g, " ", T.name, " \xB7 ", activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)"), (tool !== "seq" || activeStr === 0) && React.createElement("i", null, "Esc \u0E01\u0E25\u0E31\u0E1A"))), React.createElement("aside", {
+    }), T.g, " ", T.name, " \xB7 ", tool === "zone" ? zoneInv ? "ลากกรอบ = โซน INV" + zoneInv : "ลากกรอบ = ลบโซน" : activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)"), (tool !== "seq" || activeStr === 0) && React.createElement("i", null, "Esc \u0E01\u0E25\u0E31\u0E1A"))), React.createElement("aside", {
       className: "su-strs-side"
     }, React.createElement("div", {
       className: "su-sec"
@@ -6178,7 +6210,126 @@ function SolarWorkspace({
       className: "su-tdesc"
     }, T.d.replace("N", serN)), React.createElement("span", {
       className: "su-hint"
-    }, "Space \u0E04\u0E49\u0E32\u0E07 + \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07\u0E17\u0E38\u0E01\u0E42\u0E2B\u0E21\u0E14 \xB7 \u0E25\u0E39\u0E01\u0E01\u0E25\u0E34\u0E49\u0E07 = \u0E0B\u0E39\u0E21 \xB7 \u0E04\u0E25\u0E34\u0E01\u0E02\u0E27\u0E32\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E07 = \u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01 \xB7 Esc = \u0E01\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07")), range && React.createElement("div", {
+    }, "Space \u0E04\u0E49\u0E32\u0E07 + \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07\u0E17\u0E38\u0E01\u0E42\u0E2B\u0E21\u0E14 \xB7 \u0E25\u0E39\u0E01\u0E01\u0E25\u0E34\u0E49\u0E07 = \u0E0B\u0E39\u0E21 \xB7 \u0E04\u0E25\u0E34\u0E01\u0E02\u0E27\u0E32\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E07 = \u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01 \xB7 Esc = \u0E01\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07")), pinLay && pinLay.nInv > 1 && (() => {
+      const zc = {};
+      Object.keys(zoneMap).forEach(u => {
+        zc[zoneMap[u]] = (zc[zoneMap[u]] || 0) + 1;
+      });
+      const nZ = Object.keys(zoneMap).length,
+        nPick = Object.keys(S.mpptPick || {}).length;
+      const per = {};
+      strs.forEach(x => {
+        if (x.inv != null) {
+          const k = x.inv + 1;
+          per[k] = per[k] || {
+            s: 0,
+            p: 0
+          };
+          per[k].s++;
+          per[k].p += x.n;
+        }
+      });
+      return React.createElement("div", {
+        className: "su-sec"
+      }, React.createElement("div", {
+        className: "hd"
+      }, "\u0E25\u0E07\u0E02\u0E31\u0E49\u0E27\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C", React.createElement("span", {
+        className: "sp"
+      }), React.createElement("span", null, pinLay.nInv, " \u0E15\u0E31\u0E27", nZ ? " · มีโซน" : "")), React.createElement("div", {
+        className: "su-dir",
+        title: "\u0E27\u0E34\u0E18\u0E35\u0E44\u0E25\u0E48\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E07\u0E02\u0E31\u0E49\u0E27\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C (\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E01\u0E02\u0E31\u0E49\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A)"
+      }, [["", "เติมทีละตัว"], ["even", "แบ่งเท่ากันทุกตัว"]].map(([k, t]) => React.createElement("button", {
+        key: k || "fill",
+        type: "button",
+        "data-on": (S.pinMode || "") === k ? "1" : "0",
+        onClick: () => set({
+          pinMode: k || null
+        })
+      }, t))), React.createElement("span", {
+        className: "su-hint"
+      }, nZ ? "มีโซน: สตริงในโซนลงขั้วของตัวนั้น นอกโซนแบ่งเท่า ๆ กัน" : S.pinMode === "even" ? "แบ่งสตริงตามเลขเป็นก้อนต่อเนื่อง ตัวละเท่า ๆ กัน (ตาม kW) · ในตัวเดียวกันวน MPPT1→" + (pinLay.mpptPerInv || "") + " ช่อง 1 ก่อนค่อยช่อง 2" : "เติมตัวแรกให้เต็มก่อนค่อยขึ้นตัวถัดไป"), React.createElement("div", {
+        style: {
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 5
+        }
+      }, pinLay.units.map(u => {
+        const k = u.no + 1,
+          on = tool === "zone" && zoneInv === k;
+        return React.createElement("button", {
+          key: k,
+          type: "button",
+          onClick: () => {
+            setTool("zone");
+            setZoneInv(k);
+          },
+          title: "INV" + k + " · " + (per[k] ? per[k].s + " สตริง · " + per[k].p + " แผง" : "ยังไม่มีสตริง") + (zc[k] ? " · โซน " + zc[k] + " แผง" : "") + " — กดเพื่อวาดโซนของตัวนี้",
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "4px 8px",
+            borderRadius: "var(--r-pill)",
+            border: "none",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            fontSize: 11,
+            fontWeight: 700,
+            background: on ? suColor(k) : "var(--surface)",
+            color: on ? "#fff" : "var(--text-2)",
+            boxShadow: on ? "none" : "var(--shadow-sm)"
+          }
+        }, React.createElement("span", {
+          style: {
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: on ? "#fff" : suColor(k),
+            opacity: zc[k] ? 1 : 0.45
+          }
+        }), "INV", k, React.createElement("span", {
+          style: {
+            fontWeight: 500,
+            opacity: 0.8
+          }
+        }, per[k] ? per[k].s : 0));
+      }), tool === "zone" && React.createElement("button", {
+        type: "button",
+        onClick: () => setZoneInv(0),
+        title: "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E25\u0E1A\u0E42\u0E0B\u0E19\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07",
+        style: {
+          padding: "4px 8px",
+          borderRadius: "var(--r-pill)",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: 11,
+          fontWeight: 700,
+          background: zoneInv === 0 ? "var(--tint-red-tx)" : "var(--surface)",
+          color: zoneInv === 0 ? "#fff" : "var(--tint-red-tx)",
+          boxShadow: "var(--shadow-sm)"
+        }
+      }, "\u0E25\u0E1A\u0E42\u0E0B\u0E19")), React.createElement("div", {
+        className: "su-row"
+      }, nZ > 0 && React.createElement("button", {
+        className: "p3-b sm",
+        style: {
+          color: "var(--tint-red-tx)"
+        },
+        onClick: () => set({
+          zone: null
+        }),
+        title: "\u0E25\u0E1A\u0E42\u0E0B\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"
+      }, "\u0E25\u0E49\u0E32\u0E07\u0E42\u0E0B\u0E19 (", nZ, " \u0E41\u0E1C\u0E07)"), nPick > 0 && React.createElement("button", {
+        className: "p3-b sm",
+        onClick: () => set({
+          mpptPick: {}
+        }),
+        title: "\u0E04\u0E37\u0E19\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E01\u0E40\u0E2D\u0E07\u0E17\u0E38\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E07\u0E15\u0E32\u0E21\u0E27\u0E34\u0E18\u0E35\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01"
+      }, "\u0E04\u0E37\u0E19\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E01\u0E40\u0E2D\u0E07 (", nPick, ")")), nZ > 0 && isManual && React.createElement("span", {
+        className: "su-hint"
+      }, "\u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E40\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48 \u2014 \u0E42\u0E0B\u0E19\u0E21\u0E35\u0E1C\u0E25\u0E41\u0E04\u0E48\u0E01\u0E32\u0E23\u0E25\u0E07\u0E02\u0E31\u0E49\u0E27 \xB7 \u0E01\u0E14 \"\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\" \u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E20\u0E32\u0E22\u0E43\u0E19\u0E41\u0E15\u0E48\u0E25\u0E30\u0E42\u0E0B\u0E19"));
+    })(), range && React.createElement("div", {
       className: "su-sec"
     }, React.createElement("div", {
       className: "hd"
