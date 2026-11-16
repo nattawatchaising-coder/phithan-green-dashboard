@@ -851,7 +851,8 @@ function SuLayout2D({
   onFull,
   onFillBlock,
   sel,
-  mode
+  mode,
+  invOf
 }) {
   const ctl = mode != null;
   const midRef = React.useRef(false);
@@ -914,6 +915,66 @@ function SuLayout2D({
     };
   }, [sig, rot]);
   const v = view || fitV || base;
+  const [box0, setBox0] = React.useState({
+    w: 0,
+    h: 0
+  });
+  React.useEffect(() => {
+    const el = svgRef.current;
+    if (!el || !window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      setBox0(o => Math.abs(o.w - r.width) < 1 && Math.abs(o.h - r.height) < 1 ? o : {
+        w: r.width,
+        h: r.height
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const upx = box0.w && box0.h ? 1 / Math.min(box0.w / v.w, box0.h / v.h) : v.w / 600;
+  const [showInv, setShowInv] = React.useState(false);
+  const invTags = React.useMemo(() => {
+    if (!invOf || !paths || !paths.length) return [];
+    const g = paths.filter(q => q.pts.length && invOf[q.id] != null).map(q => ({
+      inv: invOf[q.id],
+      x: q.pts.reduce((a, t) => a + t[0], 0) / q.pts.length,
+      y: q.pts.reduce((a, t) => a + t[1], 0) / q.pts.length,
+      n: q.pts.length,
+      pts: q.pts
+    }));
+    const par = g.map((_, i) => i);
+    const fd = i => par[i] === i ? i : par[i] = fd(par[i]);
+    const near = (a, b) => {
+      for (let i = 0; i < a.pts.length; i++) for (let j = 0; j < b.pts.length; j++) if (Math.abs(a.pts[i][0] - b.pts[j][0]) < 7 && Math.abs(a.pts[i][1] - b.pts[j][1]) < 7) return true;
+      return false;
+    };
+    for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) if (g[i].inv === g[j].inv && Math.hypot(g[i].x - g[j].x, g[i].y - g[j].y) < 60 && near(g[i], g[j])) par[fd(i)] = fd(j);
+    const cl = {};
+    g.forEach((q, i) => {
+      const r = fd(i);
+      const c = cl[r] = cl[r] || {
+        inv: q.inv,
+        x: 0,
+        y: 0,
+        n: 0,
+        s: 0
+      };
+      c.x += q.x * q.n;
+      c.y += q.y * q.n;
+      c.n += q.n;
+      c.s++;
+    });
+    return Object.keys(cl).map(k => {
+      const c = cl[k];
+      return {
+        inv: c.inv,
+        x: c.x / c.n,
+        y: c.y / c.n,
+        s: c.s
+      };
+    });
+  }, [invOf ? JSON.stringify(invOf) : "", paths]);
   const [handI, setHand] = React.useState(false);
   const zoomed = Math.abs(v.w - base.w) > 0.001;
   const scaleOf = () => {
@@ -1128,7 +1189,16 @@ function SuLayout2D({
       onClick: () => setShowPath(x => !x),
       style: btn(showPath),
       title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
-    }, "\u3030"), !ctl && active && onFillBlock && React.createElement("button", {
+    }, "\u3030"), invOf && paths && paths.length > 0 && React.createElement("button", {
+      type: "button",
+      onClick: () => setShowInv(x => !x),
+      style: Object.assign(btn(showInv), {
+        width: "auto",
+        padding: "0 8px",
+        fontSize: 11
+      }),
+      title: showInv ? "กลับไปสีตามสตริง" : "ระบายสีแผงตามอินเวอร์เตอร์ — ดูว่าแต่ละตัวรับแผงส่วนไหน"
+    }, "INV"), !ctl && active && onFillBlock && React.createElement("button", {
       type: "button",
       onClick: () => {
         setBlkMode(true);
@@ -1350,7 +1420,7 @@ function SuLayout2D({
       strokeWidth: "0.08"
     })), foot.panels.map(p => {
       const s = assign[p.uid] || 0;
-      const c = s ? colorOf ? colorOf(p.uid, s) : suColor(s) : null;
+      const c = s ? showInv && invOf && invOf[s] != null ? suZColor(invOf[s]) : colorOf ? colorOf(p.uid, s) : suColor(s) : null;
       const on = !!s && sel != null && s === sel;
       const un = unitName || "สตริง";
       return React.createElement("polygon", {
@@ -1363,51 +1433,86 @@ function SuLayout2D({
         strokeWidth: on ? ctl ? 0.11 : 0.09 : 0.035,
         strokeDasharray: c ? null : "0.12 0.09"
       }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
-    }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
-      key: "P" + q.id,
-      style: {
-        pointerEvents: "none"
-      }
-    }, q.pts.length > 1 && React.createElement("polyline", {
-      points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
-      fill: "none",
-      stroke: "#fff",
-      strokeOpacity: "0.9",
-      strokeWidth: "0.16",
-      strokeLinejoin: "round",
-      strokeLinecap: "round"
-    }), q.pts.length > 1 && React.createElement("polyline", {
-      points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
-      fill: "none",
-      stroke: "rgba(15,23,42,.78)",
-      strokeWidth: "0.07",
-      strokeLinejoin: "round",
-      strokeLinecap: "round"
-    }), q.pts.length > 1 && React.createElement("circle", {
-      cx: q.pts[q.pts.length - 1][0],
-      cy: q.pts[q.pts.length - 1][1],
-      r: "0.13",
-      fill: "rgba(15,23,42,.85)",
-      stroke: "#fff",
-      strokeWidth: "0.04"
-    }), React.createElement("circle", {
-      cx: q.pts[0][0],
-      cy: q.pts[0][1],
-      r: "0.36",
-      fill: "#fff",
-      stroke: q.color,
-      strokeWidth: "0.09"
-    }), React.createElement("text", {
-      x: q.pts[0][0],
-      y: q.pts[0][1] + 0.14,
-      textAnchor: "middle",
-      fontSize: q.id > 99 ? 0.3 : 0.4,
-      fontWeight: "800",
-      fill: q.color,
-      style: {
-        userSelect: "none"
-      }
-    }, q.id))), labels && foot.panels.map(p => {
+    }), showPath && paths && (() => {
+      const lw = Math.max(0.07, 1.3 * upx),
+        lw2 = Math.max(0.16, 3 * upx);
+      const r = Math.max(0.36, 7.5 * upx),
+        re = Math.max(0.13, 2.4 * upx);
+      return paths.map(q => q.pts.length > 0 && React.createElement("g", {
+        key: "P" + q.id,
+        style: {
+          pointerEvents: "none"
+        }
+      }, q.pts.length > 1 && React.createElement("polyline", {
+        points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+        fill: "none",
+        stroke: "#fff",
+        strokeOpacity: "0.9",
+        strokeWidth: lw2,
+        strokeLinejoin: "round",
+        strokeLinecap: "round"
+      }), q.pts.length > 1 && React.createElement("polyline", {
+        points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+        fill: "none",
+        stroke: "rgba(15,23,42,.78)",
+        strokeWidth: lw,
+        strokeLinejoin: "round",
+        strokeLinecap: "round"
+      }), q.pts.length > 1 && React.createElement("circle", {
+        cx: q.pts[q.pts.length - 1][0],
+        cy: q.pts[q.pts.length - 1][1],
+        r: re,
+        fill: "rgba(15,23,42,.85)",
+        stroke: "#fff",
+        strokeWidth: re * 0.3
+      }), React.createElement("circle", {
+        cx: q.pts[0][0],
+        cy: q.pts[0][1],
+        r: r,
+        fill: "#fff",
+        stroke: showInv && invOf && invOf[q.id] != null ? suZColor(invOf[q.id]) : q.color,
+        strokeWidth: r * 0.25
+      }), React.createElement("text", {
+        x: q.pts[0][0],
+        y: q.pts[0][1] + r * 0.38,
+        textAnchor: "middle",
+        fontSize: r * (q.id > 99 ? 0.85 : 1.1),
+        fontWeight: "800",
+        fill: showInv && invOf && invOf[q.id] != null ? suZColor(invOf[q.id]) : q.color,
+        style: {
+          userSelect: "none"
+        }
+      }, q.id)));
+    })(), invTags.map((t, i) => {
+      const h = 16 * upx,
+        w = (t.inv > 9 ? 44 : 38) * upx;
+      return React.createElement("g", {
+        key: "I" + i,
+        transform: "rotate(" + -rot + " " + t.x + " " + t.y + ")",
+        style: {
+          pointerEvents: "none"
+        }
+      }, React.createElement("rect", {
+        x: t.x - w / 2,
+        y: t.y - h / 2,
+        width: w,
+        height: h,
+        rx: h / 2,
+        fill: suZColor(t.inv),
+        stroke: "#fff",
+        strokeWidth: 1.5 * upx
+      }), React.createElement("text", {
+        x: t.x,
+        y: t.y + h * 0.3,
+        textAnchor: "middle",
+        fontSize: h * 0.72,
+        fontWeight: "800",
+        fill: "#fff",
+        style: {
+          userSelect: "none"
+        }
+      }, "INV" + t.inv));
+    }), labels && foot.panels.map(p => {
       const t = labels[p.uid];
       if (!t) return null;
       const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
@@ -6148,6 +6253,10 @@ function SolarWorkspace({
     className: "p3-stat"
   }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E48\u0E2D MPPT ", React.createElement("b", null, scStringsPerMppt(panel, inv))))), !isMicro && (() => {
     const strs = plan && plan.strings ? plan.strings : [];
+    const invOfStr = {};
+    strs.forEach(x => {
+      if (x.id && x.inv != null) invOfStr[x.id] = x.inv + 1;
+    });
     const cur = activeStr ? strs.find(x => x.id === activeStr) : null;
     const T = SU_TOOLS.find(x => x.k === tool) || SU_TOOLS[1];
     const asc = okSizes.slice().reverse();
@@ -6185,7 +6294,8 @@ function SolarWorkspace({
       onFillBlock: fillBlock,
       sel: activeStr,
       mode: tool,
-      height: "100%"
+      height: "100%",
+      invOf: invOfStr
     }), React.createElement("span", {
       className: "su-mode"
     }, React.createElement("span", {
