@@ -1951,7 +1951,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                             </span>
                           ) : <span style={{ color: "#F59E0B" }}>ใส่ค่า Isc ของแผง (หรือเลือกรุ่นแผงจากคลังที่กรอก Isc ไว้) เพื่อคำนวณขนาดสาย DC</span>}
                         </div>
-                        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 4 }}>* สาย PV1-F ทองแดง XLPO 90°C ขั้นต่ำ 6 mm² ตาม วสท. (สูตร/พิกัดเดียวกับหน้า BOQ)</div>
+                        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 4 }}>* สาย PV1-F ทองแดง XLPO 90°C ขั้นต่ำ {(window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.pvWireMin) || 4} mm² (กฎสาย DC ในหน้าตั้งค่าคำนวณ BOQ · สูตร/พิกัดเดียวกับหน้า BOQ)</div>
                       </div>
                     )}
                     {summary.cable.some((c) => c.kind.key === "ac") && (

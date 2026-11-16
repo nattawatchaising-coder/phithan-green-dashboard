@@ -52,10 +52,10 @@
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "dcWire", key: "pvWireMin", th: "สาย PV ขนาดเล็กสุดที่ใช้ (วสท.)", unit: "mm²", def: 6, min: 2.5, max: 16 },
+    { sec: "dcWire", key: "pvWireMin", th: "สาย PV ขนาดเล็กสุดที่ใช้ (ใช้ทั้ง BOQ และแบบ SLD · ผู้ใช้ 16 พ.ย. 2026 = 4)", unit: "mm²", def: 4, min: 2.5, max: 16 },
     { sec: "dcWire", key: "pvWireTempK", th: "ตัวคูณลดพิกัดสาย PV ตามอุณหภูมิ (ตารางอ้างอิงอากาศ 60°C · ร้อนกว่านี้ใส่ต่ำกว่า 1)", unit: "เท่า", def: 1, min: 0.3, max: 1.2 },
     { sec: "dcWire", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
-    { sec: "dcWire", key: "vdDc", th: "แรงดันตกฝั่ง DC ไม่เกิน", unit: "%", def: 2, min: 0.1, max: 20 },
+    { sec: "dcWire", key: "vdDc", th: "แรงดันตกฝั่ง DC ไม่เกิน (ต่อสตริง · ผู้ใช้ 16 พ.ย. 2026 = 3)", unit: "%", def: 3, min: 0.1, max: 20 },
     /* ── ตู้ไฟ AC ── */
     { sec: "acBoard", g: "งานโครงการ", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
@@ -932,8 +932,8 @@
 
   // ── สาย DC โซลาร์ PV1-F (ตัวนำทองแดง XLPO 90°C, สายเดี่ยวในอากาศ) ──
   // พิกัดกระแสสายเดี่ยว 2 เส้นในอากาศ (A) อ้างอิงสเปคผู้ผลิตทั่วไป — เลือกขนาดจากกระแสสตริง × 1.25
-  // ขนาดต่ำสุดของสาย DC = 6 mm² ตามมาตรฐาน วสท. (เลือกไม่ต่ำกว่านี้แม้กระแสน้อย)
-  const PV_WIRE_MIN = 6;
+  // ขนาดต่ำสุดของสาย DC = กฎ pvWireMin (ค่าตั้งต้น 4 mm² · ผู้ใช้ 16 พ.ย. 2026) — เลือกไม่ต่ำกว่านี้แม้กระแสน้อย
+  const PV_WIRE_MIN = 4;
   const PV_WIRE_SIZES = [2.5, 4, 6, 10, 16];
   const PV_WIRE_AMP = { 2.5: 41, 4: 55, 6: 70, 10: 98, 16: 132 };
   // เลือกขนาดสาย DC จากกระแสที่ต้องการ (ผู้เรียกคูณ factor มาก่อนแล้ว) — ไม่ต่ำกว่า PV_WIRE_MIN
@@ -958,14 +958,21 @@
     if (!(L > 0 && I > 0 && A > 0 && V > 0)) return null;
     const rho = VD_RHO[o.ins === "xlpe" ? "xlpe" : "pvc"];
     const k = +o.phase === 3 ? Math.sqrt(3) : 2;
-    const dv = k * L * I * rho / A;
+    /* สาย DC (PV1-F) ใช้ R90 ของสาย PV class 5 จากเอนจินกลาง (cablecalc.jsx · = 1.275 × R20) แทน ρ — ρ ได้ค่าต่ำกว่าจริง ~16%
+       ขนาดที่ไม่มีในตาราง PV ใช้ ρ เดิม */
+    const r90 = o.dc && window.CC ? window.CC.pvR90 : null;
+    const dvOf = (sz) => (r90 && r90(sz) ? 2 * L * I * r90(sz) / 1000 : k * L * I * rho / sz);
+    const dv = dvOf(A);
     const pct = dv / V * 100;
     const lim = +o.limit || (o.dc ? VD_LIMIT.dc : VD_LIMIT.ac);
     // ขนาดเล็กสุดที่แรงดันตกยังอยู่ในเกณฑ์ (ไว้บอกว่าต้องขยับไปเบอร์ไหน)
     const need = k * L * I * rho / (lim / 100 * V);
     const pool = o.dc ? PV_WIRE_SIZES : WIRE_SIZES;
     let minSize = null;
-    for (let i = 0; i < pool.length; i++) { if (pool[i] >= need && (!o.dc || pool[i] >= pvMin())) { minSize = pool[i]; break; } }
+    for (let i = 0; i < pool.length; i++) {
+      const okVd = r90 && r90(pool[i]) ? dvOf(pool[i]) / V * 100 <= lim : pool[i] >= need;
+      if (okVd && (!o.dc || pool[i] >= pvMin())) { minSize = pool[i]; break; }
+    }
     return { dv: Math.round(dv * 100) / 100, pct: Math.round(pct * 100) / 100, lim,
       ok: pct <= lim, size: A, need: Math.round(need * 100) / 100, minSize, volts: V, amp: I, length: L,
       phase: +o.phase === 3 ? 3 : 1 };

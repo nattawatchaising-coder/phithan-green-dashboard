@@ -2709,6 +2709,17 @@ const p3Cu = (i, cores) => {
   }
   return P3_CU.find((s) => s * 6.2 + 12 >= i) || P3_CU[P3_CU.length - 1];
 };
+/* ขนาดสาย PV1-F บนแบบ — กฎเดียวกับ BOQ (ผู้ใช้ 16 พ.ย. 2026: แบบกับ BOQ ต้องตรงกัน · ขั้นต่ำ 4 mm²)
+   Isc (× bifacialK ถ้าแผงสองหน้า) × pvWireK แล้วเลือกขนาดเล็กสุดที่ ≥ pvWireMin และพิกัด × pvWireTempK รับไหว · เดิมฝัง Isc×1.56 > 40 ? 6 : 4 */
+function p3PvWire(PS, isc, R) {
+  const BQ = window.BOQ || {};
+  R = R || BQ.RULES || {};
+  const bif = PS && (PS.bifacial === true || (PS.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(PS.model || ""))));
+  const need = (+isc || 0) * (bif ? (+R.bifacialK || 1.1) : 1) * (+R.pvWireK || 1.25);
+  const sizes = BQ.PV_WIRE_SIZES || [2.5, 4, 6, 10, 16], amp = BQ.PV_WIRE_AMP || { 2.5: 41, 4: 55, 6: 70, 10: 98, 16: 132 };
+  const min = +R.pvWireMin > 0 ? +R.pvWireMin : 4, tk = +R.pvWireTempK > 0 ? +R.pvWireTempK : 1;
+  return sizes.find((sz) => sz >= min && amp[sz] * tk >= need) || sizes[sizes.length - 1];
+}
 /* ยี่ห้อไม่ได้แยกเป็นช่องในคลัง จึงอ่านจากคำแรกของชื่อรุ่น */
 const p3Brand = (model, fb) => {
   const w = String(model || "").trim().split(/[\s\-_]/)[0];
@@ -2977,7 +2988,7 @@ function p3SldModel(st, job, design, only) {
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,
-      dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " Sq.mm. 1.5kV DC",
+      dcCable: "PV1-F (H1Z2Z2-K) 1x" + p3PvWire(PS, isc, R) + " Sq.mm. 1.5kV DC",
       acSpd,
       spdBk, ivBrk, mainA, mainTxt, gf, lsig, pm, pmCt: p3Ct(mainA) + "/5A",
       ivKw: units.map((u) => Math.round((+u.w || unitW) / 100) / 10),
