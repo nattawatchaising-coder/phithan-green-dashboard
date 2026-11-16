@@ -56,25 +56,36 @@ function CcFoldBtn({
 }) {
   return React.createElement("button", {
     type: "button",
-    className: "p3-lnk",
     title: fold ? "ขยาย" : "ย่อ",
+    "aria-label": fold ? "ขยาย" : "ย่อ",
+    "aria-expanded": !fold,
     style: {
-      marginLeft: 8,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 3
+      marginLeft: 10,
+      width: 26,
+      height: 26,
+      flex: "0 0 26px",
+      borderRadius: "50%",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
+      display: "inline-grid",
+      placeItems: "center",
+      boxShadow: "var(--shadow-sm)",
+      transition: "background .15s, color .15s",
+      background: fold ? "var(--primary)" : "var(--primary-soft)",
+      color: fold ? "#fff" : "var(--primary)"
     },
     onClick: e => {
       e.stopPropagation();
       onToggle();
     }
-  }, fold ? "ขยาย" : "ย่อ", React.createElement("svg", {
-    width: "11",
-    height: "11",
+  }, React.createElement("svg", {
+    width: "14",
+    height: "14",
     viewBox: "0 0 16 16",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: "2",
+    strokeWidth: "2.2",
     strokeLinecap: "round",
     strokeLinejoin: "round",
     style: {
