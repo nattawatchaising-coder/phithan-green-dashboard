@@ -111,13 +111,19 @@ function msAxis(C, today, pad) {
     W: (a, b) => (Math.max(a, b) - Math.min(a, b) + 1) / span * 100
   };
 }
-function msInstallRows(daily, owner) {
-  if (!daily) return [];
+function msInstallSteps(daily) {
+  if (!daily) return null;
   const plan = daily.plan,
     last = daily.dates && daily.dates[0] ? daily.byDate[daily.dates[0]] : null;
   let steps = plan && plan.steps && plan.steps.length ? plan.steps : null;
   if (last && last.steps && last.steps.length && (!steps || (last.updatedAt || "") > (plan && plan.updatedAt || ""))) steps = last.steps;
-  if (!steps) return [];
+  return steps;
+}
+function msInstallRows(daily, owner) {
+  return msInstallRowsOf(msInstallSteps(daily), owner);
+}
+function msInstallRowsOf(steps, owner) {
+  if (!steps || !steps.length) return [];
   const list = window.drRenumber ? window.drRenumber(steps) : steps;
   const groups = [];
   list.forEach(r => {
@@ -286,7 +292,9 @@ function useMsData(job) {
   const inst = React.useMemo(() => msInstallRows(daily, crew), [daily && daily.plan, daily && daily.byDate, crew]);
   return {
     ms,
-    inst
+    inst,
+    daily,
+    crew
   };
 }
 function MsRing({
@@ -752,7 +760,11 @@ function MsEditor({
   setRows,
   inst,
   narrow,
-  owners
+  owners,
+  instSteps,
+  onInstEdit,
+  setInstSteps,
+  today
 }) {
   const set = (i, k, v) => setRows(L => L.map((r, j) => {
     if (j !== i) return r;
@@ -959,13 +971,70 @@ function MsEditor({
         fontSize: 11.5,
         color: "var(--text-3)"
       })
-    }, isInst ? "ขั้นย่อยดึงจากตารางขั้นงานในรายงานประจำวัน — แก้วัน/% ที่นั่น" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"), React.createElement("span", {
+    }, isInst ? "ขั้นย่อยใช้ตารางขั้นงานชุดเดียวกับรายงานประจำวัน — แก้ได้ที่ปุ่ม \"แก้ขั้นงานติดตั้ง\" ด้านล่าง" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"), React.createElement("span", {
       style: Object.assign({
         display: "flex",
         gap: 2,
         justifyContent: "flex-end"
       }, fieldW(2))
-    }, r.head && !isInst && iconBtn("plus", () => addSub(i), "เพิ่มงานย่อย"), iconBtn("up", () => move(i, -1), "เลื่อนขึ้น", false, i === 0), iconBtn("down", () => move(i, 1), "เลื่อนลง", false, i === rows.length - 1), iconBtn("trash", () => del(i), "ลบแถว", true))), isInst && inst.map(x => React.createElement("div", {
+    }, r.head && !isInst && iconBtn("plus", () => addSub(i), "เพิ่มงานย่อย"), iconBtn("up", () => move(i, -1), "เลื่อนขึ้น", false, i === 0), iconBtn("down", () => move(i, 1), "เลื่อนลง", false, i === rows.length - 1), iconBtn("trash", () => del(i), "ลบแถว", true))), isInst && window.DrStepTable && (instSteps ? React.createElement("div", {
+      style: {
+        marginLeft: narrow ? 0 : 18,
+        padding: narrow ? 8 : 12,
+        borderRadius: "var(--r-tile)",
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, React.createElement("b", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-1)"
+      }
+    }, "\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E32\u0E23\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19\u0E43\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E41\u0E1C\u0E19\u0E19\u0E35\u0E49")), React.createElement(window.DrStepTable, {
+      steps: instSteps,
+      editable: true,
+      plan: true,
+      dates: true,
+      rename: true,
+      today: today,
+      onReset: window.drWhaSteps,
+      onChange: v => setInstSteps(v)
+    })) : React.createElement("button", {
+      type: "button",
+      onClick: onInstEdit,
+      style: {
+        marginLeft: narrow ? 0 : 18,
+        alignSelf: "flex-start",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "8px 13px",
+        borderRadius: "var(--r-tile)",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        background: "var(--primary-soft)",
+        color: "var(--primary-dark)",
+        boxShadow: "var(--shadow-sm)"
+      }
+    }, React.createElement(Icon, {
+      name: "pen",
+      size: 13
+    }), " \u0E41\u0E01\u0E49\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07", inst.length ? "" : " (ยังไม่มี — เริ่มจากชุดมาตรฐาน)")), isInst && !instSteps && inst.map(x => React.createElement("div", {
       key: x.id,
       style: {
         display: "grid",
@@ -1058,9 +1127,17 @@ function MsModal({
 }) {
   const {
     ms,
-    inst
+    inst: inst0,
+    daily,
+    crew
   } = useMsData(job);
   const today = msToday();
+  const [instEdit, setInstEdit] = React.useState(null);
+  const inst = React.useMemo(() => instEdit ? msInstallRowsOf(instEdit, crew) : inst0, [instEdit, inst0, crew]);
+  const instBase = () => {
+    const st = msInstallSteps(daily);
+    return (st && st.length ? st : window.drWhaSteps ? window.drWhaSteps() : []).map(r => Object.assign({}, r));
+  };
   const narrow = useMsNarrow(860),
     mid = useMsNarrow(1180);
   const [edit, setEdit] = React.useState(null);
@@ -1071,7 +1148,7 @@ function MsModal({
   const bd = window.useBackdropClose ? window.useBackdropClose(() => {
     if (!edit) onClose();
   }) : {};
-  const dirty = edit && JSON.stringify(edit) !== JSON.stringify(base);
+  const dirty = edit && JSON.stringify(edit) !== JSON.stringify(base) || !!instEdit;
   const owners = React.useMemo(() => {
     const tech = job.tech && window.SF && window.SF.TECH_BY_ID && window.SF.TECH_BY_ID[job.tech];
     const fromRows = (edit || base).map(r => r.owner);
@@ -1079,9 +1156,11 @@ function MsModal({
   }, [job, edit, base]);
   const doSave = () => {
     setBusy(true);
+    if (instEdit && daily && daily.savePlan) daily.savePlan(daily.plan && daily.plan.mode || "project", instEdit);
     Promise.resolve(ms.save(edit, currentUser)).then(() => {
       setBusy(false);
       setEdit(null);
+      setInstEdit(null);
     }, e => {
       setBusy(false);
       window.askConfirm({
@@ -1094,6 +1173,7 @@ function MsModal({
   const cancel = () => {
     if (!dirty) {
       setEdit(null);
+      setInstEdit(null);
       return;
     }
     window.askConfirm({
@@ -1102,7 +1182,10 @@ function MsModal({
       ok: "ทิ้ง",
       danger: true
     }).then(ok => {
-      if (ok) setEdit(null);
+      if (ok) {
+        setEdit(null);
+        setInstEdit(null);
+      }
     });
   };
   const reset = () => window.askConfirm({
@@ -1231,7 +1314,11 @@ function MsModal({
     setRows: setEdit,
     inst: inst,
     narrow: narrow,
-    owners: owners
+    owners: owners,
+    instSteps: instEdit,
+    onInstEdit: () => setInstEdit(instBase()),
+    setInstSteps: setInstEdit,
+    today: today
   }) : React.createElement("div", {
     style: {
       background: "var(--surface)",

@@ -2158,4 +2158,4 @@ function DailyJobButton({ job, onOpen }) {
 /* ชิ้นส่วนฟอร์มปล่อยออกไปให้โมดูลอื่นใช้ด้วย (งานบริการหลังการขายใช้ชุดเดียวกัน)
    หน้าตาฟอร์มทั้งระบบจะได้เหมือนกัน แก้ที่นี่ที่เดียวเปลี่ยนพร้อมกันทุกที่ */
 Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton, DrInbox, drApproveQueue,
-  DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignSlot, DR_INPUT });
+  DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignSlot, DR_INPUT, DrStepTable });

@@ -4605,5 +4605,6 @@ Object.assign(window, {
   DrRows,
   DrPhotoCap,
   DrSignSlot,
-  DR_INPUT
+  DR_INPUT,
+  DrStepTable
 });

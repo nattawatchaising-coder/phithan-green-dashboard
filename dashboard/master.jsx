@@ -78,12 +78,18 @@ function msAxis(C, today, pad) {
 
 /* ── ขั้นย่อยของงานติดตั้งจากรายงานประจำวัน — หัวข้อใหญ่ของตารางขั้นงาน 1 แถว (ช่วงวัน/% รวมขั้นย่อย) ──
    ใช้ตารางของงาน (dailyPlan) เว้นแต่ใบล่าสุดแก้ใหม่กว่า (ช่างแก้ % จาก LINE ไม่ได้อัปเดตตารางของงาน — เหมือน drBlank) */
-function msInstallRows(daily, owner) {
-  if (!daily) return [];
+function msInstallSteps(daily) {
+  if (!daily) return null;
   const plan = daily.plan, last = daily.dates && daily.dates[0] ? daily.byDate[daily.dates[0]] : null;
   let steps = plan && plan.steps && plan.steps.length ? plan.steps : null;
   if (last && last.steps && last.steps.length && (!steps || (last.updatedAt || "") > ((plan && plan.updatedAt) || ""))) steps = last.steps;
-  if (!steps) return [];
+  return steps;
+}
+function msInstallRows(daily, owner) {
+  return msInstallRowsOf(msInstallSteps(daily), owner);
+}
+function msInstallRowsOf(steps, owner) {
+  if (!steps || !steps.length) return [];
   const list = window.drRenumber ? window.drRenumber(steps) : steps;
   const groups = [];
   list.forEach((r) => {
@@ -184,7 +190,7 @@ function useMsData(job) {
   const daily = window.useDailyReports ? window.useDailyReports(job ? job.id : null) : null;
   const crew = (job && (job.contractor || "")) || "ทีมติดตั้ง";
   const inst = React.useMemo(() => msInstallRows(daily, crew), [daily && daily.plan, daily && daily.byDate, crew]);
-  return { ms, inst };
+  return { ms, inst, daily, crew };
 }
 
 /* ── วง % รวม (โดนัท) ── */
@@ -340,7 +346,7 @@ function MsGantt({ C, today, compact, narrow, mid }) {
 
 /* ── ตัวแก้แผน — แถวละแผ่นบาง · หัวข้อใหญ่ไม่มีช่องวัน (คิดจากขั้นย่อย) · ขั้นงานติดตั้งดูอย่างเดียว ──
    ใส่ "วัน" แล้ววันจบคิดให้ (เริ่ม + วัน − 1) · ใส่วันจบเอง ช่องวันคิดตาม */
-function MsEditor({ rows, setRows, inst, narrow, owners }) {
+function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, setInstSteps, today }) {
   const set = (i, k, v) => setRows((L) => L.map((r, j) => {
     if (j !== i) return r;
     const up = { [k]: v };
@@ -403,7 +409,7 @@ function MsEditor({ rows, setRows, inst, narrow, owners }) {
                 </React.Fragment>
               ) : (
                 <span style={Object.assign({ gridColumn: narrow ? "span 2" : "2 / span 5", fontSize: 11.5, color: "var(--text-3)" })}>
-                  {isInst ? "ขั้นย่อยดึงจากตารางขั้นงานในรายงานประจำวัน — แก้วัน/% ที่นั่น" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"}
+                  {isInst ? "ขั้นย่อยใช้ตารางขั้นงานชุดเดียวกับรายงานประจำวัน — แก้ได้ที่ปุ่ม \"แก้ขั้นงานติดตั้ง\" ด้านล่าง" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"}
                 </span>
               )}
               <span style={Object.assign({ display: "flex", gap: 2, justifyContent: "flex-end" }, fieldW(2))}>
@@ -413,7 +419,23 @@ function MsEditor({ rows, setRows, inst, narrow, owners }) {
                 {iconBtn("trash", () => del(i), "ลบแถว", true)}
               </span>
             </div>
-            {isInst && inst.map((x) => (
+            {isInst && window.DrStepTable && (instSteps ? (
+              <div style={{ marginLeft: narrow ? 0 : 18, padding: narrow ? 8 : 12, borderRadius: "var(--r-tile)", background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <b style={{ fontSize: 12.5, color: "var(--text-1)" }}>ขั้นงานติดตั้ง</b>
+                  <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ชุดเดียวกับตารางขั้นงานในรายงานประจำวัน · บันทึกพร้อมแผนนี้</span>
+                </div>
+                <window.DrStepTable steps={instSteps} editable plan dates rename today={today}
+                  onReset={window.drWhaSteps} onChange={(v) => setInstSteps(v)} />
+              </div>
+            ) : (
+              <button type="button" onClick={onInstEdit}
+                style={{ marginLeft: narrow ? 0 : 18, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: "var(--r-tile)",
+                  border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, background: "var(--primary-soft)", color: "var(--primary-dark)", boxShadow: "var(--shadow-sm)" }}>
+                <Icon name="pen" size={13} /> แก้ขั้นงานติดตั้ง{inst.length ? "" : " (ยังไม่มี — เริ่มจากชุดมาตรฐาน)"}
+              </button>
+            ))}
+            {isInst && !instSteps && inst.map((x) => (
               <div key={x.id} style={{ display: "grid", gridTemplateColumns: narrow ? "1fr auto" : "minmax(160px,1fr) 1fr 64px", gap: 8, alignItems: "center",
                 padding: "6px 12px", marginLeft: narrow ? 0 : 18, borderRadius: "var(--r-tile)", background: "var(--surface2)", fontSize: 12, color: "var(--text-2)" }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.th}</span>
@@ -513,8 +535,17 @@ function msPrintHTML(job, C, today) {
 
 /* ── หน้าต่าง Master Schedule ── */
 function MsModal({ job, canEdit, currentUser, onClose }) {
-  const { ms, inst } = useMsData(job);
+  const { ms, inst: inst0, daily, crew } = useMsData(job);
   const today = msToday();
+  /* แก้ขั้นงานติดตั้งได้จากที่นี่ (ผู้ใช้ 17 พ.ย. 2026 "ถ้าไม่ต้องไปอยู่ที่ดำเนินการ จะแก้ไขได้ไหม เพราะบางทีเราทำแผนก่อนเข้าติดตั้งจริง")
+     เดิมต้องแก้ที่ตารางขั้นงานในรายงานประจำวัน ซึ่งงานยังไม่ถึงขั้นติดตั้งเข้าไม่ถึง · บันทึกลง dailyPlan/{jobId} ที่เดียวกัน (รายงานวันแรกเริ่มจากชุดนี้)
+     instEdit = ขั้นงานที่กำลังแก้ · null = ไม่ได้แตะ */
+  const [instEdit, setInstEdit] = React.useState(null);
+  const inst = React.useMemo(() => (instEdit ? msInstallRowsOf(instEdit, crew) : inst0), [instEdit, inst0, crew]);
+  const instBase = () => {
+    const st = msInstallSteps(daily);
+    return (st && st.length ? st : window.drWhaSteps ? window.drWhaSteps() : []).map((r) => Object.assign({}, r));
+  };
   const narrow = useMsNarrow(860), mid = useMsNarrow(1180);
   const [edit, setEdit] = React.useState(null);           // แถวที่กำลังแก้ (ยังไม่บันทึก) · null = ดูกราฟ
   const [busy, setBusy] = React.useState(false);
@@ -522,7 +553,7 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
   const base = React.useMemo(() => ms.rows || msTemplate(), [ms.rows]);
   const C = React.useMemo(() => msCompute(edit || base, inst, job, today), [edit, base, inst, job, today]);
   const bd = window.useBackdropClose ? window.useBackdropClose(() => { if (!edit) onClose(); }) : {};
-  const dirty = edit && JSON.stringify(edit) !== JSON.stringify(base);
+  const dirty = (edit && JSON.stringify(edit) !== JSON.stringify(base)) || !!instEdit;
   const owners = React.useMemo(() => {
     const tech = job.tech && window.SF && window.SF.TECH_BY_ID && window.SF.TECH_BY_ID[job.tech];
     const fromRows = (edit || base).map((r) => r.owner);
@@ -532,12 +563,13 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
 
   const doSave = () => {
     setBusy(true);
-    Promise.resolve(ms.save(edit, currentUser)).then(() => { setBusy(false); setEdit(null); },
+    if (instEdit && daily && daily.savePlan) daily.savePlan((daily.plan && daily.plan.mode) || "project", instEdit);
+    Promise.resolve(ms.save(edit, currentUser)).then(() => { setBusy(false); setEdit(null); setInstEdit(null); },
       (e) => { setBusy(false); window.askConfirm({ title: "บันทึกไม่สำเร็จ", body: String((e && e.message) || e), ok: "ตกลง" }); });
   };
   const cancel = () => {
-    if (!dirty) { setEdit(null); return; }
-    window.askConfirm({ title: "ทิ้งที่แก้ไว้?", body: "แผนงานที่แก้ยังไม่ได้บันทึก", ok: "ทิ้ง", danger: true }).then((ok) => { if (ok) setEdit(null); });
+    if (!dirty) { setEdit(null); setInstEdit(null); return; }
+    window.askConfirm({ title: "ทิ้งที่แก้ไว้?", body: "แผนงานที่แก้ยังไม่ได้บันทึก", ok: "ทิ้ง", danger: true }).then((ok) => { if (ok) { setEdit(null); setInstEdit(null); } });
   };
   const reset = () => window.askConfirm({ title: "เริ่มจากแม่แบบใหม่?", body: "หัวข้อ วันที่ และผู้รับผิดชอบที่แก้ไว้จะถูกแทนด้วยแม่แบบมาตรฐาน (ยังไม่บันทึกจนกว่าจะกดบันทึก)", ok: "ใช้แม่แบบ", danger: true })
     .then((ok) => { if (ok) setEdit(msTemplate()); });
@@ -569,7 +601,8 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
             <React.Fragment>
               <MsSummary C={C} today={today} narrow={narrow} />
               {edit ? (
-                <MsEditor rows={edit} setRows={setEdit} inst={inst} narrow={narrow} owners={owners} />
+                <MsEditor rows={edit} setRows={setEdit} inst={inst} narrow={narrow} owners={owners}
+                  instSteps={instEdit} onInstEdit={() => setInstEdit(instBase())} setInstSteps={setInstEdit} today={today} />
               ) : (
                 <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: narrow ? "10px 10px" : "12px 14px" }}>
                   {!ms.rows && <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 8 }}>ยังไม่ได้ทำแผน — นี่คือแม่แบบมาตรฐาน กด "แก้แผนงาน" เพื่อใส่ผู้รับผิดชอบ วันเริ่ม/จบ แล้วบันทึก</div>}
