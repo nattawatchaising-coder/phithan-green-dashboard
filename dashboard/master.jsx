@@ -12,14 +12,20 @@
           ช่างอัปเดต % ที่รายงานประจำวันที่เดียว Master Schedule ขยับตาม
    ================================================================== */
 
+/* แม่แบบตามไฟล์ EPC S-Curve ที่ผู้ใช้ส่งมา (Project Schedule Tissin Food 717.60 kWp · 17 พ.ย. 2026 "แผนงานติดตั้งเปลี่ยนเป็นตามที่เลยก็ได้")
+   [หัวข้อ, [[งาน, % น้ำหนัก, วัน], …], link] · น้ำหนักรวมทั้งโครงการ 100 (A 10.5 · B 6 · C 35 · D 20 · E 28.5)
+   หมวด D งานโยธา + E งานไฟฟ้า = ตารางขั้นงานของรายงานประจำวัน (DR_WHA_TREE ใน daily.jsx) ช่างอัปเดต % ที่นั่น */
 const MS_TEMPLATE = [
-  ["เริ่มโครงการ", ["ลงนามสัญญา / ใบสั่งซื้อ (PO)", "ประชุมเริ่มงาน (Kick-off)", "สำรวจหน้างานละเอียด"]],
-  ["ออกแบบ", ["ออกแบบระบบ & Shop Drawing", "ตรวจสอบโครงสร้างหลังคา", "ลูกค้าอนุมัติแบบ"]],
-  ["ขออนุญาต", ["ยื่นการไฟฟ้า (ขอเชื่อมต่อขนาน)", "ยื่น กกพ.", "แจ้งดัดแปลงอาคาร (อ.1)"]],
-  ["จัดซื้อ & ขนส่ง", ["สั่งแผง & อินเวอร์เตอร์", "สั่งโครงสร้าง สายไฟ ตู้ไฟ", "ส่งของเข้าหน้างาน"]],
-  ["งานติดตั้ง", null, "install"],
-  ["ทดสอบ & เชื่อมต่อ", ["ทดสอบระบบ (Testing & Commissioning)", "การไฟฟ้าตรวจ & ขนานไฟ (COD)", "ตั้งค่าระบบมอนิเตอร์"]],
-  ["ส่งมอบงาน", ["ตรวจรับงาน & แก้ Punch List", "ส่งมอบเอกสาร & อบรมการใช้งาน"]],
+  ["Permission Work — งานขออนุญาต", [
+    ["ใบโอนสิทธิ์ (กนอ.01/3)", 1, 15], ["ขออนุญาตให้ใช้ที่ดินในนามผู้ลงทุน กนอ.01/1", 1, 15], ["ขออนุญาตดัดแปลงอาคาร กนอ.02/1", 1.5, 45],
+    ["ขออนุญาตรับรองอาคาร กนอ.02/5", 1.5, 45], ["ขอแจ้งเริ่มประกอบอุตสาหกรรม กนอ.03/1", 1, 60], ["ขออนุญาตผลิตพลังงานควบคุม พ.ค.2", 1, 240],
+    ["PEA: ยื่นเอกสารเพื่อรับพิจารณาในระบบ PPIM", 1, 45], ["PEA: จัดทำสัญญา 3 ฝ่าย", 0.5, 90], ["PEA: ตรวจสอบอุปกรณ์", 1, 30], ["PEA: First Sync", 1, 30]]],
+  ["Engineering work for approval — งานวิศวกรรม", [
+    ["Roof inspection and handover", 2, 30], ["Site Mobilization", 1, 5], ["Calculation", 0.5, 40], ["Material Specification", 0.5, 30], ["Electrical & Civil drawings", 2, 45]]],
+  ["Procurement and Material delivery — จัดซื้อ & ส่งของ", [
+    ["Mounting Structure", 5, 31], ["PV Module", 10, 60], ["Inverter", 5, 30], ["Walk way", 2, 30], ["MDB Solar", 1, 60],
+    ["Cable tray and Perforated Tray", 2, 30], ["Lifeline and Safety line", 2, 30], ["PV cable", 4, 30], ["AC cable", 3, 30], ["Mechanical + Electrical material", 1, 60]]],
+  ["งานติดตั้ง (Civil + Electrical)", null, "install"],
 ];
 const MS_MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const MS_DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -34,12 +40,16 @@ const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 
 let _msSeq = 0;
 const msId = () => "r" + Date.now().toString(36) + (_msSeq++).toString(36);
-const msRow = (th, head, link) => ({ id: msId(), th: th || "", head: !!head, owner: "", planStart: "", planEnd: "", pct: 0, link: link || "" });
+const msRow = (th, head, link, w, dur) => ({ id: msId(), th: th || "", head: !!head, owner: "", planStart: "", planEnd: "", pct: 0, link: link || "",
+  w: w == null ? "" : w, dur: dur || "" });
 function msTemplate() {
   const out = [];
-  MS_TEMPLATE.forEach(([h, subs, link]) => { out.push(msRow(h, true, link)); (subs || []).forEach((s) => out.push(msRow(s, false))); });
+  MS_TEMPLATE.forEach(([h, subs, link]) => { out.push(msRow(h, true, link)); (subs || []).forEach((x) => out.push(msRow(x[0], false, "", x[1], x[2]))); });
   return out;
 }
+const msW = (v) => (v === "" || v == null || isNaN(+v) ? null : Math.max(0, +v));
+/* เลขแบบไฟล์ตัวอย่าง: หัวข้อ A, B, C … งานย่อย A1, A2 … */
+const msLetter = (n) => { let s = ""; n = Math.max(1, n); while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
 
 const msDay = (iso) => { if (!iso) return null; const t = Date.parse(String(iso).slice(0, 10) + "T00:00:00Z"); return isNaN(t) ? null : Math.round(t / 86400000); };
 const msIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
@@ -88,40 +98,58 @@ function msInstallSteps(daily) {
 function msInstallRows(daily, owner) {
   return msInstallRowsOf(msInstallSteps(daily), owner);
 }
+/* หัวข้อของตารางขั้นงาน = หัวข้อใหญ่ใน Master Schedule (D งานโยธา · E งานไฟฟ้า) · ขั้นย่อย = งาน (น้ำหนัก w · วัน · %)
+   (เดิม พ.ย. 2026 ยุบหัวข้อละแถวใต้ "งานติดตั้ง" — แม่แบบใหม่ตามไฟล์ S-Curve ให้ D/E เป็นหมวดเต็ม) */
 function msInstallRowsOf(steps, owner) {
   if (!steps || !steps.length) return [];
   const list = window.drRenumber ? window.drRenumber(steps) : steps;
-  const groups = [];
+  const out = [];
+  let hi = -1, k = 0;
   list.forEach((r) => {
-    if (r.head !== false || !groups.length) groups.push({ self: r, subs: [] });
-    else groups[groups.length - 1].subs.push(r);
+    const base = { ro: true, link: "install", owner: owner || "", planStart: r.planStart || "", planEnd: r.planEnd || r.planStart || "", pct: msPct(r.pct), w: msW(r.w) == null ? "" : msW(r.w) };
+    if (r.head !== false) { hi += 1; k = 0; out.push(Object.assign(base, { id: "dh" + hi, th: r.th || "", head: true })); }
+    else { k += 1; out.push(Object.assign(base, { id: "ds" + hi + "_" + k, th: r.th || "", head: false })); }
   });
-  return groups.map((g, i) => {
-    const rs = g.subs.length ? g.subs : [g.self];
-    const ps = rs.map((r) => r.planStart).filter(Boolean).sort(), pe = rs.map((r) => r.planEnd || r.planStart).filter(Boolean).sort();
-    const pct = Math.round(rs.reduce((t, r) => t + msPct(r.pct), 0) / rs.length);
-    return { id: "d" + i, th: g.self.th || "", head: false, ro: true, owner: owner || "",
-      planStart: ps[0] || "", planEnd: pe[pe.length - 1] || "", pct };
-  });
+  return out;
 }
 
 /* ── แถวที่ใช้แสดงจริง: แทรกขั้นย่อยของงานติดตั้ง + คิดหัวข้อจากขั้นย่อย + น้ำหนักตามจำนวนวันแผน ── */
-function msCompute(rows, inst, job, today) {
+/* cap = วันที่ (ประมาณ % ย้อนหลังสำหรับ S-Curve): งานนอกตารางขั้นงานไม่รู้ % ณ วันนั้น ใช้ min(% ตอนนี้, % ตามแผน ณ วันนั้น) */
+function msCompute(rows, inst, job, today, cap) {
   const out = [];
   (rows || []).forEach((r) => {
     if (r.head && r.link === "install") {
+      if (inst.length) { inst.forEach((x) => out.push(Object.assign({}, x))); return; }
       const sd = ((job && job.stageDates) || {}).install;
       const own = Object.assign({}, r);
-      if (!inst.length && !own.planStart && sd) {
+      if (!own.planStart && sd) {
         if (typeof sd === "object") { own.planStart = sd.start || sd.end || ""; own.planEnd = sd.end || sd.start || ""; }
         else own.planStart = own.planEnd = String(sd).slice(0, 10);
       }
       out.push(own);
-      inst.forEach((x) => out.push(Object.assign({}, x, { link: "install" })));
     } else out.push(Object.assign({}, r));
   });
   const td = msDay(today);
-  const leafW = (r) => msDur(r.planStart, r.planEnd) || 1;
+  if (cap) {
+    const cd = msDay(cap);
+    out.forEach((r) => {
+      if (r.link === "install") return;
+      const a = msDay(r.planStart), b = msDay(r.planEnd || r.planStart);
+      const plan = a == null ? 0 : cd < a ? 0 : cd >= b ? 100 : ((cd - a + 1) / (b - a + 1)) * 100;
+      r.pct = Math.min(msPct(r.pct), Math.round(plan));
+    });
+  }
+  /* น้ำหนัก: มีช่อง % Weight (ไฟล์ S-Curve) ใช้ตามนั้น · ไม่มีเลย = ตามจำนวนวันแผนแบบเดิม
+     มีบ้างไม่มีบ้าง (เช่นตารางขั้นงานเก่าไม่มีน้ำหนัก) = แบ่งส่วนที่เหลือจาก 100 ให้ตัวที่ไม่มีตามจำนวนวัน */
+  const isLeaf = (r, i) => !r.head || !(i + 1 < out.length && !out[i + 1].head);
+  const lv = out.filter(isLeaf);
+  const days = (r) => msDur(r.planStart, r.planEnd) || 1;
+  const hasW = lv.some((r) => msW(r.w) > 0);
+  const known = lv.reduce((t, r) => t + (msW(r.w) || 0), 0);
+  const miss = lv.filter((r) => msW(r.w) == null), missD = miss.reduce((t, r) => t + days(r), 0);
+  const rest = Math.max(0, 100 - known);
+  lv.forEach((r) => { r.wt = !hasW ? days(r) : msW(r.w) != null ? msW(r.w) : missD ? (rest * days(r)) / missD : 0; });
+  const leafW = (r) => r.wt || 0;
   const status = (r) => {
     const p = msPct(r.pct), pe = msDay(r.planEnd || r.planStart);
     if (p >= 100) return "done";
@@ -131,7 +159,7 @@ function msCompute(rows, inst, job, today) {
   let no = 0, sub = 0;
   for (let i = 0; i < out.length; i++) {
     const r = out[i];
-    if (r.head) { no += 1; sub = 0; r.no = String(no); } else { sub += 1; r.no = (no || 0) + "." + sub; }
+    if (r.head) { no += 1; sub = 0; r.no = msLetter(no); } else { sub += 1; r.no = (no ? msLetter(no) : "") + sub; }
     if (!r.head) continue;
     const kids = [];
     for (let j = i + 1; j < out.length && !out[j].head; j++) kids.push(out[j]);
@@ -141,6 +169,7 @@ function msCompute(rows, inst, job, today) {
     if (ps.length) r.planStart = ps[0];
     if (pe.length) r.planEnd = pe[pe.length - 1];
     const W = kids.reduce((t, k) => t + leafW(k), 0);
+    r.wt = W;
     r.pct = Math.round(kids.reduce((t, k) => t + leafW(k) * msPct(k.pct), 0) / (W || 1));
     const own = [...new Set(kids.map((k) => k.owner).filter(Boolean))];
     if (!r.owner && own.length === 1) r.owner = own[0];
@@ -149,11 +178,282 @@ function msCompute(rows, inst, job, today) {
   const leaves = out.filter((r) => !r.head || !r.kids);
   const W = leaves.reduce((t, r) => t + leafW(r), 0);
   const pct = leaves.length ? Math.round(leaves.reduce((t, r) => t + leafW(r) * msPct(r.pct), 0) / (W || 1)) : 0;
+  /* % น้ำหนักต่อทั้งโครงการ (รวม 100) — ใช้ในตาราง/Excel/S-Curve */
+  out.forEach((r) => { r.wp = W ? (100 * (r.wt || 0)) / W : 0; });
   let lo = Infinity, hi = -Infinity;
   out.forEach((r) => [r.planStart, r.planEnd].forEach((v) => { const n = msDay(v); if (n != null) { lo = Math.min(lo, n); hi = Math.max(hi, n); } }));
   const cnt = { done: 0, doing: 0, late: 0, todo: 0 };
   leaves.forEach((r) => { cnt[r.st] += 1; });
-  return { rows: out, pct, lo: isFinite(lo) ? lo : null, hi: isFinite(hi) ? hi : null, late: cnt.late, cnt, leaves: leaves.length };
+  return { rows: out, pct, lo: isFinite(lo) ? lo : null, hi: isFinite(hi) ? hi : null, late: cnt.late, cnt, leaves: leaves.length, weighted: hasW };
+}
+
+/* ── S-Curve รายสัปดาห์ (จันทร์–อาทิตย์ เริ่มสัปดาห์ที่โครงการเริ่ม) ──
+   แผน: น้ำหนัก % ของแต่ละงานกระจายเท่า ๆ กันทุกวันในช่วงแผน → สะสม · งานที่ยังไม่ใส่วันไม่อยู่ในเส้นแผน
+   จริง: ภาพรวม % ที่จดไว้รายวัน (masterScheduleHist) ค่าสุดท้ายภายในสัปดาห์นั้น · ก่อนเริ่มจดใช้ค่าประมาณจากรายงานประจำวัน (est)
+   สัปดาห์ที่ยังไม่ถึงไม่มีค่าจริง */
+function msCurve(C, today, hist, est) {
+  if (C.lo == null) return null;
+  const mon0 = (d) => d - ((new Date(d * 86400000).getUTCDay() + 6) % 7);
+  const lo = mon0(C.lo), hi = mon0(C.hi) + 6, td = msDay(today);
+  const inc = new Float64Array(hi - lo + 1);
+  C.rows.forEach((r) => {
+    if (r.head && r.kids) return;
+    const a = msDay(r.planStart), b = msDay(r.planEnd || r.planStart);
+    if (a == null || !r.wp) return;
+    const n = b - a + 1;
+    for (let d = a; d <= b; d++) inc[d - lo] += r.wp / n;
+  });
+  const pts = [];
+  Object.keys(est || {}).forEach((k) => pts.push([msDay(k), est[k], 1]));
+  const first = Object.keys(hist || {}).sort()[0];
+  const f0 = first ? msDay(first) : Infinity;
+  for (let i = pts.length - 1; i >= 0; i--) if (pts[i][0] >= f0) pts.splice(i, 1);
+  Object.keys(hist || {}).forEach((k) => { const v = +hist[k]; if (!isNaN(v)) pts.push([msDay(k), v, 0]); });
+  pts.sort((x, y) => x[0] - y[0]);
+  const weeks = [];
+  let acc = 0;
+  for (let w = lo, i = 1; w <= hi; w += 7, i++) {
+    let p = 0;
+    for (let d = w; d < w + 7; d++) p += inc[d - lo] || 0;
+    acc += p;
+    let act = null, isEst = false;
+    if (td == null || w <= td) {
+      const end = Math.min(w + 6, td == null ? w + 6 : td);
+      for (let j = 0; j < pts.length && pts[j][0] <= end; j++) { act = pts[j][1]; isEst = !!pts[j][2]; }
+      if (act == null && w + 6 < (pts.length ? pts[0][0] : -Infinity)) act = 0;
+    }
+    weeks.push({ d: w, n: i, plan: p, planAcc: Math.min(100, acc), act, est: isEst });
+  }
+  const tdW = td == null ? null : weeks.find((w) => td >= w.d && td <= w.d + 6) || null;
+  return { weeks, lo, hi, td, planNow: tdW ? tdW.planAcc : td != null && td > hi ? 100 : 0 };
+}
+
+/* ── กราฟ S-Curve เป็นสตริง SVG — P = สี { plan, act, grid, text, today, bar } ── */
+function msCurveSVG(cv, W, H, P) {
+  if (!cv || !cv.weeks.length) return "";
+  const L = 44, R = 14, T = 16, B = 40, w = W - L - R, h = H - T - B, n = cv.weeks.length;
+  const X = (i) => L + (n === 1 ? w / 2 : (i * w) / (n - 1)), Y = (v) => T + h - (Math.max(0, Math.min(100, v)) / 100) * h;
+  let g = "";
+  for (let v = 0; v <= 100; v += 20) g += '<line x1="' + L + '" x2="' + (L + w) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="' + P.grid + '" stroke-width="1"/>' +
+    '<text x="' + (L - 6) + '" y="' + (Y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="' + P.text + '">' + v + "%</text>";
+  const bw = Math.max(2, Math.min(18, (w / n) * 0.55)), mx = Math.max(1, ...cv.weeks.map((x) => x.plan));
+  cv.weeks.forEach((x, i) => { if (x.plan > 0) { const bh = (x.plan / Math.max(mx, 10)) * h * 0.35; g += '<rect x="' + (X(i) - bw / 2) + '" y="' + (T + h - bh) + '" width="' + bw + '" height="' + bh + '" fill="' + P.bar + '" rx="1.5"/>'; } });
+  const step = Math.max(1, Math.ceil(n / 16));
+  cv.weeks.forEach((x, i) => {
+    if (i % step && i !== n - 1) return;
+    const dt = new Date(x.d * 86400000);
+    g += '<text x="' + X(i) + '" y="' + (T + h + 14) + '" text-anchor="middle" font-size="9.5" fill="' + P.text + '">W' + x.n + "</text>" +
+      '<text x="' + X(i) + '" y="' + (T + h + 26) + '" text-anchor="middle" font-size="8.5" fill="' + P.text + '" opacity=".75">' + dt.getUTCDate() + " " + MS_MON[dt.getUTCMonth()] + "</text>";
+  });
+  if (cv.td != null && cv.td >= cv.lo && cv.td <= cv.hi) {
+    const tx = L + ((cv.td - cv.lo) / Math.max(1, cv.weeks[n - 1].d + 6 - cv.lo)) * w;
+    g += '<line x1="' + tx + '" x2="' + tx + '" y1="' + T + '" y2="' + (T + h) + '" stroke="' + P.today + '" stroke-width="1.5" stroke-dasharray="4 3"/>' +
+      '<text x="' + (tx + 4) + '" y="' + (T + 10) + '" font-size="9.5" fill="' + P.today + '" font-weight="700">วันนี้</text>';
+  }
+  g += '<polyline fill="none" stroke="' + P.plan + '" stroke-width="2.4" stroke-linejoin="round" points="' + cv.weeks.map((x, i) => X(i).toFixed(1) + "," + Y(x.planAcc).toFixed(1)).join(" ") + '"/>';
+  const act = cv.weeks.map((x, i) => (x.act == null ? null : [X(i), Y(x.act), x.est]));
+  let seg = [];
+  const flush = () => { if (seg.length > 1) g += '<polyline fill="none" stroke="' + P.act + '" stroke-width="2.4" stroke-linejoin="round" points="' + seg.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ") + '"/>'; seg = []; };
+  act.forEach((p) => { if (p) seg.push(p); else flush(); });
+  flush();
+  act.forEach((p) => { if (p) g += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="' + (p[2] ? "#fff" : P.act) + '" stroke="' + P.act + '" stroke-width="1.5"/>'; });
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="100%" style="display:block;font-family:inherit">' + g + "</svg>";
+}
+const MS_CV_LIGHT = { plan: "#1B9B75", act: "#2563EB", grid: "#E3E9E5", text: "#5A6B62", today: "#DC2626", bar: "#CFEDE2" };
+const MS_CV_UI = { plan: "var(--primary)", act: "#3B82F6", grid: "var(--divider)", text: "var(--text-3)", today: "var(--tint-red-tx)", bar: "color-mix(in srgb, var(--primary) 22%, transparent)" };
+
+function MsSCurve({ cv, C, narrow }) {
+  if (!cv) return null;
+  const now = cv.weeks.filter((x) => x.act != null).slice(-1)[0];
+  const diff = now ? Math.round((now.act - cv.planNow) * 10) / 10 : null;
+  const box = (lab, v, tx) => (
+    <div style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "7px 11px", minWidth: 96 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{lab}</div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 17, fontWeight: 800, color: tx || "var(--text-1)" }}>{v}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: narrow ? "10px 10px" : "12px 14px", marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+        <b style={{ fontSize: 13.5, color: "var(--text-1)" }}>S-Curve</b>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>% สะสมรายสัปดาห์ · แผนจากน้ำหนัก × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>
+        <span style={{ flex: 1 }} />
+        {box("แผน ณ วันนี้", Math.round(cv.planNow * 10) / 10 + "%")}
+        {box("ทำได้จริง", C.pct + "%")}
+        {diff != null && box("ต่างจากแผน", (diff > 0 ? "+" : "") + diff + "%", diff < 0 ? "var(--tint-red-tx)" : "var(--tint-ok-tx)")}
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: narrow ? 520 : 0 }} dangerouslySetInnerHTML={{ __html: msCurveSVG(cv, 1000, narrow ? 300 : 260, MS_CV_UI) }} />
+      </div>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>
+        <span><span style={{ display: "inline-block", width: 18, height: 3, background: "var(--primary)", verticalAlign: "middle", marginRight: 5 }} />แผนสะสม</span>
+        <span><span style={{ display: "inline-block", width: 18, height: 3, background: "#3B82F6", verticalAlign: "middle", marginRight: 5 }} />ทำได้จริงสะสม</span>
+        <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, border: "1.5px solid #3B82F6", verticalAlign: "middle", marginRight: 5 }} />ประมาณจากรายงานประจำวัน (ก่อนเริ่มจด)</span>
+        <span><span style={{ display: "inline-block", width: 10, height: 10, background: "color-mix(in srgb, var(--primary) 22%, transparent)", verticalAlign: "middle", marginRight: 5 }} />แผนรายสัปดาห์</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── ส่งออก Excel: ชีต Master Schedule (แบบไฟล์ EPC S-Curve) + ชีต S-Curve มีกราฟเส้นของ Excel จริง ──
+   xlsx-js-style เขียนกราฟไม่ได้ → เขียนสมุดก่อน แล้วเปิด zip (XLSX.CFB) เติม drawing + chart เอง */
+function msExportXlsx(job, C, cv, today) {
+  const X = window.XLSX;
+  if (!X || !X.CFB) { window.askConfirm && window.askConfirm({ title: "ส่งออก Excel ไม่ได้", body: "ไลบรารี Excel ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง", ok: "ตกลง" }); return; }
+  const serial = (iso) => { const d = msDay(iso); return d == null ? null : d + 25569; };
+  const bd = { top: { style: "thin", color: { rgb: "D5DDD8" } }, bottom: { style: "thin", color: { rgb: "D5DDD8" } }, left: { style: "thin", color: { rgb: "D5DDD8" } }, right: { style: "thin", color: { rgb: "D5DDD8" } } };
+  const font = (o) => Object.assign({ name: "Tahoma", sz: 10 }, o || {});
+  const sty = (o) => Object.assign({ font: font(), border: bd, alignment: { vertical: "center" } }, o || {});
+  const HDR = sty({ font: font({ bold: true, color: { rgb: "FFFFFF" } }), fill: { fgColor: { rgb: "1B5E4A" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true } });
+  const HEAD = sty({ font: font({ bold: true }), fill: { fgColor: { rgb: "E6F2EC" } } });
+  const weeks = cv ? cv.weeks : [];
+  const ws = {}, merges = [];
+  const put = (r, c, v, st, t, z) => { const a = X.utils.encode_cell({ r, c }); ws[a] = { v: v == null ? "" : v, t: t || (typeof v === "number" ? "n" : "s"), s: st }; if (z) ws[a].z = z; };
+  const name = [job.code, job.name].filter(Boolean).join(" · ");
+  put(0, 0, "MASTER SCHEDULE — EPC S-Curve", sty({ font: font({ bold: true, sz: 16 }), border: {} }));
+  put(1, 0, "โครงการ: " + name + (job.kw ? " · " + job.kw + " kWp" : ""), sty({ font: font({ sz: 11 }), border: {} }));
+  put(2, 0, "ข้อมูล ณ " + msTH(today, true) + " · ทำได้จริง " + C.pct + "% · แผน ณ วันนี้ " + (cv ? Math.round(cv.planNow * 10) / 10 : 0) + "%", sty({ border: {} }));
+  const H0 = 4, W0 = 9;   // แถวหัวตาราง · คอลัมน์สัปดาห์แรก
+  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "% Progress", "สถานะ"].forEach((t, c) => { put(H0, c, t, HDR); put(H0 + 1, c, "", HDR); merges.push({ s: { r: H0, c }, e: { r: H0 + 1, c } }); });
+  let mStart = 0;
+  weeks.forEach((w, i) => {
+    const dt = new Date(w.d * 86400000);
+    put(H0 + 1, W0 + i, "W" + w.n, HDR);
+    const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
+    const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
+    if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
+      if (i) merges.push({ s: { r: H0, c: W0 + mStart }, e: { r: H0, c: W0 + i - 1 } });
+      mStart = i;
+      put(H0, W0 + i, m, HDR);
+    } else put(H0, W0 + i, "", HDR);
+  });
+  if (weeks.length) merges.push({ s: { r: H0, c: W0 + mStart }, e: { r: H0, c: W0 + weeks.length - 1 } });
+  const stTx = { done: "เสร็จแล้ว", doing: "กำลังทำ", late: "ล่าช้า", todo: "ยังไม่เริ่ม" };
+  let r = H0 + 2;
+  C.rows.forEach((row) => {
+    const head = row.head && row.kids, st = head ? HEAD : sty();
+    put(r, 0, row.no, st);
+    put(r, 1, (head ? "" : "   ") + row.th, st);
+    put(r, 2, row.owner || "", st);
+    put(r, 3, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0.00");
+    const du = msDur(row.planStart, row.planEnd);
+    put(r, 4, du || "", Object.assign({}, st, { alignment: { horizontal: "right" } }));
+    const a = serial(row.planStart), b = serial(row.planEnd || row.planStart);
+    put(r, 5, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
+    put(r, 6, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
+    put(r, 7, msPct(row.pct) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0%");
+    put(r, 8, stTx[row.st] || "", st);
+    const ps = msDay(row.planStart), pe = msDay(row.planEnd || row.planStart);
+    weeks.forEach((w, i) => {
+      let v = "";
+      let fill = null;
+      if (ps != null) {
+        const ov = Math.max(0, Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1);
+        if (ov > 0) { fill = head ? "9FD6C1" : "BFE6D6"; if (!head) v = Math.round((ov / (pe - ps + 1)) * 1000) / 10; }
+      }
+      put(r, W0 + i, v, sty({ font: font({ sz: 8 }), alignment: { horizontal: "center" }, fill: fill ? { fgColor: { rgb: fill } } : undefined }));
+    });
+    r++;
+  });
+  const sumRow = (label, val, z, rgb) => {
+    put(r, 0, label, sty({ font: font({ bold: true }), fill: { fgColor: { rgb } } }));
+    for (let c = 1; c < W0; c++) put(r, c, "", sty({ fill: { fgColor: { rgb } } }));
+    merges.push({ s: { r, c: 0 }, e: { r, c: W0 - 1 } });
+    weeks.forEach((w, i) => { const v = val(w); put(r, W0 + i, v == null ? "" : Math.round(v * 100) / 100, sty({ font: font({ sz: 8, bold: true }), alignment: { horizontal: "center" }, fill: { fgColor: { rgb } } }), v == null ? "s" : "n", z); });
+    r++;
+  };
+  r++;
+  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", (w) => w.plan, "0.00", "F3F6F4");
+  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", (w) => w.planAcc, "0.00", "E6F2EC");
+  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", (w) => w.act, "0.00", "E3ECFB");
+  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", (w) => (w.act == null ? null : w.act - w.planAcc), "0.00", "FBEDE3");
+  ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 9) } });
+  ws["!merges"] = merges;
+  ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 16 }, { wch: 9 }, { wch: 6 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 9 }, { wch: 10 }].concat(weeks.map(() => ({ wch: 5.5 })));
+  ws["!freeze"] = { xSplit: 2, ySplit: H0 + 2 };
+  ws["!views"] = [{ state: "frozen", xSplit: 2, ySplit: H0 + 2 }];
+
+  /* ชีต S-Curve: ตาราง + กราฟ */
+  const cs = {};
+  const cput = (rr, c, v, st, t, z) => { const a = X.utils.encode_cell({ r: rr, c }); cs[a] = { v: v == null ? "" : v, t: t || (typeof v === "number" ? "n" : "s"), s: st }; if (z) cs[a].z = z; };
+  cput(0, 0, "S-Curve — " + name, sty({ font: font({ bold: true, sz: 13 }), border: {} }));
+  ["สัปดาห์", "เริ่มสัปดาห์", "แผนรายสัปดาห์ %", "แผนสะสม %", "จริงสะสม %", "ต่างจากแผน %"].forEach((t, c) => cput(1, c, t, HDR));
+  weeks.forEach((w, i) => {
+    cput(2 + i, 0, "W" + w.n, sty());
+    cput(2 + i, 1, w.d + 25569, sty(), "n", "d/m/yyyy");
+    cput(2 + i, 2, Math.round(w.plan * 100) / 100, sty(), "n", "0.00");
+    cput(2 + i, 3, Math.round(w.planAcc * 100) / 100, sty(), "n", "0.00");
+    /* สัปดาห์ที่ยังไม่ถึง: ไม่สร้างเซลล์เลย — เซลล์ข้อความว่าง Excel วาดเป็น 0 (กราฟดิ่งลงพื้น) */
+    if (w.act != null) cput(2 + i, 4, Math.round(w.act * 100) / 100, sty(), "n", "0.00");
+    if (w.act != null) cput(2 + i, 5, Math.round((w.act - w.planAcc) * 100) / 100, sty(), "n", "0.00");
+  });
+  const last = 2 + Math.max(0, weeks.length - 1);
+  cs["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: last, c: 5 } });
+  cs["!cols"] = [{ wch: 9 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 13 }];
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "Master Schedule");
+  X.utils.book_append_sheet(wb, cs, "S-Curve");
+  const buf = X.write(wb, { type: "array", bookType: "xlsx" });
+  let out = buf;
+  if (weeks.length) {
+    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1); } catch (e) { console.warn("S-Curve chart", e); }
+  }
+  const fn = (window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "")) + ".xlsx";
+  const url = URL.createObjectURL(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a"); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+/* เติมกราฟเส้น S-Curve ลงชีตที่ 2 (sheet2.xml) — rows = แถวข้อมูลสุดท้าย (1-based) */
+function msAddChart(CFB, bytes, weeks, lastRow) {
+  const z = CFB.read(bytes, { type: "array" });
+  const enc = (t) => new TextEncoder().encode(t), dec = (u) => new TextDecoder().decode(u);
+  const get = (p) => { const e = CFB.find(z, p); return e ? dec(e.content) : null; };
+  const set = (p, t) => { const e = CFB.find(z, p); if (e) e.content = enc(t); else CFB.utils.cfb_add(z, p, enc(t)); };
+  const xe = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const N = weeks.length, r0 = 3, r1 = lastRow;
+  const cat = "<c:cat><c:strRef><c:f>'S-Curve'!$A$" + r0 + ":$A$" + r1 + "</c:f><c:strCache><c:ptCount val=\"" + N + "\"/>" +
+    weeks.map((w, i) => '<c:pt idx="' + i + '"><c:v>W' + w.n + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
+  const ser = (idx, col, title, rgb, vals, dash) => "<c:ser><c:idx val=\"" + idx + "\"/><c:order val=\"" + idx + "\"/><c:tx><c:v>" + xe(title) + "</c:v></c:tx>" +
+    '<c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill>' + (dash ? '<a:prstDash val="dash"/>' : "") + '<a:round/></a:ln></c:spPr>' +
+    (idx ? '<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill></c:spPr></c:marker>' : '<c:marker><c:symbol val="none"/></c:marker>') +
+    cat + "<c:val><c:numRef><c:f>'S-Curve'!$" + col + "$" + r0 + ":$" + col + "$" + r1 + "</c:f><c:numCache><c:formatCode>0.00</c:formatCode><c:ptCount val=\"" + N + "\"/>" +
+    vals.map((v, i) => (v == null ? "" : '<c:pt idx="' + i + '"><c:v>' + (Math.round(v * 100) / 100) + "</c:v></c:pt>")).join("") + '</c:numCache></c:numRef></c:val><c:smooth val="0"/></c:ser>';
+  const chart = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<c:roundedCorners val="0"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:p><a:pPr><a:defRPr sz="1400" b="1"/></a:pPr><a:r><a:rPr lang="th-TH" sz="1400" b="1"/><a:t>EPC S-Curve</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>' +
+    '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/><c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' +
+    ser(0, "D", "แผนสะสม (Plan)", "1B9B75", weeks.map((w) => w.planAcc)) + ser(1, "E", "ทำได้จริงสะสม (Actual)", "2563EB", weeks.map((w) => w.act)) +
+    '<c:marker val="1"/><c:axId val="50010001"/><c:axId val="50010002"/></c:lineChart>' +
+    '<c:catAx><c:axId val="50010001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' +
+    '<c:valAx><c:axId val="50010002"/><c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr><a:ln><a:solidFill><a:srgbClr val="E3E9E5"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="0&quot;%&quot;" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/><c:majorUnit val="20"/></c:valAx>' +
+    '</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
+  const drawing = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+    '<xdr:twoCellAnchor><xdr:from><xdr:col>7</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+    '<xdr:to><xdr:col>22</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>28</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' +
+    '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="S-Curve"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>' +
+    '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">' +
+    '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>' +
+    '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>';
+  set("/xl/charts/chart1.xml", chart);
+  set("/xl/drawings/drawing1.xml", drawing);
+  set("/xl/drawings/_rels/drawing1.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>');
+  const relP = "/xl/worksheets/_rels/sheet2.xml.rels";
+  let rel = get(relP);
+  const drRel = '<Relationship Id="rIdMsDr1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>';
+  rel = rel ? rel.replace("</Relationships>", drRel + "</Relationships>")
+    : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + drRel + "</Relationships>";
+  set(relP, rel);
+  let sh = get("/xl/worksheets/sheet2.xml");
+  if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+  sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
+  set("/xl/worksheets/sheet2.xml", sh);
+  let ct = get("/[Content_Types].xml");
+  ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
+    '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>');
+  set("/[Content_Types].xml", ct);
+  return CFB.write(z, { fileType: "zip", type: "array" });
 }
 
 /* จอแคบ — ฟังการเปลี่ยนขนาด (หมุนจอ/ลากหน้าต่าง) แบบ useIsMobile ของ app.jsx ที่โหลดทีหลังไฟล์นี้ */
@@ -178,10 +478,35 @@ function useMasterSchedule(jobId) {
     const clean = (rows || []).filter((r) => !r.ro).map((r) => ({
       id: r.id || msId(), th: String(r.th || ""), head: !!r.head, link: r.link || "", owner: String(r.owner || ""),
       planStart: r.planStart || "", planEnd: r.planEnd || "", pct: msPct(r.pct),
+      w: msW(r.w) == null ? "" : msW(r.w), dur: Math.max(0, Math.round(+r.dur || 0)) || "",
     }));
     return window.FBDB.ref("masterSchedule/" + jobId).set({ rows: clean, updatedAt: new Date().toISOString(), byName: (user && user.name) || "" });
   }, [jobId]);
   return { data, rows: data && data.rows ? data.rows : null, loading: data === undefined, save };
+}
+
+/* ── ภาพรวม % รายวันสำหรับเส้น "จริง" ของ S-Curve — masterScheduleHist/{jobId}/{YYYY-MM-DD} = % ──
+   (ผู้ใช้เลือก 17 พ.ย. 2026 "เก็บภาพรวมรายวันอัตโนมัติ") จดเมื่อมีคนเปิดใบงาน/แผนแล้ว % วันนี้ไม่ตรงกับที่จดไว้ */
+function useMsHist(jobId) {
+  const [h, setH] = React.useState(undefined);
+  React.useEffect(() => {
+    if (!jobId || !window.FBDB) { setH(null); return; }
+    const ref = window.FBDB.ref("masterScheduleHist/" + jobId);
+    const fn = ref.on("value", (x) => setH(x.val() || {}), () => setH(null));
+    return () => ref.off("value", fn);
+  }, [jobId]);
+  return h;
+}
+/* ค่าประมาณย้อนหลังจากรายงานประจำวัน (ก่อนเริ่มจด) — ขั้นงานติดตั้งใช้ตารางของใบวันนั้น งานอื่น min(% ตอนนี้, % ตามแผน) */
+function msEstHist(rows, daily, job, crew) {
+  const out = {};
+  if (!daily || !daily.byDate) return out;
+  Object.keys(daily.byDate).forEach((d) => {
+    const rec = daily.byDate[d];
+    if (!rec || !rec.steps || !rec.steps.length) return;
+    out[d] = msCompute(rows, msInstallRowsOf(rec.steps, crew), job, d, d).pct;
+  });
+  return out;
 }
 
 /* ข้อมูลกลางของหน้าต่าง/การ์ด — แผน + ขั้นงานติดตั้งจากรายงานประจำวัน */
@@ -249,7 +574,7 @@ const MsPill = ({ st, small }) => {
 
 /* ── กราฟแกนต์ — แถบเดียวต่องาน (ช่วงแผน) ระบายทับตาม % แบบไฟล์ตัวอย่าง · ตารางซ้ายค้างไว้ เลื่อนแนวนอนได้ ──
    compact = การ์ดในใบงาน (หัวข้อใหญ่อย่างเดียว ไม่เลื่อน) */
-function MsGantt({ C, today, compact, narrow, mid }) {
+function MsGantt({ C, today, compact, narrow, mid, wcol }) {
   if (C.lo == null) {
     return <div style={{ padding: "18px 4px", fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีวันในแผน — กด "แก้แผนงาน" แล้วใส่วันเริ่ม/จบ</div>;
   }
@@ -260,8 +585,9 @@ function MsGantt({ C, today, compact, narrow, mid }) {
   const full = !compact && !narrow;          // มีคอลัมน์ ID · แถบ % · สถานะ
   const dates = full && !mid;                // จอกว้างพอค่อยโชว์คอลัมน์เริ่ม/จบ (จอกลางดูจากแกนต์แทน)
   /* คอลัมน์ซ้าย: ID · งาน(+ผู้รับผิดชอบ) · เริ่ม · จบ · % · สถานะ (จอกลางตัดเริ่ม/จบ · จอแคบเหลือ งาน + %) */
-  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : mid ? "38px minmax(150px,1fr) 74px 78px" : "38px minmax(180px,1fr) 62px 62px 74px 78px";
-  const labW = compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 400 : 560;
+  const wc = !!wcol && !compact && !narrow;      // คอลัมน์ % น้ำหนัก (แผนแบบไฟล์ S-Curve)
+  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 78px";
+  const labW = (compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 400 : 560) + (wc ? 50 : 0);
   const rh = compact ? 20 : 34;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
@@ -275,7 +601,7 @@ function MsGantt({ C, today, compact, narrow, mid }) {
         <div style={{ position: "sticky", left: 0, zIndex: 3, background: "var(--surface)", height: headH, display: "grid", gridTemplateColumns: cols,
           alignItems: "end", gap: 6, paddingBottom: 4, paddingRight: 8, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {!compact && (narrow ? <><span style={thS}>งาน</span><span style={Object.assign({}, thS, { textAlign: "right" })}>%</span></>
-            : <><span style={thS}>ID</span><span style={thS}>งาน · ผู้รับผิดชอบ</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
+            : <><span style={thS}>ID</span><span style={thS}>งาน · ผู้รับผิดชอบ</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
         </div>
         <div style={{ position: "relative", height: headH, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {A.months.map((m) => (
@@ -314,6 +640,7 @@ function MsGantt({ C, today, compact, narrow, mid }) {
                 </span>
                 {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planStart)}</span>}
                 {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planEnd || r.planStart)}</span>}
+                {wc && <span style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right", fontFamily: "var(--mono)", fontWeight: r.head ? 700 : 400 }}>{r.wp ? Math.round(r.wp * 10) / 10 : ""}</span>}
                 {full ? (
                   <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ flex: 1, height: 6, borderRadius: 3, background: MS_TRACK, overflow: "hidden" }}><span style={{ display: "block", width: p + "%", height: "100%", background: st.bar }} /></span>
@@ -351,7 +678,8 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
     if (j !== i) return r;
     const up = { [k]: v };
     if (k === "pct") up.pct = v === "" ? "" : msPct(v);
-    if (k === "planStart" && v && !r.planEnd) up.planEnd = v;
+    if (k === "w") up.w = v === "" ? "" : String(v).replace(/[^0-9.]/g, "").slice(0, 5);
+    if (k === "planStart" && v && !r.planEnd) up.planEnd = +r.dur > 0 ? msIso(msDay(v) + Math.round(+r.dur) - 1) : v;   // แม่แบบมีจำนวนวันมาให้
     if (k === "planStart" && v && r.planEnd && r.planStart) { const d = msDur(r.planStart, r.planEnd); up.planEnd = msIso(msDay(v) + d - 1); }   // เลื่อนทั้งก้อน คงจำนวนวัน
     if (k === "planStart" || k === "planEnd") up._dur = undefined;
     /* ช่อง "วัน" เก็บข้อความที่พิมพ์ไว้ใน _dur (ลบให้ว่างแล้วพิมพ์ใหม่ได้) · บันทึกไม่เก็บ _dur */
@@ -363,7 +691,9 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
   const addSub = (i) => setRows((L) => { let j = i + 1; while (j < L.length && !L[j].head) j++; const a = L.slice(); a.splice(j, 0, msRow("", false)); return a; });
   const inp = { padding: "7px 9px", fontSize: 12.5, border: "none", borderRadius: "var(--r-tile)", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
   const dIn = Object.assign({}, inp, { fontFamily: "var(--mono)", fontSize: 12 });
-  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(110px,.8fr) 132px 132px 58px 62px 88px";
+  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(110px,.8fr) 132px 132px 58px 62px 62px 88px";
+  const wSum = rows.filter((r) => !r.head || (r.link === "install" && !inst.length)).reduce((t, r) => t + (msW(r.w) || 0), 0)
+    + inst.filter((r) => !r.head).reduce((t, r) => t + (msW(r.w) || 0), 0);
   const lab = (t) => narrow ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{t}</span> : null;
   const iconBtn = (ic, fn, title, danger, dis) => (
     <button onClick={fn} title={title} aria-label={title} disabled={dis} style={{ width: 26, height: 26, border: "none", borderRadius: 8, background: "transparent", cursor: dis ? "default" : "pointer",
@@ -377,9 +707,13 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
       <datalist id="ms-owners">{owners.map((o) => <option key={o} value={o} />)}</datalist>
       {!narrow && (
         <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, padding: "0 12px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-          <span>งาน</span><span>ผู้รับผิดชอบ</span><span>เริ่ม</span><span>จบ</span><span>วัน</span><span>%</span><span />
+          <span>งาน</span><span>ผู้รับผิดชอบ</span><span>เริ่ม</span><span>จบ</span><span>วัน</span><span title="% น้ำหนักต่อทั้งโครงการ (รวม 100)">น้ำหนัก</span><span>%</span><span />
         </div>
       )}
+      <div style={{ fontSize: 11.5, color: Math.abs(wSum - 100) < 0.01 || !wSum ? "var(--text-3)" : "var(--tint-amber-tx)", padding: "0 12px" }}>
+        น้ำหนักรวม <b style={{ fontFamily: "var(--mono)" }}>{Math.round(wSum * 100) / 100}%</b>{wSum && Math.abs(wSum - 100) >= 0.01 ? " — ควรรวมได้ 100 (S-Curve คิดเทียบผลรวมจริง)" : ""}
+        {!wSum ? " — ยังไม่ใส่น้ำหนัก ระบบถ่วงตามจำนวนวัน" : ""}
+      </div>
       {rows.map((r, i) => {
         const isInst = r.head && r.link === "install";
         const leaf = !r.head || (isInst && !inst.length);
@@ -403,12 +737,15 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
                     <input type="number" min={1} value={r._dur != null ? r._dur : msDur(r.planStart, r.planEnd) || ""} disabled={!r.planStart}
                       onChange={(e) => set(i, "dur", e.target.value)} onBlur={() => set(i, "_dur", undefined)}
                       style={Object.assign({}, inp, { textAlign: "right", fontFamily: "var(--mono)" })} /></label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>{lab("น้ำหนัก %")}
+                    <input inputMode="decimal" value={r.w == null ? "" : r.w} onChange={(e) => set(i, "w", e.target.value)} placeholder="—"
+                      style={Object.assign({}, inp, { textAlign: "right", fontFamily: "var(--mono)" })} /></label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>{lab("ทำไปแล้ว %")}
                     <input type="number" min={0} max={100} step={5} value={r.pct === "" ? "" : r.pct} onChange={(e) => set(i, "pct", e.target.value)}
                       style={Object.assign({}, inp, { textAlign: "right", fontFamily: "var(--mono)" })} /></label>
                 </React.Fragment>
               ) : (
-                <span style={Object.assign({ gridColumn: narrow ? "span 2" : "2 / span 5", fontSize: 11.5, color: "var(--text-3)" })}>
+                <span style={Object.assign({ gridColumn: narrow ? "span 2" : "2 / span 6", fontSize: 11.5, color: "var(--text-3)" })}>
                   {isInst ? "ขั้นย่อยใช้ตารางขั้นงานชุดเดียวกับรายงานประจำวัน — แก้ได้ที่ปุ่ม \"แก้ขั้นงานติดตั้ง\" ด้านล่าง" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"}
                 </span>
               )}
@@ -427,6 +764,18 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
                 </div>
                 <window.DrStepTable steps={instSteps} editable plan dates rename today={today}
                   onReset={window.drWhaSteps} onChange={(v) => setInstSteps(v)} />
+                {/* น้ำหนัก % ของขั้นย่อย (ต่อทั้งโครงการ) — ตารางขั้นงานรายวันไม่มีช่องนี้สำหรับงานโครงการ */}
+                <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>น้ำหนัก % ต่อทั้งโครงการ (ขั้นย่อย)</div>
+                <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: "4px 14px", marginTop: 4 }}>
+                  {instSteps.map((r, k) => r.head === false && (
+                    <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-2)" }}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.th || "—"}</span>
+                      <input inputMode="decimal" value={r.w == null ? "" : r.w} placeholder="—"
+                        onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, "").slice(0, 5); setInstSteps(instSteps.map((x, j) => (j === k ? Object.assign({}, x, { w: v }) : x))); }}
+                        style={Object.assign({}, inp, { width: 64, textAlign: "right", fontFamily: "var(--mono)", padding: "5px 7px" })} />
+                    </label>
+                  ))}
+                </div>
               </div>
             ) : (
               <button type="button" onClick={onInstEdit}
@@ -436,11 +785,13 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
               </button>
             ))}
             {isInst && !instSteps && inst.map((x) => (
-              <div key={x.id} style={{ display: "grid", gridTemplateColumns: narrow ? "1fr auto" : "minmax(160px,1fr) 1fr 64px", gap: 8, alignItems: "center",
-                padding: "6px 12px", marginLeft: narrow ? 0 : 18, borderRadius: "var(--r-tile)", background: "var(--surface2)", fontSize: 12, color: "var(--text-2)" }}>
+              <div key={x.id} style={{ display: "grid", gridTemplateColumns: narrow ? "1fr auto" : "minmax(160px,1fr) 1fr 56px 64px", gap: 8, alignItems: "center",
+                padding: "6px 12px", marginLeft: narrow ? 0 : x.head ? 18 : 32, borderRadius: "var(--r-tile)", background: "var(--surface2)", fontSize: 12,
+                color: "var(--text-2)", fontWeight: x.head ? 800 : 400 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.th}</span>
-                {!narrow && <span style={{ color: "var(--text-3)", fontSize: 11.5 }}>{msSpanTH(x.planStart, x.planEnd) || "ยังไม่ใส่วันแผน"}</span>}
-                <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 }}>{x.pct}%</span>
+                {!narrow && <span style={{ color: "var(--text-3)", fontSize: 11.5, fontWeight: 400 }}>{x.head ? "" : msSpanTH(x.planStart, x.planEnd) || "ยังไม่ใส่วันแผน"}</span>}
+                {!narrow && <span style={{ textAlign: "right", fontFamily: "var(--mono)", color: "var(--text-3)" }}>{!x.head && msW(x.w) != null ? msW(x.w) + "%" : ""}</span>}
+                <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 }}>{x.head ? "" : x.pct + "%"}</span>
               </div>
             ))}
           </React.Fragment>
@@ -451,7 +802,7 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
 }
 
 /* ── เอกสารพิมพ์ A3 แนวนอน — แบบไฟล์ตัวอย่าง: หัวสรุป + ตาราง + แกนต์รายวัน (HTML ล้วน ไม่พึ่ง CSS ของแอป) ── */
-function msPrintHTML(job, C, today) {
+function msPrintHTML(job, C, today, cv) {
   const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const A = msAxis(C, today, 0);
   const X = (d) => A.X(d).toFixed(3), W = (a, b) => A.W(a, b).toFixed(3);
@@ -466,7 +817,7 @@ function msPrintHTML(job, C, today) {
     const bar = ps != null ? '<b class="bar ' + (r.head ? "h " : "") + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
     return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) +
       '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) +
-      '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p +
+      '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="u">' + (r.wp ? (Math.round(r.wp * 10) / 10) : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p +
       '%</td><td class="st"><span class="pill ' + stCls[r.st] + '">' + stTx[r.st] + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
   let hd = '<div class="gc mh">' + A.months.map((m) => '<span style="left:' + X(m.d) + '%"' + (m.d !== A.lo ? ' class="b"' : "") + ">" + m.th + "</span>").join("") + "</div>" +
@@ -479,7 +830,7 @@ function msPrintHTML(job, C, today) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th>' +
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="u">%W</th>' +
     '<th class="p">ความคืบหน้า</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today), days = C.lo != null ? C.hi - C.lo + 1 : null, left = C.hi != null && td != null ? C.hi - td : null;
@@ -518,7 +869,9 @@ function msPrintHTML(job, C, today) {
     "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" +
     "b.bar{position:absolute;top:4px;height:12px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:6px;height:10px}" +
     "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" +
-    ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}";
+    ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" +
+    ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" +
+    ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" +
     '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" +
@@ -530,7 +883,13 @@ function msPrintHTML(job, C, today) {
     '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" +
     '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' +
     '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' +
-    '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div></body></html>";
+    '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" +
+    (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' +
+      '<span class="scv">แผน ณ วันนี้ <b>' + (Math.round(cv.planNow * 10) / 10) + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" +
+      msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) +
+      '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' +
+      '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") +
+    "</body></html>";
 }
 
 /* ── หน้าต่าง Master Schedule ── */
@@ -552,6 +911,9 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
   const [print, setPrint] = React.useState(null);
   const base = React.useMemo(() => ms.rows || msTemplate(), [ms.rows]);
   const C = React.useMemo(() => msCompute(edit || base, inst, job, today), [edit, base, inst, job, today]);
+  const hist = useMsHist(job && job.id);
+  const est = React.useMemo(() => msEstHist(edit || base, daily, job, crew), [edit, base, daily && daily.byDate, job, crew]);
+  const cv = React.useMemo(() => msCurve(C, today, hist, est), [C, today, hist, est]);
   const bd = window.useBackdropClose ? window.useBackdropClose(() => { if (!edit) onClose(); }) : {};
   const dirty = (edit && JSON.stringify(edit) !== JSON.stringify(base)) || !!instEdit;
   const owners = React.useMemo(() => {
@@ -606,7 +968,7 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
               ) : (
                 <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: narrow ? "10px 10px" : "12px 14px" }}>
                   {!ms.rows && <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 8 }}>ยังไม่ได้ทำแผน — นี่คือแม่แบบมาตรฐาน กด "แก้แผนงาน" เพื่อใส่ผู้รับผิดชอบ วันเริ่ม/จบ แล้วบันทึก</div>}
-                  <MsGantt C={C} today={today} narrow={narrow} mid={mid} />
+                  <MsGantt C={C} today={today} narrow={narrow} mid={mid} wcol={C.weighted} />
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--text-3)", marginTop: 10 }}>
                     {[["ช่วงแผน", MS_TRACK], ["ทำไปแล้ว (ระบายตาม %)", "var(--primary)"], ["เสร็จ", "var(--tint-ok-tx)"], ["ล่าช้า", "var(--tint-red-tx)"]].map(([t, c]) => (
                       <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 18, height: 8, borderRadius: 2, background: c }} />{t}</span>
@@ -615,6 +977,7 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
                   </div>
                 </div>
               )}
+              {!edit && <MsSCurve cv={cv} C={C} narrow={narrow} />}
             </React.Fragment>
           )}
         </div>
@@ -631,7 +994,8 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <button style={btn()} onClick={() => setPrint(msPrintHTML(job, C, today))}><Icon name="file" size={14} /> ดู / ออก PDF</button>
+              <button style={btn()} onClick={() => setPrint(msPrintHTML(job, C, today, cv))}><Icon name="file" size={14} /> ดู / ออก PDF</button>
+              <button style={btn()} onClick={() => msExportXlsx(job, C, cv, today)} title="Master Schedule + ชีต S-Curve พร้อมกราฟ"><Icon name="download" size={14} /> Excel</button>
               <span style={{ flex: 1 }} />
               {canEdit && <button style={btn(false, true)} onClick={() => setEdit(base.map((r) => Object.assign({}, r)))} disabled={ms.loading}><Icon name="pen" size={14} /> แก้แผนงาน</button>}
             </React.Fragment>
@@ -649,8 +1013,15 @@ function MsCard({ job, canEdit, currentUser }) {
   const [open, setOpen] = React.useState(false);
   const today = msToday();
   const narrow = useMsNarrow(560);
-  if (!job) return null;
+  const hist = useMsHist(job && job.id);
   const C = msCompute(ms.rows || msTemplate(), inst, job, today);
+  /* จด % รวมของวันนี้ (เส้นจริงของ S-Curve) — เฉพาะงานที่ทำแผนแล้ว · เปลี่ยนเมื่อไม่ตรงกับที่จดไว้ (กันเขียนซ้ำทุกครั้งที่เรนเดอร์) */
+  React.useEffect(() => {
+    if (!job || !job.id || !ms.rows || hist === undefined || hist === null || !window.FBDB) return;
+    if (hist[today] === C.pct) return;
+    window.FBDB.ref("masterScheduleHist/" + job.id + "/" + today).set(C.pct);
+  }, [job && job.id, !!ms.rows, hist, today, C.pct]);
+  if (!job) return null;
   const sub = !ms.rows ? "ยังไม่ได้ทำแผน — กดเพื่อเริ่มจากแม่แบบ"
     : [C.lo != null ? msSpanTH(msIso(C.lo), msIso(C.hi)) : "ยังไม่ใส่วันแผน", C.cnt.done + "/" + C.leaves + " งานเสร็จ", C.late ? "ล่าช้า " + C.late : ""].filter(Boolean).join(" · ");
   return (
@@ -675,4 +1046,4 @@ function MsCard({ job, canEdit, currentUser }) {
   );
 }
 
-Object.assign(window, { MsCard, MsModal, useMasterSchedule, msCompute, msInstallRows, msTemplate, msPrintHTML });
+Object.assign(window, { MsCard, MsModal, useMasterSchedule, msCompute, msInstallRows, msTemplate, msPrintHTML, msCurve, msCurveSVG, msExportXlsx });

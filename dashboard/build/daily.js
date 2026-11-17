@@ -151,7 +151,7 @@ const DR_CLEAN = [{
   key: "all",
   th: "เก็บงานทั้งหมด"
 }];
-const DR_WHA_TREE = [["เตรียมความปลอดภัย & เข้าพื้นที่", ["งานความปลอดภัย — เตรียมพื้นที่ทำงาน", "ตั้งสโตร์วัสดุ & สำนักงานชั่วคราว", "ตั้งนั่งร้านสำหรับขนย้าย", "จัดพื้นที่ปลอดภัย & รายการอุปกรณ์", "ประสานไฟฟ้า/น้ำหน้างาน"]], ["เคลียร์พื้นที่", ["ปรับระดับพื้นดิน", "ทางเดินเท้า & ระบบสุขาภิบาล", "ระบบรางสายไฟ", "จัดพื้นที่สีเขียว"]], ["ห้องอินเวอร์เตอร์", ["ก่อสร้างห้อง", "แร็คซัพพอร์ต", "ติดตั้งอินเวอร์เตอร์"]], ["ติดตั้ง PV — งานโครงสร้าง", ["สำรวจหน้างาน", "ติดตั้งโครงสร้างรองรับ", "ติดตั้งแผงโซล่าเซลล์"]], ["เดินสาย — ฝั่ง DC", ["ระบบท่อร้อยสายใต้ดิน", "เดินสาย PV ตามไดอะแกรม", "สายกราวด์ฝั่ง DC"]], ["เดินสาย — ฝั่ง AC", ["ติดตั้งรางสายไฟ & wireway", "ประกอบตู้ AC-PD", "ตู้ MDB / ปรับบัสบาร์", "ต่อสาย 3 เฟส RST", "สายกราวด์ AC & ตอกแท่งกราวด์"]], ["ดับไฟเพื่อเชื่อมต่อ & ระบบป้องกัน", ["ติดตั้งหม้อแปลง", "ติดตั้งรีเลย์ป้องกัน & CT PT"]], ["ระบบสาธารณูปโภค", ["CCTV", "ติดตั้งระบบน้ำ", "สถานีตรวจอากาศ (Temp cell)"]], ["ระบบมอนิเตอร์", ["เดินสายสื่อสาร", "เชื่อมต่อระบบสื่อสาร"]], ["ส่งมอบงาน", ["Punch List เดินตรวจครั้งสุดท้าย", "สำรวจหลังก่อสร้าง", "เคลียร์ Punch List"]]];
+const DR_WHA_TREE = [["Civil Work — งานโยธา", [["Walkway Installation", 2], ["Mounting Structure Alignment", 1], ["Mounting Structure Installation", 3], ["Lifeline and Safety line Fabrication", 1], ["Lifeline and Safety line Installation", 1], ["PV Module Installation", 5], ["PV Module Set Alignment", 3], ["Inverter Room Structure", 3], ["Water Cleaning Installation", 1]]], ["Electrical Work — งานไฟฟ้า", [["DC cable tray installation", 2], ["DC pulling and wiring", 2.5], ["AC cable tray and Raceway installation", 3], ["AC cables pulling and wiring", 3], ["String inverter installation", 2], ["MDB Solar Installation", 1], ["Grounding system for DC", 2], ["Grounding system for AC", 2], ["Communication cables and signaling", 1.5], ["CCTV Installation", 0.5], ["Shut-Down and Connection to PEA", 1], ["Test and Inspection", 2], ["Pre-commissioning and inverter commissioning", 1.5], ["Commissioning", 1.5], ["Zero Export Testing", 1], ["Plant performance test", 1], ["Hand over + Training", 1]]]];
 function drWhaSteps() {
   const out = [];
   DR_WHA_TREE.forEach((grp, i) => {
@@ -168,7 +168,8 @@ function drWhaSteps() {
     grp[1].forEach((sub, k) => {
       out.push({
         no: i + 1 + "." + (k + 1),
-        th: sub,
+        th: sub[0],
+        w: sub[1],
         head: false,
         planStart: "",
         planEnd: "",

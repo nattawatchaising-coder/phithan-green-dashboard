@@ -1,5 +1,5 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const MS_TEMPLATE = [["เริ่มโครงการ", ["ลงนามสัญญา / ใบสั่งซื้อ (PO)", "ประชุมเริ่มงาน (Kick-off)", "สำรวจหน้างานละเอียด"]], ["ออกแบบ", ["ออกแบบระบบ & Shop Drawing", "ตรวจสอบโครงสร้างหลังคา", "ลูกค้าอนุมัติแบบ"]], ["ขออนุญาต", ["ยื่นการไฟฟ้า (ขอเชื่อมต่อขนาน)", "ยื่น กกพ.", "แจ้งดัดแปลงอาคาร (อ.1)"]], ["จัดซื้อ & ขนส่ง", ["สั่งแผง & อินเวอร์เตอร์", "สั่งโครงสร้าง สายไฟ ตู้ไฟ", "ส่งของเข้าหน้างาน"]], ["งานติดตั้ง", null, "install"], ["ทดสอบ & เชื่อมต่อ", ["ทดสอบระบบ (Testing & Commissioning)", "การไฟฟ้าตรวจ & ขนานไฟ (COD)", "ตั้งค่าระบบมอนิเตอร์"]], ["ส่งมอบงาน", ["ตรวจรับงาน & แก้ Punch List", "ส่งมอบเอกสาร & อบรมการใช้งาน"]]];
+const MS_TEMPLATE = [["Permission Work — งานขออนุญาต", [["ใบโอนสิทธิ์ (กนอ.01/3)", 1, 15], ["ขออนุญาตให้ใช้ที่ดินในนามผู้ลงทุน กนอ.01/1", 1, 15], ["ขออนุญาตดัดแปลงอาคาร กนอ.02/1", 1.5, 45], ["ขออนุญาตรับรองอาคาร กนอ.02/5", 1.5, 45], ["ขอแจ้งเริ่มประกอบอุตสาหกรรม กนอ.03/1", 1, 60], ["ขออนุญาตผลิตพลังงานควบคุม พ.ค.2", 1, 240], ["PEA: ยื่นเอกสารเพื่อรับพิจารณาในระบบ PPIM", 1, 45], ["PEA: จัดทำสัญญา 3 ฝ่าย", 0.5, 90], ["PEA: ตรวจสอบอุปกรณ์", 1, 30], ["PEA: First Sync", 1, 30]]], ["Engineering work for approval — งานวิศวกรรม", [["Roof inspection and handover", 2, 30], ["Site Mobilization", 1, 5], ["Calculation", 0.5, 40], ["Material Specification", 0.5, 30], ["Electrical & Civil drawings", 2, 45]]], ["Procurement and Material delivery — จัดซื้อ & ส่งของ", [["Mounting Structure", 5, 31], ["PV Module", 10, 60], ["Inverter", 5, 30], ["Walk way", 2, 30], ["MDB Solar", 1, 60], ["Cable tray and Perforated Tray", 2, 30], ["Lifeline and Safety line", 2, 30], ["PV cable", 4, 30], ["AC cable", 3, 30], ["Mechanical + Electrical material", 1, 60]]], ["งานติดตั้ง (Civil + Electrical)", null, "install"]];
 const MS_MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const MS_DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const MS_ST = {
@@ -31,7 +31,7 @@ const MS_ST = {
 const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 let _msSeq = 0;
 const msId = () => "r" + Date.now().toString(36) + (_msSeq++).toString(36);
-const msRow = (th, head, link) => ({
+const msRow = (th, head, link, w, dur) => ({
   id: msId(),
   th: th || "",
   head: !!head,
@@ -39,16 +39,29 @@ const msRow = (th, head, link) => ({
   planStart: "",
   planEnd: "",
   pct: 0,
-  link: link || ""
+  link: link || "",
+  w: w == null ? "" : w,
+  dur: dur || ""
 });
 function msTemplate() {
   const out = [];
   MS_TEMPLATE.forEach(([h, subs, link]) => {
     out.push(msRow(h, true, link));
-    (subs || []).forEach(s => out.push(msRow(s, false)));
+    (subs || []).forEach(x => out.push(msRow(x[0], false, "", x[1], x[2])));
   });
   return out;
 }
+const msW = v => v === "" || v == null || isNaN(+v) ? null : Math.max(0, +v);
+const msLetter = n => {
+  let s = "";
+  n = Math.max(1, n);
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+};
 const msDay = iso => {
   if (!iso) return null;
   const t = Date.parse(String(iso).slice(0, 10) + "T00:00:00Z");
@@ -125,50 +138,80 @@ function msInstallRows(daily, owner) {
 function msInstallRowsOf(steps, owner) {
   if (!steps || !steps.length) return [];
   const list = window.drRenumber ? window.drRenumber(steps) : steps;
-  const groups = [];
+  const out = [];
+  let hi = -1,
+    k = 0;
   list.forEach(r => {
-    if (r.head !== false || !groups.length) groups.push({
-      self: r,
-      subs: []
-    });else groups[groups.length - 1].subs.push(r);
-  });
-  return groups.map((g, i) => {
-    const rs = g.subs.length ? g.subs : [g.self];
-    const ps = rs.map(r => r.planStart).filter(Boolean).sort(),
-      pe = rs.map(r => r.planEnd || r.planStart).filter(Boolean).sort();
-    const pct = Math.round(rs.reduce((t, r) => t + msPct(r.pct), 0) / rs.length);
-    return {
-      id: "d" + i,
-      th: g.self.th || "",
-      head: false,
+    const base = {
       ro: true,
+      link: "install",
       owner: owner || "",
-      planStart: ps[0] || "",
-      planEnd: pe[pe.length - 1] || "",
-      pct
+      planStart: r.planStart || "",
+      planEnd: r.planEnd || r.planStart || "",
+      pct: msPct(r.pct),
+      w: msW(r.w) == null ? "" : msW(r.w)
     };
+    if (r.head !== false) {
+      hi += 1;
+      k = 0;
+      out.push(Object.assign(base, {
+        id: "dh" + hi,
+        th: r.th || "",
+        head: true
+      }));
+    } else {
+      k += 1;
+      out.push(Object.assign(base, {
+        id: "ds" + hi + "_" + k,
+        th: r.th || "",
+        head: false
+      }));
+    }
   });
+  return out;
 }
-function msCompute(rows, inst, job, today) {
+function msCompute(rows, inst, job, today, cap) {
   const out = [];
   (rows || []).forEach(r => {
     if (r.head && r.link === "install") {
+      if (inst.length) {
+        inst.forEach(x => out.push(Object.assign({}, x)));
+        return;
+      }
       const sd = (job && job.stageDates || {}).install;
       const own = Object.assign({}, r);
-      if (!inst.length && !own.planStart && sd) {
+      if (!own.planStart && sd) {
         if (typeof sd === "object") {
           own.planStart = sd.start || sd.end || "";
           own.planEnd = sd.end || sd.start || "";
         } else own.planStart = own.planEnd = String(sd).slice(0, 10);
       }
       out.push(own);
-      inst.forEach(x => out.push(Object.assign({}, x, {
-        link: "install"
-      })));
     } else out.push(Object.assign({}, r));
   });
   const td = msDay(today);
-  const leafW = r => msDur(r.planStart, r.planEnd) || 1;
+  if (cap) {
+    const cd = msDay(cap);
+    out.forEach(r => {
+      if (r.link === "install") return;
+      const a = msDay(r.planStart),
+        b = msDay(r.planEnd || r.planStart);
+      const plan = a == null ? 0 : cd < a ? 0 : cd >= b ? 100 : (cd - a + 1) / (b - a + 1) * 100;
+      r.pct = Math.min(msPct(r.pct), Math.round(plan));
+    });
+  }
+  const isLeaf = (r, i) => !r.head || !(i + 1 < out.length && !out[i + 1].head);
+  const lv = out.filter(isLeaf);
+  const days = r => msDur(r.planStart, r.planEnd) || 1;
+  const hasW = lv.some(r => msW(r.w) > 0);
+  const known = lv.reduce((t, r) => t + (msW(r.w) || 0), 0);
+  const miss = lv.filter(r => msW(r.w) == null),
+    missD = miss.reduce((t, r) => t + days(r), 0);
+  const rest = Math.max(0, 100 - known);
+  lv.forEach(r => {
+    r.wt = !hasW ? days(r) : msW(r.w) != null ? msW(r.w) : missD ? rest * days(r) / missD : 0;
+  });
+  const leafW = r => r.wt || 0;
   const status = r => {
     const p = msPct(r.pct),
       pe = msDay(r.planEnd || r.planStart);
@@ -183,10 +226,10 @@ function msCompute(rows, inst, job, today) {
     if (r.head) {
       no += 1;
       sub = 0;
-      r.no = String(no);
+      r.no = msLetter(no);
     } else {
       sub += 1;
-      r.no = (no || 0) + "." + sub;
+      r.no = (no ? msLetter(no) : "") + sub;
     }
     if (!r.head) continue;
     const kids = [];
@@ -198,6 +241,7 @@ function msCompute(rows, inst, job, today) {
     if (ps.length) r.planStart = ps[0];
     if (pe.length) r.planEnd = pe[pe.length - 1];
     const W = kids.reduce((t, k) => t + leafW(k), 0);
+    r.wt = W;
     r.pct = Math.round(kids.reduce((t, k) => t + leafW(k) * msPct(k.pct), 0) / (W || 1));
     const own = [...new Set(kids.map(k => k.owner).filter(Boolean))];
     if (!r.owner && own.length === 1) r.owner = own[0];
@@ -208,6 +252,9 @@ function msCompute(rows, inst, job, today) {
   const leaves = out.filter(r => !r.head || !r.kids);
   const W = leaves.reduce((t, r) => t + leafW(r), 0);
   const pct = leaves.length ? Math.round(leaves.reduce((t, r) => t + leafW(r) * msPct(r.pct), 0) / (W || 1)) : 0;
+  out.forEach(r => {
+    r.wp = W ? 100 * (r.wt || 0) / W : 0;
+  });
   let lo = Infinity,
     hi = -Infinity;
   out.forEach(r => [r.planStart, r.planEnd].forEach(v => {
@@ -233,8 +280,684 @@ function msCompute(rows, inst, job, today) {
     hi: isFinite(hi) ? hi : null,
     late: cnt.late,
     cnt,
-    leaves: leaves.length
+    leaves: leaves.length,
+    weighted: hasW
   };
+}
+function msCurve(C, today, hist, est) {
+  if (C.lo == null) return null;
+  const mon0 = d => d - (new Date(d * 86400000).getUTCDay() + 6) % 7;
+  const lo = mon0(C.lo),
+    hi = mon0(C.hi) + 6,
+    td = msDay(today);
+  const inc = new Float64Array(hi - lo + 1);
+  C.rows.forEach(r => {
+    if (r.head && r.kids) return;
+    const a = msDay(r.planStart),
+      b = msDay(r.planEnd || r.planStart);
+    if (a == null || !r.wp) return;
+    const n = b - a + 1;
+    for (let d = a; d <= b; d++) inc[d - lo] += r.wp / n;
+  });
+  const pts = [];
+  Object.keys(est || {}).forEach(k => pts.push([msDay(k), est[k], 1]));
+  const first = Object.keys(hist || {}).sort()[0];
+  const f0 = first ? msDay(first) : Infinity;
+  for (let i = pts.length - 1; i >= 0; i--) if (pts[i][0] >= f0) pts.splice(i, 1);
+  Object.keys(hist || {}).forEach(k => {
+    const v = +hist[k];
+    if (!isNaN(v)) pts.push([msDay(k), v, 0]);
+  });
+  pts.sort((x, y) => x[0] - y[0]);
+  const weeks = [];
+  let acc = 0;
+  for (let w = lo, i = 1; w <= hi; w += 7, i++) {
+    let p = 0;
+    for (let d = w; d < w + 7; d++) p += inc[d - lo] || 0;
+    acc += p;
+    let act = null,
+      isEst = false;
+    if (td == null || w <= td) {
+      const end = Math.min(w + 6, td == null ? w + 6 : td);
+      for (let j = 0; j < pts.length && pts[j][0] <= end; j++) {
+        act = pts[j][1];
+        isEst = !!pts[j][2];
+      }
+      if (act == null && w + 6 < (pts.length ? pts[0][0] : -Infinity)) act = 0;
+    }
+    weeks.push({
+      d: w,
+      n: i,
+      plan: p,
+      planAcc: Math.min(100, acc),
+      act,
+      est: isEst
+    });
+  }
+  const tdW = td == null ? null : weeks.find(w => td >= w.d && td <= w.d + 6) || null;
+  return {
+    weeks,
+    lo,
+    hi,
+    td,
+    planNow: tdW ? tdW.planAcc : td != null && td > hi ? 100 : 0
+  };
+}
+function msCurveSVG(cv, W, H, P) {
+  if (!cv || !cv.weeks.length) return "";
+  const L = 44,
+    R = 14,
+    T = 16,
+    B = 40,
+    w = W - L - R,
+    h = H - T - B,
+    n = cv.weeks.length;
+  const X = i => L + (n === 1 ? w / 2 : i * w / (n - 1)),
+    Y = v => T + h - Math.max(0, Math.min(100, v)) / 100 * h;
+  let g = "";
+  for (let v = 0; v <= 100; v += 20) g += '<line x1="' + L + '" x2="' + (L + w) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="' + P.grid + '" stroke-width="1"/>' + '<text x="' + (L - 6) + '" y="' + (Y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="' + P.text + '">' + v + "%</text>";
+  const bw = Math.max(2, Math.min(18, w / n * 0.55)),
+    mx = Math.max(1, ...cv.weeks.map(x => x.plan));
+  cv.weeks.forEach((x, i) => {
+    if (x.plan > 0) {
+      const bh = x.plan / Math.max(mx, 10) * h * 0.35;
+      g += '<rect x="' + (X(i) - bw / 2) + '" y="' + (T + h - bh) + '" width="' + bw + '" height="' + bh + '" fill="' + P.bar + '" rx="1.5"/>';
+    }
+  });
+  const step = Math.max(1, Math.ceil(n / 16));
+  cv.weeks.forEach((x, i) => {
+    if (i % step && i !== n - 1) return;
+    const dt = new Date(x.d * 86400000);
+    g += '<text x="' + X(i) + '" y="' + (T + h + 14) + '" text-anchor="middle" font-size="9.5" fill="' + P.text + '">W' + x.n + "</text>" + '<text x="' + X(i) + '" y="' + (T + h + 26) + '" text-anchor="middle" font-size="8.5" fill="' + P.text + '" opacity=".75">' + dt.getUTCDate() + " " + MS_MON[dt.getUTCMonth()] + "</text>";
+  });
+  if (cv.td != null && cv.td >= cv.lo && cv.td <= cv.hi) {
+    const tx = L + (cv.td - cv.lo) / Math.max(1, cv.weeks[n - 1].d + 6 - cv.lo) * w;
+    g += '<line x1="' + tx + '" x2="' + tx + '" y1="' + T + '" y2="' + (T + h) + '" stroke="' + P.today + '" stroke-width="1.5" stroke-dasharray="4 3"/>' + '<text x="' + (tx + 4) + '" y="' + (T + 10) + '" font-size="9.5" fill="' + P.today + '" font-weight="700">วันนี้</text>';
+  }
+  g += '<polyline fill="none" stroke="' + P.plan + '" stroke-width="2.4" stroke-linejoin="round" points="' + cv.weeks.map((x, i) => X(i).toFixed(1) + "," + Y(x.planAcc).toFixed(1)).join(" ") + '"/>';
+  const act = cv.weeks.map((x, i) => x.act == null ? null : [X(i), Y(x.act), x.est]);
+  let seg = [];
+  const flush = () => {
+    if (seg.length > 1) g += '<polyline fill="none" stroke="' + P.act + '" stroke-width="2.4" stroke-linejoin="round" points="' + seg.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ") + '"/>';
+    seg = [];
+  };
+  act.forEach(p => {
+    if (p) seg.push(p);else flush();
+  });
+  flush();
+  act.forEach(p => {
+    if (p) g += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="' + (p[2] ? "#fff" : P.act) + '" stroke="' + P.act + '" stroke-width="1.5"/>';
+  });
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="100%" style="display:block;font-family:inherit">' + g + "</svg>";
+}
+const MS_CV_LIGHT = {
+  plan: "#1B9B75",
+  act: "#2563EB",
+  grid: "#E3E9E5",
+  text: "#5A6B62",
+  today: "#DC2626",
+  bar: "#CFEDE2"
+};
+const MS_CV_UI = {
+  plan: "var(--primary)",
+  act: "#3B82F6",
+  grid: "var(--divider)",
+  text: "var(--text-3)",
+  today: "var(--tint-red-tx)",
+  bar: "color-mix(in srgb, var(--primary) 22%, transparent)"
+};
+function MsSCurve({
+  cv,
+  C,
+  narrow
+}) {
+  if (!cv) return null;
+  const now = cv.weeks.filter(x => x.act != null).slice(-1)[0];
+  const diff = now ? Math.round((now.act - cv.planNow) * 10) / 10 : null;
+  const box = (lab, v, tx) => React.createElement("div", {
+    style: {
+      background: "var(--surface2)",
+      borderRadius: "var(--r-tile)",
+      padding: "7px 11px",
+      minWidth: 96
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, lab), React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 17,
+      fontWeight: 800,
+      color: tx || "var(--text-1)"
+    }
+  }, v));
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      padding: narrow ? "10px 10px" : "12px 14px",
+      marginTop: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, React.createElement("b", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-1)"
+    }
+  }, "S-Curve"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "% \u0E2A\u0E30\u0E2A\u0E21\u0E23\u0E32\u0E22\u0E2A\u0E31\u0E1B\u0E14\u0E32\u0E2B\u0E4C \xB7 \u0E41\u0E1C\u0E19\u0E08\u0E32\u0E01\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01 \xD7 \u0E0A\u0E48\u0E27\u0E07\u0E27\u0E31\u0E19\u0E41\u0E1C\u0E19 \xB7 \u0E08\u0E23\u0E34\u0E07\u0E08\u0E32\u0E01\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21\u0E17\u0E35\u0E48\u0E08\u0E14\u0E44\u0E27\u0E49\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19"), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), box("แผน ณ วันนี้", Math.round(cv.planNow * 10) / 10 + "%"), box("ทำได้จริง", C.pct + "%"), diff != null && box("ต่างจากแผน", (diff > 0 ? "+" : "") + diff + "%", diff < 0 ? "var(--tint-red-tx)" : "var(--tint-ok-tx)")), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: narrow ? 520 : 0
+    },
+    dangerouslySetInnerHTML: {
+      __html: msCurveSVG(cv, 1000, narrow ? 300 : 260, MS_CV_UI)
+    }
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, React.createElement("span", null, React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 18,
+      height: 3,
+      background: "var(--primary)",
+      verticalAlign: "middle",
+      marginRight: 5
+    }
+  }), "\u0E41\u0E1C\u0E19\u0E2A\u0E30\u0E2A\u0E21"), React.createElement("span", null, React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 18,
+      height: 3,
+      background: "#3B82F6",
+      verticalAlign: "middle",
+      marginRight: 5
+    }
+  }), "\u0E17\u0E33\u0E44\u0E14\u0E49\u0E08\u0E23\u0E34\u0E07\u0E2A\u0E30\u0E2A\u0E21"), React.createElement("span", null, React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      border: "1.5px solid #3B82F6",
+      verticalAlign: "middle",
+      marginRight: 5
+    }
+  }), "\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19 (\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E14)"), React.createElement("span", null, React.createElement("span", {
+    style: {
+      display: "inline-block",
+      width: 10,
+      height: 10,
+      background: "color-mix(in srgb, var(--primary) 22%, transparent)",
+      verticalAlign: "middle",
+      marginRight: 5
+    }
+  }), "\u0E41\u0E1C\u0E19\u0E23\u0E32\u0E22\u0E2A\u0E31\u0E1B\u0E14\u0E32\u0E2B\u0E4C")));
+}
+function msExportXlsx(job, C, cv, today) {
+  const X = window.XLSX;
+  if (!X || !X.CFB) {
+    window.askConfirm && window.askConfirm({
+      title: "ส่งออก Excel ไม่ได้",
+      body: "ไลบรารี Excel ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง",
+      ok: "ตกลง"
+    });
+    return;
+  }
+  const serial = iso => {
+    const d = msDay(iso);
+    return d == null ? null : d + 25569;
+  };
+  const bd = {
+    top: {
+      style: "thin",
+      color: {
+        rgb: "D5DDD8"
+      }
+    },
+    bottom: {
+      style: "thin",
+      color: {
+        rgb: "D5DDD8"
+      }
+    },
+    left: {
+      style: "thin",
+      color: {
+        rgb: "D5DDD8"
+      }
+    },
+    right: {
+      style: "thin",
+      color: {
+        rgb: "D5DDD8"
+      }
+    }
+  };
+  const font = o => Object.assign({
+    name: "Tahoma",
+    sz: 10
+  }, o || {});
+  const sty = o => Object.assign({
+    font: font(),
+    border: bd,
+    alignment: {
+      vertical: "center"
+    }
+  }, o || {});
+  const HDR = sty({
+    font: font({
+      bold: true,
+      color: {
+        rgb: "FFFFFF"
+      }
+    }),
+    fill: {
+      fgColor: {
+        rgb: "1B5E4A"
+      }
+    },
+    alignment: {
+      horizontal: "center",
+      vertical: "center",
+      wrapText: true
+    }
+  });
+  const HEAD = sty({
+    font: font({
+      bold: true
+    }),
+    fill: {
+      fgColor: {
+        rgb: "E6F2EC"
+      }
+    }
+  });
+  const weeks = cv ? cv.weeks : [];
+  const ws = {},
+    merges = [];
+  const put = (r, c, v, st, t, z) => {
+    const a = X.utils.encode_cell({
+      r,
+      c
+    });
+    ws[a] = {
+      v: v == null ? "" : v,
+      t: t || (typeof v === "number" ? "n" : "s"),
+      s: st
+    };
+    if (z) ws[a].z = z;
+  };
+  const name = [job.code, job.name].filter(Boolean).join(" · ");
+  put(0, 0, "MASTER SCHEDULE — EPC S-Curve", sty({
+    font: font({
+      bold: true,
+      sz: 16
+    }),
+    border: {}
+  }));
+  put(1, 0, "โครงการ: " + name + (job.kw ? " · " + job.kw + " kWp" : ""), sty({
+    font: font({
+      sz: 11
+    }),
+    border: {}
+  }));
+  put(2, 0, "ข้อมูล ณ " + msTH(today, true) + " · ทำได้จริง " + C.pct + "% · แผน ณ วันนี้ " + (cv ? Math.round(cv.planNow * 10) / 10 : 0) + "%", sty({
+    border: {}
+  }));
+  const H0 = 4,
+    W0 = 9;
+  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "% Progress", "สถานะ"].forEach((t, c) => {
+    put(H0, c, t, HDR);
+    put(H0 + 1, c, "", HDR);
+    merges.push({
+      s: {
+        r: H0,
+        c
+      },
+      e: {
+        r: H0 + 1,
+        c
+      }
+    });
+  });
+  let mStart = 0;
+  weeks.forEach((w, i) => {
+    const dt = new Date(w.d * 86400000);
+    put(H0 + 1, W0 + i, "W" + w.n, HDR);
+    const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
+    const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
+    if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
+      if (i) merges.push({
+        s: {
+          r: H0,
+          c: W0 + mStart
+        },
+        e: {
+          r: H0,
+          c: W0 + i - 1
+        }
+      });
+      mStart = i;
+      put(H0, W0 + i, m, HDR);
+    } else put(H0, W0 + i, "", HDR);
+  });
+  if (weeks.length) merges.push({
+    s: {
+      r: H0,
+      c: W0 + mStart
+    },
+    e: {
+      r: H0,
+      c: W0 + weeks.length - 1
+    }
+  });
+  const stTx = {
+    done: "เสร็จแล้ว",
+    doing: "กำลังทำ",
+    late: "ล่าช้า",
+    todo: "ยังไม่เริ่ม"
+  };
+  let r = H0 + 2;
+  C.rows.forEach(row => {
+    const head = row.head && row.kids,
+      st = head ? HEAD : sty();
+    put(r, 0, row.no, st);
+    put(r, 1, (head ? "" : "   ") + row.th, st);
+    put(r, 2, row.owner || "", st);
+    put(r, 3, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, {
+      alignment: {
+        horizontal: "right"
+      }
+    }), "n", "0.00");
+    const du = msDur(row.planStart, row.planEnd);
+    put(r, 4, du || "", Object.assign({}, st, {
+      alignment: {
+        horizontal: "right"
+      }
+    }));
+    const a = serial(row.planStart),
+      b = serial(row.planEnd || row.planStart);
+    put(r, 5, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
+    put(r, 6, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
+    put(r, 7, msPct(row.pct) / 100, Object.assign({}, st, {
+      alignment: {
+        horizontal: "right"
+      }
+    }), "n", "0%");
+    put(r, 8, stTx[row.st] || "", st);
+    const ps = msDay(row.planStart),
+      pe = msDay(row.planEnd || row.planStart);
+    weeks.forEach((w, i) => {
+      let v = "";
+      let fill = null;
+      if (ps != null) {
+        const ov = Math.max(0, Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1);
+        if (ov > 0) {
+          fill = head ? "9FD6C1" : "BFE6D6";
+          if (!head) v = Math.round(ov / (pe - ps + 1) * 1000) / 10;
+        }
+      }
+      put(r, W0 + i, v, sty({
+        font: font({
+          sz: 8
+        }),
+        alignment: {
+          horizontal: "center"
+        },
+        fill: fill ? {
+          fgColor: {
+            rgb: fill
+          }
+        } : undefined
+      }));
+    });
+    r++;
+  });
+  const sumRow = (label, val, z, rgb) => {
+    put(r, 0, label, sty({
+      font: font({
+        bold: true
+      }),
+      fill: {
+        fgColor: {
+          rgb
+        }
+      }
+    }));
+    for (let c = 1; c < W0; c++) put(r, c, "", sty({
+      fill: {
+        fgColor: {
+          rgb
+        }
+      }
+    }));
+    merges.push({
+      s: {
+        r,
+        c: 0
+      },
+      e: {
+        r,
+        c: W0 - 1
+      }
+    });
+    weeks.forEach((w, i) => {
+      const v = val(w);
+      put(r, W0 + i, v == null ? "" : Math.round(v * 100) / 100, sty({
+        font: font({
+          sz: 8,
+          bold: true
+        }),
+        alignment: {
+          horizontal: "center"
+        },
+        fill: {
+          fgColor: {
+            rgb
+          }
+        }
+      }), v == null ? "s" : "n", z);
+    });
+    r++;
+  };
+  r++;
+  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", w => w.plan, "0.00", "F3F6F4");
+  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, "0.00", "E6F2EC");
+  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, "0.00", "E3ECFB");
+  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, "0.00", "FBEDE3");
+  ws["!ref"] = X.utils.encode_range({
+    s: {
+      r: 0,
+      c: 0
+    },
+    e: {
+      r: r,
+      c: Math.max(W0 + weeks.length - 1, 9)
+    }
+  });
+  ws["!merges"] = merges;
+  ws["!cols"] = [{
+    wch: 6
+  }, {
+    wch: 46
+  }, {
+    wch: 16
+  }, {
+    wch: 9
+  }, {
+    wch: 6
+  }, {
+    wch: 12.5
+  }, {
+    wch: 12.5
+  }, {
+    wch: 9
+  }, {
+    wch: 10
+  }].concat(weeks.map(() => ({
+    wch: 5.5
+  })));
+  ws["!freeze"] = {
+    xSplit: 2,
+    ySplit: H0 + 2
+  };
+  ws["!views"] = [{
+    state: "frozen",
+    xSplit: 2,
+    ySplit: H0 + 2
+  }];
+  const cs = {};
+  const cput = (rr, c, v, st, t, z) => {
+    const a = X.utils.encode_cell({
+      r: rr,
+      c
+    });
+    cs[a] = {
+      v: v == null ? "" : v,
+      t: t || (typeof v === "number" ? "n" : "s"),
+      s: st
+    };
+    if (z) cs[a].z = z;
+  };
+  cput(0, 0, "S-Curve — " + name, sty({
+    font: font({
+      bold: true,
+      sz: 13
+    }),
+    border: {}
+  }));
+  ["สัปดาห์", "เริ่มสัปดาห์", "แผนรายสัปดาห์ %", "แผนสะสม %", "จริงสะสม %", "ต่างจากแผน %"].forEach((t, c) => cput(1, c, t, HDR));
+  weeks.forEach((w, i) => {
+    cput(2 + i, 0, "W" + w.n, sty());
+    cput(2 + i, 1, w.d + 25569, sty(), "n", "d/m/yyyy");
+    cput(2 + i, 2, Math.round(w.plan * 100) / 100, sty(), "n", "0.00");
+    cput(2 + i, 3, Math.round(w.planAcc * 100) / 100, sty(), "n", "0.00");
+    if (w.act != null) cput(2 + i, 4, Math.round(w.act * 100) / 100, sty(), "n", "0.00");
+    if (w.act != null) cput(2 + i, 5, Math.round((w.act - w.planAcc) * 100) / 100, sty(), "n", "0.00");
+  });
+  const last = 2 + Math.max(0, weeks.length - 1);
+  cs["!ref"] = X.utils.encode_range({
+    s: {
+      r: 0,
+      c: 0
+    },
+    e: {
+      r: last,
+      c: 5
+    }
+  });
+  cs["!cols"] = [{
+    wch: 9
+  }, {
+    wch: 12
+  }, {
+    wch: 15
+  }, {
+    wch: 12
+  }, {
+    wch: 12
+  }, {
+    wch: 13
+  }];
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "Master Schedule");
+  X.utils.book_append_sheet(wb, cs, "S-Curve");
+  const buf = X.write(wb, {
+    type: "array",
+    bookType: "xlsx"
+  });
+  let out = buf;
+  if (weeks.length) {
+    try {
+      out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1);
+    } catch (e) {
+      console.warn("S-Curve chart", e);
+    }
+  }
+  const fn = (window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "")) + ".xlsx";
+  const url = URL.createObjectURL(new Blob([out], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function msAddChart(CFB, bytes, weeks, lastRow) {
+  const z = CFB.read(bytes, {
+    type: "array"
+  });
+  const enc = t => new TextEncoder().encode(t),
+    dec = u => new TextDecoder().decode(u);
+  const get = p => {
+    const e = CFB.find(z, p);
+    return e ? dec(e.content) : null;
+  };
+  const set = (p, t) => {
+    const e = CFB.find(z, p);
+    if (e) e.content = enc(t);else CFB.utils.cfb_add(z, p, enc(t));
+  };
+  const xe = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const N = weeks.length,
+    r0 = 3,
+    r1 = lastRow;
+  const cat = "<c:cat><c:strRef><c:f>'S-Curve'!$A$" + r0 + ":$A$" + r1 + "</c:f><c:strCache><c:ptCount val=\"" + N + "\"/>" + weeks.map((w, i) => '<c:pt idx="' + i + '"><c:v>W' + w.n + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
+  const ser = (idx, col, title, rgb, vals, dash) => "<c:ser><c:idx val=\"" + idx + "\"/><c:order val=\"" + idx + "\"/><c:tx><c:v>" + xe(title) + "</c:v></c:tx>" + '<c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill>' + (dash ? '<a:prstDash val="dash"/>' : "") + '<a:round/></a:ln></c:spPr>' + (idx ? '<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill></c:spPr></c:marker>' : '<c:marker><c:symbol val="none"/></c:marker>') + cat + "<c:val><c:numRef><c:f>'S-Curve'!$" + col + "$" + r0 + ":$" + col + "$" + r1 + "</c:f><c:numCache><c:formatCode>0.00</c:formatCode><c:ptCount val=\"" + N + "\"/>" + vals.map((v, i) => v == null ? "" : '<c:pt idx="' + i + '"><c:v>' + Math.round(v * 100) / 100 + "</c:v></c:pt>").join("") + '</c:numCache></c:numRef></c:val><c:smooth val="0"/></c:ser>';
+  const chart = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' + '<c:roundedCorners val="0"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:p><a:pPr><a:defRPr sz="1400" b="1"/></a:pPr><a:r><a:rPr lang="th-TH" sz="1400" b="1"/><a:t>EPC S-Curve</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>' + '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/><c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + ser(0, "D", "แผนสะสม (Plan)", "1B9B75", weeks.map(w => w.planAcc)) + ser(1, "E", "ทำได้จริงสะสม (Actual)", "2563EB", weeks.map(w => w.act)) + '<c:marker val="1"/><c:axId val="50010001"/><c:axId val="50010002"/></c:lineChart>' + '<c:catAx><c:axId val="50010001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' + '<c:valAx><c:axId val="50010002"/><c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr><a:ln><a:solidFill><a:srgbClr val="E3E9E5"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="0&quot;%&quot;" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/><c:majorUnit val="20"/></c:valAx>' + '</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
+  const drawing = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + '<xdr:twoCellAnchor><xdr:from><xdr:col>7</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' + '<xdr:to><xdr:col>22</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>28</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' + '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="S-Curve"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>' + '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">' + '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>' + '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>';
+  set("/xl/charts/chart1.xml", chart);
+  set("/xl/drawings/drawing1.xml", drawing);
+  set("/xl/drawings/_rels/drawing1.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>');
+  const relP = "/xl/worksheets/_rels/sheet2.xml.rels";
+  let rel = get(relP);
+  const drRel = '<Relationship Id="rIdMsDr1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>';
+  rel = rel ? rel.replace("</Relationships>", drRel + "</Relationships>") : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + drRel + "</Relationships>";
+  set(relP, rel);
+  let sh = get("/xl/worksheets/sheet2.xml");
+  if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+  sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
+  set("/xl/worksheets/sheet2.xml", sh);
+  let ct = get("/[Content_Types].xml");
+  ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' + '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>');
+  set("/[Content_Types].xml", ct);
+  return CFB.write(z, {
+    fileType: "zip",
+    type: "array"
+  });
 }
 function useMsNarrow(bp) {
   const mq = React.useMemo(() => window.matchMedia("(max-width: " + bp + "px)"), [bp]);
@@ -270,7 +993,9 @@ function useMasterSchedule(jobId) {
       owner: String(r.owner || ""),
       planStart: r.planStart || "",
       planEnd: r.planEnd || "",
-      pct: msPct(r.pct)
+      pct: msPct(r.pct),
+      w: msW(r.w) == null ? "" : msW(r.w),
+      dur: Math.max(0, Math.round(+r.dur || 0)) || ""
     }));
     return window.FBDB.ref("masterSchedule/" + jobId).set({
       rows: clean,
@@ -284,6 +1009,29 @@ function useMasterSchedule(jobId) {
     loading: data === undefined,
     save
   };
+}
+function useMsHist(jobId) {
+  const [h, setH] = React.useState(undefined);
+  React.useEffect(() => {
+    if (!jobId || !window.FBDB) {
+      setH(null);
+      return;
+    }
+    const ref = window.FBDB.ref("masterScheduleHist/" + jobId);
+    const fn = ref.on("value", x => setH(x.val() || {}), () => setH(null));
+    return () => ref.off("value", fn);
+  }, [jobId]);
+  return h;
+}
+function msEstHist(rows, daily, job, crew) {
+  const out = {};
+  if (!daily || !daily.byDate) return out;
+  Object.keys(daily.byDate).forEach(d => {
+    const rec = daily.byDate[d];
+    if (!rec || !rec.steps || !rec.steps.length) return;
+    out[d] = msCompute(rows, msInstallRowsOf(rec.steps, crew), job, d, d).pct;
+  });
+  return out;
 }
 function useMsData(job) {
   const ms = useMasterSchedule(job ? job.id : null);
@@ -442,7 +1190,8 @@ function MsGantt({
   today,
   compact,
   narrow,
-  mid
+  mid,
+  wcol
 }) {
   if (C.lo == null) {
     return React.createElement("div", {
@@ -459,8 +1208,9 @@ function MsGantt({
   const dayHead = pxDay >= 20;
   const full = !compact && !narrow;
   const dates = full && !mid;
-  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : mid ? "38px minmax(150px,1fr) 74px 78px" : "38px minmax(180px,1fr) 62px 62px 74px 78px";
-  const labW = compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 400 : 560;
+  const wc = !!wcol && !compact && !narrow;
+  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 78px";
+  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 400 : 560) + (wc ? 50 : 0);
   const rh = compact ? 20 : 34;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
@@ -515,7 +1265,12 @@ function MsGantt({
     style: thS
   }, "\u0E40\u0E23\u0E34\u0E48\u0E21"), dates && React.createElement("span", {
     style: thS
-  }, "\u0E08\u0E1A"), React.createElement("span", {
+  }, "\u0E08\u0E1A"), wc && React.createElement("span", {
+    style: Object.assign({}, thS, {
+      textAlign: "right"
+    }),
+    title: "% \u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E15\u0E48\u0E2D\u0E17\u0E31\u0E49\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23"
+  }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01"), React.createElement("span", {
     style: thS
   }, "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32"), React.createElement("span", {
     style: thS
@@ -654,7 +1409,15 @@ function MsGantt({
         whiteSpace: "nowrap",
         fontVariantNumeric: "tabular-nums"
       }
-    }, msTH(r.planEnd || r.planStart)), full ? React.createElement("span", {
+    }, msTH(r.planEnd || r.planStart)), wc && React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        textAlign: "right",
+        fontFamily: "var(--mono)",
+        fontWeight: r.head ? 700 : 400
+      }
+    }, r.wp ? Math.round(r.wp * 10) / 10 : ""), full ? React.createElement("span", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -772,7 +1535,8 @@ function MsEditor({
       [k]: v
     };
     if (k === "pct") up.pct = v === "" ? "" : msPct(v);
-    if (k === "planStart" && v && !r.planEnd) up.planEnd = v;
+    if (k === "w") up.w = v === "" ? "" : String(v).replace(/[^0-9.]/g, "").slice(0, 5);
+    if (k === "planStart" && v && !r.planEnd) up.planEnd = +r.dur > 0 ? msIso(msDay(v) + Math.round(+r.dur) - 1) : v;
     if (k === "planStart" && v && r.planEnd && r.planStart) {
       const d = msDur(r.planStart, r.planEnd);
       up.planEnd = msIso(msDay(v) + d - 1);
@@ -816,7 +1580,8 @@ function MsEditor({
     fontFamily: "var(--mono)",
     fontSize: 12
   });
-  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(110px,.8fr) 132px 132px 58px 62px 88px";
+  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(110px,.8fr) 132px 132px 58px 62px 62px 88px";
+  const wSum = rows.filter(r => !r.head || r.link === "install" && !inst.length).reduce((t, r) => t + (msW(r.w) || 0), 0) + inst.filter(r => !r.head).reduce((t, r) => t + (msW(r.w) || 0), 0);
   const lab = t => narrow ? React.createElement("span", {
     style: {
       fontSize: 10.5,
@@ -871,7 +1636,19 @@ function MsEditor({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("span", null, "\u0E08\u0E1A"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", null, "%"), React.createElement("span", null)), rows.map((r, i) => {
+  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("span", null, "\u0E08\u0E1A"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", {
+    title: "% \u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E15\u0E48\u0E2D\u0E17\u0E31\u0E49\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 (\u0E23\u0E27\u0E21 100)"
+  }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01"), React.createElement("span", null, "%"), React.createElement("span", null)), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: Math.abs(wSum - 100) < 0.01 || !wSum ? "var(--text-3)" : "var(--tint-amber-tx)",
+      padding: "0 12px"
+    }
+  }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E23\u0E27\u0E21 ", React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, Math.round(wSum * 100) / 100, "%"), wSum && Math.abs(wSum - 100) >= 0.01 ? " — ควรรวมได้ 100 (S-Curve คิดเทียบผลรวมจริง)" : "", !wSum ? " — ยังไม่ใส่น้ำหนัก ระบบถ่วงตามจำนวนวัน" : ""), rows.map((r, i) => {
     const isInst = r.head && r.link === "install";
     const leaf = !r.head || isInst && !inst.length;
     return React.createElement(React.Fragment, {
@@ -954,6 +1731,21 @@ function MsEditor({
         flexDirection: "column",
         gap: 3
       }
+    }, lab("น้ำหนัก %"), React.createElement("input", {
+      inputMode: "decimal",
+      value: r.w == null ? "" : r.w,
+      onChange: e => set(i, "w", e.target.value),
+      placeholder: "\u2014",
+      style: Object.assign({}, inp, {
+        textAlign: "right",
+        fontFamily: "var(--mono)"
+      })
+    })), React.createElement("label", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
     }, lab("ทำไปแล้ว %"), React.createElement("input", {
       type: "number",
       min: 0,
@@ -967,7 +1759,7 @@ function MsEditor({
       })
     }))) : React.createElement("span", {
       style: Object.assign({
-        gridColumn: narrow ? "span 2" : "2 / span 5",
+        gridColumn: narrow ? "span 2" : "2 / span 6",
         fontSize: 11.5,
         color: "var(--text-3)"
       })
@@ -1011,7 +1803,54 @@ function MsEditor({
       today: today,
       onReset: window.drWhaSteps,
       onChange: v => setInstSteps(v)
-    })) : React.createElement("button", {
+    }), React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01 % \u0E15\u0E48\u0E2D\u0E17\u0E31\u0E49\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 (\u0E02\u0E31\u0E49\u0E19\u0E22\u0E48\u0E2D\u0E22)"), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: narrow ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))",
+        gap: "4px 14px",
+        marginTop: 4
+      }
+    }, instSteps.map((r, k) => r.head === false && React.createElement("label", {
+      key: k,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 12,
+        color: "var(--text-2)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, r.th || "—"), React.createElement("input", {
+      inputMode: "decimal",
+      value: r.w == null ? "" : r.w,
+      placeholder: "\u2014",
+      onChange: e => {
+        const v = e.target.value.replace(/[^0-9.]/g, "").slice(0, 5);
+        setInstSteps(instSteps.map((x, j) => j === k ? Object.assign({}, x, {
+          w: v
+        }) : x));
+      },
+      style: Object.assign({}, inp, {
+        width: 64,
+        textAlign: "right",
+        fontFamily: "var(--mono)",
+        padding: "5px 7px"
+      })
+    }))))) : React.createElement("button", {
       type: "button",
       onClick: onInstEdit,
       style: {
@@ -1038,15 +1877,16 @@ function MsEditor({
       key: x.id,
       style: {
         display: "grid",
-        gridTemplateColumns: narrow ? "1fr auto" : "minmax(160px,1fr) 1fr 64px",
+        gridTemplateColumns: narrow ? "1fr auto" : "minmax(160px,1fr) 1fr 56px 64px",
         gap: 8,
         alignItems: "center",
         padding: "6px 12px",
-        marginLeft: narrow ? 0 : 18,
+        marginLeft: narrow ? 0 : x.head ? 18 : 32,
         borderRadius: "var(--r-tile)",
         background: "var(--surface2)",
         fontSize: 12,
-        color: "var(--text-2)"
+        color: "var(--text-2)",
+        fontWeight: x.head ? 800 : 400
       }
     }, React.createElement("span", {
       style: {
@@ -1057,18 +1897,25 @@ function MsEditor({
     }, x.th), !narrow && React.createElement("span", {
       style: {
         color: "var(--text-3)",
-        fontSize: 11.5
+        fontSize: 11.5,
+        fontWeight: 400
       }
-    }, msSpanTH(x.planStart, x.planEnd) || "ยังไม่ใส่วันแผน"), React.createElement("span", {
+    }, x.head ? "" : msSpanTH(x.planStart, x.planEnd) || "ยังไม่ใส่วันแผน"), !narrow && React.createElement("span", {
+      style: {
+        textAlign: "right",
+        fontFamily: "var(--mono)",
+        color: "var(--text-3)"
+      }
+    }, !x.head && msW(x.w) != null ? msW(x.w) + "%" : ""), React.createElement("span", {
       style: {
         textAlign: "right",
         fontFamily: "var(--mono)",
         fontWeight: 700
       }
-    }, x.pct, "%"))));
+    }, x.head ? "" : x.pct + "%"))));
   }));
 }
-function msPrintHTML(job, C, today) {
+function msPrintHTML(job, C, today, cv) {
   const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const A = msAxis(C, today, 0);
   const X = d => A.X(d).toFixed(3),
@@ -1094,7 +1941,7 @@ function msPrintHTML(job, C, today) {
       pe = msDay(r.planEnd || r.planStart),
       p = msPct(r.pct);
     const bar = ps != null ? '<b class="bar ' + (r.head ? "h " : "") + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
-    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="st"><span class="pill ' + stCls[r.st] + '">' + stTx[r.st] + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
+    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="u">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="st"><span class="pill ' + stCls[r.st] + '">' + stTx[r.st] + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
   let hd = '<div class="gc mh">' + A.months.map(m => '<span style="left:' + X(m.d) + '%"' + (m.d !== A.lo ? ' class="b"' : "") + ">" + m.th + "</span>").join("") + "</div>" + '<div class="gc wh">' + A.weeks.map(w => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (w.n < 1 ? "" : "สัปดาห์ " + w.n) + "</span>").join("") + "</div>";
   if (daily) {
@@ -1105,7 +1952,7 @@ function msPrintHTML(job, C, today) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th>' + '<th class="p">ความคืบหน้า</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="u">%W</th>' + '<th class="p">ความคืบหน้า</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today),
     days = C.lo != null ? C.hi - C.lo + 1 : null,
@@ -1116,8 +1963,8 @@ function msPrintHTML(job, C, today) {
   const ring = '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#D5EEE5" stroke-width="10"/>' + (C.pct > 0 ? '<circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#1B9B75" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (Cc * C.pct / 100).toFixed(2) + " " + Cc.toFixed(2) + '" transform="rotate(-90 46 46)"/>' : "") + '<text x="46" y="46" dominant-baseline="central" text-anchor="middle" font-size="20" font-weight="800" fill="#15211A" font-family="monospace">' + C.pct + "%</text></svg>";
   const kpi = (lab, v, cls) => '<div class="k ' + (cls || "") + '"><span>' + lab + "</span><b>" + v + "</b></div>";
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")], ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter(x => x[1]);
-  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.p{width:84px}.st{width:66px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:15px;background:#2F8A6D}.wh span{position:absolute;top:0;height:15px;line-height:15px;padding-left:4px;font-size:9px;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:4px;height:12px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:6px;height:10px}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}";
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" + '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" + info.map(x => "<tr><td>" + esc(x[0]) + "</td><td><b>" + esc(x[1]) + "</b></td></tr>").join("") + "</table></div>" + '<div class="rg">' + ring + '<div class="ri">เริ่ม <b>' + esc(C.lo != null ? msTH(msIso(C.lo), true) : "—") + "</b><br>จบ <b>" + esc(C.hi != null ? msTH(msIso(C.hi), true) : "—") + "</b><br>รวม <b>" + (days || "—") + " วัน</b><br><b" + (left != null && left < 0 && C.pct < 100 ? ' style="color:#B91C1C"' : "") + ">" + esc(leftTx) + "</b></div></div>" + '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) + (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" + '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" + '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' + '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' + '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div></body></html>";
+  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.p{width:84px}.st{width:66px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:15px;background:#2F8A6D}.wh span{position:absolute;top:0;height:15px;line-height:15px;padding-left:4px;font-size:9px;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:4px;height:12px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:6px;height:10px}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" + ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" + ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" + '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" + info.map(x => "<tr><td>" + esc(x[0]) + "</td><td><b>" + esc(x[1]) + "</b></td></tr>").join("") + "</table></div>" + '<div class="rg">' + ring + '<div class="ri">เริ่ม <b>' + esc(C.lo != null ? msTH(msIso(C.lo), true) : "—") + "</b><br>จบ <b>" + esc(C.hi != null ? msTH(msIso(C.hi), true) : "—") + "</b><br>รวม <b>" + (days || "—") + " วัน</b><br><b" + (left != null && left < 0 && C.pct < 100 ? ' style="color:#B91C1C"' : "") + ">" + esc(leftTx) + "</b></div></div>" + '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) + (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" + '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" + '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' + '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' + '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" + (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' + '<span class="scv">แผน ณ วันนี้ <b>' + Math.round(cv.planNow * 10) / 10 + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" + msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) + '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' + '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") + "</body></html>";
 }
 function MsModal({
   job,
@@ -1145,6 +1992,9 @@ function MsModal({
   const [print, setPrint] = React.useState(null);
   const base = React.useMemo(() => ms.rows || msTemplate(), [ms.rows]);
   const C = React.useMemo(() => msCompute(edit || base, inst, job, today), [edit, base, inst, job, today]);
+  const hist = useMsHist(job && job.id);
+  const est = React.useMemo(() => msEstHist(edit || base, daily, job, crew), [edit, base, daily && daily.byDate, job, crew]);
+  const cv = React.useMemo(() => msCurve(C, today, hist, est), [C, today, hist, est]);
   const bd = window.useBackdropClose ? window.useBackdropClose(() => {
     if (!edit) onClose();
   }) : {};
@@ -1336,7 +2186,8 @@ function MsModal({
     C: C,
     today: today,
     narrow: narrow,
-    mid: mid
+    mid: mid,
+    wcol: C.weighted
   }), React.createElement("div", {
     style: {
       display: "flex",
@@ -1372,7 +2223,11 @@ function MsModal({
       height: 11,
       background: "var(--tint-red-tx)"
     }
-  }), "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"))))), React.createElement("div", {
+  }), "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"))), !edit && React.createElement(MsSCurve, {
+    cv: cv,
+    C: C,
+    narrow: narrow
+  }))), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1406,11 +2261,18 @@ function MsModal({
     disabled: busy
   }, busy ? "กำลังบันทึก…" : "บันทึก")) : React.createElement(React.Fragment, null, React.createElement("button", {
     style: btn(),
-    onClick: () => setPrint(msPrintHTML(job, C, today))
+    onClick: () => setPrint(msPrintHTML(job, C, today, cv))
   }, React.createElement(Icon, {
     name: "file",
     size: 14
-  }), " \u0E14\u0E39 / \u0E2D\u0E2D\u0E01 PDF"), React.createElement("span", {
+  }), " \u0E14\u0E39 / \u0E2D\u0E2D\u0E01 PDF"), React.createElement("button", {
+    style: btn(),
+    onClick: () => msExportXlsx(job, C, cv, today),
+    title: "Master Schedule + \u0E0A\u0E35\u0E15 S-Curve \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E23\u0E32\u0E1F"
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 14
+  }), " Excel"), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -1439,8 +2301,14 @@ function MsCard({
   const [open, setOpen] = React.useState(false);
   const today = msToday();
   const narrow = useMsNarrow(560);
-  if (!job) return null;
+  const hist = useMsHist(job && job.id);
   const C = msCompute(ms.rows || msTemplate(), inst, job, today);
+  React.useEffect(() => {
+    if (!job || !job.id || !ms.rows || hist === undefined || hist === null || !window.FBDB) return;
+    if (hist[today] === C.pct) return;
+    window.FBDB.ref("masterScheduleHist/" + job.id + "/" + today).set(C.pct);
+  }, [job && job.id, !!ms.rows, hist, today, C.pct]);
+  if (!job) return null;
   const sub = !ms.rows ? "ยังไม่ได้ทำแผน — กดเพื่อเริ่มจากแม่แบบ" : [C.lo != null ? msSpanTH(msIso(C.lo), msIso(C.hi)) : "ยังไม่ใส่วันแผน", C.cnt.done + "/" + C.leaves + " งานเสร็จ", C.late ? "ล่าช้า " + C.late : ""].filter(Boolean).join(" · ");
   return React.createElement(React.Fragment, null, React.createElement("div", {
     role: "button",
@@ -1526,5 +2394,8 @@ Object.assign(window, {
   msCompute,
   msInstallRows,
   msTemplate,
-  msPrintHTML
+  msPrintHTML,
+  msCurve,
+  msCurveSVG,
+  msExportXlsx
 });
