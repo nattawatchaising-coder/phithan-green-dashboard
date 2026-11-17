@@ -26,8 +26,20 @@ const MS_ST = {
     tx: "var(--text-2)",
     bg: "var(--surface2)",
     bar: "var(--primary)"
+  },
+  donelate: {
+    th: "เสร็จช้า",
+    tx: "var(--tint-red-tx)",
+    bg: "var(--tint-red-bg)",
+    bar: "var(--tint-ok-tx)"
   }
 };
+function msStLabel(r) {
+  if (r.st === "done") return r.var == null ? "เสร็จแล้ว" : r.var < 0 ? "เสร็จก่อน " + -r.var + " วัน" : "เสร็จตามกำหนด";
+  if (r.st === "donelate") return "เสร็จช้า " + r.var + " วัน";
+  if (r.st === "late") return "ล่าช้า " + r.lateBy + " วัน";
+  return (MS_ST[r.st] || MS_ST.todo).th;
+}
 const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 let _msSeq = 0;
 const msId = () => "r" + Date.now().toString(36) + (_msSeq++).toString(36);
@@ -149,7 +161,9 @@ function msInstallRowsOf(steps, owner) {
       planStart: r.planStart || "",
       planEnd: r.planEnd || r.planStart || "",
       pct: msPct(r.pct),
-      w: msW(r.w) == null ? "" : msW(r.w)
+      w: msW(r.w) == null ? "" : msW(r.w),
+      actStart: r.actStart || "",
+      actEnd: r.actEnd || ""
     };
     if (r.head !== false) {
       hi += 1;
@@ -215,8 +229,17 @@ function msCompute(rows, inst, job, today, cap) {
   const status = r => {
     const p = msPct(r.pct),
       pe = msDay(r.planEnd || r.planStart);
-    if (p >= 100) return "done";
-    if (pe != null && td != null && pe < td) return "late";
+    r.var = null;
+    r.lateBy = null;
+    if (p >= 100) {
+      const ae = msDay(r.actEnd);
+      if (ae != null && pe != null) r.var = ae - pe;
+      return r.var > 0 ? "donelate" : "done";
+    }
+    if (pe != null && td != null && pe < td) {
+      r.lateBy = td - pe;
+      return "late";
+    }
     return p > 0 ? "doing" : "todo";
   };
   let no = 0,
@@ -243,6 +266,10 @@ function msCompute(rows, inst, job, today, cap) {
     const W = kids.reduce((t, k) => t + leafW(k), 0);
     r.wt = W;
     r.pct = Math.round(kids.reduce((t, k) => t + leafW(k) * msPct(k.pct), 0) / (W || 1));
+    const as = kids.map(k => k.actStart).filter(Boolean).sort(),
+      ae = kids.map(k => k.actEnd).filter(Boolean).sort();
+    r.actStart = as[0] || "";
+    r.actEnd = kids.every(k => msPct(k.pct) >= 100) && ae.length ? ae[ae.length - 1] : "";
     const own = [...new Set(kids.map(k => k.owner).filter(Boolean))];
     if (!r.owner && own.length === 1) r.owner = own[0];
   }
@@ -268,11 +295,13 @@ function msCompute(rows, inst, job, today, cap) {
     done: 0,
     doing: 0,
     late: 0,
-    todo: 0
+    todo: 0,
+    donelate: 0
   };
   leaves.forEach(r => {
     cnt[r.st] += 1;
   });
+  cnt.done += cnt.donelate;
   return {
     rows: out,
     pct,
@@ -636,8 +665,8 @@ function msExportXlsx(job, C, cv, today) {
     border: {}
   }));
   const H0 = 4,
-    W0 = 9;
-  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "% Progress", "สถานะ"].forEach((t, c) => {
+    W0 = 12;
+  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => {
     put(H0, c, t, HDR);
     put(H0 + 1, c, "", HDR);
     merges.push({
@@ -682,13 +711,8 @@ function msExportXlsx(job, C, cv, today) {
       c: W0 + weeks.length - 1
     }
   });
-  const stTx = {
-    done: "เสร็จแล้ว",
-    doing: "กำลังทำ",
-    late: "ล่าช้า",
-    todo: "ยังไม่เริ่ม"
-  };
   let r = H0 + 2;
+  const td = msDay(today);
   C.rows.forEach(row => {
     const head = row.head && row.kids,
       st = head ? HEAD : sty();
@@ -710,24 +734,50 @@ function msExportXlsx(job, C, cv, today) {
       b = serial(row.planEnd || row.planStart);
     put(r, 5, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
     put(r, 6, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
-    put(r, 7, msPct(row.pct) / 100, Object.assign({}, st, {
+    const c = serial(row.actStart),
+      e = serial(row.actEnd);
+    put(r, 7, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
+    put(r, 8, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
+    const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
+    put(r, 9, dv == null ? "" : dv, Object.assign({}, st, {
+      alignment: {
+        horizontal: "right"
+      },
+      font: font({
+        bold: !!head,
+        color: {
+          rgb: dv > 0 ? "B91C1C" : dv < 0 ? "15803D" : "15211A"
+        }
+      })
+    }), dv == null ? "s" : "n", "+0;-0;0");
+    put(r, 10, msPct(row.pct) / 100, Object.assign({}, st, {
       alignment: {
         horizontal: "right"
       }
     }), "n", "0%");
-    put(r, 8, stTx[row.st] || "", st);
+    put(r, 11, msStLabel(row), Object.assign({}, st, {
+      font: font({
+        bold: !!head,
+        color: {
+          rgb: row.st === "late" || row.st === "donelate" ? "B91C1C" : row.st === "done" ? "15803D" : "15211A"
+        }
+      })
+    }));
     const ps = msDay(row.planStart),
       pe = msDay(row.planEnd || row.planStart);
+    const as = msDay(row.actStart),
+      ae = msDay(row.actEnd) != null ? msDay(row.actEnd) : as != null && td != null ? Math.max(as, td) : null;
     weeks.forEach((w, i) => {
       let v = "";
       let fill = null;
-      if (ps != null) {
-        const ov = Math.max(0, Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1);
-        if (ov > 0) {
-          fill = head ? "9FD6C1" : "BFE6D6";
-          if (!head) v = Math.round(ov / (pe - ps + 1) * 1000) / 10;
-        }
+      const inP = ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d);
+      const inA = as != null && ae != null && Math.min(ae, w.d + 6) >= Math.max(as, w.d);
+      if (inP) {
+        const ov = Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1;
+        fill = head ? "9FD6C1" : "BFE6D6";
+        if (!head) v = Math.round(ov / (pe - ps + 1) * 1000) / 10;
       }
+      if (inA) fill = inP ? "5DBB97" : "F4B4B4";
       put(r, W0 + i, v, sty({
         font: font({
           sz: 8
@@ -796,6 +846,16 @@ function msExportXlsx(job, C, cv, today) {
   sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, "0.00", "E6F2EC");
   sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, "0.00", "E3ECFB");
   sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, "0.00", "FBEDE3");
+  put(r + 1, 1, "สีช่องสัปดาห์: เขียวอ่อน = ช่วงแผน (ตัวเลข = % ของงานนั้นในสัปดาห์) · เขียวเข้ม = ทำจริงในช่วงแผน · แดงอ่อน = ทำจริงนอกช่วงแผน · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
+    font: font({
+      sz: 9,
+      color: {
+        rgb: "5A6B62"
+      }
+    }),
+    border: {}
+  }));
+  r += 1;
   ws["!ref"] = X.utils.encode_range({
     s: {
       r: 0,
@@ -803,7 +863,7 @@ function msExportXlsx(job, C, cv, today) {
     },
     e: {
       r: r,
-      c: Math.max(W0 + weeks.length - 1, 9)
+      c: Math.max(W0 + weeks.length - 1, 12)
     }
   });
   ws["!merges"] = merges;
@@ -822,9 +882,15 @@ function msExportXlsx(job, C, cv, today) {
   }, {
     wch: 12.5
   }, {
+    wch: 12.5
+  }, {
+    wch: 12.5
+  }, {
+    wch: 8
+  }, {
     wch: 9
   }, {
-    wch: 10
+    wch: 17
   }].concat(weeks.map(() => ({
     wch: 5.5
   })));
@@ -994,6 +1060,8 @@ function useMasterSchedule(jobId) {
       planStart: r.planStart || "",
       planEnd: r.planEnd || "",
       pct: msPct(r.pct),
+      actStart: r.actStart || "",
+      actEnd: r.actEnd || "",
       w: msW(r.w) == null ? "" : msW(r.w),
       dur: Math.max(0, Math.round(+r.dur || 0)) || ""
     }));
@@ -1169,7 +1237,8 @@ function MsSummary({
 }
 const MsPill = ({
   st,
-  small
+  small,
+  label
 }) => {
   const s = MS_ST[st] || MS_ST.todo;
   return React.createElement("span", {
@@ -1183,7 +1252,7 @@ const MsPill = ({
       borderRadius: "var(--r-pill)",
       whiteSpace: "nowrap"
     }
-  }, s.th);
+  }, label || s.th);
 };
 function MsGantt({
   C,
@@ -1209,8 +1278,8 @@ function MsGantt({
   const full = !compact && !narrow;
   const dates = full && !mid;
   const wc = !!wcol && !compact && !narrow;
-  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 78px";
-  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 400 : 560) + (wc ? 50 : 0);
+  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 104px";
+  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 426 : 586) + (wc ? 50 : 0);
   const rh = compact ? 20 : 34;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
@@ -1457,6 +1526,7 @@ function MsGantt({
       }
     }, p, "%"), full && React.createElement("span", null, React.createElement(MsPill, {
       st: r.st,
+      label: msStLabel(r),
       small: true
     }))), React.createElement("div", {
       style: {
@@ -1485,14 +1555,33 @@ function MsGantt({
         width: 1,
         background: "var(--divider)"
       }
-    })), ps != null && React.createElement("div", {
-      title: r.th + " · " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%",
+    })), !compact && (() => {
+      const as = msDay(r.actStart),
+        ae0 = msDay(r.actEnd),
+        ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
+      if (as == null || ae == null) return null;
+      const lt = pe != null && ae > pe;
+      return React.createElement("div", {
+        title: "ทำจริง " + msSpanTH(r.actStart, r.actEnd || "") + (r.actEnd ? "" : " (ยังทำอยู่)"),
+        style: {
+          position: "absolute",
+          left: A.X(as) + "%",
+          width: A.W(as, ae) + "%",
+          top: rh / 2 + 5,
+          height: 5,
+          borderRadius: 3,
+          background: lt ? "var(--tint-red-tx)" : "var(--tint-ok-tx)",
+          opacity: r.actEnd ? 1 : 0.6
+        }
+      });
+    })(), ps != null && React.createElement("div", {
+      title: r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%",
       style: {
         position: "absolute",
         left: A.X(ps) + "%",
         width: A.W(ps, pe) + "%",
-        top: rh / 2 - (compact ? 4 : r.head ? 6 : 7),
-        height: compact ? 8 : r.head ? 12 : 14,
+        top: compact ? rh / 2 - 4 : rh / 2 - (r.head ? 9 : 10),
+        height: compact ? 8 : r.head ? 10 : 12,
         borderRadius: compact ? 3 : 4,
         background: MS_TRACK,
         overflow: "hidden",
@@ -1534,7 +1623,13 @@ function MsEditor({
     const up = {
       [k]: v
     };
-    if (k === "pct") up.pct = v === "" ? "" : msPct(v);
+    if (k === "pct") {
+      up.pct = v === "" ? "" : msPct(v);
+      const n = msPct(v);
+      if (n > 0 && !r.actStart && today) up.actStart = today;
+      if (n >= 100 && !r.actEnd && today) up.actEnd = today;
+      if (n < 100 && r.actEnd) up.actEnd = "";
+    }
     if (k === "w") up.w = v === "" ? "" : String(v).replace(/[^0-9.]/g, "").slice(0, 5);
     if (k === "planStart" && v && !r.planEnd) up.planEnd = +r.dur > 0 ? msIso(msDay(v) + Math.round(+r.dur) - 1) : v;
     if (k === "planStart" && v && r.planEnd && r.planStart) {
@@ -1580,7 +1675,7 @@ function MsEditor({
     fontFamily: "var(--mono)",
     fontSize: 12
   });
-  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(110px,.8fr) 132px 132px 58px 62px 62px 88px";
+  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(100px,.7fr) 128px 128px 54px 128px 128px 58px 58px 88px";
   const wSum = rows.filter(r => !r.head || r.link === "install" && !inst.length).reduce((t, r) => t + (msW(r.w) || 0), 0) + inst.filter(r => !r.head).reduce((t, r) => t + (msW(r.w) || 0), 0);
   const lab = t => narrow ? React.createElement("span", {
     style: {
@@ -1636,7 +1731,11 @@ function MsEditor({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("span", null, "\u0E08\u0E1A"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", {
+  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21 (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E08\u0E1A (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", {
+    title: "\u0E43\u0E2A\u0E48 % \u0E41\u0E25\u0E49\u0E27\u0E40\u0E15\u0E34\u0E21\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49"
+  }, "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E23\u0E34\u0E07"), React.createElement("span", {
+    title: "\u0E43\u0E2A\u0E48 100% \u0E41\u0E25\u0E49\u0E27\u0E40\u0E15\u0E34\u0E21\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49"
+  }, "\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E08\u0E23\u0E34\u0E07"), React.createElement("span", {
     title: "% \u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E15\u0E48\u0E2D\u0E17\u0E31\u0E49\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 (\u0E23\u0E27\u0E21 100)"
   }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01"), React.createElement("span", null, "%"), React.createElement("span", null)), React.createElement("div", {
     style: {
@@ -1731,6 +1830,29 @@ function MsEditor({
         flexDirection: "column",
         gap: 3
       }
+    }, lab("เริ่มจริง"), React.createElement("input", {
+      type: "date",
+      value: r.actStart || "",
+      onChange: e => set(i, "actStart", e.target.value),
+      style: dIn
+    })), React.createElement("label", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
+    }, lab("เสร็จจริง"), React.createElement("input", {
+      type: "date",
+      value: r.actEnd || "",
+      min: r.actStart || undefined,
+      onChange: e => set(i, "actEnd", e.target.value),
+      style: dIn
+    })), React.createElement("label", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
     }, lab("น้ำหนัก %"), React.createElement("input", {
       inputMode: "decimal",
       value: r.w == null ? "" : r.w,
@@ -1759,7 +1881,7 @@ function MsEditor({
       })
     }))) : React.createElement("span", {
       style: Object.assign({
-        gridColumn: narrow ? "span 2" : "2 / span 6",
+        gridColumn: narrow ? "span 2" : "2 / span 8",
         fontSize: 11.5,
         color: "var(--text-3)"
       })
@@ -1928,20 +2050,20 @@ function msPrintHTML(job, C, today, cv) {
     done: "done",
     doing: "doing",
     late: "late",
-    todo: "todo"
-  };
-  const stTx = {
-    done: "เสร็จแล้ว",
-    doing: "กำลังทำ",
-    late: "ล่าช้า",
-    todo: "ยังไม่เริ่ม"
+    todo: "todo",
+    donelate: "late"
   };
   const body = C.rows.map(r => {
     const ps = msDay(r.planStart),
       pe = msDay(r.planEnd || r.planStart),
       p = msPct(r.pct);
-    const bar = ps != null ? '<b class="bar ' + (r.head ? "h " : "") + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
-    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="u">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="st"><span class="pill ' + stCls[r.st] + '">' + stTx[r.st] + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
+    let bar = ps != null ? '<b class="bar ' + (r.head ? "h " : "") + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
+    const as = msDay(r.actStart),
+      ae0 = msDay(r.actEnd),
+      ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
+    if (as != null && ae != null) bar += '<b class="ab' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>';
+    const actTx = as == null ? "" : msTH(r.actStart) + " – " + (ae0 != null ? msTH(r.actEnd) : "…");
+    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
   let hd = '<div class="gc mh">' + A.months.map(m => '<span style="left:' + X(m.d) + '%"' + (m.d !== A.lo ? ' class="b"' : "") + ">" + m.th + "</span>").join("") + "</div>" + '<div class="gc wh">' + A.weeks.map(w => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (w.n < 1 ? "" : "สัปดาห์ " + w.n) + "</span>").join("") + "</div>";
   if (daily) {
@@ -1952,7 +2074,7 @@ function msPrintHTML(job, C, today, cv) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="u">%W</th>' + '<th class="p">ความคืบหน้า</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' + '<th class="p">ความคืบหน้า</th><th class="ac">ทำจริง</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today),
     days = C.lo != null ? C.hi - C.lo + 1 : null,
@@ -1963,8 +2085,8 @@ function msPrintHTML(job, C, today, cv) {
   const ring = '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#D5EEE5" stroke-width="10"/>' + (C.pct > 0 ? '<circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#1B9B75" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (Cc * C.pct / 100).toFixed(2) + " " + Cc.toFixed(2) + '" transform="rotate(-90 46 46)"/>' : "") + '<text x="46" y="46" dominant-baseline="central" text-anchor="middle" font-size="20" font-weight="800" fill="#15211A" font-family="monospace">' + C.pct + "%</text></svg>";
   const kpi = (lab, v, cls) => '<div class="k ' + (cls || "") + '"><span>' + lab + "</span><b>" + v + "</b></div>";
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")], ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter(x => x[1]);
-  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.p{width:84px}.st{width:66px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:15px;background:#2F8A6D}.wh span{position:absolute;top:0;height:15px;line-height:15px;padding-left:4px;font-size:9px;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:4px;height:12px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:6px;height:10px}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" + ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" + ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" + '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" + info.map(x => "<tr><td>" + esc(x[0]) + "</td><td><b>" + esc(x[1]) + "</b></td></tr>").join("") + "</table></div>" + '<div class="rg">' + ring + '<div class="ri">เริ่ม <b>' + esc(C.lo != null ? msTH(msIso(C.lo), true) : "—") + "</b><br>จบ <b>" + esc(C.hi != null ? msTH(msIso(C.hi), true) : "—") + "</b><br>รวม <b>" + (days || "—") + " วัน</b><br><b" + (left != null && left < 0 && C.pct < 100 ? ' style="color:#B91C1C"' : "") + ">" + esc(leftTx) + "</b></div></div>" + '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) + (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" + '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" + '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' + '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' + '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" + (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' + '<span class="scv">แผน ณ วันนี้ <b>' + Math.round(cv.planNow * 10) / 10 + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" + msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) + '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' + '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") + "</body></html>";
+  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.w{width:40px;text-align:right}.p{width:84px}.ac{width:96px}td.ac{color:#4A5A51;font-size:9.5px}.st{width:92px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:15px;background:#2F8A6D}.wh span{position:absolute;top:0;height:15px;line-height:15px;padding-left:4px;font-size:9px;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:2px;height:10px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:3px;height:9px}b.ab{position:absolute;top:14px;height:4px;border-radius:2px;background:#15803D;z-index:1}tr.h b.ab{top:15px}b.ab.lt{background:#DC2626}b.ab.op{opacity:.55}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" + ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" + ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" + '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" + info.map(x => "<tr><td>" + esc(x[0]) + "</td><td><b>" + esc(x[1]) + "</b></td></tr>").join("") + "</table></div>" + '<div class="rg">' + ring + '<div class="ri">เริ่ม <b>' + esc(C.lo != null ? msTH(msIso(C.lo), true) : "—") + "</b><br>จบ <b>" + esc(C.hi != null ? msTH(msIso(C.hi), true) : "—") + "</b><br>รวม <b>" + (days || "—") + " วัน</b><br><b" + (left != null && left < 0 && C.pct < 100 ? ' style="color:#B91C1C"' : "") + ">" + esc(leftTx) + "</b></div></div>" + '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) + (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" + '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" + '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' + '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#15803D;height:4px"></i>ทำจริง (แดง = เลยกำหนด)</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' + '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" + (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' + '<span class="scv">แผน ณ วันนี้ <b>' + Math.round(cv.planNow * 10) / 10 + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" + msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) + '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' + '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") + "</body></html>";
 }
 function MsModal({
   job,
@@ -2197,7 +2319,7 @@ function MsModal({
       color: "var(--text-3)",
       marginTop: 10
     }
-  }, [["ช่วงแผน", MS_TRACK], ["ทำไปแล้ว (ระบายตาม %)", "var(--primary)"], ["เสร็จ", "var(--tint-ok-tx)"], ["ล่าช้า", "var(--tint-red-tx)"]].map(([t, c]) => React.createElement("span", {
+  }, [["ช่วงแผน", MS_TRACK], ["ทำไปแล้ว (ระบายตาม %)", "var(--primary)"], ["เสร็จ", "var(--tint-ok-tx)"], ["ล่าช้า", "var(--tint-red-tx)"], ["ทำจริง (แถบบางใต้แผน · แดง = เลยกำหนด)", "var(--tint-ok-tx)"]].map(([t, c]) => React.createElement("span", {
     key: t,
     style: {
       display: "inline-flex",
@@ -2391,6 +2513,7 @@ Object.assign(window, {
   MsCard,
   MsModal,
   useMasterSchedule,
+  msStLabel,
   msCompute,
   msInstallRows,
   msTemplate,
