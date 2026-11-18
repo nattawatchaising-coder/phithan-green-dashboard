@@ -431,8 +431,7 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen, apptStore, onNotify, m
     const busy = Object.values(m);
     busy.forEach((r) => r.items.sort((a2, b2) => String(a2.sort).localeCompare(String(b2.sort))));
     busy.sort((a2, b2) => b2.items.length - a2.items.length || a2.p.name.localeCompare(b2.p.name, "th"));
-    const free = base.people.filter((p) => p.techId && !m[p.key]); // ว่าง = เฉพาะคนลงหน้างาน
-    return { busy, free };
+    return { busy }; // ไม่บอกรายชื่อคนว่าง (ผู้ใช้สั่งเอาออก 2026-11-18)
   }, [pick, itemsOn, base]);
 
   return (
@@ -491,9 +490,6 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen, apptStore, onNotify, m
               </div>
             </div>
           ))}
-          {day.free.length > 0 && <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-            <b style={{ color: "var(--text-2)" }}>ว่าง {day.free.length} คน:</b> {day.free.map((p) => p.name).join(", ")}
-          </div>}
         </div>
       </div>
       {/* พอร์ทัลออกไปที่ body — .pnl มี backdrop-filter ทำให้ position:fixed ข้างในโดนขังอยู่ในกรอบการ์ด */}

@@ -750,10 +750,8 @@ function LoTeamPanel({
     const busy = Object.values(m);
     busy.forEach(r => r.items.sort((a2, b2) => String(a2.sort).localeCompare(String(b2.sort))));
     busy.sort((a2, b2) => b2.items.length - a2.items.length || a2.p.name.localeCompare(b2.p.name, "th"));
-    const free = base.people.filter(p => p.techId && !m[p.key]);
     return {
-      busy,
-      free
+      busy
     };
   }, [pick, itemsOn, base]);
   return React.createElement("div", {
@@ -963,17 +961,7 @@ function LoTeamPanel({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, it.label)))))), day.free.length > 0 && React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      lineHeight: 1.6
-    }
-  }, React.createElement("b", {
-    style: {
-      color: "var(--text-2)"
-    }
-  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))), edit && ReactDOM.createPortal(React.createElement(window.SurveyApptModal, {
+  }, it.label)))))))), edit && ReactDOM.createPortal(React.createElement(window.SurveyApptModal, {
     initial: edit,
     jobs: jobs,
     techs: techs,
