@@ -617,27 +617,23 @@ function LoTeamPanel({
   onOpen
 }) {
   const SF = window.SF;
-  const [day, setDay] = React.useState(SF.TODAY);
-  const shift = n => setDay(d => {
-    const x = new Date(d + "T00:00:00");
-    x.setDate(x.getDate() + n);
-    return x.toLocaleDateString("sv-SE");
-  });
+  const [pick, setPick] = React.useState(SF.TODAY);
+  const [ym, setYm] = React.useState(SF.TODAY.slice(0, 7));
   const hm = iso => new Date(iso).toTimeString().slice(0, 5);
-  const data = React.useMemo(() => {
-    const people = [];
-    const byTech = {},
+  const KB = window.APPT_KIND_BY || {};
+  const base = React.useMemo(() => {
+    const people = [],
+      byTech = {},
       byUser = {};
     const techById = Object.fromEntries((techs || []).map(t => [t.id, t]));
     (users || []).filter(u => u && u.active !== false && u.name).forEach(u => {
       const t = u.techId ? techById[u.techId] : null;
       const p = {
         key: "u" + u.id,
-        name: u.name,
+        name: String(u.name).trim(),
         color: t && t.color || "#94A3B8",
         uid: u.id,
-        techId: u.techId || null,
-        items: []
+        techId: u.techId || null
       };
       people.push(p);
       byUser[u.id] = p;
@@ -647,15 +643,34 @@ function LoTeamPanel({
       if (!byTech[t.id]) {
         const p = {
           key: "t" + t.id,
-          name: t.name,
+          name: String(t.name || "").trim(),
           color: t.color || "#94A3B8",
-          techId: t.id,
-          items: []
+          techId: t.id
         };
         people.push(p);
         byTech[t.id] = p;
       }
     });
+    return {
+      people,
+      byTech,
+      byUser
+    };
+  }, [techs, users]);
+  const itemsOn = React.useCallback(day => {
+    const out = [];
+    const push = (ps, it) => {
+      const seen = new Set();
+      ps.forEach(p => {
+        if (p && !seen.has(p.key)) {
+          seen.add(p.key);
+          out.push({
+            p,
+            it
+          });
+        }
+      });
+    };
     (jobs || []).forEach(j => {
       if (j.stage === "done") return;
       const s0 = SF.installDate ? SF.installDate(j) : "";
@@ -663,23 +678,16 @@ function LoTeamPanel({
       const e0 = SF.installEnd ? SF.installEnd(j) : s0;
       if (day < s0 || day > e0) return;
       const st = (SF.STAGES || []).find(x => x.key === j.stage) || {};
-      const it = {
+      push([base.byTech[j.tech], base.byUser[j.eeId]], {
         k: "j" + j.id,
         sort: "0",
+        kind: "install",
         color: st.color || "#84CC16",
         tag: "ติดตั้ง",
         label: j.name || j.code,
         job: j
-      };
-      const seen = new Set();
-      [byTech[j.tech], byUser[j.eeId]].forEach(p => {
-        if (p && !seen.has(p.key)) {
-          seen.add(p.key);
-          p.items.push(it);
-        }
       });
     });
-    const KB = window.APPT_KIND_BY || {};
     (appts || []).forEach(a => {
       if (!a.start || a.status === "canceled" || new Date(a.start).toLocaleDateString("sv-SE") !== day) return;
       const ev = window.isApptEvent ? window.isApptEvent(a) : false;
@@ -687,161 +695,221 @@ function LoTeamPanel({
         th: "สำรวจ",
         color: "#0EA5E9"
       };
-      const it = {
+      const ps = ev ? (a.attendeeIds || []).map(id => base.byUser[id]) : (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map(id => base.byTech[id]);
+      push(ps, {
         k: "a" + a.id,
         sort: a.start,
+        kind: ev ? a.kind : "survey",
         color: K.color,
         tag: K.th,
         time: hm(a.start) + (a.end ? "–" + hm(a.end) : ""),
         label: a.jobName || K.th
-      };
-      const ps = ev ? (a.attendeeIds || []).map(id => byUser[id]) : (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map(id => byTech[id]);
-      const seen = new Set();
-      ps.forEach(p => {
-        if (p && !seen.has(p.key)) {
-          seen.add(p.key);
-          p.items.push(it);
-        }
       });
     });
-    people.forEach(p => p.items.sort((x, y) => String(x.sort).localeCompare(String(y.sort))));
-    const busy = people.filter(p => p.items.length).sort((x, y) => y.items.length - x.items.length || x.name.localeCompare(y.name, "th"));
-    const free = people.filter(p => !p.items.length && p.techId);
+    return out;
+  }, [jobs, appts, base]);
+  const [y, mo] = ym.split("-").map(Number);
+  const nDays = new Date(y, mo, 0).getDate(),
+    lead = new Date(y, mo - 1, 1).getDay();
+  const key = d => ym + "-" + String(d).padStart(2, "0");
+  const dots = React.useMemo(() => {
+    const m = {};
+    for (let d = 1; d <= nDays; d++) {
+      const k = key(d),
+        seen = {};
+      itemsOn(k).forEach(({
+        it
+      }) => {
+        const g = it.kind === "install" ? "install" : it.kind === "survey" ? "survey" : "event";
+        if (!seen[g]) seen[g] = it.kind === "install" ? "#84CC16" : it.color;
+      });
+      m[k] = ["install", "survey", "event"].filter(g => seen[g]).map(g => seen[g]);
+    }
+    return m;
+  }, [ym, itemsOn]);
+  const shift = n => {
+    const d = new Date(y, mo - 1 + n, 1);
+    setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const day = React.useMemo(() => {
+    const m = {};
+    itemsOn(pick).forEach(({
+      p,
+      it
+    }) => {
+      (m[p.key] = m[p.key] || {
+        p,
+        items: []
+      }).items.push(it);
+    });
+    const busy = Object.values(m);
+    busy.forEach(r => r.items.sort((a2, b2) => String(a2.sort).localeCompare(String(b2.sort))));
+    busy.sort((a2, b2) => b2.items.length - a2.items.length || a2.p.name.localeCompare(b2.p.name, "th"));
+    const free = base.people.filter(p => p.techId && !m[p.key]);
     return {
       busy,
       free
     };
-  }, [jobs, appts, techs, users, day]);
-  const isToday = day === SF.TODAY;
-  const nb = {
-    width: 28,
-    height: 28,
-    borderRadius: "var(--r-chip)",
-    border: "none",
-    boxShadow: "var(--shadow-sm)",
-    background: "var(--surface)",
-    cursor: "pointer",
-    display: "grid",
-    placeItems: "center",
-    color: "var(--text-2)",
-    fontFamily: "inherit"
-  };
+  }, [pick, itemsOn, base]);
   return React.createElement("div", {
-    className: "pnl"
+    className: "pnl ov-cal"
   }, React.createElement(PanelTitle, {
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19\u0E17\u0E35\u0E21",
-    sub: (window.thDate ? window.thDate(day, true) : day) + (isToday ? " · วันนี้" : ""),
-    right: React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6
-      }
+    right: React.createElement("span", {
+      className: "ov-cal-nav"
     }, React.createElement("button", {
       onClick: () => shift(-1),
-      style: nb,
-      title: "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19"
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+    }, React.createElement(Icon, {
+      name: "chevronLeft",
+      size: 15,
+      color: "var(--text-2)"
+    })), React.createElement("b", null, MON_TH[mo - 1], " ", y + 543), React.createElement("button", {
+      onClick: () => shift(1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
     }, React.createElement(Icon, {
       name: "chevronRight",
       size: 15,
-      style: {
-        transform: "rotate(180deg)"
-      }
-    })), !isToday && React.createElement("button", {
-      onClick: () => setDay(SF.TODAY),
-      style: {
-        ...nb,
-        width: "auto",
-        padding: "0 9px",
-        fontSize: 11.5,
-        fontWeight: 700
-      }
-    }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
-      onClick: () => shift(1),
-      style: nb,
-      title: "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
-    }, React.createElement(Icon, {
-      name: "chevronRight",
-      size: 15
+      color: "var(--text-2)"
     })))
   }), React.createElement("div", {
     style: {
-      marginTop: 14,
-      display: "flex",
-      flexDirection: "column",
-      gap: 10,
-      maxHeight: 420,
-      overflowY: "auto",
-      margin: "14px -4px 0",
-      padding: "0 4px"
-    }
-  }, data.busy.length === 0 && React.createElement("div", {
-    style: {
-      padding: "16px 2px",
-      fontSize: 12.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E21\u0E35\u0E07\u0E32\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22"), data.busy.map(p => React.createElement("div", {
-    key: p.key,
-    style: {
       display: "flex",
       gap: 10,
-      paddingBottom: 10,
-      borderBottom: "1px solid var(--divider)"
+      flexWrap: "wrap",
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      marginTop: 8
+    }
+  }, [["#84CC16", "ติดตั้ง"], ["#0EA5E9", "สำรวจ"], [(KB.meeting || {}).color || "#8B5CF6", "ประชุม/Training"]].map(([c, t]) => React.createElement("span", {
+    key: t,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
     }
   }, React.createElement("span", {
     style: {
-      width: 28,
-      height: 28,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      background: c
+    }
+  }), t))), React.createElement("div", {
+    className: "ov-cal-grid"
+  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map(d => React.createElement("span", {
+    key: d,
+    className: "hd"
+  }, d)), Array.from({
+    length: lead
+  }).map((_, i) => React.createElement("span", {
+    key: "p" + i
+  })), Array.from({
+    length: nDays
+  }).map((_, i) => {
+    const d = i + 1,
+      k = key(d),
+      ds = dots[k] || [];
+    const on = k === pick;
+    return React.createElement("button", {
+      key: k,
+      onClick: () => setPick(k),
+      "data-today": k === SF.TODAY ? "1" : "0",
+      "data-on": on ? "1" : "0"
+    }, d, ds.length > 0 && React.createElement("span", {
+      style: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 4,
+        display: "flex",
+        justifyContent: "center",
+        gap: 2
+      }
+    }, ds.map((c, j) => React.createElement("span", {
+      key: j,
+      style: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        background: on ? "#fff" : c
+      }
+    }))));
+  })), React.createElement("div", {
+    className: "ov-cal-foot"
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: 8
+    }
+  }, window.thDate ? window.thDate(pick, true) : pick, pick === SF.TODAY ? " · วันนี้" : "", " \xB7 ", day.busy.length ? day.busy.length + " คนมีงาน" : "ไม่มีใครมีงาน"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 9,
+      maxHeight: 320,
+      overflowY: "auto",
+      margin: "0 -4px",
+      padding: "0 4px"
+    }
+  }, day.busy.map(({
+    p,
+    items
+  }) => React.createElement("div", {
+    key: p.key,
+    style: {
+      display: "flex",
+      gap: 9
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 24,
+      height: 24,
       borderRadius: "var(--r-pill)",
       background: p.color,
       color: "#fff",
       display: "grid",
       placeItems: "center",
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: 800,
       flexShrink: 0
     }
-  }, String(p.name).trim().charAt(0)), React.createElement("div", {
+  }, p.name.charAt(0)), React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0,
       display: "flex",
       flexDirection: "column",
-      gap: 4
+      gap: 3
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 12.5,
       fontWeight: 700,
       color: "var(--text-1)",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, p.name), p.items.map(it => React.createElement("div", {
+  }, p.name), items.map(it => React.createElement("div", {
     key: it.k,
     onClick: it.job && onOpen ? () => onOpen(it.job) : undefined,
     title: it.label,
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 6,
-      fontSize: 11.5,
+      gap: 5,
+      fontSize: 11,
       minWidth: 0,
       cursor: it.job ? "pointer" : "default",
       background: it.color + "14",
-      borderRadius: 7,
-      padding: "4px 7px"
+      borderRadius: 6,
+      padding: "3px 6px"
     }
   }, React.createElement("span", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: "var(--r-pill)",
-      background: it.color,
-      flexShrink: 0
-    }
-  }), React.createElement("span", {
     style: {
       fontWeight: 800,
       color: it.color,
@@ -850,7 +918,7 @@ function LoTeamPanel({
   }, it.tag), it.time && React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
-      fontSize: 10.5,
+      fontSize: 10,
       color: "var(--text-2)",
       flexShrink: 0
     }
@@ -861,9 +929,9 @@ function LoTeamPanel({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, it.label)))))), data.free.length > 0 && React.createElement("div", {
+  }, it.label)))))), day.free.length > 0 && React.createElement("div", {
     style: {
-      fontSize: 11.5,
+      fontSize: 11,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
@@ -871,7 +939,7 @@ function LoTeamPanel({
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E27\u0E48\u0E32\u0E07 ", data.free.length, " \u0E04\u0E19:"), " ", data.free.map(p => p.name).join(", "))));
+  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))));
 }
 function LoSalesPanel({
   leads,

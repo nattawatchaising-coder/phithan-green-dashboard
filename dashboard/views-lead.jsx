@@ -368,19 +368,26 @@ function LoPermitPanel({ jobs, onGoPermit }) {
    · นัดประชุม/Training/อื่น ๆ (attendeeIds = ผู้ใช้) · คนหนึ่งคน = ผู้ใช้ + ช่างที่ผูกกัน (user.techId) */
 function LoTeamPanel({ jobs, appts, techs, users, onOpen }) {
   const SF = window.SF;
-  const [day, setDay] = React.useState(SF.TODAY);
-  const shift = (n) => setDay((d) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toLocaleDateString("sv-SE"); });
+  const [pick, setPick] = React.useState(SF.TODAY);
+  const [ym, setYm] = React.useState(SF.TODAY.slice(0, 7));
   const hm = (iso) => new Date(iso).toTimeString().slice(0, 5);
-  const data = React.useMemo(() => {
-    const people = [];
-    const byTech = {}, byUser = {};
+  const KB = window.APPT_KIND_BY || {};
+  /* คนทั้งหมด = ผู้ใช้ (+ช่างที่ผูก) + ช่างที่ไม่มีบัญชี */
+  const base = React.useMemo(() => {
+    const people = [], byTech = {}, byUser = {};
     const techById = Object.fromEntries((techs || []).map((t) => [t.id, t]));
     (users || []).filter((u) => u && u.active !== false && u.name).forEach((u) => {
       const t = u.techId ? techById[u.techId] : null;
-      const p = { key: "u" + u.id, name: u.name, color: (t && t.color) || "#94A3B8", uid: u.id, techId: u.techId || null, items: [] };
+      const p = { key: "u" + u.id, name: String(u.name).trim(), color: (t && t.color) || "#94A3B8", uid: u.id, techId: u.techId || null };
       people.push(p); byUser[u.id] = p; if (u.techId) byTech[u.techId] = p;
     });
-    (techs || []).forEach((t) => { if (!byTech[t.id]) { const p = { key: "t" + t.id, name: t.name, color: t.color || "#94A3B8", techId: t.id, items: [] }; people.push(p); byTech[t.id] = p; } });
+    (techs || []).forEach((t) => { if (!byTech[t.id]) { const p = { key: "t" + t.id, name: String(t.name || "").trim(), color: t.color || "#94A3B8", techId: t.id }; people.push(p); byTech[t.id] = p; } });
+    return { people, byTech, byUser };
+  }, [techs, users]);
+  /* งานของวันหนึ่ง → [{ p, it }] (คนละแถว ไม่ซ้ำคนต่อรายการ) */
+  const itemsOn = React.useCallback((day) => {
+    const out = [];
+    const push = (ps, it) => { const seen = new Set(); ps.forEach((p) => { if (p && !seen.has(p.key)) { seen.add(p.key); out.push({ p, it }); } }); };
     (jobs || []).forEach((j) => {
       if (j.stage === "done") return;
       const s0 = SF.installDate ? SF.installDate(j) : "";
@@ -388,58 +395,99 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen }) {
       const e0 = SF.installEnd ? SF.installEnd(j) : s0;
       if (day < s0 || day > e0) return;
       const st = (SF.STAGES || []).find((x) => x.key === j.stage) || {};
-      const it = { k: "j" + j.id, sort: "0", color: st.color || "#84CC16", tag: "ติดตั้ง", label: j.name || j.code, job: j };
-      const seen = new Set();
-      [byTech[j.tech], byUser[j.eeId]].forEach((p) => { if (p && !seen.has(p.key)) { seen.add(p.key); p.items.push(it); } });
+      push([base.byTech[j.tech], base.byUser[j.eeId]], { k: "j" + j.id, sort: "0", kind: "install", color: st.color || "#84CC16", tag: "ติดตั้ง", label: j.name || j.code, job: j });
     });
-    const KB = window.APPT_KIND_BY || {};
     (appts || []).forEach((a) => {
       if (!a.start || a.status === "canceled" || new Date(a.start).toLocaleDateString("sv-SE") !== day) return;
       const ev = window.isApptEvent ? window.isApptEvent(a) : false;
       const K = KB[ev ? a.kind : "survey"] || { th: "สำรวจ", color: "#0EA5E9" };
-      const it = { k: "a" + a.id, sort: a.start, color: K.color, tag: K.th, time: hm(a.start) + (a.end ? "–" + hm(a.end) : ""), label: a.jobName || K.th };
-      const ps = ev ? (a.attendeeIds || []).map((id) => byUser[id]) : (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map((id) => byTech[id]);
-      const seen = new Set();
-      ps.forEach((p) => { if (p && !seen.has(p.key)) { seen.add(p.key); p.items.push(it); } });
+      const ps = ev ? (a.attendeeIds || []).map((id) => base.byUser[id]) : (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map((id) => base.byTech[id]);
+      push(ps, { k: "a" + a.id, sort: a.start, kind: ev ? a.kind : "survey", color: K.color, tag: K.th, time: hm(a.start) + (a.end ? "–" + hm(a.end) : ""), label: a.jobName || K.th });
     });
-    people.forEach((p) => p.items.sort((x, y) => String(x.sort).localeCompare(String(y.sort))));
-    const busy = people.filter((p) => p.items.length).sort((x, y) => y.items.length - x.items.length || x.name.localeCompare(y.name, "th"));
-    const free = people.filter((p) => !p.items.length && p.techId); // คนว่างนับเฉพาะคนลงหน้างาน (ช่าง/วิศวกร) — ออฟฟิศไม่ต้องขึ้นว่าว่าง
+    return out;
+  }, [jobs, appts, base]);
+
+  const [y, mo] = ym.split("-").map(Number);
+  const nDays = new Date(y, mo, 0).getDate(), lead = new Date(y, mo - 1, 1).getDay();
+  const key = (d) => ym + "-" + String(d).padStart(2, "0");
+  // จุดสีใต้วันที่ — ติดตั้ง / สำรวจ / นัดอื่น (สูงสุด 3 จุด ตามชนิดที่มี)
+  const dots = React.useMemo(() => {
+    const m = {};
+    for (let d = 1; d <= nDays; d++) {
+      const k = key(d), seen = {};
+      itemsOn(k).forEach(({ it }) => { const g = it.kind === "install" ? "install" : it.kind === "survey" ? "survey" : "event"; if (!seen[g]) seen[g] = it.kind === "install" ? "#84CC16" : it.color; });
+      m[k] = ["install", "survey", "event"].filter((g) => seen[g]).map((g) => seen[g]);
+    }
+    return m;
+  }, [ym, itemsOn]);
+  const shift = (n) => { const d = new Date(y, mo - 1 + n, 1); setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")); };
+  const MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+  // รายคนของวันที่เลือก
+  const day = React.useMemo(() => {
+    const m = {};
+    itemsOn(pick).forEach(({ p, it }) => { (m[p.key] = m[p.key] || { p, items: [] }).items.push(it); });
+    const busy = Object.values(m);
+    busy.forEach((r) => r.items.sort((a2, b2) => String(a2.sort).localeCompare(String(b2.sort))));
+    busy.sort((a2, b2) => b2.items.length - a2.items.length || a2.p.name.localeCompare(b2.p.name, "th"));
+    const free = base.people.filter((p) => p.techId && !m[p.key]); // ว่าง = เฉพาะคนลงหน้างาน
     return { busy, free };
-  }, [jobs, appts, techs, users, day]);
-  const isToday = day === SF.TODAY;
-  const nb = { width: 28, height: 28, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontFamily: "inherit" };
+  }, [pick, itemsOn, base]);
+
   return (
-    <div className="pnl">
-      <PanelTitle title="ตารางงานทีม" sub={(window.thDate ? window.thDate(day, true) : day) + (isToday ? " · วันนี้" : "")}
-        right={<div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => shift(-1)} style={nb} title="วันก่อน"><Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} /></button>
-          {!isToday && <button onClick={() => setDay(SF.TODAY)} style={{ ...nb, width: "auto", padding: "0 9px", fontSize: 11.5, fontWeight: 700 }}>วันนี้</button>}
-          <button onClick={() => shift(1)} style={nb} title="วันถัดไป"><Icon name="chevronRight" size={15} /></button>
-        </div>} />
-      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10, maxHeight: 420, overflowY: "auto", margin: "14px -4px 0", padding: "0 4px" }}>
-        {data.busy.length === 0 && <div style={{ padding: "16px 2px", fontSize: 12.5, color: "var(--text-3)" }}>วันนี้ยังไม่มีใครมีงานหรือนัดหมาย</div>}
-        {data.busy.map((p) => (
-          <div key={p.key} style={{ display: "flex", gap: 10, paddingBottom: 10, borderBottom: "1px solid var(--divider)" }}>
-            <span style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", background: p.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{String(p.name).trim().charAt(0)}</span>
-            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
-              {p.items.map((it) => (
-                <div key={it.k} onClick={it.job && onOpen ? () => onOpen(it.job) : undefined} title={it.label}
-                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, minWidth: 0, cursor: it.job ? "pointer" : "default",
-                    background: it.color + "14", borderRadius: 7, padding: "4px 7px" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: it.color, flexShrink: 0 }} />
-                  <span style={{ fontWeight: 800, color: it.color, flexShrink: 0 }}>{it.tag}</span>
-                  {it.time && <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-2)", flexShrink: 0 }}>{it.time}</span>}
-                  <span style={{ color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+    <div className="pnl ov-cal">
+      <PanelTitle title="ตารางงานทีม" right={
+        <span className="ov-cal-nav">
+          <button onClick={() => shift(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
+          <b>{MON_TH[mo - 1]} {y + 543}</b>
+          <button onClick={() => shift(1)} aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
+        </span>} />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-3)", marginTop: 8 }}>
+        {[["#84CC16", "ติดตั้ง"], ["#0EA5E9", "สำรวจ"], [(KB.meeting || {}).color || "#8B5CF6", "ประชุม/Training"]].map(([c, t]) => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 3, background: c }} />{t}</span>
         ))}
-        {data.free.length > 0 && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
-          <b style={{ color: "var(--text-2)" }}>ว่าง {data.free.length} คน:</b> {data.free.map((p) => p.name).join(", ")}
-        </div>}
+      </div>
+      <div className="ov-cal-grid">
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => <span key={d} className="hd">{d}</span>)}
+        {Array.from({ length: lead }).map((_, i) => <span key={"p" + i} />)}
+        {Array.from({ length: nDays }).map((_, i) => {
+          const d = i + 1, k = key(d), ds = dots[k] || [];
+          const on = k === pick;
+          return (
+            <button key={k} onClick={() => setPick(k)} data-today={k === SF.TODAY ? "1" : "0"} data-on={on ? "1" : "0"}>
+              {d}
+              {ds.length > 0 && <span style={{ position: "absolute", left: 0, right: 0, bottom: 4, display: "flex", justifyContent: "center", gap: 2 }}>
+                {ds.map((c, j) => <span key={j} style={{ width: 4, height: 4, borderRadius: 2, background: on ? "#fff" : c }} />)}
+              </span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="ov-cal-foot">
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>
+          {window.thDate ? window.thDate(pick, true) : pick}{pick === SF.TODAY ? " · วันนี้" : ""} · {day.busy.length ? day.busy.length + " คนมีงาน" : "ไม่มีใครมีงาน"}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, maxHeight: 320, overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
+          {day.busy.map(({ p, items }) => (
+            <div key={p.key} style={{ display: "flex", gap: 9 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "var(--r-pill)", background: p.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{p.name.charAt(0)}</span>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                {items.map((it) => (
+                  <div key={it.k} onClick={it.job && onOpen ? () => onOpen(it.job) : undefined} title={it.label}
+                    style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, minWidth: 0, cursor: it.job ? "pointer" : "default", background: it.color + "14", borderRadius: 6, padding: "3px 6px" }}>
+                    <span style={{ fontWeight: 800, color: it.color, flexShrink: 0 }}>{it.tag}</span>
+                    {it.time && <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-2)", flexShrink: 0 }}>{it.time}</span>}
+                    <span style={{ color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {day.free.length > 0 && <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+            <b style={{ color: "var(--text-2)" }}>ว่าง {day.free.length} คน:</b> {day.free.map((p) => p.name).join(", ")}
+          </div>}
+        </div>
       </div>
     </div>
   );
