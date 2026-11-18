@@ -1803,28 +1803,39 @@ function ApptCard({
 }) {
   const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
   const idx = APPT_FLOW.findIndex(s => s.key === a.status);
+  const next = idx >= 0 ? APPT_FLOW[idx + 1] : null;
   const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
   const mapHref = job && job.map ? job.map : a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null;
+  const C = "#0EA5E9";
+  const SHORT = {
+    scheduled: "นัดหมาย",
+    transit: "เดินทาง",
+    progress: "ถึงไซต์",
+    done: "สำรวจเสร็จ"
+  };
+  const go = e => {
+    e.stopPropagation();
+    if (!next) return;
+    if (next.key === "done") {
+      if (job) onOpenSurvey(job, a);
+    } else onStatus(a.id, next.key);
+  };
+  const nextColor = next ? next.key === "done" ? "var(--primary)" : (APPT_STATUS_BY[next.key] || {}).color || C : C;
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderLeft: "4px solid " + stt.color,
+      borderLeft: "4px solid " + C,
       borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
-      overflow: "hidden"
-    }
-  }, React.createElement("div", {
-    style: {
-      padding: 14,
+      padding: 12,
       display: "flex",
       flexDirection: "column",
-      gap: 8
+      gap: 6
     }
   }, React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-between",
       gap: 8
     }
@@ -1832,38 +1843,142 @@ function ApptCard({
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
-      fontFamily: "var(--mono)",
-      fontSize: 13.5,
+      gap: 5,
+      padding: "3px 9px",
+      borderRadius: "var(--r-pill)",
+      background: C + "16",
+      color: C,
+      fontSize: 12,
       fontWeight: 800,
-      color: "var(--text-1)"
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: "var(--r-pill)",
+      background: C
+    }
+  }), "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08", React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      opacity: .75
+    }
+  }, "\xB7 ", stt.th)), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      paddingTop: 3
+    }
+  }, a.leadId ? "ลูกค้าใหม่" : "งานในระบบ")), React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, a.jobName || job && job.name || "—"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12,
+      color: "var(--text-2)"
     }
   }, React.createElement(Icon, {
     name: "clock",
-    size: 14,
+    size: 13,
     color: "var(--text-3)"
-  }), thDate(_ymdLocal(a.start), true), " \xB7 ", _hm(a.start), "\u2013", _hm(a.end)), React.createElement("span", {
+  }), a.start ? thDate(_ymdLocal(a.start), true) : "ไม่ระบุวัน", a.start && React.createElement("span", {
     style: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "#0EA5E9",
-      background: "#0EA5E916",
-      padding: "3px 9px",
-      borderRadius: "var(--r-pill)",
-      whiteSpace: "nowrap"
-    }
-  }, a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน")), React.createElement("div", {
-    style: {
-      fontSize: 15,
+      marginLeft: "auto",
+      fontSize: 12,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: "var(--text-1)",
+      fontFamily: "var(--mono)"
     }
-  }, a.jobName || job && job.name || "—"), React.createElement("div", {
+  }, _hm(a.start), "\u2013", _hm(a.end))), idx >= 0 ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      marginTop: 2,
+      marginBottom: 2
+    }
+  }, APPT_FLOW.map((st, i) => {
+    const passed = i < idx,
+      current = i === idx,
+      filled = passed || current;
+    const isLast = i === APPT_FLOW.length - 1;
+    const t = st.stamp && a[st.stamp] ? _hm(a[st.stamp]) : i === 0 && a.start ? _hm(a.start) : "";
+    return React.createElement("div", {
+      key: st.key,
+      title: st.th + (t ? " " + t : ""),
+      style: {
+        flex: isLast ? "0 0 auto" : "1 1 0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        alignSelf: "stretch"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: current ? 13 : 9,
+        height: current ? 13 : 9,
+        borderRadius: "var(--r-pill)",
+        flexShrink: 0,
+        background: filled ? C : "var(--surface)",
+        border: current ? "2px solid " + C : passed ? "none" : "1.5px solid var(--border-strong)",
+        boxShadow: current ? "0 0 0 3px " + C + "33" : "none",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, passed && React.createElement(Icon, {
+      name: "check",
+      size: 6,
+      color: "#fff",
+      sw: 3.5
+    })), !isLast && React.createElement("span", {
+      style: {
+        flex: 1,
+        height: 2,
+        margin: "0 2px",
+        background: i < idx ? C : "var(--border)"
+      }
+    })), React.createElement("span", {
+      style: {
+        marginTop: 3,
+        fontSize: 8.5,
+        fontWeight: current ? 800 : 500,
+        color: current ? C : passed ? "var(--text-2)" : "var(--text-3)",
+        lineHeight: 1.15,
+        whiteSpace: "nowrap"
+      }
+    }, SHORT[st.key] || st.th, t && filled ? " " + t : ""));
+  })) : React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: stt.color,
+      background: stt.color + "14",
+      borderRadius: 8,
+      padding: "6px 10px"
+    }
+  }, stt.th), React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-2)",
       display: "flex",
-      alignItems: "flex-start",
+      alignItems: "center",
       gap: 6
     }
   }, React.createElement(Icon, {
@@ -1871,18 +1986,22 @@ function ApptCard({
     size: 13,
     color: "var(--text-3)",
     style: {
-      flexShrink: 0,
-      marginTop: 1
+      flexShrink: 0
     }
   }), React.createElement("span", {
     style: {
       flex: 1,
-      minWidth: 0
-    }
+      minWidth: 0,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
+    title: (a.address || "") + (a.province ? ", " + a.province : "")
   }, a.address || "-", a.province ? ", " + a.province : ""), mapHref && React.createElement("a", {
     href: mapHref,
     target: "_blank",
     rel: "noreferrer",
+    onClick: e => e.stopPropagation(),
     style: {
       flexShrink: 0,
       display: "inline-flex",
@@ -1922,7 +2041,7 @@ function ApptCard({
       color: "var(--text-2)",
       background: "var(--surface2)",
       borderRadius: 8,
-      padding: "7px 10px"
+      padding: "6px 10px"
     }
   }, "\uD83D\uDCDD ", a.notes), a.status === "done" && sv && React.createElement("div", {
     style: {
@@ -1930,24 +2049,64 @@ function ApptCard({
       color: "var(--primary-dark)",
       fontWeight: 700
     }
-  }, "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08: ", sv.label, " \xB7 ", sv.pct, "%")), React.createElement("div", {
+  }, "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08: ", sv.label, " \xB7 ", sv.pct, "%"), next && (next.key !== "done" || job) && React.createElement("button", {
+    onClick: go,
     style: {
-      borderTop: "1px solid var(--divider)",
-      padding: "13px 14px",
-      background: "var(--surface2)"
+      marginTop: 4,
+      width: "100%",
+      padding: "11px 12px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: nextColor,
+      color: "#fff",
+      fontWeight: 800,
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      boxShadow: "var(--shadow-sm)"
     }
-  }, idx >= 0 ? React.createElement(ApptFlow, {
-    a: a,
-    job: job,
-    onStatus: onStatus,
-    onOpenSurvey: onOpenSurvey
-  }) : React.createElement("div", {
+  }, React.createElement(Icon, {
+    name: next.enterIcon,
+    size: 15,
+    color: "#fff"
+  }), " ", next.enterCta), next && next.key === "done" && !job && React.createElement("div", {
     style: {
-      fontSize: 12.5,
+      fontSize: 11.5,
+      color: "var(--tint-red-tx2)",
+      fontWeight: 600
+    }
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E07\u0E32\u0E19/\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E01\u0E44\u0E27\u0E49"), a.status === "done" && job && React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      onOpenSurvey(job, a);
+    },
+    style: {
+      marginTop: 4,
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      color: "var(--primary-dark)",
       fontWeight: 700,
-      color: stt.color
+      fontFamily: "inherit",
+      fontSize: 13,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6
     }
-  }, stt.th)));
+  }, React.createElement(Icon, {
+    name: "list",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08"));
 }
 const STAGE_KIND_TH = {
   start: "เริ่ม",
@@ -2414,7 +2573,7 @@ function MyScheduleView({
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E04\u0E27\u0E32\u0E21\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.35fr) minmax(320px,1fr)",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 372px",
       gap: 18,
       alignItems: "start"
     }
@@ -2429,20 +2588,19 @@ function MyScheduleView({
     colorOf: itColor,
     nameOf: itName
   }), React.createElement("div", {
+    className: "pnl",
     style: {
-      background: "var(--surface)",
-      borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-sm)",
-      padding: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 14,
       position: isMobile ? "static" : "sticky",
       top: 12
     }
-  }, React.createElement("div", {
+  }, React.createElement("div", null, React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "baseline",
-      gap: 8,
-      marginBottom: 2
+      alignItems: "center",
+      gap: 7
     }
   }, React.createElement("span", {
     style: {
@@ -2450,28 +2608,39 @@ function MyScheduleView({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, thDate(pick, true)), pick === todayY && React.createElement("span", {
+  }, +pick.slice(8), " ", _TH_MON[+pick.slice(5, 7) - 1], " ", +pick.slice(0, 4) + 543), pick === todayY && React.createElement("span", {
     style: {
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--primary)",
+      fontSize: 9.5,
+      fontWeight: 800,
+      color: "var(--primary-dark)",
       background: "var(--primary-soft)",
-      padding: "2px 8px",
+      padding: "2px 7px",
       borderRadius: "var(--r-pill)"
     }
   }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49")), React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-3)",
-      marginBottom: 12
+      marginTop: 1
     }
-  }, dayItems.length ? dayItems.length + " งาน" : "ไม่มีงานวันนี้"), React.createElement("div", {
+  }, dayItems.length, " \u0E07\u0E32\u0E19")), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 11
+      gap: 11,
+      maxHeight: isMobile ? "none" : "66vh",
+      overflowY: isMobile ? "visible" : "auto",
+      margin: "0 -4px",
+      padding: "0 4px"
     }
-  }, dayItems.map(renderCard), lateItems.length > 0 && React.createElement("div", {
+  }, dayItems.length === 0 && React.createElement("div", {
+    style: {
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13,
+      padding: "26px 0"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), dayItems.map(renderCard), lateItems.length > 0 && React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 800,
@@ -2505,37 +2674,64 @@ function MyMonthCal({
   for (let i = 0; i < lead; i++) cells.push(null);
   for (let d = 1; d <= nDays; d++) cells.push(mon + "-" + String(d).padStart(2, "0"));
   while (cells.length % 7) cells.push(null);
-  const maxShow = isMobile ? 0 : 3;
+  const maxShow = isMobile ? 0 : 4;
+  let monthCount = 0;
+  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter(it => it.type === "survey").length;
+  const nb = {
+    width: 34,
+    height: 34,
+    borderRadius: "var(--r-chip)",
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    color: "var(--text-2)"
+  };
   return React.createElement("div", {
+    className: "pnl"
+  }, React.createElement("div", {
     style: {
-      background: "var(--surface)",
-      borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-sm)",
-      padding: isMobile ? 10 : 16
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 18,
+      gap: 10
     }
   }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      marginBottom: 12
+      gap: 12,
+      minWidth: 0
     }
-  }, React.createElement("span", {
+  }, React.createElement("h2", {
     style: {
-      fontSize: 17,
-      fontWeight: 800,
+      fontSize: 19,
+      fontWeight: 700,
       color: "var(--text-1)",
-      flex: 1
+      margin: 0
     }
-  }, _thMonth(mon)), React.createElement("button", {
+  }, _thMonth(mon)), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\xB7 ", monthCount, " \u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "center"
+    }
+  }, React.createElement("button", {
     onClick: () => setMon(_addMonths(mon, -1)),
-    style: navBtn
+    style: nb
   }, React.createElement(Icon, {
     name: "chevronRight",
-    size: 16,
-    color: "var(--text-2)",
+    size: 17,
     style: {
-      transform: "scaleX(-1)"
+      transform: "rotate(180deg)"
     }
   })), React.createElement("button", {
     onClick: () => {
@@ -2543,29 +2739,46 @@ function MyMonthCal({
       setPick(today);
     },
     style: {
-      ...navBtn,
+      ...nb,
       width: "auto",
       padding: "0 12px",
       fontWeight: 700,
-      fontSize: 12.5
+      fontSize: 12.5,
+      fontFamily: "inherit"
     }
   }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
     onClick: () => setMon(_addMonths(mon, 1)),
-    style: navBtn
+    style: nb
   }, React.createElement(Icon, {
     name: "chevronRight",
-    size: 16,
-    color: "var(--text-2)"
-  }))), React.createElement("div", {
+    size: 17
+  })))), React.createElement("div", {
     style: {
       display: "flex",
-      gap: 12,
+      alignItems: "center",
+      gap: 14,
+      marginBottom: 16,
+      padding: "10px 14px",
+      background: "var(--surface2)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
+      flexWrap: "wrap",
       fontSize: 11,
-      color: "var(--text-3)",
-      marginBottom: 10,
-      flexWrap: "wrap"
+      fontWeight: 600,
+      color: "var(--text-2)"
     }
   }, React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "list",
+    size: 14,
+    color: "var(--primary)"
+  }), " \u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19:"), React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -2575,7 +2788,7 @@ function MyMonthCal({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 4,
+      borderRadius: 2,
       background: "#0EA5E9"
     }
   }), "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"), React.createElement("span", {
@@ -2588,23 +2801,23 @@ function MyMonthCal({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 4,
+      borderRadius: 2,
       background: "#84CC16"
     }
   }), "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (\u0E2A\u0E35\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19)")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7, minmax(0,1fr))",
-      gap: isMobile ? 4 : 6
+      gap: 4
     }
-  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((w, i) => React.createElement("div", {
+  }, ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."].map((w, i) => React.createElement("div", {
     key: w,
     style: {
       textAlign: "center",
-      fontSize: 11,
-      fontWeight: 800,
-      color: i === 0 || i === 6 ? "var(--tint-red-tx2)" : "var(--text-3)",
-      padding: "2px 0 4px"
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)",
+      paddingBottom: 4
     }
   }, w)), cells.map((d, i) => {
     if (!d) return React.createElement("div", {
@@ -2612,66 +2825,82 @@ function MyMonthCal({
     });
     const list = itemsOf(d);
     const on = d === pick,
-      isToday = d === today;
-    return React.createElement("div", {
+      isToday = d === today,
+      past = d < today;
+    return React.createElement("button", {
       key: d,
       onClick: () => setPick(d),
-      role: "button",
+      title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14",
       style: {
-        minHeight: isMobile ? 50 : 96,
+        height: isMobile ? 54 : 116,
         borderRadius: "var(--r-chip)",
-        padding: isMobile ? "5px 4px" : "6px 6px",
+        textAlign: "left",
+        fontFamily: "inherit",
         cursor: "pointer",
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none",
+        background: on || isToday ? "var(--primary-soft)" : "var(--surface2)",
+        padding: isMobile ? 5 : 8,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
-        minWidth: 0,
-        background: on ? "var(--primary-soft)" : "var(--surface2)",
-        boxShadow: on ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none"
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 800,
-        color: on || isToday ? "var(--primary)" : i % 7 === 0 ? "var(--tint-red-tx2)" : "var(--text-1)"
-      }
-    }, +d.slice(8)), list.slice(0, maxShow).map(it => React.createElement("div", {
-      key: it.key,
-      title: nameOf(it),
-      style: {
-        display: "flex",
-        alignItems: "center",
         gap: 4,
-        fontSize: 10.5,
-        lineHeight: 1.3,
-        background: "var(--surface)",
-        borderRadius: 5,
-        padding: "2px 5px",
+        overflow: "hidden",
         minWidth: 0
       }
     }, React.createElement("span", {
       style: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        background: colorOf(it),
-        flexShrink: 0
+        fontSize: 12.5,
+        fontWeight: on || isToday ? 800 : 600,
+        color: on || isToday ? "var(--primary-dark)" : "var(--text-2)"
       }
-    }), React.createElement("span", {
+    }, +d.slice(8)), React.createElement("div", {
       style: {
-        whiteSpace: "nowrap",
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
         overflow: "hidden",
-        textOverflow: "ellipsis",
-        color: "var(--text-1)",
-        fontWeight: it.type === "survey" ? 700 : 500
+        alignSelf: "stretch"
       }
-    }, it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : "", nameOf(it)))), maxShow > 0 && list.length > maxShow && React.createElement("div", {
+    }, list.slice(0, maxShow).map(it => {
+      const c = colorOf(it);
+      return React.createElement("span", {
+        key: it.key,
+        title: nameOf(it),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          borderRadius: 6,
+          padding: "2px 5px",
+          overflow: "hidden",
+          background: past ? "var(--surface3)" : String(c).startsWith("#") ? c + "1f" : "var(--primary-soft)",
+          opacity: past ? 0.75 : 1
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 7,
+          height: 7,
+          borderRadius: "var(--r-pill)",
+          flexShrink: 0,
+          background: past ? "var(--text-3)" : c
+        }
+      }), React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: it.type === "survey" ? 700 : 600,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          color: past ? "var(--text-3)" : "var(--text-2)"
+        }
+      }, it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : "", String(nameOf(it)).replace("คุณ", "")));
+    }), maxShow > 0 && list.length > maxShow && React.createElement("span", {
       style: {
-        fontSize: 10,
-        fontWeight: 700,
-        color: "var(--text-3)"
+        fontSize: 9,
+        color: "var(--text-3)",
+        paddingLeft: 1
       }
-    }, "+", list.length - maxShow), isMobile && list.length > 0 && React.createElement("div", {
+    }, "+", list.length - maxShow, " \u0E07\u0E32\u0E19"), isMobile && list.length > 0 && React.createElement("div", {
       style: {
         display: "flex",
         gap: 2,
@@ -2685,7 +2914,7 @@ function MyMonthCal({
         borderRadius: 3,
         background: colorOf(it)
       }
-    }))));
+    })))));
   })));
 }
 Object.assign(window, {

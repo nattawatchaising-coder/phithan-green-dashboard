@@ -657,35 +657,80 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
 }
 
 /* ── การ์ดนัดสำรวจ (พร้อม timeline เวิร์กโฟลว์) ── */
+/* การ์ดนัดสำรวจ — ภาษาเดียวกับการ์ดงานติดตั้ง (JobTaskCard): ป้ายสถานะ · ชื่อ · วันเวลา · แถบขั้นจุด+เส้น · ที่อยู่ · ปุ่มใหญ่ขั้นถัดไป
+   (ผู้ใช้สั่ง 2026-11-18 "ปรับการ์ดให้ดูสวยขึ้น" ให้เข้าชุดกับหน้าปฏิทิน) */
 function ApptCard({ a, job, onStatus, onOpenSurvey }) {
   const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
   const idx = APPT_FLOW.findIndex((s) => s.key === a.status);
+  const next = idx >= 0 ? APPT_FLOW[idx + 1] : null;
   const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
   const mapHref = job && job.map ? job.map : (a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null);
+  const C = "#0EA5E9";
+  const SHORT = { scheduled: "นัดหมาย", transit: "เดินทาง", progress: "ถึงไซต์", done: "สำรวจเสร็จ" };
+  const go = (e) => {
+    e.stopPropagation();
+    if (!next) return;
+    if (next.key === "done") { if (job) onOpenSurvey(job, a); }
+    else onStatus(a.id, next.key);
+  };
+  const nextColor = next ? (next.key === "done" ? "var(--primary)" : ((APPT_STATUS_BY[next.key] || {}).color || C)) : C;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + stt.color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
-      <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
-            <Icon name="clock" size={14} color="var(--text-3)" />{thDate(_ymdLocal(a.start), true)} · {_hm(a.start)}–{_hm(a.end)}
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน"}</span>
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
-        <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
-          <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span style={{ flex: 1, minWidth: 0 }}>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
-          {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
-        </div>
-        {a.phone && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" /><a href={"tel:" + a.phone} style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600 }}>{a.phone}</a></div>}
-        {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {a.notes}</div>}
-        {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
+    <div style={{ background: "var(--surface)", borderLeft: "4px solid " + C, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: "var(--r-pill)", background: C + "16", color: C, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: C }} />นัดสำรวจ
+          <span style={{ fontWeight: 600, opacity: .75 }}>· {stt.th}</span>
+        </span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap", paddingTop: 3 }}>{a.leadId ? "ลูกค้าใหม่" : "งานในระบบ"}</span>
       </div>
-      <div style={{ borderTop: "1px solid var(--divider)", padding: "13px 14px", background: "var(--surface2)" }}>
-        {idx >= 0
-          ? <ApptFlow a={a} job={job} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
-          : <div style={{ fontSize: 12.5, fontWeight: 700, color: stt.color }}>{stt.th}</div>}
+      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName || (job && job.name) || "—"}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)" }}>
+        <Icon name="clock" size={13} color="var(--text-3)" />{a.start ? thDate(_ymdLocal(a.start), true) : "ไม่ระบุวัน"}
+        {a.start && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{_hm(a.start)}–{_hm(a.end)}</span>}
       </div>
+      {idx >= 0 ? (
+        <div style={{ display: "flex", alignItems: "flex-start", marginTop: 2, marginBottom: 2 }}>
+          {APPT_FLOW.map((st, i) => {
+            const passed = i < idx, current = i === idx, filled = passed || current;
+            const isLast = i === APPT_FLOW.length - 1;
+            const t = st.stamp && a[st.stamp] ? _hm(a[st.stamp]) : (i === 0 && a.start ? _hm(a.start) : "");
+            return (
+              <div key={st.key} title={st.th + (t ? " " + t : "")} style={{ flex: isLast ? "0 0 auto" : "1 1 0", display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", alignSelf: "stretch" }}>
+                  <span style={{ width: current ? 13 : 9, height: current ? 13 : 9, borderRadius: "var(--r-pill)", flexShrink: 0,
+                    background: filled ? C : "var(--surface)", border: current ? "2px solid " + C : (passed ? "none" : "1.5px solid var(--border-strong)"),
+                    boxShadow: current ? "0 0 0 3px " + C + "33" : "none", display: "grid", placeItems: "center" }}>
+                    {passed && <Icon name="check" size={6} color="#fff" sw={3.5} />}
+                  </span>
+                  {!isLast && <span style={{ flex: 1, height: 2, margin: "0 2px", background: i < idx ? C : "var(--border)" }} />}
+                </div>
+                <span style={{ marginTop: 3, fontSize: 8.5, fontWeight: current ? 800 : 500, color: current ? C : (passed ? "var(--text-2)" : "var(--text-3)"), lineHeight: 1.15, whiteSpace: "nowrap" }}>{SHORT[st.key] || st.th}{t && filled ? " " + t : ""}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, fontWeight: 700, color: stt.color, background: stt.color + "14", borderRadius: 8, padding: "6px 10px" }}>{stt.th}</div>
+      )}
+      <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}>
+        <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={(a.address || "") + (a.province ? ", " + a.province : "")}>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
+        {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
+      </div>
+      {a.phone && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" /><a href={"tel:" + a.phone} style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600 }}>{a.phone}</a></div>}
+      {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "6px 10px" }}>📝 {a.notes}</div>}
+      {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
+      {next && (next.key !== "done" || job) && (
+        <button onClick={go} style={{ marginTop: 4, width: "100%", padding: "11px 12px", borderRadius: "var(--r-chip)", border: "none", background: nextColor, color: "#fff", fontWeight: 800, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "var(--shadow-sm)" }}>
+          <Icon name={next.enterIcon} size={15} color="#fff" /> {next.enterCta}
+        </button>
+      )}
+      {next && next.key === "done" && !job && <div style={{ fontSize: 11.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}>ไม่พบงาน/ลูกค้าที่ผูกไว้</div>}
+      {a.status === "done" && job && (
+        <button onClick={(e) => { e.stopPropagation(); onOpenSurvey(job, a); }} style={{ marginTop: 4, width: "100%", padding: "10px 12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <Icon name="list" size={14} color="var(--primary-dark)" /> เปิดแบบสำรวจ
+        </button>
+      )}
     </div>
   );
 }
@@ -885,16 +930,19 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
             <div style={{ fontSize: 14, fontWeight: 600 }}>ไม่มีงานในความรับผิดชอบตอนนี้</div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.35fr) minmax(320px,1fr)", gap: 18, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 372px", gap: 18, alignItems: "start" }}>
             <MyMonthCal mon={mon} setMon={setMon} pick={pick} setPick={setPick} today={todayY} isMobile={isMobile}
               itemsOf={(d) => items.filter((it) => onDay(it, d))} colorOf={itColor} nameOf={itName} />
-            <div style={{ background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 16, position: isMobile ? "static" : "sticky", top: 12 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{thDate(pick, true)}</span>
-                {pick === todayY && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--primary)", background: "var(--primary-soft)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>วันนี้</span>}
+            <div className="pnl" style={{ display: "flex", flexDirection: "column", gap: 14, position: isMobile ? "static" : "sticky", top: 12 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{+pick.slice(8)} {_TH_MON[+pick.slice(5, 7) - 1]} {+pick.slice(0, 4) + 543}</span>
+                  {pick === todayY && <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>วันนี้</span>}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{dayItems.length} งาน</div>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12 }}>{dayItems.length ? dayItems.length + " งาน" : "ไม่มีงานวันนี้"}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, maxHeight: isMobile ? "none" : "66vh", overflowY: isMobile ? "visible" : "auto", margin: "0 -4px", padding: "0 4px" }}>
+                {dayItems.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "26px 0" }}>ยังไม่มีงานในวันนี้</div>}
                 {dayItems.map(renderCard)}
                 {lateItems.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--tint-red-tx2)", marginTop: 6 }}>เลยกำหนด / ยังค้าง ({lateItems.length})</div>}
                 {lateItems.map(renderCard)}
@@ -917,41 +965,60 @@ function MyMonthCal({ mon, setMon, pick, setPick, today, isMobile, itemsOf, colo
   for (let i = 0; i < lead; i++) cells.push(null);
   for (let d = 1; d <= nDays; d++) cells.push(mon + "-" + String(d).padStart(2, "0"));
   while (cells.length % 7) cells.push(null);
-  const maxShow = isMobile ? 0 : 3;
+  const maxShow = isMobile ? 0 : 4;
+  let monthCount = 0;
+  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter((it) => it.type === "survey").length;
+  const nb = { width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
   return (
-    <div style={{ background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: isMobile ? 10 : 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)", flex: 1 }}>{_thMonth(mon)}</span>
-        <button onClick={() => setMon(_addMonths(mon, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
-        <button onClick={() => { setMon(today.slice(0, 7)); setPick(today); }} style={{ ...navBtn, width: "auto", padding: "0 12px", fontWeight: 700, fontSize: 12.5 }}>วันนี้</button>
-        <button onClick={() => setMon(_addMonths(mon, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
+    <div className="pnl">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{_thMonth(mon)}</h2>
+          <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {monthCount} นัดสำรวจ</span>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button onClick={() => setMon(_addMonths(mon, -1))} style={nb}><Icon name="chevronRight" size={17} style={{ transform: "rotate(180deg)" }} /></button>
+          <button onClick={() => { setMon(today.slice(0, 7)); setPick(today); }} style={{ ...nb, width: "auto", padding: "0 12px", fontWeight: 700, fontSize: 12.5, fontFamily: "inherit" }}>วันนี้</button>
+          <button onClick={() => setMon(_addMonths(mon, 1))} style={nb}><Icon name="chevronRight" size={17} /></button>
+        </div>
       </div>
-      <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-3)", marginBottom: 10, flexWrap: "wrap" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: "#0EA5E9" }} />นัดสำรวจ</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: "#84CC16" }} />งานติดตั้ง (สีตามขั้น)</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", flexWrap: "wrap", fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
+        <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Icon name="list" size={14} color="var(--primary)" /> งานของฉัน:</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#0EA5E9" }} />นัดสำรวจ</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#84CC16" }} />งานติดตั้ง (สีตามขั้น)</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: isMobile ? 4 : 6 }}>
-        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((w, i) => (
-          <div key={w} style={{ textAlign: "center", fontSize: 11, fontWeight: 800, color: i === 0 || i === 6 ? "var(--tint-red-tx2)" : "var(--text-3)", padding: "2px 0 4px" }}>{w}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 4 }}>
+        {["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."].map((w, i) => (
+          <div key={w} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)", paddingBottom: 4 }}>{w}</div>
         ))}
         {cells.map((d, i) => {
           if (!d) return <div key={"e" + i} />;
           const list = itemsOf(d);
-          const on = d === pick, isToday = d === today;
+          const on = d === pick, isToday = d === today, past = d < today;
           return (
-            <div key={d} onClick={() => setPick(d)} role="button"
-              style={{ minHeight: isMobile ? 50 : 96, borderRadius: "var(--r-chip)", padding: isMobile ? "5px 4px" : "6px 6px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
-                background: on ? "var(--primary-soft)" : "var(--surface2)", boxShadow: on ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none" }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: on || isToday ? "var(--primary)" : (i % 7 === 0 ? "var(--tint-red-tx2)" : "var(--text-1)") }}>{+d.slice(8)}</span>
-              {list.slice(0, maxShow).map((it) => (
-                <div key={it.key} title={nameOf(it)} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, lineHeight: 1.3, background: "var(--surface)", borderRadius: 5, padding: "2px 5px", minWidth: 0 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 3, background: colorOf(it), flexShrink: 0 }} />
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--text-1)", fontWeight: it.type === "survey" ? 700 : 500 }}>{it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : ""}{nameOf(it)}</span>
-                </div>
-              ))}
-              {maxShow > 0 && list.length > maxShow && <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>+{list.length - maxShow}</div>}
-              {isMobile && list.length > 0 && <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>{list.slice(0, 4).map((it) => <span key={it.key} style={{ width: 6, height: 6, borderRadius: 3, background: colorOf(it) }} />)}</div>}
-            </div>
+            <button key={d} onClick={() => setPick(d)} title="เลือกวันเพื่อดูรายละเอียด"
+              style={{ height: isMobile ? 54 : 116, borderRadius: "var(--r-chip)", textAlign: "left", fontFamily: "inherit", cursor: "pointer", border: "none",
+                boxShadow: on ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none",
+                background: on || isToday ? "var(--primary-soft)" : "var(--surface2)", padding: isMobile ? 5 : 8,
+                display: "flex", flexDirection: "column", gap: 4, overflow: "hidden", minWidth: 0 }}>
+              <span style={{ fontSize: 12.5, fontWeight: on || isToday ? 800 : 600, color: on || isToday ? "var(--primary-dark)" : "var(--text-2)" }}>{+d.slice(8)}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, overflow: "hidden", alignSelf: "stretch" }}>
+                {list.slice(0, maxShow).map((it) => {
+                  const c = colorOf(it);
+                  return (
+                    <span key={it.key} title={nameOf(it)} style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "2px 5px", overflow: "hidden",
+                      background: past ? "var(--surface3)" : (String(c).startsWith("#") ? c + "1f" : "var(--primary-soft)"), opacity: past ? 0.75 : 1 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", flexShrink: 0, background: past ? "var(--text-3)" : c }} />
+                      <span style={{ fontSize: 9.5, fontWeight: it.type === "survey" ? 700 : 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: past ? "var(--text-3)" : "var(--text-2)" }}>
+                        {it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : ""}{String(nameOf(it)).replace("คุณ", "")}
+                      </span>
+                    </span>
+                  );
+                })}
+                {maxShow > 0 && list.length > maxShow && <span style={{ fontSize: 9, color: "var(--text-3)", paddingLeft: 1 }}>+{list.length - maxShow} งาน</span>}
+                {isMobile && list.length > 0 && <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>{list.slice(0, 4).map((it) => <span key={it.key} style={{ width: 6, height: 6, borderRadius: 3, background: colorOf(it) }} />)}</div>}
+              </div>
+            </button>
           );
         })}
       </div>
