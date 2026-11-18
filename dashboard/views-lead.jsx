@@ -672,7 +672,7 @@ function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, appts, users
       <window.OvHero me={me} jobs={allJobs || J} quotes={quotes} leads={leads} showValue={showValue} />
       <window.OvLayout main={main} rail={
         <React.Fragment>
-          <window.OvCalendar jobs={J} onOpen={onOpen} />
+          {/* ปฏิทินงานติดตั้ง (OvCalendar) เอาออกตามที่สั่ง 2026-11-18 — การ์ดตารางงานทีมข้างล่างมีงานติดตั้งครบอยู่แล้ว · คืนได้ด้วย <window.OvCalendar jobs={J} onOpen={onOpen} /> */}
           <LoTeamPanel jobs={allJobs || J} appts={appts} techs={techs} users={users} onOpen={onOpen} apptStore={apptStore} onNotify={onNotify} me={me} />
           <LoSalesPanel leads={leads} quotes={quotes} onGoSales={onGoSales} />
           <LoMonthPanel jobs={J} />

@@ -1286,10 +1286,7 @@ function LeadOverview({
     showValue: showValue
   }), React.createElement(window.OvLayout, {
     main: main,
-    rail: React.createElement(React.Fragment, null, React.createElement(window.OvCalendar, {
-      jobs: J,
-      onOpen: onOpen
-    }), React.createElement(LoTeamPanel, {
+    rail: React.createElement(React.Fragment, null, React.createElement(LoTeamPanel, {
       jobs: allJobs || J,
       appts: appts,
       techs: techs,
