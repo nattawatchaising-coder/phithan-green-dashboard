@@ -481,6 +481,52 @@ function SurveyMonthCal({ mon, appts, techById, whoOf, conflicts, isMobile, onPi
 }
 const navBtn = { width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 };
 
+/* ── ดรอปดาวน์เลือกหลายคนแบบติ๊ก (ผู้ใช้ขอ 2026-11-18 "ทำเป็น Dropdown แล้วกดติ๊กเอา") ──
+   กล่องแสดงชื่อที่เลือก กดแล้วกางรายการ + ช่องค้นหา ต่อท้ายในตัวฟอร์ม (ไม่ลอย — กันโดนขอบ modal ตัด) */
+function MultiPick({ value, options, onToggle, onClear, placeholder, accent }) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const sel = value || [];
+  const byV = Object.fromEntries((options || []).map((o) => [o.value, o]));
+  const names = sel.map((v) => (byV[v] || {}).label).filter(Boolean);
+  const list = (options || []).filter((o) => !q.trim() || String(o.label).toLowerCase().includes(q.trim().toLowerCase()));
+  const box = { width: "100%", minHeight: 42, padding: "8px 12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontFamily: "inherit", fontSize: 13.5, color: "var(--text-1)", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} style={box}>
+        <span style={{ flex: 1, minWidth: 0, color: names.length ? "var(--text-1)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {names.length ? names.join(", ") : placeholder}
+        </span>
+        {names.length > 0 && <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: accent || "var(--primary)", borderRadius: "var(--r-pill)", padding: "1px 8px", flexShrink: 0 }}>{names.length}</span>}
+        <Icon name="chevronDown" size={15} color="var(--text-3)" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+      </button>
+      {open && (
+        <div style={{ background: "var(--surface)", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {(options || []).length > 6 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ…" autoFocus
+            style={{ padding: "8px 10px", borderRadius: 8, border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)", outline: "none" }} />}
+          <div style={{ maxHeight: 230, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+            {list.map((o) => {
+              const on = sel.includes(o.value);
+              return (
+                <label key={o.value} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderRadius: 8, cursor: "pointer", background: on ? "var(--primary-soft)" : "transparent", fontSize: 13.5, color: "var(--text-1)", fontWeight: on ? 700 : 500 }}>
+                  <input type="checkbox" checked={on} onChange={() => onToggle(o.value)} style={{ width: 17, height: 17, accentColor: accent && accent.startsWith("#") ? accent : "#1B9B75", cursor: "pointer", margin: 0 }} />
+                  {o.color && <span style={{ width: 8, height: 8, borderRadius: 4, background: o.color, flexShrink: 0 }} />}
+                  <span style={{ flex: 1, minWidth: 0 }}>{o.label}</span>
+                </label>
+              );
+            })}
+            {!list.length && <div style={{ padding: 10, fontSize: 12.5, color: "var(--text-3)", textAlign: "center" }}>{(options || []).length ? "ไม่พบชื่อที่ค้นหา" : "ยังไม่มีรายชื่อ"}</div>}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, borderTop: "1px solid var(--divider)" }}>
+            <button type="button" onClick={onClear} disabled={!sel.length} style={{ background: "none", border: "none", color: sel.length ? "var(--text-2)" : "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: sel.length ? "pointer" : "default", padding: "4px 6px" }}>ล้างที่เลือก</button>
+            <button type="button" onClick={() => setOpen(false)} style={{ background: "var(--primary)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "6px 14px", borderRadius: "var(--r-pill)" }}>เสร็จ</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Modal สร้าง/แก้ไขนัดสำรวจ ──
    onSave(appt, newLead) — newLead != null เมื่อผู้ใช้กรอกลูกค้าใหม่ (ยังไม่มีในระบบ) */
 function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, users, me, kinds, onClose, onSave, onDelete }) {
@@ -584,18 +630,8 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, users,
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={lbl}>ผู้เข้าร่วม * <span style={{ fontWeight: 600 }}>· เลือกได้หลายคน{att.length ? " (" + att.length + " คน)" : ""}</span></label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {userOpts.map((u) => {
-                  const on = att.includes(u.id);
-                  return (
-                    <button key={u.id} type="button" onClick={() => toggleAtt(u.id)}
-                      style={{ padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                        background: on ? APPT_KIND_BY[kind].color : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)" }}>
-                      {u.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <MultiPick value={att} onToggle={toggleAtt} onClear={() => set("attendeeIds", [])} placeholder="— เลือกผู้เข้าร่วม —" accent={APPT_KIND_BY[kind].color}
+                options={userOpts.map((u) => ({ value: u.id, label: u.name }))} />
             </div>
           </React.Fragment>}
           {!isEv && <React.Fragment>
@@ -632,20 +668,8 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, users,
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>วิศวกรสำรวจ <span style={{ fontWeight: 600 }}>· เลือกได้หลายคน{myEngs.length ? " (" + myEngs.length + " คน)" : ""}</span></label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {(techs || []).map((t) => {
-                const on = myEngs.includes(t.id);
-                return (
-                  <button key={t.id} type="button" onClick={() => toggleEng(t.id)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                      background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: on ? "#fff" : (t.color || "#94A3B8") }} />
-                    {t.name}{t.nick ? " (" + t.nick + ")" : ""}
-                  </button>
-                );
-              })}
-              {!(techs || []).length && <span style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีรายชื่อวิศวกร</span>}
-            </div>
+            <MultiPick value={myEngs} onToggle={toggleEng} onClear={() => setF((p) => Object.assign({}, p, { engineerIds: [], engineerId: "" }))} placeholder="— ยังไม่มอบหมาย —" accent="var(--primary)"
+              options={(techs || []).map((t) => ({ value: t.id, label: t.name + (t.nick ? " (" + t.nick + ")" : ""), color: t.color || "#94A3B8" }))} />
           </div>
           </React.Fragment>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
