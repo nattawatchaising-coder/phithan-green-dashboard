@@ -1169,6 +1169,7 @@ const NOTIF_KINDS = {
   expense: { icon: "wallet", color: "#0EA5E9", th: "ใบเบิกเงิน" },
   leave:   { icon: "calendar", color: "#0EA5E9", th: "การลา" },
   survey:  { icon: "pin",    color: "#0EA5E9", th: "นัดสำรวจ" },
+  meet:    { icon: "users",  color: "#8B5CF6", th: "นัดหมาย" },
   info:    { icon: "bell",   color: "#1B9B75", th: "แจ้งเตือน" },
 };
 function notifKindKey(n) {

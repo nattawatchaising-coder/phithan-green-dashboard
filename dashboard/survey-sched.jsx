@@ -24,6 +24,19 @@ function _hm(iso) { if (!iso) return "--:--"; const x = new Date(iso); return St
 function _addDays(ymd, n) { const x = new Date(ymd + "T00:00:00"); x.setDate(x.getDate() + n); return _ymdLocal(x); }
 function _composeISO(ymd, hm) { if (!ymd || !hm) return ""; const d = new Date(ymd + "T" + hm); return isNaN(d.getTime()) ? "" : d.toISOString(); }
 
+/* ประเภทนัด — นอกจากสำรวจ นัดประชุม/Training/อื่น ๆ ให้ใครก็ได้ในระบบ (ผู้ใช้สั่ง 2026-11-18)
+   เก็บในคอลเลกชันเดียวกัน (surveyAppointments) แยกด้วย kind · นัดเก่าไม่มี kind = สำรวจ
+   นัดประเภทอื่นผูกกับ "ผู้ใช้" (attendeeIds = user.id) ไม่ใช่ช่าง (engineerIds = tech.id) */
+const APPT_KINDS = [
+  { key: "survey",   th: "สำรวจ",    color: "#0EA5E9", icon: "pin" },
+  { key: "meeting",  th: "ประชุม",   color: "#8B5CF6", icon: "users" },
+  { key: "training", th: "Training", color: "#F59E0B", icon: "book" },
+  { key: "other",    th: "อื่น ๆ",    color: "#64748B", icon: "calendar" },
+];
+const APPT_KIND_BY = Object.fromEntries(APPT_KINDS.map((k) => [k.key, k]));
+function apptKind(a) { return (a && a.kind && APPT_KIND_BY[a.kind]) ? a.kind : "survey"; }
+function isApptEvent(a) { return apptKind(a) !== "survey"; }
+
 /* วิศวกรของนัด — ไปสำรวจได้หลายคน (engineerIds) · นัดเก่ามีแค่ engineerId คนเดียว
    engineerId ยังเก็บเป็นคนแรกเสมอ ให้โค้ด/รายงานเก่าที่อ่านช่องนี้ยังทำงาน */
 function apptEngs(a) {
@@ -36,7 +49,7 @@ function apptEngs(a) {
 function apptConflicts(list) {
   const bad = new Set();
   const byEng = {};
-  (list || []).forEach((a) => { if (a.status === "canceled" || !a.start || !a.end) return; const es = apptEngs(a); (es.length ? es : ["_"]).forEach((e) => { (byEng[e] = byEng[e] || []).push(a); }); });
+  (list || []).forEach((a) => { if (a.status === "canceled" || !a.start || !a.end || isApptEvent(a)) return; const es = apptEngs(a); (es.length ? es : ["_"]).forEach((e) => { (byEng[e] = byEng[e] || []).push(a); }); });
   Object.values(byEng).forEach((arr) => {
     const s = arr.slice().sort((x, y) => new Date(x.start) - new Date(y.start));
     for (let i = 1; i < s.length; i++) {
@@ -50,7 +63,7 @@ function blankAppt() {
   return {
     id: "SA-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     projectId: "", leadId: "", jobName: "", jobCode: "", province: "", address: "", phone: "",
-    engineerId: "", engineerIds: [], start: "", end: "", status: "scheduled", notes: "",
+    kind: "survey", attendeeIds: [], engineerId: "", engineerIds: [], start: "", end: "", status: "scheduled", notes: "",
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   };
 }
@@ -246,7 +259,7 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
 /* ============================================================
    DISPATCH — ปฏิทินจ่ายงานรายวิศวกร (office) + เตือนซ้อนทับ
    ============================================================ */
-function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpenJob, onNotify }) {
+function DispatchView({ appts, jobs, techs, users, me, store, leadStore, onMenuOpen, onOpenJob, onNotify }) {
   const leads = (leadStore && leadStore.leads) || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [edit, setEdit] = React.useState(null); // appointment ที่กำลังแก้ (หรือ object ใหม่)
@@ -257,6 +270,11 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
   const monAppts = React.useMemo(() => (appts || []).filter((a) => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map((t) => [t.id, t])), [techs]);
+  const userById = React.useMemo(() => Object.fromEntries((users || []).map((u) => [u.id, u])), [users]);
+  // ผู้เกี่ยวข้องของนัด — สำรวจ = วิศวกร (ช่าง) · ประชุม/Training = ผู้เข้าร่วม (ผู้ใช้)
+  const whoOf = (a) => isApptEvent(a)
+    ? (a.attendeeIds || []).map((id) => userById[id]).filter(Boolean).map((u) => ({ id: u.id, name: u.name, color: APPT_KIND_BY[apptKind(a)].color }))
+    : apptEngs(a).map((id) => techById[id]).filter(Boolean);
   const scopeAppts = mode === "month" ? monAppts : (appts || []);
   const summary = APPT_STATUS.map((s) => ({ s, n: scopeAppts.filter((a) => a.status === s.key).length })).filter((x) => x.n > 0);
   const conflictScope = allConflicts;
@@ -274,7 +292,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           ว่าอยู่มุมไหนดูที่แท็บ ส่วนบรรทัดรองยังบอกรายละเอียดของมุมนั้นเหมือนเดิม */}
       <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen}
         sub={<span>{scopeAppts.length} นัด{mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
-        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(_ymdLocal(new Date()), "09:00"), end: _composeISO(_ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
+        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(_ymdLocal(new Date()), "09:00"), end: _composeISO(_ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดหมาย</span></button>} />
       <div className="app-content">
         {/* สลับมุมมอง รายวัน / ทั้งหมด */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -290,7 +308,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
         </div>
 
         {mode === "month" ? (
-          <SurveyMonthCal mon={mon} appts={monAppts} techById={techById} conflicts={allConflicts} isMobile={isMobile}
+          <SurveyMonthCal mon={mon} appts={monAppts} techById={techById} whoOf={whoOf} conflicts={allConflicts} isMobile={isMobile}
             onPickDay={(d) => setPop(d)} onOpen={(a) => setEdit(Object.assign({}, a))} />
         ) : (
           allGroups.length === 0 ? (
@@ -303,7 +321,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {g.items.map((a) => {
                   const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-                  const ts = apptEngs(a).map((id) => techById[id]).filter(Boolean);
+                  const ts = whoOf(a);
                   const t = ts[0];
                   const clash = allConflicts.has(a.id);
                   return (
@@ -318,7 +336,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                         </span>
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{isApptEvent(a) ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: APPT_KIND_BY[apptKind(a)].color, background: APPT_KIND_BY[apptKind(a)].color + "16", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>{APPT_KIND_BY[apptKind(a)].th}</span> : a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
                         {t ? ts.map((x) => x.name).join(", ") : "ยังไม่มอบหมาย"}
@@ -332,10 +350,10 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           ))
         )}
       </div>
-      {pop && <SurveyDayPop day={pop} appts={(appts || []).filter((a) => a.start && _ymdLocal(a.start) === pop)} techById={techById} conflicts={allConflicts} isMobile={isMobile}
+      {pop && <SurveyDayPop day={pop} appts={(appts || []).filter((a) => a.start && _ymdLocal(a.start) === pop)} techById={techById} whoOf={whoOf} conflicts={allConflicts} isMobile={isMobile}
         onClose={() => setPop(null)} onOpen={(a) => setEdit(Object.assign({}, a))}
         onAdd={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(pop, "09:00"), end: _composeISO(pop, "11:00") }))} />}
-      {edit && <SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts}
+      {edit && <SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts} users={users} me={me}
         leads={leads} blankLead={leadStore && leadStore.blank}
         onClose={() => setEdit(null)}
         onSave={(rec, newLead) => { const prev = (appts || []).find((a) => a.id === rec.id) || null; if (newLead && leadStore) leadStore.upsert(newLead); store.upsert(rec); if (onNotify) onNotify(rec, prev); setEdit(null); }}
@@ -354,7 +372,7 @@ const _TH_MON = ["มกราคม", "กุมภาพันธ์", "มี
 function _thMonth(ym) { const [y, m] = ym.split("-").map(Number); return _TH_MON[m - 1] + " " + (y + 543); }
 
 /* หน้าต่างรายการนัดของวันที่กดในปฏิทิน — กดนัดเปิดแก้ไข · ปุ่มเพิ่มนัดวันนั้น */
-function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOpen, onAdd }) {
+function SurveyDayPop({ day, appts, techById, whoOf, conflicts, isMobile, onClose, onOpen, onAdd }) {
   const bdClose = window.useBackdropClose(onClose);
   const list = (appts || []).slice().sort((x, y) => new Date(x.start) - new Date(y.start));
   return (
@@ -363,7 +381,7 @@ function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOp
         <div style={{ padding: "14px 18px", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, boxShadow: "var(--shadow-sm)" }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{thDate(day, true)}</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{list.length ? list.length + " นัดสำรวจ" : "ยังไม่มีนัดสำรวจ"}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{list.length ? list.length + " นัด" : "ยังไม่มีนัดหมาย"}</div>
           </div>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
@@ -371,18 +389,22 @@ function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOp
           {list.length === 0 && <div style={{ padding: 26, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>วันนั้นยังว่าง · กดปุ่มด้านล่างเพื่อนัดสำรวจ</div>}
           {list.map((a) => {
             const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-            const ts = apptEngs(a).map((id) => techById[id]).filter(Boolean);
+            const ts = whoOf ? whoOf(a) : apptEngs(a).map((id) => techById[id]).filter(Boolean);
             const clash = conflicts.has(a.id);
+            const K = APPT_KIND_BY[apptKind(a)];
             return (
               <button key={a.id} onClick={() => onOpen(a)}
                 style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--surface)",
                   boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 5 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
+                  <span style={{ display: "inline-flex", gap: 5 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: K.color, background: K.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{K.th}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
+                  </span>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.phone ? " · " + a.phone : ""}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{isApptEvent(a) ? (a.address ? "📍 " + a.address : "") + (a.createdByName ? (a.address ? " · " : "") + "นัดโดย " + a.createdByName : "") : (a.jobCode || "") + (a.province ? " · " + a.province : "") + (a.phone ? " · " + a.phone : "")}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 1 }}>
                   {ts.length ? ts.map((t) => <span key={t.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}><span style={{ width: 7, height: 7, borderRadius: 4, background: t.color || "#94A3B8" }} />{t.name}</span>)
                     : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มอบหมาย</span>}
@@ -395,7 +417,7 @@ function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOp
         </div>
         <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, background: "var(--surface)" }}>
           <button onClick={onAdd} style={{ width: "100%", padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <Icon name="plus" size={16} color="#fff" sw={2.4} />เพิ่มนัดสำรวจวันนั้น
+            <Icon name="plus" size={16} color="#fff" sw={2.4} />เพิ่มนัดหมายวันนั้น
           </button>
         </div>
       </div>
@@ -404,7 +426,7 @@ function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOp
 }
 
 /* ปฏิทินเดือน — ดูว่าวันไหนมีนัดสำรวจ · กดวัน = เด้งรายการนัดวันนั้น · กดนัด = แก้ไข */
-function SurveyMonthCal({ mon, appts, techById, conflicts, isMobile, onPickDay, onOpen }) {
+function SurveyMonthCal({ mon, appts, techById, whoOf, conflicts, isMobile, onPickDay, onOpen }) {
   const [y, m] = mon.split("-").map(Number);
   const first = new Date(y, m - 1, 1), nDays = new Date(y, m, 0).getDate();
   const lead = first.getDay(); // 0 = อาทิตย์
@@ -439,7 +461,7 @@ function SurveyMonthCal({ mon, appts, techById, conflicts, isMobile, onPickDay, 
               </div>
               {list.slice(0, maxShow).map((a) => {
                 const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-                const t = techById[apptEngs(a)[0]];
+                const t = isApptEvent(a) ? { color: APPT_KIND_BY[apptKind(a)].color } : techById[apptEngs(a)[0]];
                 return (
                   <div key={a.id} onClick={(e) => { e.stopPropagation(); onOpen(a); }} title={_hm(a.start) + " " + (a.jobName || "")}
                     style={{ fontSize: 10.5, lineHeight: 1.3, background: "var(--surface)", borderRadius: 5, padding: "2px 5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
@@ -461,13 +483,20 @@ const navBtn = { width: 36, height: 36, borderRadius: "var(--r-chip)", border: "
 
 /* ── Modal สร้าง/แก้ไขนัดสำรวจ ──
    onSave(appt, newLead) — newLead != null เมื่อผู้ใช้กรอกลูกค้าใหม่ (ยังไม่มีในระบบ) */
-function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClose, onSave, onDelete }) {
+function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, users, me, kinds, onClose, onSave, onDelete }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const isNew = !(appts || []).some((a) => a.id === initial.id);
   const [f, setF] = React.useState(() => Object.assign({}, initial,
     { engineerIds: apptEngs(initial), _date: initial.start ? _ymdLocal(initial.start) : _ymdLocal(new Date()), _start: initial.start ? _hm(initial.start) : "09:00", _end: initial.end ? _hm(initial.end) : "11:00" }));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
+  // ประเภทนัด — kinds จำกัดว่าหน้านี้สร้างอะไรได้ (หน้า "ของฉัน" = เฉพาะประชุม/Training/อื่น ๆ)
+  const kindOpts = APPT_KINDS.filter((k) => !kinds || kinds.includes(k.key));
+  const [kind, setKind] = React.useState(() => (initial.kind && APPT_KIND_BY[initial.kind]) ? initial.kind : kindOpts[0].key);
+  const isEv = kind !== "survey";
+  const att = Array.isArray(f.attendeeIds) ? f.attendeeIds : [];
+  const toggleAtt = (id) => setF((p) => { const cur = Array.isArray(p.attendeeIds) ? p.attendeeIds : []; return Object.assign({}, p, { attendeeIds: cur.includes(id) ? cur.filter((x) => x !== id) : cur.concat(id) }); });
+  const userOpts = (users || []).filter((u) => u && u.active !== false && u.name).slice().sort((x, y) => String(x.name).localeCompare(String(y.name), "th"));
   /* สำรวจให้ใคร: "lead" = ลูกค้าในระบบ (ลูกค้าฝ่ายขายที่ยังไม่ปิดการขายและยังไม่ "ไม่ติดตั้ง")
      "new" = ลูกค้าใหม่กรอกเอง · "job" = เฉพาะนัดเก่าที่ผูกกับงานติดตั้งไว้แล้ว (ไม่มีให้เลือกใหม่) */
   const [target, setTarget] = React.useState(() => (initial.projectId ? "job" : initial.leadId ? "lead" : (leads || []).some(salesOpenLead) ? "lead" : "new"));
@@ -484,7 +513,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
 
   const startISO = _composeISO(f._date, f._start), endISO = _composeISO(f._date, f._end);
   // เตือนเวลาซ้อนทับกับนัดอื่นของวิศวกรคนเดียวกัน (ไม่นับนัดนี้เอง) · ไปหลายคนเช็กทุกคน
-  const myEngs = apptEngs(f);
+  const myEngs = isEv ? [] : apptEngs(f);
   const clash = React.useMemo(() => {
     if (!myEngs.length || !startISO || !endISO) return null;
     let hit = null;
@@ -499,6 +528,18 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
   }, [myEngs.join(","), startISO, endISO, appts]);
 
   const submit = () => {
+    if (isEv) {
+      if (!String(f.jobName || "").trim()) { alert("กรุณากรอกหัวข้อนัด"); return; }
+      if (!att.length) { alert("กรุณาเลือกผู้เข้าร่วมอย่างน้อย 1 คน"); return; }
+      if (!startISO || !endISO) { alert("กรุณาระบุวันและเวลา"); return; }
+      if (new Date(endISO) <= new Date(startISO)) { alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม"); return; }
+      const ev = Object.assign({}, f, { kind, start: startISO, end: endISO, jobName: String(f.jobName).trim(), attendeeIds: att,
+        engineerIds: [], engineerId: "", leadId: "", projectId: "", jobCode: "", province: "", phone: "",
+        createdBy: f.createdBy || (me && me.id) || "", createdByName: f.createdByName || (me && me.name) || "" });
+      delete ev._date; delete ev._start; delete ev._end;
+      onSave(ev, null);
+      return;
+    }
     let lead = null;
     if (target === "job") {
       if (!f.projectId) { alert("กรุณาเลือกงาน/โครงการ"); return; }
@@ -511,7 +552,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
     if (!startISO || !endISO) { alert("กรุณาระบุวันและเวลา"); return; }
     if (new Date(endISO) <= new Date(startISO)) { alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม"); return; }
     const eng = apptEngs(f);
-    const out = Object.assign({}, f, { start: startISO, end: endISO, engineerIds: eng, engineerId: eng[0] || "" });
+    const out = Object.assign({}, f, { kind: "survey", attendeeIds: [], start: startISO, end: endISO, engineerIds: eng, engineerId: eng[0] || "" });
     if (lead) Object.assign(out, { leadId: lead.id, projectId: "", jobName: lead.name, jobCode: lead.code, province: lead.province, address: lead.address, phone: lead.phone });
     delete out._date; delete out._start; delete out._end;
     onSave(out, lead);
@@ -522,10 +563,42 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
     <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ"}</h2>
+          <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{isEv ? (isNew ? "นัดหมายใหม่" : "แก้ไขนัดหมาย") : (isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ")}</h2>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          {kindOpts.length > 1 && (isNew || !initial.kind) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>ประเภทนัด</label>
+              <Segmented value={kind} onChange={setKind} options={kindOpts.map((k) => ({ value: k.key, label: k.th }))} />
+            </div>
+          )}
+          {isEv && <React.Fragment>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>หัวข้อ *</label>
+              <input value={f.jobName || ""} onChange={(e) => set("jobName", e.target.value)} placeholder={kind === "training" ? "เช่น อบรมความปลอดภัยการทำงานบนหลังคา" : kind === "meeting" ? "เช่น ประชุมสรุปงานประจำสัปดาห์" : "เช่น ไปรับของที่ร้าน"} style={inputStyle} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>สถานที่ / ลิงก์ประชุม</label>
+              <input value={f.address || ""} onChange={(e) => set("address", e.target.value)} placeholder="เช่น ห้องประชุมชั้น 2 / ลิงก์ Google Meet" style={inputStyle} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>ผู้เข้าร่วม * <span style={{ fontWeight: 600 }}>· เลือกได้หลายคน{att.length ? " (" + att.length + " คน)" : ""}</span></label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {userOpts.map((u) => {
+                  const on = att.includes(u.id);
+                  return (
+                    <button key={u.id} type="button" onClick={() => toggleAtt(u.id)}
+                      style={{ padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                        background: on ? APPT_KIND_BY[kind].color : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)" }}>
+                      {u.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </React.Fragment>}
+          {!isEv && <React.Fragment>
           {/* สำรวจให้ใคร — ลูกค้าที่ยังไม่เป็นงาน (ไม่ไปบวมฐานข้อมูลงาน) หรืองานที่รับแล้ว */}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>สำรวจให้ใคร</label>
@@ -574,6 +647,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
               {!(techs || []).length && <span style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีรายชื่อวิศวกร</span>}
             </div>
           </div>
+          </React.Fragment>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>วันที่</label>
             <input type="date" value={f._date} onChange={(e) => set("_date", e.target.value)} style={inputStyle} />
@@ -585,10 +659,10 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
           {clash && <div style={{ fontSize: 12, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ {((techs || []).find((t) => t.id === clash._who) || {}).name || "วิศวกร"} มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>สถานะ</label>
-            <Dropdown value={f.status} onChange={(v) => set("status", v)} options={APPT_STATUS.map((s) => ({ value: s.key, label: s.th }))} />
+            <Dropdown value={f.status} onChange={(v) => set("status", v)} options={APPT_STATUS.filter((s) => !isEv || ["scheduled", "done", "canceled"].includes(s.key)).map((s) => ({ value: s.key, label: isEv && s.key === "done" ? "เสร็จแล้ว" : s.th }))} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label style={lbl}>หมายเหตุการจ่ายงาน</label>
+            <label style={lbl}>{isEv ? "รายละเอียด / วาระ" : "หมายเหตุการจ่ายงาน"}</label>
             <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={2} placeholder='เช่น "ลูกค้าสะดวกช่วงบ่ายเท่านั้น"' style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
           </div>
         </div>
@@ -657,6 +731,41 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
 }
 
 /* ── การ์ดนัดสำรวจ (พร้อม timeline เวิร์กโฟลว์) ── */
+/* การ์ดนัดประชุม/Training/อื่น ๆ — ชุดเดียวกับการ์ดนัดสำรวจ แต่ไม่มีขั้นเดินทาง/เช็คอิน */
+function EventCard({ a, userById, canEdit, onEdit }) {
+  const K = APPT_KIND_BY[apptKind(a)];
+  const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+  const people = (a.attendeeIds || []).map((id) => (userById || {})[id]).filter(Boolean);
+  const isLink = /^https?:\/\//i.test(String(a.address || "").trim());
+  return (
+    <div style={{ background: "var(--surface)", borderLeft: "4px solid " + K.color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: "var(--r-pill)", background: K.color + "16", color: K.color, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+          <Icon name={K.icon} size={12} color={K.color} />{K.th}
+          {a.status !== "scheduled" && <span style={{ fontWeight: 600, opacity: .75 }}>· {a.status === "done" ? "เสร็จแล้ว" : stt.th}</span>}
+        </span>
+        {canEdit && <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>แก้ไข <Icon name="chevronRight" size={14} color="var(--primary-dark)" /></button>}
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)" }}>
+        <Icon name="clock" size={13} color="var(--text-3)" />{a.start ? thDate(_ymdLocal(a.start), true) : "ไม่ระบุวัน"}
+        {a.start && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{_hm(a.start)}–{_hm(a.end)}</span>}
+      </div>
+      {a.address && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <Icon name={isLink ? "link" : "pin"} size={13} color="var(--text-3)" style={{ flexShrink: 0 }} />
+        {isLink ? <a href={a.address.trim()} target="_blank" rel="noreferrer" style={{ color: "var(--primary-dark)", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>เข้าร่วมประชุมออนไลน์</a>
+          : <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={a.address}>{a.address}</span>}
+      </div>}
+      {people.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+        <Icon name="users" size={13} color="var(--text-3)" />
+        {people.map((u) => <span key={u.id} style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{u.name}</span>)}
+      </div>}
+      {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "6px 10px", whiteSpace: "pre-wrap" }}>📝 {a.notes}</div>}
+      {a.createdByName && <div style={{ fontSize: 11, color: "var(--text-3)" }}>นัดโดย {a.createdByName}</div>}
+    </div>
+  );
+}
+
 /* การ์ดนัดสำรวจ — ภาษาเดียวกับการ์ดงานติดตั้ง (JobTaskCard): ป้ายสถานะ · ชื่อ · วันเวลา · แถบขั้นจุด+เส้น · ที่อยู่ · ปุ่มใหญ่ขั้นถัดไป
    (ผู้ใช้สั่ง 2026-11-18 "ปรับการ์ดให้ดูสวยขึ้น" ให้เข้าชุดกับหน้าปฏิทิน) */
 function ApptCard({ a, job, onStatus, onOpenSurvey }) {
@@ -841,12 +950,21 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
 // สร้างรายการ "ตารางงานของฉัน" = นัดสำรวจ (engineerId===คนนี้) + งานติดตั้งที่นัดวันแล้ว (tech===คนนี้, ยังไม่เสร็จ)
 // กระจายงานติดตั้งครบทุกวันในช่วงนัดติดตั้ง · เรียงตามเวลา · ใช้ร่วมกับพาเนลหน้าภาพรวม
 // allEe = วิศวกรที่ไม่ได้ผูกกับพนักงาน → เห็นนัดสำรวจของวิศวกรทุกคน (ไม่มีงานติดตั้งของตัวเอง)
-function buildMySchedItems(appts, jobs, techId, allEe) {
-  if (!techId && !allEe) return [];
+function buildMySchedItems(appts, jobs, techId, allEe, uid) {
+  if (!techId && !allEe && !uid) return [];
   const SF = window.SF;
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach((a) => {
+    // นัดประชุม/Training/อื่น ๆ — ของฉันเมื่อเป็นผู้เข้าร่วมหรือเป็นคนนัด
+    if (isApptEvent(a)) {
+      if (!uid || a.status === "canceled" || !((a.attendeeIds || []).includes(uid) || a.createdBy === uid)) return;
+      const d = a.start ? _ymdLocal(a.start) : "";
+      if (a.status === "done" && d !== todayY) return;
+      out.push({ type: "event", key: "e-" + a.id, a: a, day: d, ts: a.start ? new Date(a.start).getTime() : 0 });
+      return;
+    }
+    if (!techId && !allEe) return;
     if ((techId ? !apptEngs(a).includes(techId) : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     /* นัดที่ปิดจบไปแล้ว (สำรวจเสร็จ / เลื่อนไปนัดใหม่) ไม่ใช่งานค้าง — เดิมค้างอยู่ในช่อง
@@ -869,7 +987,9 @@ function buildMySchedItems(appts, jobs, techId, allEe) {
   return out.sort((x, y) => x.ts - y.ts);
 }
 
-function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
+function MyScheduleView({ appts, jobs, leads, me, users, techs, store, canDispatch, onNotify, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
+  const uid = me && me.id;
+  const [edit, setEdit] = React.useState(null);
   const techId = me && me.techId;
   const allEe = !techId && !!me && window.hasRole(window.userRoles(me), "ee");
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
@@ -878,7 +998,7 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
   const targetOf = (a) => a.leadId ? leadAsJob(leadsById[a.leadId]) : jobsById[a.projectId];
 
   // รวมรายการ: นัดสำรวจ + งานติดตั้งที่นัดวันแล้ว (ตรรกะร่วมใน buildMySchedItems)
-  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe), [appts, jobs, techId, allEe]);
+  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe, uid), [appts, jobs, techId, allEe, uid]);
 
   const todayY = _ymdLocal(new Date());
   const grp = (it) => {
@@ -897,8 +1017,8 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
 
   const nAppt = items.filter((i) => i.type === "survey").length;
   const nJob = items.filter((i) => i.type === "job").length;
-  const sub = !techId && !allEe ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน"
-    : (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
+  const nEv = items.filter((i) => i.type === "event").length;
+  const sub = (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null, nEv ? nEv + " นัดหมาย" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
 
   /* ปฏิทินของฉัน (ผู้ใช้สั่ง 2026-11-18 "ขอมีปฏิทินด้วย แต่ยังคงมีการ์ดงาน") — ซ้ายปฏิทินเดือน ขวาการ์ดของวันที่เลือก
      งานติดตั้งกินทุกวันในช่วงนัด · นัดสำรวจอยู่วันเดียว */
@@ -909,27 +1029,23 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
   const dayItems = items.filter((it) => onDay(it, pick));
   const lateItems = pick === todayY ? items.filter((it) => grp(it) === "past") : [];
   const noDate = items.filter((it) => !it.day);
-  const itColor = (it) => it.type === "survey" ? "#0EA5E9" : ((it.stages || [])[0] || {}).color || "var(--primary)";
-  const itName = (it) => it.type === "survey" ? (it.a.jobName || "สำรวจ") : (it.job.name || it.job.code || "งาน");
+  const itColor = (it) => it.type === "event" ? APPT_KIND_BY[apptKind(it.a)].color : it.type === "survey" ? "#0EA5E9" : ((it.stages || [])[0] || {}).color || "var(--primary)";
+  const itName = (it) => it.type === "event" ? (it.a.jobName || APPT_KIND_BY[apptKind(it.a)].th) : it.type === "survey" ? (it.a.jobName || "สำรวจ") : (it.job.name || it.job.code || "งาน");
+  const userById = React.useMemo(() => Object.fromEntries((users || []).map((u) => [u.id, u])), [users]);
+  const newEvent = (d) => setEdit(Object.assign(blankAppt(), { kind: "meeting", attendeeIds: uid ? [uid] : [], start: _composeISO(d || pick, "09:00"), end: _composeISO(d || pick, "10:00") }));
 
-  const renderCard = (it) => it.type === "survey"
+  const renderCard = (it) => it.type === "event"
+    ? <EventCard key={it.key} a={it.a} userById={userById} canEdit={!!(canDispatch || it.a.createdBy === uid)} onEdit={() => setEdit(Object.assign({}, it.a))} />
+    : it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={targetOf(it.a)} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
     : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} dayEnd={it.dayEnd} onOpen={onOpen} onAdvance={onAdvance} />;
 
   return (
     <React.Fragment>
-      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
+      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub}
+        right={store ? <button onClick={() => newEvent()} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดหมาย</span></button> : null} />
       <div className="app-content">
-        {!techId && !allEe ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
-            บัญชีของคุณยังไม่ได้ผูกกับข้อมูลพนักงาน · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
-          </div>
-        ) : items.length === 0 ? (
-          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
-            <div style={{ fontSize: 30, marginBottom: 6 }}>🎉</div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>ไม่มีงานในความรับผิดชอบตอนนี้</div>
-          </div>
-        ) : (
+        {(
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 372px", gap: 18, alignItems: "start" }}>
             <MyMonthCal mon={mon} setMon={setMon} pick={pick} setPick={setPick} today={todayY} isMobile={isMobile}
               itemsOf={(d) => items.filter((it) => onDay(it, d))} colorOf={itColor} nameOf={itName} />
@@ -953,6 +1069,11 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
           </div>
         )}
       </div>
+      {edit && store && <SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts} leads={leads} users={users} me={me}
+        kinds={["meeting", "training", "other"]}
+        onClose={() => setEdit(null)}
+        onSave={(rec) => { const prev = (appts || []).find((x) => x.id === rec.id) || null; store.upsert(rec); if (onNotify) onNotify(rec, prev); setEdit(null); }}
+        onDelete={(id) => { askConfirm({ title: "ลบนัดหมายนี้?", ok: "ลบนัด" }).then((ok) => { if (ok) { store.remove(id); setEdit(null); } }); }} />}
     </React.Fragment>
   );
 }
@@ -967,14 +1088,14 @@ function MyMonthCal({ mon, setMon, pick, setPick, today, isMobile, itemsOf, colo
   while (cells.length % 7) cells.push(null);
   const maxShow = isMobile ? 0 : 4;
   let monthCount = 0;
-  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter((it) => it.type === "survey").length;
+  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter((it) => it.type === "survey" || it.type === "event").length;
   const nb = { width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
   return (
     <div className="pnl">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{_thMonth(mon)}</h2>
-          <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {monthCount} นัดสำรวจ</span>
+          <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {monthCount} นัด</span>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button onClick={() => setMon(_addMonths(mon, -1))} style={nb}><Icon name="chevronRight" size={17} style={{ transform: "rotate(180deg)" }} /></button>
@@ -986,6 +1107,7 @@ function MyMonthCal({ mon, setMon, pick, setPick, today, isMobile, itemsOf, colo
         <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Icon name="list" size={14} color="var(--primary)" /> งานของฉัน:</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#0EA5E9" }} />นัดสำรวจ</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#84CC16" }} />งานติดตั้ง (สีตามขั้น)</span>
+        {APPT_KINDS.filter((k) => k.key !== "survey").map((k) => <span key={k.key} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: k.color }} />{k.th}</span>)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 4 }}>
         {["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."].map((w, i) => (
@@ -1010,7 +1132,7 @@ function MyMonthCal({ mon, setMon, pick, setPick, today, isMobile, itemsOf, colo
                       background: past ? "var(--surface3)" : (String(c).startsWith("#") ? c + "1f" : "var(--primary-soft)"), opacity: past ? 0.75 : 1 }}>
                       <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", flexShrink: 0, background: past ? "var(--text-3)" : c }} />
                       <span style={{ fontSize: 9.5, fontWeight: it.type === "survey" ? 700 : 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: past ? "var(--text-3)" : "var(--text-2)" }}>
-                        {it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : ""}{String(nameOf(it)).replace("คุณ", "")}
+                        {(it.type === "survey" || it.type === "event") && it.a && it.a.start ? _hm(it.a.start) + " " : ""}{String(nameOf(it)).replace("คุณ", "")}
                       </span>
                     </span>
                   );
@@ -1026,5 +1148,5 @@ function MyMonthCal({ mon, setMon, pick, setPick, today, isMobile, itemsOf, colo
   );
 }
 
-Object.assign(window, { apptEngs, salesOpenLead, useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW,
+Object.assign(window, { APPT_KINDS, APPT_KIND_BY, apptKind, isApptEvent, EventCard, apptEngs, salesOpenLead, useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW,
   useSurveyLeadStore, blankLead, leadAsJob, moveSurveyPhotos, LEAD_STATUS, LEAD_STATUS_BY, SchedHeader });

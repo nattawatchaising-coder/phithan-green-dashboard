@@ -61,7 +61,6 @@ const NAV = [{
   th: "ตารางงานของฉัน",
   en: "My Schedule",
   icon: "list",
-  own: true,
   group: "calendar",
   tab: "ของฉัน"
 }, {
@@ -1154,7 +1153,7 @@ function App() {
       if (id) notif.markRead(id);
     });
     setNotifOpen(false);
-    if (n.event === "survey") {
+    if (n.event === "survey" || n.event === "meet") {
       if (navForRole(role, techId).some(x => x.key === "myschedule")) setView("myschedule");
       return;
     }
@@ -1166,6 +1165,35 @@ function App() {
   const notifyAppt = (rec, prev) => {
     const E = window.apptEngs;
     if (!E || !rec) return;
+    if (rec.kind && rec.kind !== "survey") {
+      const K = (window.APPT_KIND_BY || {})[rec.kind] || {
+        th: "นัดหมาย"
+      };
+      const hm2 = iso => new Date(iso).toTimeString().slice(0, 5);
+      const when2 = rec.start ? window.thDate(new Date(rec.start).toLocaleDateString("sv-SE"), false) + " " + hm2(rec.start) + (rec.end ? "–" + hm2(rec.end) : "") : "";
+      const body2 = [K.th, when2, rec.address, "นัดโดย " + (auth.current && auth.current.name || "")].filter(Boolean).join(" · ");
+      const nowA = rec.attendeeIds || [],
+        wasA = prev && prev.attendeeIds || [];
+      const sendU = (uid, title) => {
+        if (!uid || uid === myUid) return;
+        notif.addNotif({
+          toUserId: uid,
+          type: "meet",
+          event: "meet",
+          apptId: rec.id,
+          title: title + " · " + (rec.jobName || K.th),
+          body: body2
+        });
+      };
+      if (rec.status === "canceled") {
+        if (prev && prev.status !== "canceled") wasA.forEach(u => sendU(u, "ยกเลิกนัด" + K.th));
+        return;
+      }
+      nowA.forEach(u => {
+        if (!prev || wasA.indexOf(u) === -1) sendU(u, "นัด" + K.th + "ใหม่");else if (prev.start !== rec.start || prev.end !== rec.end) sendU(u, "เลื่อนนัด" + K.th);
+      });
+      return;
+    }
     const now = E(rec),
       was = E(prev);
     const hm = iso => new Date(iso).toTimeString().slice(0, 5);
@@ -1261,6 +1289,8 @@ function App() {
     appts: apptStore.appts,
     jobs: jobs,
     techs: techStore.techs,
+    users: auth.users,
+    me: auth.current,
     store: apptStore,
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
@@ -1290,6 +1320,11 @@ function App() {
     jobs: jobs,
     leads: leadStore.leads,
     me: auth.current,
+    users: auth.users,
+    techs: techStore.techs,
+    store: apptStore,
+    canDispatch: can(role, "dispatch"),
+    onNotify: notifyAppt,
     onMenuOpen: () => setSidebarOpen(true),
     onStatus: (id, s) => apptStore.setStatus(id, s),
     onOpenSurvey: (j, appt) => openSurvey(j, appt),

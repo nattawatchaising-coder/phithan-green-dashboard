@@ -52,6 +52,34 @@ function _composeISO(ymd, hm) {
   const d = new Date(ymd + "T" + hm);
   return isNaN(d.getTime()) ? "" : d.toISOString();
 }
+const APPT_KINDS = [{
+  key: "survey",
+  th: "สำรวจ",
+  color: "#0EA5E9",
+  icon: "pin"
+}, {
+  key: "meeting",
+  th: "ประชุม",
+  color: "#8B5CF6",
+  icon: "users"
+}, {
+  key: "training",
+  th: "Training",
+  color: "#F59E0B",
+  icon: "book"
+}, {
+  key: "other",
+  th: "อื่น ๆ",
+  color: "#64748B",
+  icon: "calendar"
+}];
+const APPT_KIND_BY = Object.fromEntries(APPT_KINDS.map(k => [k.key, k]));
+function apptKind(a) {
+  return a && a.kind && APPT_KIND_BY[a.kind] ? a.kind : "survey";
+}
+function isApptEvent(a) {
+  return apptKind(a) !== "survey";
+}
 function apptEngs(a) {
   if (!a) return [];
   const l = Array.isArray(a.engineerIds) ? a.engineerIds.filter(Boolean) : [];
@@ -61,7 +89,7 @@ function apptConflicts(list) {
   const bad = new Set();
   const byEng = {};
   (list || []).forEach(a => {
-    if (a.status === "canceled" || !a.start || !a.end) return;
+    if (a.status === "canceled" || !a.start || !a.end || isApptEvent(a)) return;
     const es = apptEngs(a);
     (es.length ? es : ["_"]).forEach(e => {
       (byEng[e] = byEng[e] || []).push(a);
@@ -88,6 +116,8 @@ function blankAppt() {
     province: "",
     address: "",
     phone: "",
+    kind: "survey",
+    attendeeIds: [],
     engineerId: "",
     engineerIds: [],
     start: "",
@@ -379,6 +409,8 @@ function DispatchView({
   appts,
   jobs,
   techs,
+  users,
+  me,
   store,
   leadStore,
   onMenuOpen,
@@ -394,6 +426,12 @@ function DispatchView({
   const monAppts = React.useMemo(() => (appts || []).filter(a => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map(t => [t.id, t])), [techs]);
+  const userById = React.useMemo(() => Object.fromEntries((users || []).map(u => [u.id, u])), [users]);
+  const whoOf = a => isApptEvent(a) ? (a.attendeeIds || []).map(id => userById[id]).filter(Boolean).map(u => ({
+    id: u.id,
+    name: u.name,
+    color: APPT_KIND_BY[apptKind(a)].color
+  })) : apptEngs(a).map(id => techById[id]).filter(Boolean);
   const scopeAppts = mode === "month" ? monAppts : appts || [];
   const summary = APPT_STATUS.map(s => ({
     s,
@@ -432,7 +470,7 @@ function DispatchView({
       size: 17,
       color: "#fff",
       sw: 2.4
-    }), React.createElement("span", null, "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"))
+    }), React.createElement("span", null, "\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22"))
   }), React.createElement("div", {
     className: "app-content"
   }, React.createElement("div", {
@@ -509,6 +547,7 @@ function DispatchView({
     mon: mon,
     appts: monAppts,
     techById: techById,
+    whoOf: whoOf,
     conflicts: allConflicts,
     isMobile: isMobile,
     onPickDay: d => setPop(d),
@@ -543,7 +582,7 @@ function DispatchView({
     }
   }, g.items.map(a => {
     const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-    const ts = apptEngs(a).map(id => techById[id]).filter(Boolean);
+    const ts = whoOf(a);
     const t = ts[0];
     const clash = allConflicts.has(a.id);
     return React.createElement("button", {
@@ -607,7 +646,17 @@ function DispatchView({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, a.jobCode, a.province ? " · " + a.province : "", a.leadId ? React.createElement("span", {
+    }, a.jobCode, a.province ? " · " + a.province : "", isApptEvent(a) ? React.createElement("span", {
+      style: {
+        marginLeft: 6,
+        fontSize: 10,
+        fontWeight: 700,
+        color: APPT_KIND_BY[apptKind(a)].color,
+        background: APPT_KIND_BY[apptKind(a)].color + "16",
+        padding: "2px 7px",
+        borderRadius: "var(--r-pill)"
+      }
+    }, APPT_KIND_BY[apptKind(a)].th) : a.leadId ? React.createElement("span", {
       style: {
         marginLeft: 6,
         fontSize: 10,
@@ -645,6 +694,7 @@ function DispatchView({
     day: pop,
     appts: (appts || []).filter(a => a.start && _ymdLocal(a.start) === pop),
     techById: techById,
+    whoOf: whoOf,
     conflicts: allConflicts,
     isMobile: isMobile,
     onClose: () => setPop(null),
@@ -658,6 +708,8 @@ function DispatchView({
     jobs: jobs,
     techs: techs,
     appts: appts,
+    users: users,
+    me: me,
     leads: leads,
     blankLead: leadStore && leadStore.blank,
     onClose: () => setEdit(null),
@@ -700,6 +752,7 @@ function SurveyDayPop({
   day,
   appts,
   techById,
+  whoOf,
   conflicts,
   isMobile,
   onClose,
@@ -752,7 +805,7 @@ function SurveyDayPop({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, list.length ? list.length + " นัดสำรวจ" : "ยังไม่มีนัดสำรวจ")), React.createElement("button", {
+  }, list.length ? list.length + " นัด" : "ยังไม่มีนัดหมาย")), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     style: {
@@ -787,8 +840,9 @@ function SurveyDayPop({
     }
   }, "\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"), list.map(a => {
     const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-    const ts = apptEngs(a).map(id => techById[id]).filter(Boolean);
+    const ts = whoOf ? whoOf(a) : apptEngs(a).map(id => techById[id]).filter(Boolean);
     const clash = conflicts.has(a.id);
+    const K = APPT_KIND_BY[apptKind(a)];
     return React.createElement("button", {
       key: a.id,
       onClick: () => onOpen(a),
@@ -822,6 +876,20 @@ function SurveyDayPop({
       }
     }, _hm(a.start), "\u2013", _hm(a.end)), React.createElement("span", {
       style: {
+        display: "inline-flex",
+        gap: 5
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: K.color,
+        background: K.color + "16",
+        padding: "2px 8px",
+        borderRadius: "var(--r-pill)"
+      }
+    }, K.th), React.createElement("span", {
+      style: {
         fontSize: 10,
         fontWeight: 700,
         color: stt.color,
@@ -829,7 +897,7 @@ function SurveyDayPop({
         padding: "2px 8px",
         borderRadius: "var(--r-pill)"
       }
-    }, stt.th)), React.createElement("div", {
+    }, stt.th))), React.createElement("div", {
       style: {
         fontSize: 14,
         fontWeight: 700,
@@ -840,7 +908,7 @@ function SurveyDayPop({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, a.jobCode, a.province ? " · " + a.province : "", a.phone ? " · " + a.phone : ""), React.createElement("div", {
+    }, isApptEvent(a) ? (a.address ? "📍 " + a.address : "") + (a.createdByName ? (a.address ? " · " : "") + "นัดโดย " + a.createdByName : "") : (a.jobCode || "") + (a.province ? " · " + a.province : "") + (a.phone ? " · " + a.phone : "")), React.createElement("div", {
       style: {
         display: "flex",
         flexWrap: "wrap",
@@ -915,12 +983,13 @@ function SurveyDayPop({
     size: 16,
     color: "#fff",
     sw: 2.4
-  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19"))));
+  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19"))));
 }
 function SurveyMonthCal({
   mon,
   appts,
   techById,
+  whoOf,
   conflicts,
   isMobile,
   onPickDay,
@@ -1013,7 +1082,9 @@ function SurveyMonthCal({
       }
     }, live.length)), list.slice(0, maxShow).map(a => {
       const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-      const t = techById[apptEngs(a)[0]];
+      const t = isApptEvent(a) ? {
+        color: APPT_KIND_BY[apptKind(a)].color
+      } : techById[apptEngs(a)[0]];
       return React.createElement("div", {
         key: a.id,
         onClick: e => {
@@ -1082,6 +1153,9 @@ function SurveyApptModal({
   appts,
   leads,
   blankLead,
+  users,
+  me,
+  kinds,
   onClose,
   onSave,
   onDelete
@@ -1098,6 +1172,17 @@ function SurveyApptModal({
   const set = (k, v) => setF(p => Object.assign({}, p, {
     [k]: v
   }));
+  const kindOpts = APPT_KINDS.filter(k => !kinds || kinds.includes(k.key));
+  const [kind, setKind] = React.useState(() => initial.kind && APPT_KIND_BY[initial.kind] ? initial.kind : kindOpts[0].key);
+  const isEv = kind !== "survey";
+  const att = Array.isArray(f.attendeeIds) ? f.attendeeIds : [];
+  const toggleAtt = id => setF(p => {
+    const cur = Array.isArray(p.attendeeIds) ? p.attendeeIds : [];
+    return Object.assign({}, p, {
+      attendeeIds: cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id)
+    });
+  });
+  const userOpts = (users || []).filter(u => u && u.active !== false && u.name).slice().sort((x, y) => String(x.name).localeCompare(String(y.name), "th"));
   const [target, setTarget] = React.useState(() => initial.projectId ? "job" : initial.leadId ? "lead" : (leads || []).some(salesOpenLead) ? "lead" : "new");
   const [nl, setNl] = React.useState(() => ({
     name: "",
@@ -1156,7 +1241,7 @@ function SurveyApptModal({
   };
   const startISO = _composeISO(f._date, f._start),
     endISO = _composeISO(f._date, f._end);
-  const myEngs = apptEngs(f);
+  const myEngs = isEv ? [] : apptEngs(f);
   const clash = React.useMemo(() => {
     if (!myEngs.length || !startISO || !endISO) return null;
     let hit = null;
@@ -1172,6 +1257,45 @@ function SurveyApptModal({
     return hit;
   }, [myEngs.join(","), startISO, endISO, appts]);
   const submit = () => {
+    if (isEv) {
+      if (!String(f.jobName || "").trim()) {
+        alert("กรุณากรอกหัวข้อนัด");
+        return;
+      }
+      if (!att.length) {
+        alert("กรุณาเลือกผู้เข้าร่วมอย่างน้อย 1 คน");
+        return;
+      }
+      if (!startISO || !endISO) {
+        alert("กรุณาระบุวันและเวลา");
+        return;
+      }
+      if (new Date(endISO) <= new Date(startISO)) {
+        alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม");
+        return;
+      }
+      const ev = Object.assign({}, f, {
+        kind,
+        start: startISO,
+        end: endISO,
+        jobName: String(f.jobName).trim(),
+        attendeeIds: att,
+        engineerIds: [],
+        engineerId: "",
+        leadId: "",
+        projectId: "",
+        jobCode: "",
+        province: "",
+        phone: "",
+        createdBy: f.createdBy || me && me.id || "",
+        createdByName: f.createdByName || me && me.name || ""
+      });
+      delete ev._date;
+      delete ev._start;
+      delete ev._end;
+      onSave(ev, null);
+      return;
+    }
     let lead = null;
     if (target === "job") {
       if (!f.projectId) {
@@ -1205,6 +1329,8 @@ function SurveyApptModal({
     }
     const eng = apptEngs(f);
     const out = Object.assign({}, f, {
+      kind: "survey",
+      attendeeIds: [],
       start: startISO,
       end: endISO,
       engineerIds: eng,
@@ -1269,7 +1395,7 @@ function SurveyApptModal({
       color: "var(--text-1)",
       margin: 0
     }
-  }, isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ"), React.createElement("button", {
+  }, isEv ? isNew ? "นัดหมายใหม่" : "แก้ไขนัดหมาย" : isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ"), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     style: {
@@ -1295,7 +1421,85 @@ function SurveyApptModal({
       flexDirection: "column",
       gap: 14
     }
-  }, React.createElement("div", {
+  }, kindOpts.length > 1 && (isNew || !initial.kind) && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E31\u0E14"), React.createElement(Segmented, {
+    value: kind,
+    onChange: setKind,
+    options: kindOpts.map(k => ({
+      value: k.key,
+      label: k.th
+    }))
+  })), isEv && React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D *"), React.createElement("input", {
+    value: f.jobName || "",
+    onChange: e => set("jobName", e.target.value),
+    placeholder: kind === "training" ? "เช่น อบรมความปลอดภัยการทำงานบนหลังคา" : kind === "meeting" ? "เช่น ประชุมสรุปงานประจำสัปดาห์" : "เช่น ไปรับของที่ร้าน",
+    style: inputStyle
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E2A\u0E16\u0E32\u0E19\u0E17\u0E35\u0E48 / \u0E25\u0E34\u0E07\u0E01\u0E4C\u0E1B\u0E23\u0E30\u0E0A\u0E38\u0E21"), React.createElement("input", {
+    value: f.address || "",
+    onChange: e => set("address", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2B\u0E49\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E0A\u0E38\u0E21\u0E0A\u0E31\u0E49\u0E19 2 / \u0E25\u0E34\u0E07\u0E01\u0E4C Google Meet",
+    style: inputStyle
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E1C\u0E39\u0E49\u0E40\u0E02\u0E49\u0E32\u0E23\u0E48\u0E27\u0E21 * ", React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, "\xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E04\u0E19", att.length ? " (" + att.length + " คน)" : "")), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 7
+    }
+  }, userOpts.map(u => {
+    const on = att.includes(u.id);
+    return React.createElement("button", {
+      key: u.id,
+      type: "button",
+      onClick: () => toggleAtt(u.id),
+      style: {
+        padding: "7px 12px",
+        borderRadius: "var(--r-pill)",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        background: on ? APPT_KIND_BY[kind].color : "var(--surface2)",
+        color: on ? "#fff" : "var(--text-2)",
+        boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)"
+      }
+    }, u.name);
+  })))), !isEv && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1473,7 +1677,7 @@ function SurveyApptModal({
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23"))), React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23")))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1537,9 +1741,9 @@ function SurveyApptModal({
   }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"), React.createElement(Dropdown, {
     value: f.status,
     onChange: v => set("status", v),
-    options: APPT_STATUS.map(s => ({
+    options: APPT_STATUS.filter(s => !isEv || ["scheduled", "done", "canceled"].includes(s.key)).map(s => ({
       value: s.key,
-      label: s.th
+      label: isEv && s.key === "done" ? "เสร็จแล้ว" : s.th
     }))
   })), React.createElement("div", {
     style: {
@@ -1549,7 +1753,7 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E08\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19"), React.createElement("textarea", {
+  }, isEv ? "รายละเอียด / วาระ" : "หมายเหตุการจ่ายงาน"), React.createElement("textarea", {
     value: f.notes,
     onChange: e => set("notes", e.target.value),
     rows: 2,
@@ -1794,6 +1998,172 @@ function ApptFlow({
     size: 14,
     color: "var(--primary-dark)"
   }), " \u0E14\u0E39 / \u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08"));
+}
+function EventCard({
+  a,
+  userById,
+  canEdit,
+  onEdit
+}) {
+  const K = APPT_KIND_BY[apptKind(a)];
+  const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+  const people = (a.attendeeIds || []).map(id => (userById || {})[id]).filter(Boolean);
+  const isLink = /^https?:\/\//i.test(String(a.address || "").trim());
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      borderLeft: "4px solid " + K.color,
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
+      padding: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "3px 9px",
+      borderRadius: "var(--r-pill)",
+      background: K.color + "16",
+      color: K.color,
+      fontSize: 12,
+      fontWeight: 800,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: K.icon,
+    size: 12,
+    color: K.color
+  }), K.th, a.status !== "scheduled" && React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      opacity: .75
+    }
+  }, "\xB7 ", a.status === "done" ? "เสร็จแล้ว" : stt.th)), canEdit && React.createElement("button", {
+    onClick: onEdit,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      padding: 0
+    }
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02 ", React.createElement(Icon, {
+    name: "chevronRight",
+    size: 14,
+    color: "var(--primary-dark)"
+  }))), React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, a.jobName || "—"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "clock",
+    size: 13,
+    color: "var(--text-3)"
+  }), a.start ? thDate(_ymdLocal(a.start), true) : "ไม่ระบุวัน", a.start && React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 12,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      fontFamily: "var(--mono)"
+    }
+  }, _hm(a.start), "\u2013", _hm(a.end))), a.address && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      minWidth: 0
+    }
+  }, React.createElement(Icon, {
+    name: isLink ? "link" : "pin",
+    size: 13,
+    color: "var(--text-3)",
+    style: {
+      flexShrink: 0
+    }
+  }), isLink ? React.createElement("a", {
+    href: a.address.trim(),
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      color: "var(--primary-dark)",
+      fontWeight: 700,
+      textDecoration: "none",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E23\u0E48\u0E27\u0E21\u0E1B\u0E23\u0E30\u0E0A\u0E38\u0E21\u0E2D\u0E2D\u0E19\u0E44\u0E25\u0E19\u0E4C") : React.createElement("span", {
+    style: {
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
+    title: a.address
+  }, a.address)), people.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      alignItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "users",
+    size: 13,
+    color: "var(--text-3)"
+  }), people.map(u => React.createElement("span", {
+    key: u.id,
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      padding: "2px 8px",
+      borderRadius: "var(--r-pill)"
+    }
+  }, u.name))), a.notes && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      borderRadius: 8,
+      padding: "6px 10px",
+      whiteSpace: "pre-wrap"
+    }
+  }, "\uD83D\uDCDD ", a.notes), a.createdByName && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E19\u0E31\u0E14\u0E42\u0E14\u0E22 ", a.createdByName));
 }
 function ApptCard({
   a,
@@ -2421,12 +2791,26 @@ function JobTaskCard({
     sw: 2.5
   }), " ", advOverdue ? "เลยกำหนด " + daysLate + " วัน · " : "", "\u0E40\u0E2A\u0E23\u0E47\u0E08 \u201C", curStage.th, "\u201D \u2192 ", nextStage.th)));
 }
-function buildMySchedItems(appts, jobs, techId, allEe) {
-  if (!techId && !allEe) return [];
+function buildMySchedItems(appts, jobs, techId, allEe, uid) {
+  if (!techId && !allEe && !uid) return [];
   const SF = window.SF;
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach(a => {
+    if (isApptEvent(a)) {
+      if (!uid || a.status === "canceled" || !((a.attendeeIds || []).includes(uid) || a.createdBy === uid)) return;
+      const d = a.start ? _ymdLocal(a.start) : "";
+      if (a.status === "done" && d !== todayY) return;
+      out.push({
+        type: "event",
+        key: "e-" + a.id,
+        a: a,
+        day: d,
+        ts: a.start ? new Date(a.start).getTime() : 0
+      });
+      return;
+    }
+    if (!techId && !allEe) return;
     if ((techId ? !apptEngs(a).includes(techId) : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     if ((a.status === "done" || a.status === "rescheduled") && day !== todayY) return;
@@ -2468,18 +2852,25 @@ function MyScheduleView({
   jobs,
   leads,
   me,
+  users,
+  techs,
+  store,
+  canDispatch,
+  onNotify,
   onMenuOpen,
   onStatus,
   onOpenSurvey,
   onOpen,
   onAdvance
 }) {
+  const uid = me && me.id;
+  const [edit, setEdit] = React.useState(null);
   const techId = me && me.techId;
   const allEe = !techId && !!me && window.hasRole(window.userRoles(me), "ee");
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map(j => [j.id, j])), [jobs]);
   const leadsById = React.useMemo(() => Object.fromEntries((leads || []).map(l => [l.id, l])), [leads]);
   const targetOf = a => a.leadId ? leadAsJob(leadsById[a.leadId]) : jobsById[a.projectId];
-  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe), [appts, jobs, techId, allEe]);
+  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe, uid), [appts, jobs, techId, allEe, uid]);
   const todayY = _ymdLocal(new Date());
   const grp = it => {
     if (!it.day) return "nodate";
@@ -2507,7 +2898,8 @@ function MyScheduleView({
   }].filter(g => g.items.length);
   const nAppt = items.filter(i => i.type === "survey").length;
   const nJob = items.filter(i => i.type === "job").length;
-  const sub = !techId && !allEe ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน" : (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
+  const nEv = items.filter(i => i.type === "event").length;
+  const sub = (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null, nEv ? nEv + " นัดหมาย" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [pick, setPick] = React.useState(todayY);
   const [mon, setMon] = React.useState(todayY.slice(0, 7));
@@ -2515,9 +2907,22 @@ function MyScheduleView({
   const dayItems = items.filter(it => onDay(it, pick));
   const lateItems = pick === todayY ? items.filter(it => grp(it) === "past") : [];
   const noDate = items.filter(it => !it.day);
-  const itColor = it => it.type === "survey" ? "#0EA5E9" : ((it.stages || [])[0] || {}).color || "var(--primary)";
-  const itName = it => it.type === "survey" ? it.a.jobName || "สำรวจ" : it.job.name || it.job.code || "งาน";
-  const renderCard = it => it.type === "survey" ? React.createElement(ApptCard, {
+  const itColor = it => it.type === "event" ? APPT_KIND_BY[apptKind(it.a)].color : it.type === "survey" ? "#0EA5E9" : ((it.stages || [])[0] || {}).color || "var(--primary)";
+  const itName = it => it.type === "event" ? it.a.jobName || APPT_KIND_BY[apptKind(it.a)].th : it.type === "survey" ? it.a.jobName || "สำรวจ" : it.job.name || it.job.code || "งาน";
+  const userById = React.useMemo(() => Object.fromEntries((users || []).map(u => [u.id, u])), [users]);
+  const newEvent = d => setEdit(Object.assign(blankAppt(), {
+    kind: "meeting",
+    attendeeIds: uid ? [uid] : [],
+    start: _composeISO(d || pick, "09:00"),
+    end: _composeISO(d || pick, "10:00")
+  }));
+  const renderCard = it => it.type === "event" ? React.createElement(EventCard, {
+    key: it.key,
+    a: it.a,
+    userById: userById,
+    canEdit: !!(canDispatch || it.a.createdBy === uid),
+    onEdit: () => setEdit(Object.assign({}, it.a))
+  }) : it.type === "survey" ? React.createElement(ApptCard, {
     key: it.key,
     a: it.a,
     job: targetOf(it.a),
@@ -2536,41 +2941,19 @@ function MyScheduleView({
     icon: "list",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: sub
+    sub: sub,
+    right: store ? React.createElement("button", {
+      onClick: () => newEvent(),
+      className: "btn-add"
+    }, React.createElement(Icon, {
+      name: "plus",
+      size: 17,
+      color: "#fff",
+      sw: 2.4
+    }), React.createElement("span", null, "\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22")) : null
   }), React.createElement("div", {
     className: "app-content"
-  }, !techId && !allEe ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 14,
-      background: "var(--surface)",
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)"
-    }
-  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \xB7 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E43\u0E19\u0E40\u0E21\u0E19\u0E39\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19") : items.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 44,
-      textAlign: "center",
-      color: "var(--text-3)",
-      background: "var(--surface)",
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)"
-    }
   }, React.createElement("div", {
-    style: {
-      fontSize: 30,
-      marginBottom: 6
-    }
-  }, "\uD83C\uDF89"), React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E04\u0E27\u0E32\u0E21\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 372px",
@@ -2654,7 +3037,34 @@ function MyScheduleView({
       color: "var(--text-3)",
       marginTop: 6
     }
-  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 (", noDate.length, ")"), noDate.map(renderCard))))));
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 (", noDate.length, ")"), noDate.map(renderCard))))), edit && store && React.createElement(SurveyApptModal, {
+    initial: edit,
+    jobs: jobs,
+    techs: techs,
+    appts: appts,
+    leads: leads,
+    users: users,
+    me: me,
+    kinds: ["meeting", "training", "other"],
+    onClose: () => setEdit(null),
+    onSave: rec => {
+      const prev = (appts || []).find(x => x.id === rec.id) || null;
+      store.upsert(rec);
+      if (onNotify) onNotify(rec, prev);
+      setEdit(null);
+    },
+    onDelete: id => {
+      askConfirm({
+        title: "ลบนัดหมายนี้?",
+        ok: "ลบนัด"
+      }).then(ok => {
+        if (ok) {
+          store.remove(id);
+          setEdit(null);
+        }
+      });
+    }
+  }));
 }
 function MyMonthCal({
   mon,
@@ -2676,7 +3086,7 @@ function MyMonthCal({
   while (cells.length % 7) cells.push(null);
   const maxShow = isMobile ? 0 : 4;
   let monthCount = 0;
-  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter(it => it.type === "survey").length;
+  for (let d = 1; d <= nDays; d++) monthCount += itemsOf(mon + "-" + String(d).padStart(2, "0")).filter(it => it.type === "survey" || it.type === "event").length;
   const nb = {
     width: 34,
     height: 34,
@@ -2718,7 +3128,7 @@ function MyMonthCal({
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\xB7 ", monthCount, " \u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08")), React.createElement("div", {
+  }, "\xB7 ", monthCount, " \u0E19\u0E31\u0E14")), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -2804,7 +3214,21 @@ function MyMonthCal({
       borderRadius: 2,
       background: "#84CC16"
     }
-  }), "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (\u0E2A\u0E35\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19)")), React.createElement("div", {
+  }), "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (\u0E2A\u0E35\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19)"), APPT_KINDS.filter(k => k.key !== "survey").map(k => React.createElement("span", {
+    key: k.key,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: k.color
+    }
+  }), k.th))), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7, minmax(0,1fr))",
@@ -2893,7 +3317,7 @@ function MyMonthCal({
           textOverflow: "ellipsis",
           color: past ? "var(--text-3)" : "var(--text-2)"
         }
-      }, it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : "", String(nameOf(it)).replace("คุณ", "")));
+      }, (it.type === "survey" || it.type === "event") && it.a && it.a.start ? _hm(it.a.start) + " " : "", String(nameOf(it)).replace("คุณ", "")));
     }), maxShow > 0 && list.length > maxShow && React.createElement("span", {
       style: {
         fontSize: 9,
@@ -2918,6 +3342,11 @@ function MyMonthCal({
   })));
 }
 Object.assign(window, {
+  APPT_KINDS,
+  APPT_KIND_BY,
+  apptKind,
+  isApptEvent,
+  EventCard,
   apptEngs,
   salesOpenLead,
   useSurveyApptStore,

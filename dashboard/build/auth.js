@@ -2042,6 +2042,11 @@ const NOTIF_KINDS = {
     color: "#0EA5E9",
     th: "นัดสำรวจ"
   },
+  meet: {
+    icon: "users",
+    color: "#8B5CF6",
+    th: "นัดหมาย"
+  },
   info: {
     icon: "bell",
     color: "#1B9B75",
