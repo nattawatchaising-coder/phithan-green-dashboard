@@ -2596,7 +2596,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
     (appts || []).forEach((a) => {
       if (!a || !a.leadId || a.status === "canceled") return;
       const cur = out[a.leadId];
-      if (!cur || String(a.start || "") > String(cur.start || "")) out[a.leadId] = { start: a.start, name: byId[a.engineerId] || "" };
+      if (!cur || String(a.start || "") > String(cur.start || "")) out[a.leadId] = { start: a.start, name: (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map((id) => byId[id]).filter(Boolean).join(", ") };
     });
     return out;
   }, [appts, techs]);

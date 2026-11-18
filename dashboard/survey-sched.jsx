@@ -24,11 +24,19 @@ function _hm(iso) { if (!iso) return "--:--"; const x = new Date(iso); return St
 function _addDays(ymd, n) { const x = new Date(ymd + "T00:00:00"); x.setDate(x.getDate() + n); return _ymdLocal(x); }
 function _composeISO(ymd, hm) { if (!ymd || !hm) return ""; const d = new Date(ymd + "T" + hm); return isNaN(d.getTime()) ? "" : d.toISOString(); }
 
+/* วิศวกรของนัด — ไปสำรวจได้หลายคน (engineerIds) · นัดเก่ามีแค่ engineerId คนเดียว
+   engineerId ยังเก็บเป็นคนแรกเสมอ ให้โค้ด/รายงานเก่าที่อ่านช่องนี้ยังทำงาน */
+function apptEngs(a) {
+  if (!a) return [];
+  const l = Array.isArray(a.engineerIds) ? a.engineerIds.filter(Boolean) : [];
+  return l.length ? l : (a.engineerId ? [a.engineerId] : []);
+}
+
 // คืน Set ของ appointment id ที่เวลาซ้อนทับกับนัดอื่นของ "วิศวกรคนเดียวกัน"
 function apptConflicts(list) {
   const bad = new Set();
   const byEng = {};
-  (list || []).forEach((a) => { if (a.status === "canceled" || !a.start || !a.end) return; (byEng[a.engineerId || "_"] = byEng[a.engineerId || "_"] || []).push(a); });
+  (list || []).forEach((a) => { if (a.status === "canceled" || !a.start || !a.end) return; const es = apptEngs(a); (es.length ? es : ["_"]).forEach((e) => { (byEng[e] = byEng[e] || []).push(a); }); });
   Object.values(byEng).forEach((arr) => {
     const s = arr.slice().sort((x, y) => new Date(x.start) - new Date(y.start));
     for (let i = 1; i < s.length; i++) {
@@ -42,7 +50,7 @@ function blankAppt() {
   return {
     id: "SA-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     projectId: "", leadId: "", jobName: "", jobCode: "", province: "", address: "", phone: "",
-    engineerId: "", start: "", end: "", status: "scheduled", notes: "",
+    engineerId: "", engineerIds: [], start: "", end: "", status: "scheduled", notes: "",
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   };
 }
@@ -249,16 +257,18 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
 
   // คอลัมน์ = วิศวกรที่มีนัดวันนี้ + ช่อง "ยังไม่มอบหมาย"
   const columns = React.useMemo(() => {
-    const engsWith = [...new Set(dayAppts.map((a) => a.engineerId).filter(Boolean))];
+    const engsWith = [...new Set([].concat(...dayAppts.map(apptEngs)))];
     const cols = (techs || []).filter((t) => engsWith.includes(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color || "#64748B" }));
-    if (dayAppts.some((a) => !a.engineerId)) cols.push({ id: "", name: "ยังไม่มอบหมาย", color: "#94A3B8" });
+    if (dayAppts.some((a) => !apptEngs(a).length)) cols.push({ id: "", name: "ยังไม่มอบหมาย", color: "#94A3B8" });
     return cols;
   }, [dayAppts, techs]);
 
-  const [mode, setMode] = React.useState("day"); // day = บอร์ดรายวัน, all = ทุกนัด
+  const [mode, setMode] = React.useState("day"); // day = บอร์ดรายวัน, month = ปฏิทินเดือน, all = ทุกนัด
+  const [mon, setMon] = React.useState(() => _ymdLocal(new Date()).slice(0, 7)); // "YYYY-MM"
+  const monAppts = React.useMemo(() => (appts || []).filter((a) => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map((t) => [t.id, t])), [techs]);
-  const scopeAppts = mode === "day" ? dayAppts : (appts || []);
+  const scopeAppts = mode === "day" ? dayAppts : mode === "month" ? monAppts : (appts || []);
   const summary = APPT_STATUS.map((s) => ({ s, n: scopeAppts.filter((a) => a.status === s.key).length })).filter((x) => x.n > 0);
   const conflictScope = mode === "day" ? conflicts : allConflicts;
   // โหมด "ทั้งหมด" — จัดกลุ่มทุกนัดตามวันที่ เรียงเวลา
@@ -274,12 +284,18 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           คนอ่านจะได้รู้ว่ายังอยู่เมนูเดิม แค่คนละมุม (ท่าเดียวกับหน้างานขาย บอร์ด/รายการ)
           ว่าอยู่มุมไหนดูที่แท็บ ส่วนบรรทัดรองยังบอกรายละเอียดของมุมนั้นเหมือนเดิม */}
       <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen}
-        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
+        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
         right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"), end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
       <div className="app-content">
         {/* สลับมุมมอง รายวัน / ทั้งหมด */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <Segmented value={mode} onChange={setMode} options={[{ value: "day", label: "รายวัน", icon: "calendar" }, { value: "all", label: "ทั้งหมด", icon: "list" }]} />
+          <Segmented value={mode} onChange={(v) => { if (v === "month") setMon(day.slice(0, 7)); setMode(v); }} options={[{ value: "day", label: "รายวัน", icon: "clock" }, { value: "month", label: "ปฏิทิน", icon: "calendar" }, { value: "all", label: "ทั้งหมด", icon: "list" }]} />
+          {mode === "month" && <React.Fragment>
+            <button onClick={() => setMon((m) => _addMonths(m, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
+            <button onClick={() => setMon(_ymdLocal(new Date()).slice(0, 7))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>เดือนนี้</button>
+            <button onClick={() => setMon((m) => _addMonths(m, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{_thMonth(mon)}</span>
+          </React.Fragment>}
           {mode === "day" && <React.Fragment>
             <button onClick={() => setDay((d) => _addDays(d, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
             <button onClick={() => setDay(_ymdLocal(new Date()))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>วันนี้</button>
@@ -290,7 +306,10 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           {summary.map(({ s, n }) => <span key={s.key} style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 10px", borderRadius: "var(--r-pill)" }}>{s.th} {n}</span>)}
         </div>
 
-        {mode === "all" ? (
+        {mode === "month" ? (
+          <SurveyMonthCal mon={mon} appts={monAppts} techById={techById} conflicts={allConflicts} isMobile={isMobile}
+            onPickDay={(d) => { setDay(d); setMode("day"); }} onOpen={(a) => setEdit(Object.assign({}, a))} />
+        ) : mode === "all" ? (
           allGroups.length === 0 ? (
             <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               ยังไม่มีนัดสำรวจในระบบ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
@@ -301,7 +320,8 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {g.items.map((a) => {
                   const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-                  const t = techById[a.engineerId];
+                  const ts = apptEngs(a).map((id) => techById[id]).filter(Boolean);
+                  const t = ts[0];
                   const clash = allConflicts.has(a.id);
                   return (
                     <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
@@ -318,7 +338,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                       <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
-                        {t ? t.name : "ยังไม่มอบหมาย"}
+                        {t ? ts.map((x) => x.name).join(", ") : "ยังไม่มอบหมาย"}
                       </div>
                       {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกรคนนี้</div>}
                     </button>
@@ -334,7 +354,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
         ) : (
           <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
             {columns.map((col) => {
-              const list = dayAppts.filter((a) => (a.engineerId || "") === col.id).sort((x, y) => new Date(x.start) - new Date(y.start));
+              const list = dayAppts.filter((a) => col.id ? apptEngs(a).includes(col.id) : !apptEngs(a).length).sort((x, y) => new Date(x.start) - new Date(y.start));
               return (
                 <div key={col.id || "none"} style={{ flex: "0 0 auto", width: isMobile ? 240 : 270, display: "flex", flexDirection: "column", gap: 9 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "var(--surface2)", borderRadius: "var(--r-chip)", position: "sticky", top: 0 }}>
@@ -374,6 +394,70 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
     </React.Fragment>
   );
 }
+/* ลูกค้าฝ่ายขายที่ยังเปิดอยู่ = ไม่ถูกลบ · ยังไม่ปิดการขาย (won) · ยังไม่ "ไม่ติดตั้ง" (lost) · ยังไม่แปลงเป็นงาน */
+function salesOpenLead(l) {
+  if (!l || l.deleted || l.jobId) return false;
+  const k = window.salesStageKey ? window.salesStageKey(l) : (l.sstage || l.status || "open");
+  return k !== "won" && k !== "lost" && l.status !== "won" && l.status !== "lost";
+}
+function _addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+const _TH_MON = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+function _thMonth(ym) { const [y, m] = ym.split("-").map(Number); return _TH_MON[m - 1] + " " + (y + 543); }
+
+/* ปฏิทินเดือน — ดูว่าวันไหนมีนัดสำรวจ · กดวันเปิดบอร์ดรายวัน · กดนัดเปิดแก้ไข */
+function SurveyMonthCal({ mon, appts, techById, conflicts, isMobile, onPickDay, onOpen }) {
+  const [y, m] = mon.split("-").map(Number);
+  const first = new Date(y, m - 1, 1), nDays = new Date(y, m, 0).getDate();
+  const lead = first.getDay(); // 0 = อาทิตย์
+  const today = _ymdLocal(new Date());
+  const byDay = {};
+  (appts || []).forEach((a) => { const k = _ymdLocal(a.start); (byDay[k] = byDay[k] || []).push(a); });
+  Object.values(byDay).forEach((l) => l.sort((x, z) => new Date(x.start) - new Date(z.start)));
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= nDays; d++) cells.push(mon + "-" + String(d).padStart(2, "0"));
+  while (cells.length % 7) cells.push(null);
+  const maxShow = isMobile ? 0 : 3;
+  return (
+    <div style={{ background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: isMobile ? 8 : 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: isMobile ? 4 : 6 }}>
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((w, i) => (
+          <div key={w} style={{ textAlign: "center", fontSize: 11, fontWeight: 800, color: i === 0 ? "var(--tint-red-tx2)" : "var(--text-3)", padding: "2px 0 4px" }}>{w}</div>
+        ))}
+        {cells.map((d, i) => {
+          if (!d) return <div key={"e" + i} />;
+          const list = byDay[d] || [];
+          const live = list.filter((a) => a.status !== "canceled");
+          const isToday = d === today;
+          const clash = list.some((a) => conflicts.has(a.id));
+          return (
+            <div key={d} onClick={() => onPickDay(d)} role="button"
+              style={{ minHeight: isMobile ? 54 : 104, borderRadius: "var(--r-chip)", padding: isMobile ? "5px 4px" : "6px 7px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3, minWidth: 0,
+                background: live.length ? "var(--primary-soft)" : "var(--surface2)", boxShadow: isToday ? "inset 0 0 0 2px var(--primary)" : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 3 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: isToday ? "var(--primary)" : (i % 7 === 0 ? "var(--tint-red-tx2)" : "var(--text-1)") }}>{+d.slice(8)}</span>
+                {live.length > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: clash ? "var(--mark-danger)" : "var(--primary)", borderRadius: "var(--r-pill)", padding: "1px 6px", fontFamily: "var(--mono)" }}>{live.length}</span>}
+              </div>
+              {list.slice(0, maxShow).map((a) => {
+                const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+                const t = techById[apptEngs(a)[0]];
+                return (
+                  <div key={a.id} onClick={(e) => { e.stopPropagation(); onOpen(a); }} title={_hm(a.start) + " " + (a.jobName || "")}
+                    style={{ fontSize: 10.5, lineHeight: 1.3, background: "var(--surface)", borderRadius: 5, padding: "2px 5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      borderLeft: "3px solid " + ((t && t.color) || "#94A3B8"), color: a.status === "canceled" ? "var(--text-3)" : "var(--text-1)", textDecoration: a.status === "canceled" ? "line-through" : "none" }}>
+                    <b style={{ fontFamily: "var(--mono)", color: stt.color }}>{_hm(a.start)}</b> {a.jobName || "—"}
+                  </div>
+                );
+              })}
+              {list.length > maxShow && maxShow > 0 && <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>+{list.length - maxShow} นัด</div>}
+              {isMobile && live.length > 0 && <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>{live.slice(0, 4).map((a) => <span key={a.id} style={{ width: 6, height: 6, borderRadius: 3, background: ((techById[apptEngs(a)[0]] || {}).color) || "var(--primary)" }} />)}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 const navBtn = { width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 };
 
 /* ── Modal สร้าง/แก้ไขนัดสำรวจ ──
@@ -383,38 +467,52 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
   const bdClose = window.useBackdropClose(onClose);
   const isNew = !(appts || []).some((a) => a.id === initial.id);
   const [f, setF] = React.useState(() => Object.assign({}, initial,
-    { _date: initial.start ? _ymdLocal(initial.start) : _ymdLocal(new Date()), _start: initial.start ? _hm(initial.start) : "09:00", _end: initial.end ? _hm(initial.end) : "11:00" }));
+    { engineerIds: apptEngs(initial), _date: initial.start ? _ymdLocal(initial.start) : _ymdLocal(new Date()), _start: initial.start ? _hm(initial.start) : "09:00", _end: initial.end ? _hm(initial.end) : "11:00" }));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
-  // นัดใหม่ตั้งต้นที่ "ลูกค้าสำรวจ" — ส่วนใหญ่ยังไม่ใช่งานในระบบ
-  const [target, setTarget] = React.useState(() => (initial.projectId ? "job" : "lead"));
+  /* สำรวจให้ใคร: "lead" = ลูกค้าในระบบ (ลูกค้าฝ่ายขายที่ยังไม่ปิดการขายและยังไม่ "ไม่ติดตั้ง")
+     "new" = ลูกค้าใหม่กรอกเอง · "job" = เฉพาะนัดเก่าที่ผูกกับงานติดตั้งไว้แล้ว (ไม่มีให้เลือกใหม่) */
+  const [target, setTarget] = React.useState(() => (initial.projectId ? "job" : initial.leadId ? "lead" : (leads || []).some(salesOpenLead) ? "lead" : "new"));
   // "" = ลูกค้าใหม่ (กรอกเอง) · ค่าอื่น = เลือกจากลูกค้าสำรวจที่มีอยู่
   const [nl, setNl] = React.useState(() => ({ name: "", phone: "", address: "", province: "" }));
   const setN = (k, v) => setNl((p) => Object.assign({}, p, { [k]: v }));
-  const newLead = target === "lead" && !f.leadId;
+  const newLead = target === "new";
+  const toggleEng = (id) => setF((p) => { const cur = apptEngs(p); const nx = cur.includes(id) ? cur.filter((x) => x !== id) : cur.concat(id); return Object.assign({}, p, { engineerIds: nx, engineerId: nx[0] || "" }); });
+  const leadOpts = (leads || []).filter((l) => salesOpenLead(l) || l.id === f.leadId);
 
   const pickJob = (id) => setF((p) => { const j = (jobs || []).find((x) => x.id === id) || {}; return Object.assign({}, p, { projectId: id, leadId: "", jobName: j.name || "", jobCode: j.code || "", province: j.province || "", address: j.address || "", phone: j.phone || "" }); });
   const pickLead = (id) => setF((p) => { const l = (leads || []).find((x) => x.id === id) || {}; return Object.assign({}, p, { leadId: id, projectId: "", jobName: l.name || "", jobCode: l.code || "", province: l.province || "", address: l.address || "", phone: l.phone || "" }); });
-  const switchTarget = (v) => { setTarget(v); setF((p) => Object.assign({}, p, v === "job" ? { leadId: "" } : { projectId: "" })); };
+  const switchTarget = (v) => { setTarget(v); setF((p) => Object.assign({}, p, { leadId: "", projectId: "", jobName: "", jobCode: "", province: "", address: "", phone: "" })); };
 
   const startISO = _composeISO(f._date, f._start), endISO = _composeISO(f._date, f._end);
-  // เตือนเวลาซ้อนทับกับนัดอื่นของวิศวกรคนเดียวกัน (ไม่นับนัดนี้เอง)
+  // เตือนเวลาซ้อนทับกับนัดอื่นของวิศวกรคนเดียวกัน (ไม่นับนัดนี้เอง) · ไปหลายคนเช็กทุกคน
+  const myEngs = apptEngs(f);
   const clash = React.useMemo(() => {
-    if (!f.engineerId || !startISO || !endISO) return null;
-    return (appts || []).find((a) => a.id !== f.id && a.engineerId === f.engineerId && a.status !== "canceled" && a.start && a.end &&
-      new Date(startISO).getTime() < new Date(a.end).getTime() && new Date(a.start).getTime() < new Date(endISO).getTime());
-  }, [f.engineerId, startISO, endISO, appts]);
+    if (!myEngs.length || !startISO || !endISO) return null;
+    let hit = null;
+    (appts || []).some((a) => {
+      if (a.id === f.id || a.status === "canceled" || !a.start || !a.end) return false;
+      if (!(new Date(startISO).getTime() < new Date(a.end).getTime() && new Date(a.start).getTime() < new Date(endISO).getTime())) return false;
+      const who = apptEngs(a).find((e) => myEngs.includes(e));
+      if (who) hit = Object.assign({}, a, { _who: who });
+      return !!who;
+    });
+    return hit;
+  }, [myEngs.join(","), startISO, endISO, appts]);
 
   const submit = () => {
     let lead = null;
     if (target === "job") {
       if (!f.projectId) { alert("กรุณาเลือกงาน/โครงการ"); return; }
+    } else if (target === "lead") {
+      if (!f.leadId) { alert("กรุณาเลือกลูกค้า"); return; }
     } else if (newLead) {
       if (!nl.name.trim()) { alert("กรุณากรอกชื่อลูกค้า"); return; }
       lead = Object.assign(blankLead ? blankLead() : {}, { name: nl.name.trim(), phone: nl.phone.trim(), address: nl.address.trim(), province: nl.province.trim() });
     }
     if (!startISO || !endISO) { alert("กรุณาระบุวันและเวลา"); return; }
     if (new Date(endISO) <= new Date(startISO)) { alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม"); return; }
-    const out = Object.assign({}, f, { start: startISO, end: endISO });
+    const eng = apptEngs(f);
+    const out = Object.assign({}, f, { start: startISO, end: endISO, engineerIds: eng, engineerId: eng[0] || "" });
     if (lead) Object.assign(out, { leadId: lead.id, projectId: "", jobName: lead.name, jobCode: lead.code, province: lead.province, address: lead.address, phone: lead.phone });
     delete out._date; delete out._start; delete out._end;
     onSave(out, lead);
@@ -432,23 +530,21 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
           {/* สำรวจให้ใคร — ลูกค้าที่ยังไม่เป็นงาน (ไม่ไปบวมฐานข้อมูลงาน) หรืองานที่รับแล้ว */}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>สำรวจให้ใคร</label>
-            <Segmented value={target} onChange={switchTarget}
-              options={[{ value: "lead", label: "ลูกค้าสำรวจ" }, { value: "job", label: "งานในระบบ" }]} />
-          </div>
-          {target === "job" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={lbl}>งาน / โครงการ *</label>
-              <Dropdown value={f.projectId} onChange={pickJob} placeholder="— เลือกงาน —"
-                options={(jobs || []).map((j) => ({ value: j.id, label: j.name + " · " + j.code + (j.province ? " · " + j.province : "") }))} />
-            </div>
-          ) : (
-            <React.Fragment>
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                <label style={lbl}>ลูกค้า</label>
-                <Dropdown value={f.leadId} onChange={pickLead} placeholder="＋ ลูกค้าใหม่ (กรอกข้อมูลด้านล่าง)"
-                  options={[{ value: "", label: "＋ ลูกค้าใหม่ (กรอกข้อมูลด้านล่าง)" }].concat(
-                    (leads || []).filter((l) => l.status !== "won").map((l) => ({ value: l.id, label: l.name + " · " + l.code + (l.province ? " · " + l.province : "") })))} />
+            {target === "job" ? (
+              <div style={{ fontSize: 12.5, color: "var(--text-2)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-chip)", padding: "10px 12px" }}>
+                งานติดตั้ง: <b style={{ color: "var(--text-1)" }}>{f.jobName || "—"}</b> · {f.jobCode}{f.province ? " · " + f.province : ""}
+                <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>นัดเก่าที่ผูกกับงานในระบบ · นัดใหม่เลือกได้เฉพาะลูกค้าฝ่ายขาย</div>
               </div>
+            ) : <Segmented value={target} onChange={switchTarget}
+              options={[{ value: "lead", label: "ลูกค้าในระบบ" }, { value: "new", label: "ลูกค้าใหม่" }]} />}
+          </div>
+          {target === "job" ? null : (
+            <React.Fragment>
+              {target === "lead" && <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={lbl}>ลูกค้า (ฝ่ายขาย · ยังไม่ปิดการขาย) *</label>
+                <Dropdown value={f.leadId} onChange={pickLead} placeholder={leadOpts.length ? "— เลือกลูกค้า —" : "— ไม่มีลูกค้าที่ยังเปิดอยู่ —"}
+                  options={leadOpts.map((l) => ({ value: l.id, label: l.name + " · " + l.code + (l.province ? " · " + l.province : "") + (window.salesStageOf && window.salesStageKey ? " · " + window.salesStageOf(window.salesStageKey(l)).th : "") }))} />
+              </div>}
               {newLead && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "1px dashed var(--border-strong)" }}>
                   <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>บันทึกเป็น “ลูกค้าสำรวจ” ยังไม่นับเป็นงาน · ถ้าตกลงติดตั้งค่อยกดแปลงเป็นงานทีหลัง</div>
@@ -463,9 +559,21 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
             </React.Fragment>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label style={lbl}>วิศวกรสำรวจ</label>
-            <Dropdown value={f.engineerId} onChange={(v) => set("engineerId", v)} placeholder="— ยังไม่มอบหมาย —"
-              options={[{ value: "", label: "— ยังไม่มอบหมาย —" }].concat((techs || []).map((t) => ({ value: t.id, label: t.name + (t.nick ? " (" + t.nick + ")" : "") })))} />
+            <label style={lbl}>วิศวกรสำรวจ <span style={{ fontWeight: 600 }}>· เลือกได้หลายคน{myEngs.length ? " (" + myEngs.length + " คน)" : ""}</span></label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {(techs || []).map((t) => {
+                const on = myEngs.includes(t.id);
+                return (
+                  <button key={t.id} type="button" onClick={() => toggleEng(t.id)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                      background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: on ? "#fff" : (t.color || "#94A3B8") }} />
+                    {t.name}{t.nick ? " (" + t.nick + ")" : ""}
+                  </button>
+                );
+              })}
+              {!(techs || []).length && <span style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีรายชื่อวิศวกร</span>}
+            </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>วันที่</label>
@@ -475,7 +583,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาเริ่ม</label><window.PgTime value={f._start} onChange={(t) => set("_start", t)} style={inputStyle} /></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาสิ้นสุด</label><window.PgTime value={f._end} onChange={(t) => set("_end", t)} style={inputStyle} /></div>
           </div>
-          {clash && <div style={{ fontSize: 12, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ วิศวกรคนนี้มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
+          {clash && <div style={{ fontSize: 12, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ {((techs || []).find((t) => t.id === clash._who) || {}).name || "วิศวกร"} มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>สถานะ</label>
             <Dropdown value={f.status} onChange={(v) => set("status", v)} options={APPT_STATUS.map((s) => ({ value: s.key, label: s.th }))} />
@@ -695,7 +803,7 @@ function buildMySchedItems(appts, jobs, techId, allEe) {
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach((a) => {
-    if ((techId ? a.engineerId !== techId : false) || a.status === "canceled") return;
+    if ((techId ? !apptEngs(a).includes(techId) : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     /* นัดที่ปิดจบไปแล้ว (สำรวจเสร็จ / เลื่อนไปนัดใหม่) ไม่ใช่งานค้าง — เดิมค้างอยู่ในช่อง
        "เลยกำหนด / ผ่านมา" ตลอดไป ทำให้ตารางงานดูเหมือนมีงานค้างทั้งที่ทำเสร็จแล้ว
@@ -778,5 +886,5 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
   );
 }
 
-Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW,
+Object.assign(window, { apptEngs, salesOpenLead, useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW,
   useSurveyLeadStore, blankLead, leadAsJob, moveSurveyPhotos, LEAD_STATUS, LEAD_STATUS_BY, SchedHeader });

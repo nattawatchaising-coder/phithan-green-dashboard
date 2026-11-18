@@ -52,12 +52,20 @@ function _composeISO(ymd, hm) {
   const d = new Date(ymd + "T" + hm);
   return isNaN(d.getTime()) ? "" : d.toISOString();
 }
+function apptEngs(a) {
+  if (!a) return [];
+  const l = Array.isArray(a.engineerIds) ? a.engineerIds.filter(Boolean) : [];
+  return l.length ? l : a.engineerId ? [a.engineerId] : [];
+}
 function apptConflicts(list) {
   const bad = new Set();
   const byEng = {};
   (list || []).forEach(a => {
     if (a.status === "canceled" || !a.start || !a.end) return;
-    (byEng[a.engineerId || "_"] = byEng[a.engineerId || "_"] || []).push(a);
+    const es = apptEngs(a);
+    (es.length ? es : ["_"]).forEach(e => {
+      (byEng[e] = byEng[e] || []).push(a);
+    });
   });
   Object.values(byEng).forEach(arr => {
     const s = arr.slice().sort((x, y) => new Date(x.start) - new Date(y.start));
@@ -81,6 +89,7 @@ function blankAppt() {
     address: "",
     phone: "",
     engineerId: "",
+    engineerIds: [],
     start: "",
     end: "",
     status: "scheduled",
@@ -382,13 +391,13 @@ function DispatchView({
   const dayAppts = React.useMemo(() => (appts || []).filter(a => a.start && _ymdLocal(a.start) === day), [appts, day]);
   const conflicts = React.useMemo(() => apptConflicts(dayAppts), [dayAppts]);
   const columns = React.useMemo(() => {
-    const engsWith = [...new Set(dayAppts.map(a => a.engineerId).filter(Boolean))];
+    const engsWith = [...new Set([].concat(...dayAppts.map(apptEngs)))];
     const cols = (techs || []).filter(t => engsWith.includes(t.id)).map(t => ({
       id: t.id,
       name: t.name,
       color: t.color || "#64748B"
     }));
-    if (dayAppts.some(a => !a.engineerId)) cols.push({
+    if (dayAppts.some(a => !apptEngs(a).length)) cols.push({
       id: "",
       name: "ยังไม่มอบหมาย",
       color: "#94A3B8"
@@ -396,9 +405,11 @@ function DispatchView({
     return cols;
   }, [dayAppts, techs]);
   const [mode, setMode] = React.useState("day");
+  const [mon, setMon] = React.useState(() => _ymdLocal(new Date()).slice(0, 7));
+  const monAppts = React.useMemo(() => (appts || []).filter(a => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map(t => [t.id, t])), [techs]);
-  const scopeAppts = mode === "day" ? dayAppts : appts || [];
+  const scopeAppts = mode === "day" ? dayAppts : mode === "month" ? monAppts : appts || [];
   const summary = APPT_STATUS.map(s => ({
     s,
     n: scopeAppts.filter(a => a.status === s.key).length
@@ -419,7 +430,7 @@ function DispatchView({
     icon: "calendar",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
+    sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
       style: {
         color: "var(--tint-red-tx2)",
         fontWeight: 700
@@ -449,17 +460,57 @@ function DispatchView({
     }
   }, React.createElement(Segmented, {
     value: mode,
-    onChange: setMode,
+    onChange: v => {
+      if (v === "month") setMon(day.slice(0, 7));
+      setMode(v);
+    },
     options: [{
       value: "day",
       label: "รายวัน",
+      icon: "clock"
+    }, {
+      value: "month",
+      label: "ปฏิทิน",
       icon: "calendar"
     }, {
       value: "all",
       label: "ทั้งหมด",
       icon: "list"
     }]
-  }), mode === "day" && React.createElement(React.Fragment, null, React.createElement("button", {
+  }), mode === "month" && React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: () => setMon(m => _addMonths(m, -1)),
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16,
+    color: "var(--text-2)",
+    style: {
+      transform: "scaleX(-1)"
+    }
+  })), React.createElement("button", {
+    onClick: () => setMon(_ymdLocal(new Date()).slice(0, 7)),
+    style: {
+      ...navBtn,
+      width: "auto",
+      padding: "0 14px",
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
+    onClick: () => setMon(m => _addMonths(m, 1)),
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16,
+    color: "var(--text-2)"
+  })), React.createElement("span", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      marginLeft: 4
+    }
+  }, _thMonth(mon))), mode === "day" && React.createElement(React.Fragment, null, React.createElement("button", {
     onClick: () => setDay(d => _addDays(d, -1)),
     style: navBtn
   }, React.createElement(Icon, {
@@ -509,7 +560,18 @@ function DispatchView({
       padding: "4px 10px",
       borderRadius: "var(--r-pill)"
     }
-  }, s.th, " ", n))), mode === "all" ? allGroups.length === 0 ? React.createElement("div", {
+  }, s.th, " ", n))), mode === "month" ? React.createElement(SurveyMonthCal, {
+    mon: mon,
+    appts: monAppts,
+    techById: techById,
+    conflicts: allConflicts,
+    isMobile: isMobile,
+    onPickDay: d => {
+      setDay(d);
+      setMode("day");
+    },
+    onOpen: a => setEdit(Object.assign({}, a))
+  }) : mode === "all" ? allGroups.length === 0 ? React.createElement("div", {
     style: {
       padding: 48,
       textAlign: "center",
@@ -539,7 +601,8 @@ function DispatchView({
     }
   }, g.items.map(a => {
     const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-    const t = techById[a.engineerId];
+    const ts = apptEngs(a).map(id => techById[id]).filter(Boolean);
+    const t = ts[0];
     const clash = allConflicts.has(a.id);
     return React.createElement("button", {
       key: a.id,
@@ -629,7 +692,7 @@ function DispatchView({
         background: t && t.color || "#94A3B8",
         flexShrink: 0
       }
-    }), t ? t.name : "ยังไม่มอบหมาย"), clash && React.createElement("div", {
+    }), t ? ts.map(x => x.name).join(", ") : "ยังไม่มอบหมาย"), clash && React.createElement("div", {
       style: {
         fontSize: 10.5,
         fontWeight: 700,
@@ -654,7 +717,7 @@ function DispatchView({
       paddingBottom: 8
     }
   }, columns.map(col => {
-    const list = dayAppts.filter(a => (a.engineerId || "") === col.id).sort((x, y) => new Date(x.start) - new Date(y.start));
+    const list = dayAppts.filter(a => col.id ? apptEngs(a).includes(col.id) : !apptEngs(a).length).sort((x, y) => new Date(x.start) - new Date(y.start));
     return React.createElement("div", {
       key: col.id || "none",
       style: {
@@ -809,6 +872,167 @@ function DispatchView({
     }
   }));
 }
+function salesOpenLead(l) {
+  if (!l || l.deleted || l.jobId) return false;
+  const k = window.salesStageKey ? window.salesStageKey(l) : l.sstage || l.status || "open";
+  return k !== "won" && k !== "lost" && l.status !== "won" && l.status !== "lost";
+}
+function _addMonths(ym, n) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+const _TH_MON = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+function _thMonth(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  return _TH_MON[m - 1] + " " + (y + 543);
+}
+function SurveyMonthCal({
+  mon,
+  appts,
+  techById,
+  conflicts,
+  isMobile,
+  onPickDay,
+  onOpen
+}) {
+  const [y, m] = mon.split("-").map(Number);
+  const first = new Date(y, m - 1, 1),
+    nDays = new Date(y, m, 0).getDate();
+  const lead = first.getDay();
+  const today = _ymdLocal(new Date());
+  const byDay = {};
+  (appts || []).forEach(a => {
+    const k = _ymdLocal(a.start);
+    (byDay[k] = byDay[k] || []).push(a);
+  });
+  Object.values(byDay).forEach(l => l.sort((x, z) => new Date(x.start) - new Date(z.start)));
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= nDays; d++) cells.push(mon + "-" + String(d).padStart(2, "0"));
+  while (cells.length % 7) cells.push(null);
+  const maxShow = isMobile ? 0 : 3;
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
+      padding: isMobile ? 8 : 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, minmax(0,1fr))",
+      gap: isMobile ? 4 : 6
+    }
+  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((w, i) => React.createElement("div", {
+    key: w,
+    style: {
+      textAlign: "center",
+      fontSize: 11,
+      fontWeight: 800,
+      color: i === 0 ? "var(--tint-red-tx2)" : "var(--text-3)",
+      padding: "2px 0 4px"
+    }
+  }, w)), cells.map((d, i) => {
+    if (!d) return React.createElement("div", {
+      key: "e" + i
+    });
+    const list = byDay[d] || [];
+    const live = list.filter(a => a.status !== "canceled");
+    const isToday = d === today;
+    const clash = list.some(a => conflicts.has(a.id));
+    return React.createElement("div", {
+      key: d,
+      onClick: () => onPickDay(d),
+      role: "button",
+      style: {
+        minHeight: isMobile ? 54 : 104,
+        borderRadius: "var(--r-chip)",
+        padding: isMobile ? "5px 4px" : "6px 7px",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        minWidth: 0,
+        background: live.length ? "var(--primary-soft)" : "var(--surface2)",
+        boxShadow: isToday ? "inset 0 0 0 2px var(--primary)" : "none"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 3
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: isToday ? "var(--primary)" : i % 7 === 0 ? "var(--tint-red-tx2)" : "var(--text-1)"
+      }
+    }, +d.slice(8)), live.length > 0 && React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: "#fff",
+        background: clash ? "var(--mark-danger)" : "var(--primary)",
+        borderRadius: "var(--r-pill)",
+        padding: "1px 6px",
+        fontFamily: "var(--mono)"
+      }
+    }, live.length)), list.slice(0, maxShow).map(a => {
+      const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+      const t = techById[apptEngs(a)[0]];
+      return React.createElement("div", {
+        key: a.id,
+        onClick: e => {
+          e.stopPropagation();
+          onOpen(a);
+        },
+        title: _hm(a.start) + " " + (a.jobName || ""),
+        style: {
+          fontSize: 10.5,
+          lineHeight: 1.3,
+          background: "var(--surface)",
+          borderRadius: 5,
+          padding: "2px 5px",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          borderLeft: "3px solid " + (t && t.color || "#94A3B8"),
+          color: a.status === "canceled" ? "var(--text-3)" : "var(--text-1)",
+          textDecoration: a.status === "canceled" ? "line-through" : "none"
+        }
+      }, React.createElement("b", {
+        style: {
+          fontFamily: "var(--mono)",
+          color: stt.color
+        }
+      }, _hm(a.start)), " ", a.jobName || "—");
+    }), list.length > maxShow && maxShow > 0 && React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "+", list.length - maxShow, " \u0E19\u0E31\u0E14"), isMobile && live.length > 0 && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 2,
+        flexWrap: "wrap"
+      }
+    }, live.slice(0, 4).map(a => React.createElement("span", {
+      key: a.id,
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        background: (techById[apptEngs(a)[0]] || {}).color || "var(--primary)"
+      }
+    }))));
+  })));
+}
 const navBtn = {
   width: 36,
   height: 36,
@@ -836,6 +1060,7 @@ function SurveyApptModal({
   const bdClose = window.useBackdropClose(onClose);
   const isNew = !(appts || []).some(a => a.id === initial.id);
   const [f, setF] = React.useState(() => Object.assign({}, initial, {
+    engineerIds: apptEngs(initial),
     _date: initial.start ? _ymdLocal(initial.start) : _ymdLocal(new Date()),
     _start: initial.start ? _hm(initial.start) : "09:00",
     _end: initial.end ? _hm(initial.end) : "11:00"
@@ -843,7 +1068,7 @@ function SurveyApptModal({
   const set = (k, v) => setF(p => Object.assign({}, p, {
     [k]: v
   }));
-  const [target, setTarget] = React.useState(() => initial.projectId ? "job" : "lead");
+  const [target, setTarget] = React.useState(() => initial.projectId ? "job" : initial.leadId ? "lead" : (leads || []).some(salesOpenLead) ? "lead" : "new");
   const [nl, setNl] = React.useState(() => ({
     name: "",
     phone: "",
@@ -853,7 +1078,16 @@ function SurveyApptModal({
   const setN = (k, v) => setNl(p => Object.assign({}, p, {
     [k]: v
   }));
-  const newLead = target === "lead" && !f.leadId;
+  const newLead = target === "new";
+  const toggleEng = id => setF(p => {
+    const cur = apptEngs(p);
+    const nx = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id);
+    return Object.assign({}, p, {
+      engineerIds: nx,
+      engineerId: nx[0] || ""
+    });
+  });
+  const leadOpts = (leads || []).filter(l => salesOpenLead(l) || l.id === f.leadId);
   const pickJob = id => setF(p => {
     const j = (jobs || []).find(x => x.id === id) || {};
     return Object.assign({}, p, {
@@ -880,23 +1114,43 @@ function SurveyApptModal({
   });
   const switchTarget = v => {
     setTarget(v);
-    setF(p => Object.assign({}, p, v === "job" ? {
-      leadId: ""
-    } : {
-      projectId: ""
+    setF(p => Object.assign({}, p, {
+      leadId: "",
+      projectId: "",
+      jobName: "",
+      jobCode: "",
+      province: "",
+      address: "",
+      phone: ""
     }));
   };
   const startISO = _composeISO(f._date, f._start),
     endISO = _composeISO(f._date, f._end);
+  const myEngs = apptEngs(f);
   const clash = React.useMemo(() => {
-    if (!f.engineerId || !startISO || !endISO) return null;
-    return (appts || []).find(a => a.id !== f.id && a.engineerId === f.engineerId && a.status !== "canceled" && a.start && a.end && new Date(startISO).getTime() < new Date(a.end).getTime() && new Date(a.start).getTime() < new Date(endISO).getTime());
-  }, [f.engineerId, startISO, endISO, appts]);
+    if (!myEngs.length || !startISO || !endISO) return null;
+    let hit = null;
+    (appts || []).some(a => {
+      if (a.id === f.id || a.status === "canceled" || !a.start || !a.end) return false;
+      if (!(new Date(startISO).getTime() < new Date(a.end).getTime() && new Date(a.start).getTime() < new Date(endISO).getTime())) return false;
+      const who = apptEngs(a).find(e => myEngs.includes(e));
+      if (who) hit = Object.assign({}, a, {
+        _who: who
+      });
+      return !!who;
+    });
+    return hit;
+  }, [myEngs.join(","), startISO, endISO, appts]);
   const submit = () => {
     let lead = null;
     if (target === "job") {
       if (!f.projectId) {
         alert("กรุณาเลือกงาน/โครงการ");
+        return;
+      }
+    } else if (target === "lead") {
+      if (!f.leadId) {
+        alert("กรุณาเลือกลูกค้า");
         return;
       }
     } else if (newLead) {
@@ -919,9 +1173,12 @@ function SurveyApptModal({
       alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม");
       return;
     }
+    const eng = apptEngs(f);
     const out = Object.assign({}, f, {
       start: startISO,
-      end: endISO
+      end: endISO,
+      engineerIds: eng,
+      engineerId: eng[0] || ""
     });
     if (lead) Object.assign(out, {
       leadId: lead.id,
@@ -1016,17 +1273,36 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23"), React.createElement(Segmented, {
+  }, "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23"), target === "job" ? React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: "var(--r-chip)",
+      padding: "10px 12px"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07: ", React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, f.jobName || "—"), " \xB7 ", f.jobCode, f.province ? " · " + f.province : "", React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, "\u0E19\u0E31\u0E14\u0E40\u0E01\u0E48\u0E32\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E19\u0E31\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E1D\u0E48\u0E32\u0E22\u0E02\u0E32\u0E22")) : React.createElement(Segmented, {
     value: target,
     onChange: switchTarget,
     options: [{
       value: "lead",
-      label: "ลูกค้าสำรวจ"
+      label: "ลูกค้าในระบบ"
     }, {
-      value: "job",
-      label: "งานในระบบ"
+      value: "new",
+      label: "ลูกค้าใหม่"
     }]
-  })), target === "job" ? React.createElement("div", {
+  })), target === "job" ? null : React.createElement(React.Fragment, null, target === "lead" && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1034,33 +1310,14 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E07\u0E32\u0E19 / \u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 *"), React.createElement(Dropdown, {
-    value: f.projectId,
-    onChange: pickJob,
-    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014",
-    options: (jobs || []).map(j => ({
-      value: j.id,
-      label: j.name + " · " + j.code + (j.province ? " · " + j.province : "")
-    }))
-  })) : React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 5
-    }
-  }, React.createElement("label", {
-    style: lbl
-  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement(Dropdown, {
+  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 (\u0E1D\u0E48\u0E32\u0E22\u0E02\u0E32\u0E22 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22) *"), React.createElement(Dropdown, {
     value: f.leadId,
     onChange: pickLead,
-    placeholder: "\uFF0B \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48 (\u0E01\u0E23\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07)",
-    options: [{
-      value: "",
-      label: "＋ ลูกค้าใหม่ (กรอกข้อมูลด้านล่าง)"
-    }].concat((leads || []).filter(l => l.status !== "won").map(l => ({
+    placeholder: leadOpts.length ? "— เลือกลูกค้า —" : "— ไม่มีลูกค้าที่ยังเปิดอยู่ —",
+    options: leadOpts.map(l => ({
       value: l.id,
-      label: l.name + " · " + l.code + (l.province ? " · " + l.province : "")
-    })))
+      label: l.name + " · " + l.code + (l.province ? " · " + l.province : "") + (window.salesStageOf && window.salesStageKey ? " · " + window.salesStageOf(window.salesStageKey(l)).th : "")
+    }))
   })), newLead && React.createElement("div", {
     style: {
       display: "flex",
@@ -1142,18 +1399,51 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08"), React.createElement(Dropdown, {
-    value: f.engineerId,
-    onChange: v => set("engineerId", v),
-    placeholder: "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22 \u2014",
-    options: [{
-      value: "",
-      label: "— ยังไม่มอบหมาย —"
-    }].concat((techs || []).map(t => ({
-      value: t.id,
-      label: t.name + (t.nick ? " (" + t.nick + ")" : "")
-    })))
-  })), React.createElement("div", {
+  }, "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08 ", React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, "\xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E04\u0E19", myEngs.length ? " (" + myEngs.length + " คน)" : "")), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 7
+    }
+  }, (techs || []).map(t => {
+    const on = myEngs.includes(t.id);
+    return React.createElement("button", {
+      key: t.id,
+      type: "button",
+      onClick: () => toggleEng(t.id),
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: "var(--r-pill)",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        background: on ? "var(--primary)" : "var(--surface2)",
+        color: on ? "#fff" : "var(--text-2)",
+        boxShadow: on ? "var(--shadow-sm)" : "var(--shadow-inset)"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: "var(--r-pill)",
+        background: on ? "#fff" : t.color || "#94A3B8"
+      }
+    }), t.name, t.nick ? " (" + t.nick + ")" : "");
+  }), !(techs || []).length && React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23"))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1206,7 +1496,7 @@ function SurveyApptModal({
       padding: "9px 11px",
       fontWeight: 600
     }
-  }, "\u26A0 \u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E04\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E19\u0E31\u0E14\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49 (", _hm(clash.start), "\u2013", _hm(clash.end), " \xB7 ", clash.jobName, ")"), React.createElement("div", {
+  }, "\u26A0 ", ((techs || []).find(t => t.id === clash._who) || {}).name || "วิศวกร", " \u0E21\u0E35\u0E19\u0E31\u0E14\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49 (", _hm(clash.start), "\u2013", _hm(clash.end), " \xB7 ", clash.jobName, ")"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1948,7 +2238,7 @@ function buildMySchedItems(appts, jobs, techId, allEe) {
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach(a => {
-    if ((techId ? a.engineerId !== techId : false) || a.status === "canceled") return;
+    if ((techId ? !apptEngs(a).includes(techId) : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     if ((a.status === "done" || a.status === "rescheduled") && day !== todayY) return;
     out.push({
@@ -2103,6 +2393,8 @@ function MyScheduleView({
   }, g.items.map(renderCard))))));
 }
 Object.assign(window, {
+  apptEngs,
+  salesOpenLead,
   useSurveyApptStore,
   DispatchView,
   MyScheduleView,

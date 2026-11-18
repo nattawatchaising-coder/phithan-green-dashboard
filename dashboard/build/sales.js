@@ -4259,7 +4259,7 @@ function SalesKpiView({
       const cur = out[a.leadId];
       if (!cur || String(a.start || "") > String(cur.start || "")) out[a.leadId] = {
         start: a.start,
-        name: byId[a.engineerId] || ""
+        name: (window.apptEngs ? window.apptEngs(a) : [a.engineerId]).map(id => byId[id]).filter(Boolean).join(", ")
       };
     });
     return out;
