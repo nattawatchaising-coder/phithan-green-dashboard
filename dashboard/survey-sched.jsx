@@ -1042,20 +1042,26 @@ function MyScheduleView({ appts, jobs, leads, me, users, techs, store, canDispat
 
   return (
     <React.Fragment>
-      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub}
-        right={store ? <button onClick={() => newEvent()} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดหมาย</span></button> : null} />
+      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
         {(
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 372px", gap: 18, alignItems: "start" }}>
             <MyMonthCal mon={mon} setMon={setMon} pick={pick} setPick={setPick} today={todayY} isMobile={isMobile}
               itemsOf={(d) => items.filter((it) => onDay(it, d))} colorOf={itColor} nameOf={itName} />
             <div className="pnl" style={{ display: "flex", flexDirection: "column", gap: 14, position: isMobile ? "static" : "sticky", top: 12 }}>
-              <div>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{+pick.slice(8)} {_TH_MON[+pick.slice(5, 7) - 1]} {+pick.slice(0, 4) + 543}</span>
                   {pick === todayY && <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>วันนี้</span>}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{dayItems.length} งาน</div>
+              </div>
+              {/* เพิ่มนัดของ "วันที่เลือก" ตรงหัวแผงวัน (ผู้ใช้ชี้ให้ย้ายจากหัวจอมาไว้ตรงนี้ 2026-11-18) */}
+              {store && <button onClick={() => newEvent(pick)} title="นัดประชุม / Training / อื่น ๆ วันนี้"
+                style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 13px", borderRadius: "var(--r-pill)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer", boxShadow: "var(--shadow-sm)" }}>
+                <Icon name="plus" size={14} color="#fff" sw={2.4} />นัดหมาย
+              </button>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 11, maxHeight: isMobile ? "none" : "66vh", overflowY: isMobile ? "visible" : "auto", margin: "0 -4px", padding: "0 4px" }}>
                 {dayItems.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "26px 0" }}>ยังไม่มีงานในวันนี้</div>}

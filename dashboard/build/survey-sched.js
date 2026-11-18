@@ -2941,16 +2941,7 @@ function MyScheduleView({
     icon: "list",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: sub,
-    right: store ? React.createElement("button", {
-      onClick: () => newEvent(),
-      className: "btn-add"
-    }, React.createElement(Icon, {
-      name: "plus",
-      size: 17,
-      color: "#fff",
-      sw: 2.4
-    }), React.createElement("span", null, "\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22")) : null
+    sub: sub
   }), React.createElement("div", {
     className: "app-content"
   }, React.createElement("div", {
@@ -2979,7 +2970,18 @@ function MyScheduleView({
       position: isMobile ? "static" : "sticky",
       top: 12
     }
-  }, React.createElement("div", null, React.createElement("div", {
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3006,7 +3008,31 @@ function MyScheduleView({
       color: "var(--text-3)",
       marginTop: 1
     }
-  }, dayItems.length, " \u0E07\u0E32\u0E19")), React.createElement("div", {
+  }, dayItems.length, " \u0E07\u0E32\u0E19")), store && React.createElement("button", {
+    onClick: () => newEvent(pick),
+    title: "\u0E19\u0E31\u0E14\u0E1B\u0E23\u0E30\u0E0A\u0E38\u0E21 / Training / \u0E2D\u0E37\u0E48\u0E19 \u0E46 \u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
+    style: {
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "8px 13px",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    color: "#fff",
+    sw: 2.4
+  }), "\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22")), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
