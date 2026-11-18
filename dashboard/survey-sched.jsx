@@ -249,28 +249,17 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
 function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpenJob }) {
   const leads = (leadStore && leadStore.leads) || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [day, setDay] = React.useState(() => _ymdLocal(new Date()));
   const [edit, setEdit] = React.useState(null); // appointment ที่กำลังแก้ (หรือ object ใหม่)
 
-  const dayAppts = React.useMemo(() => (appts || []).filter((a) => a.start && _ymdLocal(a.start) === day), [appts, day]);
-  const conflicts = React.useMemo(() => apptConflicts(dayAppts), [dayAppts]);
-
-  // คอลัมน์ = วิศวกรที่มีนัดวันนี้ + ช่อง "ยังไม่มอบหมาย"
-  const columns = React.useMemo(() => {
-    const engsWith = [...new Set([].concat(...dayAppts.map(apptEngs)))];
-    const cols = (techs || []).filter((t) => engsWith.includes(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color || "#64748B" }));
-    if (dayAppts.some((a) => !apptEngs(a).length)) cols.push({ id: "", name: "ยังไม่มอบหมาย", color: "#94A3B8" });
-    return cols;
-  }, [dayAppts, techs]);
-
-  const [mode, setMode] = React.useState("day"); // day = บอร์ดรายวัน, month = ปฏิทินเดือน, all = ทุกนัด
+  const [mode, setMode] = React.useState("month"); // month = ปฏิทินเดือน (กดวัน = เด้งรายการวันนั้น), all = ทุกนัด
+  const [pop, setPop] = React.useState(null); // วันที่กดในปฏิทิน (YYYY-MM-DD) → หน้าต่างรายการนัดวันนั้น
   const [mon, setMon] = React.useState(() => _ymdLocal(new Date()).slice(0, 7)); // "YYYY-MM"
   const monAppts = React.useMemo(() => (appts || []).filter((a) => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map((t) => [t.id, t])), [techs]);
-  const scopeAppts = mode === "day" ? dayAppts : mode === "month" ? monAppts : (appts || []);
+  const scopeAppts = mode === "month" ? monAppts : (appts || []);
   const summary = APPT_STATUS.map((s) => ({ s, n: scopeAppts.filter((a) => a.status === s.key).length })).filter((x) => x.n > 0);
-  const conflictScope = mode === "day" ? conflicts : allConflicts;
+  const conflictScope = allConflicts;
   // โหมด "ทั้งหมด" — จัดกลุ่มทุกนัดตามวันที่ เรียงเวลา
   const allGroups = React.useMemo(() => {
     const m = {};
@@ -284,23 +273,17 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           คนอ่านจะได้รู้ว่ายังอยู่เมนูเดิม แค่คนละมุม (ท่าเดียวกับหน้างานขาย บอร์ด/รายการ)
           ว่าอยู่มุมไหนดูที่แท็บ ส่วนบรรทัดรองยังบอกรายละเอียดของมุมนั้นเหมือนเดิม */}
       <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen}
-        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
-        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"), end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
+        sub={<span>{scopeAppts.length} นัด{mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
+        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(_ymdLocal(new Date()), "09:00"), end: _composeISO(_ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
       <div className="app-content">
         {/* สลับมุมมอง รายวัน / ทั้งหมด */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <Segmented value={mode} onChange={(v) => { if (v === "month") setMon(day.slice(0, 7)); setMode(v); }} options={[{ value: "day", label: "รายวัน", icon: "clock" }, { value: "month", label: "ปฏิทิน", icon: "calendar" }, { value: "all", label: "ทั้งหมด", icon: "list" }]} />
+          <Segmented value={mode} onChange={setMode} options={[{ value: "month", label: "ปฏิทิน", icon: "calendar" }, { value: "all", label: "ทั้งหมด", icon: "list" }]} />
           {mode === "month" && <React.Fragment>
             <button onClick={() => setMon((m) => _addMonths(m, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
             <button onClick={() => setMon(_ymdLocal(new Date()).slice(0, 7))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>เดือนนี้</button>
             <button onClick={() => setMon((m) => _addMonths(m, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
             <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{_thMonth(mon)}</span>
-          </React.Fragment>}
-          {mode === "day" && <React.Fragment>
-            <button onClick={() => setDay((d) => _addDays(d, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
-            <button onClick={() => setDay(_ymdLocal(new Date()))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>วันนี้</button>
-            <button onClick={() => setDay((d) => _addDays(d, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{thDate(day, true)}</span>
           </React.Fragment>}
           <span style={{ flex: 1 }} />
           {summary.map(({ s, n }) => <span key={s.key} style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 10px", borderRadius: "var(--r-pill)" }}>{s.th} {n}</span>)}
@@ -308,8 +291,8 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
 
         {mode === "month" ? (
           <SurveyMonthCal mon={mon} appts={monAppts} techById={techById} conflicts={allConflicts} isMobile={isMobile}
-            onPickDay={(d) => { setDay(d); setMode("day"); }} onOpen={(a) => setEdit(Object.assign({}, a))} />
-        ) : mode === "all" ? (
+            onPickDay={(d) => setPop(d)} onOpen={(a) => setEdit(Object.assign({}, a))} />
+        ) : (
           allGroups.length === 0 ? (
             <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               ยังไม่มีนัดสำรวจในระบบ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
@@ -347,45 +330,11 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
               </div>
             </div>
           ))
-        ) : dayAppts.length === 0 ? (
-          <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
-            ยังไม่มีนัดสำรวจในวันนี้ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
-            {columns.map((col) => {
-              const list = dayAppts.filter((a) => col.id ? apptEngs(a).includes(col.id) : !apptEngs(a).length).sort((x, y) => new Date(x.start) - new Date(y.start));
-              return (
-                <div key={col.id || "none"} style={{ flex: "0 0 auto", width: isMobile ? 240 : 270, display: "flex", flexDirection: "column", gap: 9 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "var(--surface2)", borderRadius: "var(--r-chip)", position: "sticky", top: 0 }}>
-                    <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: col.color }} />
-                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{col.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{list.length}</span>
-                  </div>
-                  {list.map((a) => {
-                    const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-                    const clash = conflicts.has(a.id);
-                    return (
-                      <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
-                        style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 11, borderRadius: "var(--r-chip)",
-                          background: "var(--surface)", border: "none", boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                          <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName || "—"}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 6px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
-                        {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)", marginTop: 5 }}>⚠ เวลาซ้อนทับกับนัดอื่น</div>}
-                        {a.notes && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 5, background: "var(--surface2)", borderRadius: 7, padding: "5px 8px" }}>📝 {a.notes}</div>}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
         )}
       </div>
+      {pop && <SurveyDayPop day={pop} appts={(appts || []).filter((a) => a.start && _ymdLocal(a.start) === pop)} techById={techById} conflicts={allConflicts} isMobile={isMobile}
+        onClose={() => setPop(null)} onOpen={(a) => setEdit(Object.assign({}, a))}
+        onAdd={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(pop, "09:00"), end: _composeISO(pop, "11:00") }))} />}
       {edit && <SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts}
         leads={leads} blankLead={leadStore && leadStore.blank}
         onClose={() => setEdit(null)}
@@ -404,7 +353,57 @@ function _addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); const d =
 const _TH_MON = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 function _thMonth(ym) { const [y, m] = ym.split("-").map(Number); return _TH_MON[m - 1] + " " + (y + 543); }
 
-/* ปฏิทินเดือน — ดูว่าวันไหนมีนัดสำรวจ · กดวันเปิดบอร์ดรายวัน · กดนัดเปิดแก้ไข */
+/* หน้าต่างรายการนัดของวันที่กดในปฏิทิน — กดนัดเปิดแก้ไข · ปุ่มเพิ่มนัดวันนั้น */
+function SurveyDayPop({ day, appts, techById, conflicts, isMobile, onClose, onOpen, onAdd }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const list = (appts || []).slice().sort((x, y) => new Date(x.start) - new Date(y.start));
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 117, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(460px,100%)", maxHeight: isMobile ? "88dvh" : "84vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+        <div style={{ padding: "14px 18px", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, boxShadow: "var(--shadow-sm)" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{thDate(day, true)}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{list.length ? list.length + " นัดสำรวจ" : "ยังไม่มีนัดสำรวจ"}</div>
+          </div>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+          {list.length === 0 && <div style={{ padding: 26, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>วันนั้นยังว่าง · กดปุ่มด้านล่างเพื่อนัดสำรวจ</div>}
+          {list.map((a) => {
+            const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+            const ts = apptEngs(a).map((id) => techById[id]).filter(Boolean);
+            const clash = conflicts.has(a.id);
+            return (
+              <button key={a.id} onClick={() => onOpen(a)}
+                style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--surface)",
+                  boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.phone ? " · " + a.phone : ""}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 1 }}>
+                  {ts.length ? ts.map((t) => <span key={t.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}><span style={{ width: 7, height: 7, borderRadius: 4, background: t.color || "#94A3B8" }} />{t.name}</span>)
+                    : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มอบหมาย</span>}
+                </div>
+                {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกร</div>}
+                {a.notes && <div style={{ fontSize: 11, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 7, padding: "5px 8px" }}>📝 {a.notes}</div>}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, background: "var(--surface)" }}>
+          <button onClick={onAdd} style={{ width: "100%", padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Icon name="plus" size={16} color="#fff" sw={2.4} />เพิ่มนัดสำรวจวันนั้น
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ปฏิทินเดือน — ดูว่าวันไหนมีนัดสำรวจ · กดวัน = เด้งรายการนัดวันนั้น · กดนัด = แก้ไข */
 function SurveyMonthCal({ mon, appts, techById, conflicts, isMobile, onPickDay, onOpen }) {
   const [y, m] = mon.split("-").map(Number);
   const first = new Date(y, m - 1, 1), nDays = new Date(y, m, 0).getDate();

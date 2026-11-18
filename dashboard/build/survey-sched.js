@@ -386,35 +386,19 @@ function DispatchView({
 }) {
   const leads = leadStore && leadStore.leads || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [day, setDay] = React.useState(() => _ymdLocal(new Date()));
   const [edit, setEdit] = React.useState(null);
-  const dayAppts = React.useMemo(() => (appts || []).filter(a => a.start && _ymdLocal(a.start) === day), [appts, day]);
-  const conflicts = React.useMemo(() => apptConflicts(dayAppts), [dayAppts]);
-  const columns = React.useMemo(() => {
-    const engsWith = [...new Set([].concat(...dayAppts.map(apptEngs)))];
-    const cols = (techs || []).filter(t => engsWith.includes(t.id)).map(t => ({
-      id: t.id,
-      name: t.name,
-      color: t.color || "#64748B"
-    }));
-    if (dayAppts.some(a => !apptEngs(a).length)) cols.push({
-      id: "",
-      name: "ยังไม่มอบหมาย",
-      color: "#94A3B8"
-    });
-    return cols;
-  }, [dayAppts, techs]);
-  const [mode, setMode] = React.useState("day");
+  const [mode, setMode] = React.useState("month");
+  const [pop, setPop] = React.useState(null);
   const [mon, setMon] = React.useState(() => _ymdLocal(new Date()).slice(0, 7));
   const monAppts = React.useMemo(() => (appts || []).filter(a => a.start && _ymdLocal(a.start).slice(0, 7) === mon), [appts, mon]);
   const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
   const techById = React.useMemo(() => Object.fromEntries((techs || []).map(t => [t.id, t])), [techs]);
-  const scopeAppts = mode === "day" ? dayAppts : mode === "month" ? monAppts : appts || [];
+  const scopeAppts = mode === "month" ? monAppts : appts || [];
   const summary = APPT_STATUS.map(s => ({
     s,
     n: scopeAppts.filter(a => a.status === s.key).length
   })).filter(x => x.n > 0);
-  const conflictScope = mode === "day" ? conflicts : allConflicts;
+  const conflictScope = allConflicts;
   const allGroups = React.useMemo(() => {
     const m = {};
     (appts || []).forEach(a => {
@@ -430,7 +414,7 @@ function DispatchView({
     icon: "calendar",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
+    sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "month" ? " (เดือนนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
       style: {
         color: "var(--tint-red-tx2)",
         fontWeight: 700
@@ -438,8 +422,8 @@ function DispatchView({
     }, "\u26A0 \u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A ", conflictScope.size / 2 | 0, " \u0E04\u0E39\u0E48") : "ไม่มีเวลาซ้อนทับ"),
     right: React.createElement("button", {
       onClick: () => setEdit(Object.assign(blankAppt(), {
-        start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"),
-        end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00")
+        start: _composeISO(_ymdLocal(new Date()), "09:00"),
+        end: _composeISO(_ymdLocal(new Date()), "11:00")
       })),
       className: "btn-add"
     }, React.createElement(Icon, {
@@ -460,15 +444,8 @@ function DispatchView({
     }
   }, React.createElement(Segmented, {
     value: mode,
-    onChange: v => {
-      if (v === "month") setMon(day.slice(0, 7));
-      setMode(v);
-    },
+    onChange: setMode,
     options: [{
-      value: "day",
-      label: "รายวัน",
-      icon: "clock"
-    }, {
       value: "month",
       label: "ปฏิทิน",
       icon: "calendar"
@@ -510,40 +487,7 @@ function DispatchView({
       color: "var(--text-1)",
       marginLeft: 4
     }
-  }, _thMonth(mon))), mode === "day" && React.createElement(React.Fragment, null, React.createElement("button", {
-    onClick: () => setDay(d => _addDays(d, -1)),
-    style: navBtn
-  }, React.createElement(Icon, {
-    name: "chevronRight",
-    size: 16,
-    color: "var(--text-2)",
-    style: {
-      transform: "scaleX(-1)"
-    }
-  })), React.createElement("button", {
-    onClick: () => setDay(_ymdLocal(new Date())),
-    style: {
-      ...navBtn,
-      width: "auto",
-      padding: "0 14px",
-      fontWeight: 700,
-      fontSize: 13
-    }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
-    onClick: () => setDay(d => _addDays(d, 1)),
-    style: navBtn
-  }, React.createElement(Icon, {
-    name: "chevronRight",
-    size: 16,
-    color: "var(--text-2)"
-  })), React.createElement("span", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      marginLeft: 4
-    }
-  }, thDate(day, true))), React.createElement("span", {
+  }, _thMonth(mon))), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -566,12 +510,9 @@ function DispatchView({
     techById: techById,
     conflicts: allConflicts,
     isMobile: isMobile,
-    onPickDay: d => {
-      setDay(d);
-      setMode("day");
-    },
+    onPickDay: d => setPop(d),
     onOpen: a => setEdit(Object.assign({}, a))
-  }) : mode === "all" ? allGroups.length === 0 ? React.createElement("div", {
+  }) : allGroups.length === 0 ? React.createElement("div", {
     style: {
       padding: 48,
       textAlign: "center",
@@ -699,154 +640,19 @@ function DispatchView({
         color: "var(--tint-red-tx2)"
       }
     }, "\u26A0 \u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E01\u0E31\u0E1A\u0E19\u0E31\u0E14\u0E2D\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E04\u0E19\u0E19\u0E35\u0E49"));
-  })))) : dayAppts.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 48,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 14,
-      background: "var(--surface)",
-      border: "1px dashed var(--border-strong)",
-      borderRadius: "var(--r-tile)"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E01\u0E14 \u201C\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E08\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23") : React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 12,
-      overflowX: "auto",
-      paddingBottom: 8
-    }
-  }, columns.map(col => {
-    const list = dayAppts.filter(a => col.id ? apptEngs(a).includes(col.id) : !apptEngs(a).length).sort((x, y) => new Date(x.start) - new Date(y.start));
-    return React.createElement("div", {
-      key: col.id || "none",
-      style: {
-        flex: "0 0 auto",
-        width: isMobile ? 240 : 270,
-        display: "flex",
-        flexDirection: "column",
-        gap: 9
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "8px 11px",
-        background: "var(--surface2)",
-        borderRadius: "var(--r-chip)",
-        position: "sticky",
-        top: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        width: 9,
-        height: 9,
-        borderRadius: "var(--r-pill)",
-        background: col.color
-      }
-    }), React.createElement("span", {
-      style: {
-        fontSize: 13,
-        fontWeight: 800,
-        color: "var(--text-1)",
-        flex: 1,
-        minWidth: 0,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
-      }
-    }, col.name), React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: "var(--text-3)",
-        fontFamily: "var(--mono)"
-      }
-    }, list.length)), list.map(a => {
-      const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-      const clash = conflicts.has(a.id);
-      return React.createElement("button", {
-        key: a.id,
-        onClick: () => setEdit(Object.assign({}, a)),
-        style: {
-          textAlign: "left",
-          cursor: "pointer",
-          fontFamily: "inherit",
-          padding: 11,
-          borderRadius: "var(--r-chip)",
-          background: "var(--surface)",
-          border: "none",
-          boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)"
-        }
-      }, React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 6
-        }
-      }, React.createElement("span", {
-        style: {
-          fontFamily: "var(--mono)",
-          fontSize: 13,
-          fontWeight: 800,
-          color: "var(--text-1)"
-        }
-      }, _hm(a.start), "\u2013", _hm(a.end)), React.createElement("span", {
-        style: {
-          fontSize: 10,
-          fontWeight: 700,
-          color: stt.color,
-          background: stt.color + "16",
-          padding: "2px 8px",
-          borderRadius: "var(--r-pill)"
-        }
-      }, stt.th)), React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontWeight: 700,
-          color: "var(--text-1)",
-          marginTop: 5,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        }
-      }, a.jobName || "—"), React.createElement("div", {
-        style: {
-          fontSize: 11,
-          color: "var(--text-3)",
-          marginTop: 1
-        }
-      }, a.jobCode, a.province ? " · " + a.province : "", a.leadId ? React.createElement("span", {
-        style: {
-          marginLeft: 5,
-          fontSize: 9.5,
-          fontWeight: 700,
-          color: "#0EA5E9",
-          background: "#0EA5E916",
-          padding: "2px 6px",
-          borderRadius: "var(--r-pill)"
-        }
-      }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08") : null), clash && React.createElement("div", {
-        style: {
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: "var(--tint-red-tx2)",
-          marginTop: 5
-        }
-      }, "\u26A0 \u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E01\u0E31\u0E1A\u0E19\u0E31\u0E14\u0E2D\u0E37\u0E48\u0E19"), a.notes && React.createElement("div", {
-        style: {
-          fontSize: 11,
-          color: "var(--text-2)",
-          marginTop: 5,
-          background: "var(--surface2)",
-          borderRadius: 7,
-          padding: "5px 8px"
-        }
-      }, "\uD83D\uDCDD ", a.notes));
-    }));
-  }))), edit && React.createElement(SurveyApptModal, {
+  }))))), pop && React.createElement(SurveyDayPop, {
+    day: pop,
+    appts: (appts || []).filter(a => a.start && _ymdLocal(a.start) === pop),
+    techById: techById,
+    conflicts: allConflicts,
+    isMobile: isMobile,
+    onClose: () => setPop(null),
+    onOpen: a => setEdit(Object.assign({}, a)),
+    onAdd: () => setEdit(Object.assign(blankAppt(), {
+      start: _composeISO(pop, "09:00"),
+      end: _composeISO(pop, "11:00")
+    }))
+  }), edit && React.createElement(SurveyApptModal, {
     initial: edit,
     jobs: jobs,
     techs: techs,
@@ -886,6 +692,227 @@ const _TH_MON = ["มกราคม", "กุมภาพันธ์", "มี
 function _thMonth(ym) {
   const [y, m] = ym.split("-").map(Number);
   return _TH_MON[m - 1] + " " + (y + 543);
+}
+function SurveyDayPop({
+  day,
+  appts,
+  techById,
+  conflicts,
+  isMobile,
+  onClose,
+  onOpen,
+  onAdd
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  const list = (appts || []).slice().sort((x, y) => new Date(x.start) - new Date(y.start));
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.45)",
+      backdropFilter: "blur(3px)",
+      zIndex: 117,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      width: isMobile ? "100%" : "min(460px,100%)",
+      maxHeight: isMobile ? "88dvh" : "84vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "var(--shadow-modal)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "14px 18px",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10,
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, thDate(day, true)), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, list.length ? list.length + " นัดสำรวจ" : "ยังไม่มีนัดสำรวจ")), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, list.length === 0 && React.createElement("div", {
+    style: {
+      padding: 26,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13
+    }
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"), list.map(a => {
+    const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+    const ts = apptEngs(a).map(id => techById[id]).filter(Boolean);
+    const clash = conflicts.has(a.id);
+    return React.createElement("button", {
+      key: a.id,
+      onClick: () => onOpen(a),
+      style: {
+        textAlign: "left",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        width: "100%",
+        padding: 12,
+        borderRadius: "var(--r-tile)",
+        border: "none",
+        background: "var(--surface)",
+        boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 5
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 13.5,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, _hm(a.start), "\u2013", _hm(a.end)), React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: stt.color,
+        background: stt.color + "16",
+        padding: "2px 8px",
+        borderRadius: "var(--r-pill)"
+      }
+    }, stt.th)), React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, a.jobName || "—"), React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, a.jobCode, a.province ? " · " + a.province : "", a.phone ? " · " + a.phone : ""), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 5,
+        marginTop: 1
+      }
+    }, ts.length ? ts.map(t => React.createElement("span", {
+      key: t.id,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 11.5,
+        color: "var(--text-2)",
+        background: "var(--surface2)",
+        padding: "2px 8px",
+        borderRadius: "var(--r-pill)"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        background: t.color || "#94A3B8"
+      }
+    }), t.name)) : React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22")), clash && React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "var(--tint-red-tx2)"
+      }
+    }, "\u26A0 \u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E01\u0E31\u0E1A\u0E19\u0E31\u0E14\u0E2D\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23"), a.notes && React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-2)",
+        background: "var(--surface2)",
+        borderRadius: 7,
+        padding: "5px 8px"
+      }
+    }, "\uD83D\uDCDD ", a.notes));
+  })), React.createElement("div", {
+    style: {
+      padding: "12px 14px",
+      paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
+      background: "var(--surface)"
+    }
+  }, React.createElement("button", {
+    onClick: onAdd,
+    style: {
+      width: "100%",
+      padding: 12,
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 14,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 16,
+    color: "#fff",
+    sw: 2.4
+  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19"))));
 }
 function SurveyMonthCal({
   mon,
