@@ -513,8 +513,13 @@ function App() {
     c.__all = all;
     return c;
   }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
+  const myInstallJob = React.useCallback(j => {
+    if (!auth.current) return true;
+    if (hasRole(role, "admin") || hasRole(role, "lead")) return inScope(j);
+    return !!(techId && j.tech === techId || j.eeId && j.eeId === auth.current.id);
+  }, [auth.current, role, techId, inScope]);
   const lateAlerts = React.useMemo(() => {
-    const mine = jobs.filter(inScope);
+    const mine = jobs.filter(myInstallJob);
     const out = [];
     mine.forEach(j => (j.lateStages || []).forEach(ls => out.push({
       jobId: j.id,
@@ -522,9 +527,9 @@ function App() {
       stage: ls
     })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, inScope]);
+  }, [jobs, myInstallJob]);
   const todayTasks = React.useMemo(() => {
-    const mine = jobs.filter(inScope);
+    const mine = jobs.filter(myInstallJob);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find(s => s.key === "install");
     const out = [];
@@ -542,7 +547,7 @@ function App() {
       });
     });
     return out;
-  }, [jobs, inScope]);
+  }, [jobs, myInstallJob]);
   const myScheduleItems = React.useMemo(() => {
     const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
     const today = window.SF.TODAY;
@@ -1149,10 +1154,41 @@ function App() {
       if (id) notif.markRead(id);
     });
     setNotifOpen(false);
+    if (n.event === "survey") {
+      if (navForRole(role, techId).some(x => x.key === "myschedule")) setView("myschedule");
+      return;
+    }
     if (n.jobId) {
       setView(listView());
       setSelected(n.jobId);
     }
+  };
+  const notifyAppt = (rec, prev) => {
+    const E = window.apptEngs;
+    if (!E || !rec) return;
+    const now = E(rec),
+      was = E(prev);
+    const hm = iso => new Date(iso).toTimeString().slice(0, 5);
+    const when = rec.start ? window.thDate(new Date(rec.start).toLocaleDateString("sv-SE"), false) + " " + hm(rec.start) + (rec.end ? "–" + hm(rec.end) : "") : "";
+    const body = [rec.jobName, when, rec.province, "นัดโดย " + (auth.current && auth.current.name || "")].filter(Boolean).join(" · ");
+    const send = (tid, title) => {
+      if (!tid || tid === techId) return;
+      notif.addNotif({
+        toTechId: tid,
+        type: "survey",
+        event: "survey",
+        apptId: rec.id,
+        title: title + (rec.jobName ? " · " + rec.jobName : ""),
+        body
+      });
+    };
+    if (rec.status === "canceled") {
+      if (prev && prev.status !== "canceled") was.forEach(t => send(t, "ยกเลิกนัดสำรวจ"));
+      return;
+    }
+    now.forEach(t => {
+      if (!prev || was.indexOf(t) === -1) send(t, "นัดสำรวจใหม่");else if (prev.start !== rec.start || prev.end !== rec.end) send(t, "เลื่อนนัดสำรวจ");
+    });
   };
   const hdrTools = {
     showBell: true,
@@ -1228,7 +1264,8 @@ function App() {
     store: apptStore,
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
-    onOpenJob: openJob
+    onOpenJob: openJob,
+    onNotify: notifyAppt
   }) : view === "leads" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,

@@ -2037,6 +2037,11 @@ const NOTIF_KINDS = {
     color: "#0EA5E9",
     th: "การลา"
   },
+  survey: {
+    icon: "pin",
+    color: "#0EA5E9",
+    th: "นัดสำรวจ"
+  },
   info: {
     icon: "bell",
     color: "#1B9B75",

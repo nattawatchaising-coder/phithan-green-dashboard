@@ -441,18 +441,28 @@ function App() {
     return c;
   }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
 
-  // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
+  /* งานติดตั้งที่ "เป็นงานของฉัน" สำหรับเตือนล่าช้า/สรุปงานวันนี้ — แยกจากขอบเขตที่ "มองเห็น"
+     ฝ่ายขออนุญาต/เซลล์ถูกตั้งให้ดูได้ทุกงาน แต่การติดตั้งล่าช้าไม่ใช่งานที่เขาต้องตาม
+     (ผู้ใช้ทัก 2026-11-18 "แจ้งเตือนไม่ใช่งานตัวเอง") → แอดมิน/หัวหน้าเห็นทุกงาน
+     คนอื่นเห็นเฉพาะงานที่ตัวเองเป็นช่างหรือวิศวกรผู้รับผิดชอบ */
+  const myInstallJob = React.useCallback((j) => {
+    if (!auth.current) return true;
+    if (hasRole(role, "admin") || hasRole(role, "lead")) return inScope(j);
+    return !!((techId && j.tech === techId) || (j.eeId && j.eeId === auth.current.id));
+  }, [auth.current, role, techId, inScope]);
+
+  // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด เฉพาะงานของฉัน (ดู myInstallJob)
   const lateAlerts = React.useMemo(() => {
-    const mine = jobs.filter(inScope);
+    const mine = jobs.filter(myInstallJob);
     const out = [];
     mine.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, inScope]);
+  }, [jobs, myInstallJob]);
 
   // งานติดตั้งวันนี้ (ตารางงาน) — today อยู่ในช่วงวันนัดติดตั้ง [startDate..deadline]
   // ใช้ "ช่วงวันนัดติดตั้ง" เป็นตารางงานเดียว (ไม่ใช้ stageDates รายขั้นอื่นซึ่งเป็นแค่สถานะ)
   const todayTasks = React.useMemo(() => {
-    const mine = jobs.filter(inScope);
+    const mine = jobs.filter(myInstallJob);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find((s) => s.key === "install");
     const out = [];
@@ -468,7 +478,7 @@ function App() {
       out.push({ job: j, stage: inst, kind });
     });
     return out;
-  }, [jobs, inScope]);
+  }, [jobs, myInstallJob]);
 
   // ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน → โชว์บนหน้าภาพรวม
   // ยุบงานโปรเจคเดียวกันให้เหลือแถวเดียว (เก็บช่วงวัน start–end) · เอาแค่ 3 แถวแรก
@@ -928,7 +938,26 @@ function App() {
     /* กดใบที่ยุบรวมหลายครั้งไว้ ต้องอ่านครบทุกใบในกอง ไม่งั้นจุดค้างอยู่ทั้งที่กดแล้ว */
     (n.ids && n.ids.length ? n.ids : [n.id]).forEach((id) => { if (id) notif.markRead(id); });
     setNotifOpen(false);
+    if (n.event === "survey") { if (navForRole(role, techId).some((x) => x.key === "myschedule")) setView("myschedule"); return; }
     if (n.jobId) { setView(listView()); setSelected(n.jobId); }
+  };
+
+  /* แจ้งวิศวกรเมื่อมีคนนัดสำรวจให้ (ผู้ใช้ทัก 2026-11-18 "เซลล์นัดสำรวจแล้วไม่แจ้งเตือน")
+     คนที่ถูกเพิ่มเข้านัด = นัดใหม่ · คนเดิมแต่เวลาเปลี่ยน = เลื่อนนัด · เปลี่ยนเป็นยกเลิก = ยกเลิก
+     ส่งด้วย toTechId → ขึ้นกระดิ่ง + LINE ของช่างคนนั้น · ไม่แจ้งตัวเองที่เป็นคนนัด */
+  const notifyAppt = (rec, prev) => {
+    const E = window.apptEngs;
+    if (!E || !rec) return;
+    const now = E(rec), was = E(prev);
+    const hm = (iso) => new Date(iso).toTimeString().slice(0, 5);
+    const when = rec.start ? window.thDate(new Date(rec.start).toLocaleDateString("sv-SE"), false) + " " + hm(rec.start) + (rec.end ? "–" + hm(rec.end) : "") : "";
+    const body = [rec.jobName, when, rec.province, "นัดโดย " + ((auth.current && auth.current.name) || "")].filter(Boolean).join(" · ");
+    const send = (tid, title) => { if (!tid || tid === techId) return; notif.addNotif({ toTechId: tid, type: "survey", event: "survey", apptId: rec.id, title: title + (rec.jobName ? " · " + rec.jobName : ""), body }); };
+    if (rec.status === "canceled") { if (prev && prev.status !== "canceled") was.forEach((t) => send(t, "ยกเลิกนัดสำรวจ")); return; }
+    now.forEach((t) => {
+      if (!prev || was.indexOf(t) === -1) send(t, "นัดสำรวจใหม่");
+      else if (prev.start !== rec.start || prev.end !== rec.end) send(t, "เลื่อนนัดสำรวจ");
+    });
   };
 
   /* ชุดเครื่องมือบนหัวจอ — หน้าที่ใช้ SchedHeader ดึงไปใช้เองจากที่นี่
@@ -960,7 +989,7 @@ function App() {
             priceStore={priceStore} ampStore={ampStore} condStore={condStore} omStore={omStore} rulesStore={rulesStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
-            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} onNotify={notifyAppt} />
         ) : view === "leads" ? (
           <React.Fragment>
             {/* หัวจอไม่มีปุ่มสลับมุมแล้ว — ปุ่มเพิ่มลูกค้าอยู่บนแถวหัวของบอร์ดเอง ใกล้ของที่มันเพิ่มเข้าไป */}

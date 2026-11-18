@@ -382,7 +382,8 @@ function DispatchView({
   store,
   leadStore,
   onMenuOpen,
-  onOpenJob
+  onOpenJob,
+  onNotify
 }) {
   const leads = leadStore && leadStore.leads || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -661,8 +662,10 @@ function DispatchView({
     blankLead: leadStore && leadStore.blank,
     onClose: () => setEdit(null),
     onSave: (rec, newLead) => {
+      const prev = (appts || []).find(a => a.id === rec.id) || null;
       if (newLead && leadStore) leadStore.upsert(newLead);
       store.upsert(rec);
+      if (onNotify) onNotify(rec, prev);
       setEdit(null);
     },
     onDelete: id => {
@@ -2346,6 +2349,15 @@ function MyScheduleView({
   const nAppt = items.filter(i => i.type === "survey").length;
   const nJob = items.filter(i => i.type === "job").length;
   const sub = !techId && !allEe ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน" : (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [pick, setPick] = React.useState(todayY);
+  const [mon, setMon] = React.useState(todayY.slice(0, 7));
+  const onDay = (it, d) => it.day && it.day <= d && d <= (it.dayEnd || it.day);
+  const dayItems = items.filter(it => onDay(it, pick));
+  const lateItems = pick === todayY ? items.filter(it => grp(it) === "past") : [];
+  const noDate = items.filter(it => !it.day);
+  const itColor = it => it.type === "survey" ? "#0EA5E9" : ((it.stages || [])[0] || {}).color || "var(--primary)";
+  const itName = it => it.type === "survey" ? it.a.jobName || "สำรวจ" : it.job.name || it.job.code || "งาน";
   const renderCard = it => it.type === "survey" ? React.createElement(ApptCard, {
     key: it.key,
     a: it.a,
@@ -2399,25 +2411,282 @@ function MyScheduleView({
       fontSize: 14,
       fontWeight: 600
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E04\u0E27\u0E32\u0E21\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49")) : groups.map(g => React.createElement("div", {
-    key: g.key,
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E04\u0E27\u0E32\u0E21\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement("div", {
     style: {
-      marginBottom: 18
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.35fr) minmax(320px,1fr)",
+      gap: 18,
+      alignItems: "start"
+    }
+  }, React.createElement(MyMonthCal, {
+    mon: mon,
+    setMon: setMon,
+    pick: pick,
+    setPick: setPick,
+    today: todayY,
+    isMobile: isMobile,
+    itemsOf: d => items.filter(it => onDay(it, d)),
+    colorOf: itColor,
+    nameOf: itName
+  }), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
+      padding: 16,
+      position: isMobile ? "static" : "sticky",
+      top: 12
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 11,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      marginBottom: 9
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8,
+      marginBottom: 2
     }
-  }, g.th, " (", g.items.length, ")"), React.createElement("div", {
+  }, React.createElement("span", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, thDate(pick, true)), pick === todayY && React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--primary)",
+      background: "var(--primary-soft)",
+      padding: "2px 8px",
+      borderRadius: "var(--r-pill)"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49")), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      marginBottom: 12
+    }
+  }, dayItems.length ? dayItems.length + " งาน" : "ไม่มีงานวันนี้"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 11
     }
-  }, g.items.map(renderCard))))));
+  }, dayItems.map(renderCard), lateItems.length > 0 && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      color: "var(--tint-red-tx2)",
+      marginTop: 6
+    }
+  }, "\u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14 / \u0E22\u0E31\u0E07\u0E04\u0E49\u0E32\u0E07 (", lateItems.length, ")"), lateItems.map(renderCard), noDate.length > 0 && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 (", noDate.length, ")"), noDate.map(renderCard))))));
+}
+function MyMonthCal({
+  mon,
+  setMon,
+  pick,
+  setPick,
+  today,
+  isMobile,
+  itemsOf,
+  colorOf,
+  nameOf
+}) {
+  const [y, m] = mon.split("-").map(Number);
+  const nDays = new Date(y, m, 0).getDate(),
+    lead = new Date(y, m - 1, 1).getDay();
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= nDays; d++) cells.push(mon + "-" + String(d).padStart(2, "0"));
+  while (cells.length % 7) cells.push(null);
+  const maxShow = isMobile ? 0 : 3;
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
+      padding: isMobile ? 10 : 16
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      flex: 1
+    }
+  }, _thMonth(mon)), React.createElement("button", {
+    onClick: () => setMon(_addMonths(mon, -1)),
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16,
+    color: "var(--text-2)",
+    style: {
+      transform: "scaleX(-1)"
+    }
+  })), React.createElement("button", {
+    onClick: () => {
+      setMon(today.slice(0, 7));
+      setPick(today);
+    },
+    style: {
+      ...navBtn,
+      width: "auto",
+      padding: "0 12px",
+      fontWeight: 700,
+      fontSize: 12.5
+    }
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
+    onClick: () => setMon(_addMonths(mon, 1)),
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16,
+    color: "var(--text-2)"
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginBottom: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: "#0EA5E9"
+    }
+  }), "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: "#84CC16"
+    }
+  }), "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (\u0E2A\u0E35\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19)")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, minmax(0,1fr))",
+      gap: isMobile ? 4 : 6
+    }
+  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((w, i) => React.createElement("div", {
+    key: w,
+    style: {
+      textAlign: "center",
+      fontSize: 11,
+      fontWeight: 800,
+      color: i === 0 || i === 6 ? "var(--tint-red-tx2)" : "var(--text-3)",
+      padding: "2px 0 4px"
+    }
+  }, w)), cells.map((d, i) => {
+    if (!d) return React.createElement("div", {
+      key: "e" + i
+    });
+    const list = itemsOf(d);
+    const on = d === pick,
+      isToday = d === today;
+    return React.createElement("div", {
+      key: d,
+      onClick: () => setPick(d),
+      role: "button",
+      style: {
+        minHeight: isMobile ? 50 : 96,
+        borderRadius: "var(--r-chip)",
+        padding: isMobile ? "5px 4px" : "6px 6px",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        minWidth: 0,
+        background: on ? "var(--primary-soft)" : "var(--surface2)",
+        boxShadow: on ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: on || isToday ? "var(--primary)" : i % 7 === 0 ? "var(--tint-red-tx2)" : "var(--text-1)"
+      }
+    }, +d.slice(8)), list.slice(0, maxShow).map(it => React.createElement("div", {
+      key: it.key,
+      title: nameOf(it),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 10.5,
+        lineHeight: 1.3,
+        background: "var(--surface)",
+        borderRadius: 5,
+        padding: "2px 5px",
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        background: colorOf(it),
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        color: "var(--text-1)",
+        fontWeight: it.type === "survey" ? 700 : 500
+      }
+    }, it.type === "survey" && it.a && it.a.start ? _hm(it.a.start) + " " : "", nameOf(it)))), maxShow > 0 && list.length > maxShow && React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "+", list.length - maxShow), isMobile && list.length > 0 && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 2,
+        flexWrap: "wrap"
+      }
+    }, list.slice(0, 4).map(it => React.createElement("span", {
+      key: it.key,
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        background: colorOf(it)
+      }
+    }))));
+  })));
 }
 Object.assign(window, {
   apptEngs,
