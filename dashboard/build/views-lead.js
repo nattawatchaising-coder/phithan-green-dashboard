@@ -973,7 +973,7 @@ function LoTeamPanel({
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))), edit && React.createElement(window.SurveyApptModal, {
+  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))), edit && ReactDOM.createPortal(React.createElement(window.SurveyApptModal, {
     initial: edit,
     jobs: jobs,
     techs: techs,
@@ -1000,7 +1000,7 @@ function LoTeamPanel({
         }
       });
     }
-  }));
+  }), document.body));
 }
 function LoSalesPanel({
   leads,

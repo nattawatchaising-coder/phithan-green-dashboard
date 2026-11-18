@@ -496,11 +496,12 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen, apptStore, onNotify, m
           </div>}
         </div>
       </div>
-      {edit && <window.SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts} users={users} me={me}
+      {/* พอร์ทัลออกไปที่ body — .pnl มี backdrop-filter ทำให้ position:fixed ข้างในโดนขังอยู่ในกรอบการ์ด */}
+      {edit && ReactDOM.createPortal(<window.SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts} users={users} me={me}
         kinds={["meeting", "training", "other"]}
         onClose={() => setEdit(null)}
         onSave={(rec) => { const prev = (appts || []).find((x) => x.id === rec.id) || null; apptStore.upsert(rec); if (onNotify) onNotify(rec, prev); setPick(new Date(rec.start).toLocaleDateString("sv-SE")); setEdit(null); }}
-        onDelete={(id) => { askConfirm({ title: "ลบนัดหมายนี้?", ok: "ลบนัด" }).then((ok) => { if (ok) { apptStore.remove(id); setEdit(null); } }); }} />}
+        onDelete={(id) => { askConfirm({ title: "ลบนัดหมายนี้?", ok: "ลบนัด" }).then((ok) => { if (ok) { apptStore.remove(id); setEdit(null); } }); }} />, document.body)}
     </div>
   );
 }

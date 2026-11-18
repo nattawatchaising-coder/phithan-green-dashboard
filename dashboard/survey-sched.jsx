@@ -663,7 +663,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, users,
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>{isEv ? "รายละเอียด / วาระ" : "หมายเหตุการจ่ายงาน"}</label>
-            <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={2} placeholder='เช่น "ลูกค้าสะดวกช่วงบ่ายเท่านั้น"' style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
+            <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={2} placeholder={isEv ? "เช่น วาระการประชุม / สิ่งที่ต้องเตรียม" : 'เช่น "ลูกค้าสะดวกช่วงบ่ายเท่านั้น"'} style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>

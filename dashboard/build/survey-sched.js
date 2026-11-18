@@ -1757,7 +1757,7 @@ function SurveyApptModal({
     value: f.notes,
     onChange: e => set("notes", e.target.value),
     rows: 2,
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \"\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E30\u0E14\u0E27\u0E01\u0E0A\u0E48\u0E27\u0E07\u0E1A\u0E48\u0E32\u0E22\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19\"",
+    placeholder: isEv ? "เช่น วาระการประชุม / สิ่งที่ต้องเตรียม" : 'เช่น "ลูกค้าสะดวกช่วงบ่ายเท่านั้น"',
     style: Object.assign({}, inputStyle, {
       resize: "vertical",
       lineHeight: 1.5
