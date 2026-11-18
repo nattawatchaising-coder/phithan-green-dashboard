@@ -1046,7 +1046,7 @@ function App() {
           {/* หน้าแรกหน้าเดียวสำหรับทุกตำแหน่ง — เลย์เอาต์เหมือนกันหมด ต่างกันแค่ข้อมูลที่แต่ละคนมีสิทธิ์เห็น */}
           {view === "overview" && (
             <LeadOverview jobs={filtered} allJobs={scopedJobs} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
-              appts={apptStore.appts} users={auth.users}
+              appts={apptStore.appts} users={auth.users} apptStore={apptStore} onNotify={notifyAppt}
               showValue={can(role, "price")}
               me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
               onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}

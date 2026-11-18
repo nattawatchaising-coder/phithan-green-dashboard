@@ -366,8 +366,9 @@ function LoPermitPanel({ jobs, onGoPermit }) {
 /* ── ตารางงานทีม — วันนี้ใครทำอะไรอยู่ (ผู้ใช้สั่ง 2026-11-18 "อยากได้ปฏิทินตารางงานของทุกคน") ──
    รวม 3 แหล่ง: งานติดตั้งในช่วงวันนัด (ช่าง job.tech / วิศวกร job.eeId) · นัดสำรวจ (engineerIds = ช่าง)
    · นัดประชุม/Training/อื่น ๆ (attendeeIds = ผู้ใช้) · คนหนึ่งคน = ผู้ใช้ + ช่างที่ผูกกัน (user.techId) */
-function LoTeamPanel({ jobs, appts, techs, users, onOpen }) {
+function LoTeamPanel({ jobs, appts, techs, users, onOpen, apptStore, onNotify, me }) {
   const SF = window.SF;
+  const [edit, setEdit] = React.useState(null); // นัดประชุม/Training ใหม่ของวันที่เลือก
   const [pick, setPick] = React.useState(SF.TODAY);
   const [ym, setYm] = React.useState(SF.TODAY.slice(0, 7));
   const hm = (iso) => new Date(iso).toTimeString().slice(0, 5);
@@ -442,10 +443,16 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen }) {
           <b>{MON_TH[mo - 1]} {y + 543}</b>
           <button onClick={() => shift(1)} aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
         </span>} />
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-3)", marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", fontSize: 10.5, color: "var(--text-3)", marginTop: 8 }}>
         {[["#84CC16", "ติดตั้ง"], ["#0EA5E9", "สำรวจ"], [(KB.meeting || {}).color || "#8B5CF6", "ประชุม/Training"]].map(([c, t]) => (
           <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 3, background: c }} />{t}</span>
         ))}
+        {/* นัดประชุม/Training/อื่น ๆ ลงวันที่เลือก (ผู้ใช้ชี้ตำแหน่ง 2026-11-18) */}
+        {apptStore && window.SurveyApptModal && <button onClick={() => setEdit(Object.assign(window.blankAppt(), { kind: "meeting", attendeeIds: me ? [me.id] : [], start: new Date(pick + "T09:00").toISOString(), end: new Date(pick + "T10:00").toISOString() }))}
+          title="นัดประชุม / Training / อื่น ๆ ในวันที่เลือก"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: "var(--r-pill)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer", boxShadow: "var(--shadow-sm)" }}>
+          <Icon name="plus" size={12} color="#fff" sw={2.6} />นัดหมาย
+        </button>}
       </div>
       <div className="ov-cal-grid">
         {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => <span key={d} className="hd">{d}</span>)}
@@ -489,6 +496,11 @@ function LoTeamPanel({ jobs, appts, techs, users, onOpen }) {
           </div>}
         </div>
       </div>
+      {edit && <window.SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts} users={users} me={me}
+        kinds={["meeting", "training", "other"]}
+        onClose={() => setEdit(null)}
+        onSave={(rec) => { const prev = (appts || []).find((x) => x.id === rec.id) || null; apptStore.upsert(rec); if (onNotify) onNotify(rec, prev); setPick(new Date(rec.start).toLocaleDateString("sv-SE")); setEdit(null); }}
+        onDelete={(id) => { askConfirm({ title: "ลบนัดหมายนี้?", ok: "ลบนัด" }).then((ok) => { if (ok) { apptStore.remove(id); setEdit(null); } }); }} />}
     </div>
   );
 }
@@ -597,7 +609,7 @@ function LoMonthPanel({ jobs }) {
   );
 }
 
-function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, appts, users, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, onGoOm, omCount, me, showValue }) {
+function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, appts, users, apptStore, onNotify, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, onGoOm, omCount, me, showValue }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const J = jobs || [];
@@ -664,7 +676,7 @@ function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, appts, users
       <window.OvLayout main={main} rail={
         <React.Fragment>
           <window.OvCalendar jobs={J} onOpen={onOpen} />
-          <LoTeamPanel jobs={allJobs || J} appts={appts} techs={techs} users={users} onOpen={onOpen} />
+          <LoTeamPanel jobs={allJobs || J} appts={appts} techs={techs} users={users} onOpen={onOpen} apptStore={apptStore} onNotify={onNotify} me={me} />
           <LoSalesPanel leads={leads} quotes={quotes} onGoSales={onGoSales} />
           <LoMonthPanel jobs={J} />
         </React.Fragment>

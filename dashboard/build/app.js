@@ -1389,6 +1389,8 @@ function App() {
     techs: techStore.techs,
     appts: apptStore.appts,
     users: auth.users,
+    apptStore: apptStore,
+    onNotify: notifyAppt,
     showValue: can(role, "price"),
     me: auth.current,
     onOpen: openJob,

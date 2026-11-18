@@ -614,9 +614,13 @@ function LoTeamPanel({
   appts,
   techs,
   users,
-  onOpen
+  onOpen,
+  apptStore,
+  onNotify,
+  me
 }) {
   const SF = window.SF;
+  const [edit, setEdit] = React.useState(null);
   const [pick, setPick] = React.useState(SF.TODAY);
   const [ym, setYm] = React.useState(SF.TODAY.slice(0, 7));
   const hm = iso => new Date(iso).toTimeString().slice(0, 5);
@@ -778,6 +782,7 @@ function LoTeamPanel({
       display: "flex",
       gap: 10,
       flexWrap: "wrap",
+      alignItems: "center",
       fontSize: 10.5,
       color: "var(--text-3)",
       marginTop: 8
@@ -796,7 +801,36 @@ function LoTeamPanel({
       borderRadius: 3,
       background: c
     }
-  }), t))), React.createElement("div", {
+  }), t)), apptStore && window.SurveyApptModal && React.createElement("button", {
+    onClick: () => setEdit(Object.assign(window.blankAppt(), {
+      kind: "meeting",
+      attendeeIds: me ? [me.id] : [],
+      start: new Date(pick + "T09:00").toISOString(),
+      end: new Date(pick + "T10:00").toISOString()
+    })),
+    title: "\u0E19\u0E31\u0E14\u0E1B\u0E23\u0E30\u0E0A\u0E38\u0E21 / Training / \u0E2D\u0E37\u0E48\u0E19 \u0E46 \u0E43\u0E19\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01",
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "5px 10px",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      cursor: "pointer",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 12,
+    color: "#fff",
+    sw: 2.6
+  }), "\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22")), React.createElement("div", {
     className: "ov-cal-grid"
   }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map(d => React.createElement("span", {
     key: d,
@@ -939,7 +973,34 @@ function LoTeamPanel({
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))));
+  }, "\u0E27\u0E48\u0E32\u0E07 ", day.free.length, " \u0E04\u0E19:"), " ", day.free.map(p => p.name).join(", ")))), edit && React.createElement(window.SurveyApptModal, {
+    initial: edit,
+    jobs: jobs,
+    techs: techs,
+    appts: appts,
+    users: users,
+    me: me,
+    kinds: ["meeting", "training", "other"],
+    onClose: () => setEdit(null),
+    onSave: rec => {
+      const prev = (appts || []).find(x => x.id === rec.id) || null;
+      apptStore.upsert(rec);
+      if (onNotify) onNotify(rec, prev);
+      setPick(new Date(rec.start).toLocaleDateString("sv-SE"));
+      setEdit(null);
+    },
+    onDelete: id => {
+      askConfirm({
+        title: "ลบนัดหมายนี้?",
+        ok: "ลบนัด"
+      }).then(ok => {
+        if (ok) {
+          apptStore.remove(id);
+          setEdit(null);
+        }
+      });
+    }
+  }));
 }
 function LoSalesPanel({
   leads,
@@ -1146,6 +1207,8 @@ function LeadOverview({
   techs,
   appts,
   users,
+  apptStore,
+  onNotify,
   onOpen,
   onStage,
   onKpi,
@@ -1243,7 +1306,10 @@ function LeadOverview({
       appts: appts,
       techs: techs,
       users: users,
-      onOpen: onOpen
+      onOpen: onOpen,
+      apptStore: apptStore,
+      onNotify: onNotify,
+      me: me
     }), React.createElement(LoSalesPanel, {
       leads: leads,
       quotes: quotes,
