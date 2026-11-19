@@ -1138,7 +1138,7 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     '<div class="ivtop"><div class="ivlft"><div class="ivr"><div class="ivl"><table class="ivkv"><tbody>' +
       ivKv("ผู้ขาย", window.BRANDING.legalTH) + ivKv("ที่อยู่", window.BRANDING.addrTH) +
       ivKv("เลขที่ภาษี", window.BRANDING.taxId ? window.BRANDING.taxId + " (สำนักงานใหญ่)" : "") + "</tbody></table>" +
-      '<table class="ivkv ivct"><tbody>' + ivKv("โทร", window.BRANDING.tel) + ivKv("อีเมล", window.BRANDING.email) + ivKv("เว็บ", window.BRANDING.site) + "</tbody></table></div></div>" +
+      '<table class="ivkv ivct"><tbody>' + ivKv("โทร", window.BRANDING.tel) + ivKv("อีเมล", window.BRANDING.email) + "</tbody></table></div></div>" +
     '<div class="ivr ivbt"><div class="ivl"><table class="ivkv"><tbody>' +
       ivKv("ลูกค้า", c.name || "—") + ivKv("ที่อยู่", (c.address || "") + (c.province ? " " + c.province : "")) +
       ivKv("เลขที่ภาษี", c.taxId) + "</tbody></table></div></div></div>" +
