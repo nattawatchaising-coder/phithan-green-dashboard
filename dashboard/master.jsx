@@ -329,8 +329,8 @@ function msExportXlsx(job, C, cv, today) {
   put(0, 0, "MASTER SCHEDULE — EPC S-Curve", sty({ font: font({ bold: true, sz: 16 }), border: {} }));
   put(1, 0, "โครงการ: " + name + (job.kw ? " · " + job.kw + " kWp" : ""), sty({ font: font({ sz: 11 }), border: {} }));
   put(2, 0, "ข้อมูล ณ " + msTH(today, true) + " · ทำได้จริง " + C.pct + "% · แผน ณ วันนี้ " + (cv ? Math.round(cv.planNow * 10) / 10 : 0) + "%", sty({ border: {} }));
-  const H0 = 4, W0 = 12;   // แถวหัวตาราง · คอลัมน์สัปดาห์แรก
-  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => { put(H0, c, t, HDR); put(H0 + 1, c, "", HDR); merges.push({ s: { r: H0, c }, e: { r: H0 + 1, c } }); });
+  const H0 = 4, W0 = 11;   // แถวหัวตาราง · คอลัมน์สัปดาห์แรก
+  ["No", "Item", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => { put(H0, c, t, HDR); put(H0 + 1, c, "", HDR); merges.push({ s: { r: H0, c }, e: { r: H0 + 1, c } }); });
   let mStart = 0;
   weeks.forEach((w, i) => {
     const dt = new Date(w.d * 86400000);
@@ -350,20 +350,19 @@ function msExportXlsx(job, C, cv, today) {
     const head = row.head && row.kids, st = head ? HEAD : sty();
     put(r, 0, row.no, st);
     put(r, 1, (head ? "" : "   ") + row.th, st);
-    put(r, 2, row.owner || "", st);
-    put(r, 3, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0.00");
+    put(r, 2, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0.00");
     const du = msDur(row.planStart, row.planEnd);
-    put(r, 4, du || "", Object.assign({}, st, { alignment: { horizontal: "right" } }));
+    put(r, 3, du || "", Object.assign({}, st, { alignment: { horizontal: "right" } }));
     const a = serial(row.planStart), b = serial(row.planEnd || row.planStart);
-    put(r, 5, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
-    put(r, 6, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
+    put(r, 4, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
+    put(r, 5, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
     const c = serial(row.actStart), e = serial(row.actEnd);
-    put(r, 7, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
-    put(r, 8, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
+    put(r, 6, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
+    put(r, 7, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
     const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
-    put(r, 9, dv == null ? "" : dv, Object.assign({}, st, { alignment: { horizontal: "right" }, font: font({ bold: !!head, color: { rgb: dv > 0 ? "B91C1C" : dv < 0 ? "15803D" : "15211A" } }) }), dv == null ? "s" : "n", "+0;-0;0");
-    put(r, 10, msPct(row.pct) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0%");
-    put(r, 11, msStLabel(row), Object.assign({}, st, { font: font({ bold: !!head, color: { rgb: row.st === "late" || row.st === "donelate" ? "B91C1C" : row.st === "done" ? "15803D" : "15211A" } }) }));
+    put(r, 8, dv == null ? "" : dv, Object.assign({}, st, { alignment: { horizontal: "right" }, font: font({ bold: !!head, color: { rgb: dv > 0 ? "B91C1C" : dv < 0 ? "15803D" : "15211A" } }) }), dv == null ? "s" : "n", "+0;-0;0");
+    put(r, 9, msPct(row.pct) / 100, Object.assign({}, st, { alignment: { horizontal: "right" } }), "n", "0%");
+    put(r, 10, msStLabel(row), Object.assign({}, st, { font: font({ bold: !!head, color: { rgb: row.st === "late" || row.st === "donelate" ? "B91C1C" : row.st === "done" ? "15803D" : "15211A" } }) }));
     const ps = msDay(row.planStart), pe = msDay(row.planEnd || row.planStart);
     const as = msDay(row.actStart), ae = msDay(row.actEnd) != null ? msDay(row.actEnd) : as != null && td != null ? Math.max(as, td) : null;
     weeks.forEach((w, i) => {
@@ -396,9 +395,9 @@ function msExportXlsx(job, C, cv, today) {
   /* ตำนานสีช่องสัปดาห์ */
   put(r + 1, 1, "สีช่องสัปดาห์: เขียวอ่อน = ช่วงแผน (ตัวเลข = % ของงานนั้นในสัปดาห์) · เขียวเข้ม = ทำจริงในช่วงแผน · แดงอ่อน = ทำจริงนอกช่วงแผน · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({ font: font({ sz: 9, color: { rgb: "5A6B62" } }), border: {} }));
   r += 1;
-  ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 12) } });
+  ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 11) } });
   ws["!merges"] = merges;
-  ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 16 }, { wch: 9 }, { wch: 6 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 8 }, { wch: 9 }, { wch: 17 }].concat(weeks.map(() => ({ wch: 5.5 })));
+  ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 9 }, { wch: 6 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 8 }, { wch: 9 }, { wch: 17 }].concat(weeks.map(() => ({ wch: 5.5 })));
   ws["!freeze"] = { xSplit: 2, ySplit: H0 + 2 };
   ws["!views"] = [{ state: "frozen", xSplit: 2, ySplit: H0 + 2 }];
 
@@ -630,7 +629,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
         <div style={{ position: "sticky", left: 0, zIndex: 3, background: "var(--surface)", height: headH, display: "grid", gridTemplateColumns: cols,
           alignItems: "end", gap: 6, paddingBottom: 4, paddingRight: 8, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {!compact && (narrow ? <><span style={thS}>งาน</span><span style={Object.assign({}, thS, { textAlign: "right" })}>%</span></>
-            : <><span style={thS}>ID</span><span style={thS}>งาน · ผู้รับผิดชอบ</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
+            : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
         </div>
         <div style={{ position: "relative", height: headH, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {compact && A.months.map((m) => (
@@ -665,7 +664,6 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
                 <span style={{ minWidth: 0, paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 12 : 0 }}>
                   <span style={{ display: "block", fontSize: compact ? 11.5 : sub ? 12 : 12.5, fontWeight: r.head ? 800 : 500, color: "var(--text-1)",
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={r.th}>{r.th || "—"}</span>
-                  {!compact && r.owner && <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>{r.owner}</span>}
                 </span>
                 {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planStart)}</span>}
                 {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planEnd || r.planStart)}</span>}
@@ -864,8 +862,7 @@ function msPrintHTML(job, C, today, cv) {
     const as = msDay(r.actStart), ae0 = msDay(r.actEnd), ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
     if (as != null && ae != null) bar += '<b class="ab' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>';
     const actTx = as == null ? "" : msTH(r.actStart) + " – " + (ae0 != null ? msTH(r.actEnd) : "…");
-    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) +
-      '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) +
+    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) +
       '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? (Math.round(r.wp * 10) / 10) : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p +
       '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
@@ -879,7 +876,7 @@ function msPrintHTML(job, C, today, cv) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' +
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' +
     '<th class="p">ความคืบหน้า</th><th class="ac">ทำจริง</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today), days = C.lo != null ? C.hi - C.lo + 1 : null, left = C.hi != null && td != null ? C.hi - td : null;

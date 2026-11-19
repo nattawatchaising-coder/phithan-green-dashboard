@@ -665,8 +665,8 @@ function msExportXlsx(job, C, cv, today) {
     border: {}
   }));
   const H0 = 4,
-    W0 = 12;
-  ["No", "Item", "ผู้รับผิดชอบ", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => {
+    W0 = 11;
+  ["No", "Item", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => {
     put(H0, c, t, HDR);
     put(H0 + 1, c, "", HDR);
     merges.push({
@@ -718,28 +718,27 @@ function msExportXlsx(job, C, cv, today) {
       st = head ? HEAD : sty();
     put(r, 0, row.no, st);
     put(r, 1, (head ? "" : "   ") + row.th, st);
-    put(r, 2, row.owner || "", st);
-    put(r, 3, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, {
+    put(r, 2, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, {
       alignment: {
         horizontal: "right"
       }
     }), "n", "0.00");
     const du = msDur(row.planStart, row.planEnd);
-    put(r, 4, du || "", Object.assign({}, st, {
+    put(r, 3, du || "", Object.assign({}, st, {
       alignment: {
         horizontal: "right"
       }
     }));
     const a = serial(row.planStart),
       b = serial(row.planEnd || row.planStart);
-    put(r, 5, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
-    put(r, 6, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
+    put(r, 4, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
+    put(r, 5, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
     const c = serial(row.actStart),
       e = serial(row.actEnd);
-    put(r, 7, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
-    put(r, 8, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
+    put(r, 6, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
+    put(r, 7, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
     const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
-    put(r, 9, dv == null ? "" : dv, Object.assign({}, st, {
+    put(r, 8, dv == null ? "" : dv, Object.assign({}, st, {
       alignment: {
         horizontal: "right"
       },
@@ -750,12 +749,12 @@ function msExportXlsx(job, C, cv, today) {
         }
       })
     }), dv == null ? "s" : "n", "+0;-0;0");
-    put(r, 10, msPct(row.pct) / 100, Object.assign({}, st, {
+    put(r, 9, msPct(row.pct) / 100, Object.assign({}, st, {
       alignment: {
         horizontal: "right"
       }
     }), "n", "0%");
-    put(r, 11, msStLabel(row), Object.assign({}, st, {
+    put(r, 10, msStLabel(row), Object.assign({}, st, {
       font: font({
         bold: !!head,
         color: {
@@ -863,7 +862,7 @@ function msExportXlsx(job, C, cv, today) {
     },
     e: {
       r: r,
-      c: Math.max(W0 + weeks.length - 1, 12)
+      c: Math.max(W0 + weeks.length - 1, 11)
     }
   });
   ws["!merges"] = merges;
@@ -871,8 +870,6 @@ function msExportXlsx(job, C, cv, today) {
     wch: 6
   }, {
     wch: 46
-  }, {
-    wch: 16
   }, {
     wch: 9
   }, {
@@ -1330,7 +1327,7 @@ function MsGantt({
     style: thS
   }, "ID"), React.createElement("span", {
     style: thS
-  }, "\u0E07\u0E32\u0E19 \xB7 \u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), dates && React.createElement("span", {
+  }, "\u0E07\u0E32\u0E19"), dates && React.createElement("span", {
     style: thS
   }, "\u0E40\u0E23\u0E34\u0E48\u0E21"), dates && React.createElement("span", {
     style: thS
@@ -1454,17 +1451,7 @@ function MsGantt({
         textOverflow: "ellipsis"
       },
       title: r.th
-    }, r.th || "—"), !compact && r.owner && React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 10,
-        color: "var(--text-3)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        marginTop: 1
-      }
-    }, r.owner)), dates && React.createElement("span", {
+    }, r.th || "—")), dates && React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--text-2)",
@@ -2051,7 +2038,7 @@ function msPrintHTML(job, C, today, cv) {
       ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
     if (as != null && ae != null) bar += '<b class="ab' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>';
     const actTx = as == null ? "" : msTH(r.actStart) + " – " + (ae0 != null ? msTH(r.actEnd) : "…");
-    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="o">' + esc(r.owner) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
+    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
   const wk = Math.max(1, Math.ceil(A.weeks.length * 26 / 650));
   let hd = '<div class="gc wh">' + A.weeks.map((w, i) => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (w.n < 1 || i % wk ? "" : "W" + w.n) + "</span>").join("") + "</div>";
@@ -2063,7 +2050,7 @@ function msPrintHTML(job, C, today, cv) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="o">ผู้รับผิดชอบ</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' + '<th class="p">ความคืบหน้า</th><th class="ac">ทำจริง</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' + '<th class="p">ความคืบหน้า</th><th class="ac">ทำจริง</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today),
     days = C.lo != null ? C.hi - C.lo + 1 : null,
