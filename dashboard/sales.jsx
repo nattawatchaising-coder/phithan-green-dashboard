@@ -2020,7 +2020,9 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 <input value={q.customer.phone || ""} disabled={locked} onChange={(e) => setCus("phone", e.target.value)} style={inputStyle} /></div>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ที่อยู่หน้างาน</label>
                 <input value={q.customer.address || ""} disabled={locked} onChange={(e) => setCus("address", e.target.value)} style={inputStyle} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เลขที่ภาษีลูกค้า</label>
+                <input value={q.customer.taxId || ""} disabled={locked} inputMode="numeric" placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" onChange={(e) => setCus("taxId", e.target.value)} style={inputStyle} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9, gridColumn: isMobile ? "auto" : "1 / -1" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>kWp</label>
                   <input type="number" value={q.kwp || ""} disabled={locked} onChange={(e) => set("kwp", +e.target.value || 0)} style={inputStyle} /></div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>วันที่</label>

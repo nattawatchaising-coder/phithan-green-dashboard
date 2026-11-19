@@ -2942,9 +2942,25 @@ function QuoteEditor({
     style: inputStyle
   })), React.createElement("div", {
     style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E20\u0E32\u0E29\u0E35\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("input", {
+    value: q.customer.taxId || "",
+    disabled: locked,
+    inputMode: "numeric",
+    placeholder: "\u0E40\u0E25\u0E02\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E15\u0E31\u0E27\u0E1C\u0E39\u0E49\u0E40\u0E2A\u0E35\u0E22\u0E20\u0E32\u0E29\u0E35 13 \u0E2B\u0E25\u0E31\u0E01",
+    onChange: e => setCus("taxId", e.target.value),
+    style: inputStyle
+  })), React.createElement("div", {
+    style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 9
+      gap: 9,
+      gridColumn: isMobile ? "auto" : "1 / -1"
     }
   }, React.createElement("div", {
     style: {
