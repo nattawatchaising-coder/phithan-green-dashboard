@@ -121,16 +121,31 @@ function msAxis(C, today, pad) {
   }
   if (months.length > 1 && months[1].d - months[0].d < 8) months.shift();
   const weeks = [];
-  for (let d = lo; d <= hi; d += 7) weeks.push({
-    d,
-    n: Math.floor((d - mon0(p0)) / 7) + 1
-  });
+  const mg = [];
+  for (let d = lo; d <= hi; d += 7) {
+    const x = new Date(d * 86400000),
+      key = x.getUTCFullYear() * 12 + x.getUTCMonth();
+    if (!mg.length || mg[mg.length - 1].key !== key) mg.push({
+      key,
+      d,
+      n: 0,
+      th: MS_MON[x.getUTCMonth()] + (!mg.length || x.getUTCMonth() === 0 ? " " + String(x.getUTCFullYear() + 543).slice(2) : "")
+    });
+    const g = mg[mg.length - 1];
+    g.n++;
+    weeks.push({
+      d,
+      n: Math.floor((d - mon0(p0)) / 7) + 1,
+      k: g.n
+    });
+  }
   return {
     lo,
     hi,
     span,
     td,
     months,
+    mg,
     weeks,
     X: d => (d - lo) / span * 100,
     W: (a, b) => (Math.max(a, b) - Math.min(a, b) + 1) / span * 100
@@ -1346,7 +1361,7 @@ function MsGantt({
       height: headH,
       borderBottom: compact ? "none" : "1px solid var(--divider)"
     }
-  }, compact && A.months.map(m => React.createElement("span", {
+  }, compact ? A.months.map(m => React.createElement("span", {
     key: "m" + m.d,
     style: {
       position: "absolute",
@@ -1360,16 +1375,33 @@ function MsGantt({
       whiteSpace: "nowrap",
       height: compact ? "100%" : 15
     }
-  }, m.th)), !compact && A.weeks.map(w => React.createElement("span", {
+  }, m.th)) : A.mg.map((g, i) => React.createElement("span", {
+    key: "m" + g.d,
+    style: {
+      position: "absolute",
+      left: A.X(g.d) + "%",
+      width: A.W(g.d, g.d + 7 * g.n - 1) + "%",
+      top: 0,
+      height: 15,
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: "var(--text-2)",
+      paddingLeft: 3,
+      borderLeft: i ? "1px solid var(--divider)" : "none",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      boxSizing: "border-box"
+    }
+  }, g.th)), !compact && A.weeks.map(w => React.createElement("span", {
     key: "w" + w.d,
     style: {
       position: "absolute",
       left: A.X(w.d) + "%",
       width: A.W(w.d, w.d + 6) + "%",
-      top: 8,
-      height: 16,
-      fontSize: 10.5,
-      fontWeight: 800,
+      top: 15,
+      height: 14,
+      fontSize: 9.5,
+      fontWeight: 700,
       color: "var(--text-3)",
       paddingLeft: 3,
       borderLeft: "1px solid var(--divider)",
@@ -1377,7 +1409,7 @@ function MsGantt({
       overflow: "hidden",
       boxSizing: "border-box"
     }
-  }, w.n < 1 ? "" : "W" + w.n)), dayHead && Array.from({
+  }, "W" + w.k)), dayHead && Array.from({
     length: A.span
   }, (_, i) => {
     const d = A.lo + i,
@@ -2040,8 +2072,9 @@ function msPrintHTML(job, C, today, cv) {
     const actTx = as == null ? "" : msTH(r.actStart) + " – " + (ae0 != null ? msTH(r.actEnd) : "…");
     return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? Math.round(r.wp * 10) / 10 : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
-  const wk = Math.max(1, Math.ceil(A.weeks.length * 26 / 650));
-  let hd = '<div class="gc wh">' + A.weeks.map((w, i) => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (w.n < 1 || i % wk ? "" : "W" + w.n) + "</span>").join("") + "</div>";
+  const wpx = 800 / Math.max(1, A.weeks.length),
+    wide = wpx >= 17;
+  let hd = '<div class="gc mh">' + A.mg.map((g, i) => '<span style="left:' + X(g.d) + "%;width:" + W(g.d, g.d + 7 * g.n - 1) + '%"' + (i ? ' class="b"' : "") + ">" + g.th + "</span>").join("") + "</div>" + '<div class="gc wh">' + A.weeks.map(w => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (wide ? "W" : "") + w.k + "</span>").join("") + "</div>";
   if (daily) {
     let dd = "";
     for (let d = A.lo; d <= A.hi; d++) {
@@ -2061,7 +2094,7 @@ function msPrintHTML(job, C, today, cv) {
   const ring = '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#D5EEE5" stroke-width="10"/>' + (C.pct > 0 ? '<circle cx="46" cy="46" r="' + R + '" fill="none" stroke="#1B9B75" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (Cc * C.pct / 100).toFixed(2) + " " + Cc.toFixed(2) + '" transform="rotate(-90 46 46)"/>' : "") + '<text x="46" y="46" dominant-baseline="central" text-anchor="middle" font-size="20" font-weight="800" fill="#15211A" font-family="monospace">' + C.pct + "%</text></svg>";
   const kpi = (lab, v, cls) => '<div class="k ' + (cls || "") + '"><span>' + lab + "</span><b>" + v + "</b></div>";
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")], ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter(x => x[1]);
-  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.w{width:40px;text-align:right}.p{width:84px}.ac{width:96px}td.ac{color:#4A5A51;font-size:9.5px}.st{width:92px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:18px;background:#2F8A6D}.wh span{position:absolute;top:0;height:18px;line-height:18px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:2px;height:10px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:3px;height:9px}b.ab{position:absolute;top:14px;height:4px;border-radius:2px;background:#15803D;z-index:1}tr.h b.ab{top:15px}b.ab.lt{background:#DC2626}b.ab.op{opacity:.55}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" + ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" + ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
+  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" + ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" + ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" + ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" + ".ks{display:flex;gap:8px;align-items:stretch}.k{min-width:86px;border-radius:8px;background:#F3F6F4;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}" + ".k span{font-size:10px;font-weight:700;color:#5A6B62}.k b{font-size:24px;font-family:monospace;margin-top:2px}.k.ok{background:#E3F4EC}.k.ok b,.k.ok span{color:#15803D}" + ".k.am{background:#FDF1DC}.k.am b,.k.am span{color:#935F07}.k.rd{background:#FDE6E6}.k.rd b,.k.rd span{color:#B91C1C}" + ".rg{display:flex;align-items:center;gap:10px;border-radius:8px;background:#F3F6F4;padding:4px 14px 4px 6px}.rg .ri{font-size:11px;line-height:1.75;color:#4A5A51}.rg .ri b{color:#15211A}" + "table.t1{width:100%;border-collapse:collapse;table-layout:fixed}" + "table.t1 th{font-size:10px;color:#fff;background:#1B5E4A;font-weight:700;text-align:left;padding:0 5px;height:22px;vertical-align:middle}" + "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" + "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" + "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" + ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.w{width:40px;text-align:right}.p{width:84px}.ac{width:96px}td.ac{color:#4A5A51;font-size:9.5px}.st{width:92px}" + "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" + ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" + ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" + ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" + "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" + ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:3px;overflow:hidden;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" + ".wh{height:16px;background:#2F8A6D}.wh span{position:absolute;top:0;height:16px;line-height:16px;text-align:center;font-size:8.5px;font-weight:700;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" + ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" + ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" + "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" + "b.bar{position:absolute;top:2px;height:10px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:3px;height:9px}b.ab{position:absolute;top:14px;height:4px;border-radius:2px;background:#15803D;z-index:1}tr.h b.ab{top:15px}b.ab.lt{background:#DC2626}b.ab.op{opacity:.55}" + "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" + ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" + ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" + ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" + '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" + info.map(x => "<tr><td>" + esc(x[0]) + "</td><td><b>" + esc(x[1]) + "</b></td></tr>").join("") + "</table></div>" + '<div class="rg">' + ring + '<div class="ri">เริ่ม <b>' + esc(C.lo != null ? msTH(msIso(C.lo), true) : "—") + "</b><br>จบ <b>" + esc(C.hi != null ? msTH(msIso(C.hi), true) : "—") + "</b><br>รวม <b>" + (days || "—") + " วัน</b><br><b" + (left != null && left < 0 && C.pct < 100 ? ' style="color:#B91C1C"' : "") + ">" + esc(leftTx) + "</b></div></div>" + '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) + (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" + '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" + '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' + '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#15803D;height:4px"></i>ทำจริง (แดง = เลยกำหนด)</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' + '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" + (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' + '<span class="scv">แผน ณ วันนี้ <b>' + Math.round(cv.planNow * 10) / 10 + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" + msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) + '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' + '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") + "</body></html>";
 }
 function MsModal({

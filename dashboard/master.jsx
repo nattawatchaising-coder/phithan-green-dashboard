@@ -91,8 +91,14 @@ function msAxis(C, today, pad) {
   }
   if (months.length > 1 && months[1].d - months[0].d < 8) months.shift();
   const weeks = [];
-  for (let d = lo; d <= hi; d += 7) weeks.push({ d, n: Math.floor((d - mon0(p0)) / 7) + 1 });
-  return { lo, hi, span, td, months, weeks, X: (d) => ((d - lo) / span) * 100, W: (a, b) => ((Math.max(a, b) - Math.min(a, b) + 1) / span) * 100 };
+  const mg = [];   // กลุ่มเดือน (นับสัปดาห์ตามวันจันทร์ของสัปดาห์นั้น) · k = สัปดาห์ที่ 1,2,3… ในเดือน
+  for (let d = lo; d <= hi; d += 7) {
+    const x = new Date(d * 86400000), key = x.getUTCFullYear() * 12 + x.getUTCMonth();
+    if (!mg.length || mg[mg.length - 1].key !== key) mg.push({ key, d, n: 0, th: MS_MON[x.getUTCMonth()] + (!mg.length || x.getUTCMonth() === 0 ? " " + String(x.getUTCFullYear() + 543).slice(2) : "") });
+    const g = mg[mg.length - 1]; g.n++;
+    weeks.push({ d, n: Math.floor((d - mon0(p0)) / 7) + 1, k: g.n });
+  }
+  return { lo, hi, span, td, months, mg, weeks, X: (d) => ((d - lo) / span) * 100, W: (a, b) => ((Math.max(a, b) - Math.min(a, b) + 1) / span) * 100 };
 }
 
 /* ── ขั้นย่อยของงานติดตั้งจากรายงานประจำวัน — หัวข้อใหญ่ของตารางขั้นงาน 1 แถว (ช่วงวัน/% รวมขั้นย่อย) ──
@@ -632,14 +638,18 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
             : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
         </div>
         <div style={{ position: "relative", height: headH, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
-          {compact && A.months.map((m) => (
+          {compact ? A.months.map((m) => (
             <span key={"m" + m.d} style={{ position: "absolute", left: A.X(m.d) + "%", top: 0, fontSize: compact ? 9.5 : 10.5, fontWeight: 800, color: "var(--text-2)",
               paddingLeft: 3, borderLeft: m.d !== A.lo ? "1px solid var(--divider)" : "none", whiteSpace: "nowrap", height: compact ? "100%" : 15 }}>{m.th}</span>
+          ))
+            : A.mg.map((g, i) => (
+            <span key={"m" + g.d} style={{ position: "absolute", left: A.X(g.d) + "%", width: A.W(g.d, g.d + 7 * g.n - 1) + "%", top: 0, height: 15, fontSize: 10.5, fontWeight: 800, color: "var(--text-2)",
+              paddingLeft: 3, borderLeft: i ? "1px solid var(--divider)" : "none", whiteSpace: "nowrap", overflow: "hidden", boxSizing: "border-box" }}>{g.th}</span>
           ))}
           {!compact && A.weeks.map((w) => (
-            <span key={"w" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", width: A.W(w.d, w.d + 6) + "%", top: 8, height: 16, fontSize: 10.5, fontWeight: 800,
+            <span key={"w" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", width: A.W(w.d, w.d + 6) + "%", top: 15, height: 14, fontSize: 9.5, fontWeight: 700,
               color: "var(--text-3)", paddingLeft: 3, borderLeft: "1px solid var(--divider)", whiteSpace: "nowrap", overflow: "hidden", boxSizing: "border-box" }}>
-              {w.n < 1 ? "" : "W" + w.n}</span>
+              {"W" + w.k}</span>
           ))}
           {dayHead && Array.from({ length: A.span }, (_, i) => {
             const d = A.lo + i, x = new Date(d * 86400000), wd = x.getUTCDay();
@@ -866,8 +876,9 @@ function msPrintHTML(job, C, today, cv) {
       '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? (Math.round(r.wp * 10) / 10) : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p +
       '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
   }).join("");
-  const wk = Math.max(1, Math.ceil(A.weeks.length * 26 / 650));   // ป้าย W ห่างพอไม่ทับกัน (กว้างกราฟราว 650px ขึ้นไป · ป้ายละ ~26px)
-  let hd = '<div class="gc wh">' + A.weeks.map((w, i) => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (w.n < 1 || i % wk ? "" : "W" + w.n) + "</span>").join("") + "</div>";
+  const wpx = 800 / Math.max(1, A.weeks.length), wide = wpx >= 17;   // ช่องสัปดาห์แคบ → ใส่แค่เลข 1 2 3 4 (A3 แนวนอน กราฟกว้างราว 800px) · กว้างพอ → W1 W2
+  let hd = '<div class="gc mh">' + A.mg.map((g, i) => '<span style="left:' + X(g.d) + "%;width:" + W(g.d, g.d + 7 * g.n - 1) + '%"' + (i ? ' class="b"' : "") + ">" + g.th + "</span>").join("") + "</div>" +
+    '<div class="gc wh">' + A.weeks.map((w) => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (wide ? "W" : "") + w.k + "</span>").join("") + "</div>";
   if (daily) {
     let dd = "";
     for (let d = A.lo; d <= A.hi; d++) {
@@ -908,8 +919,8 @@ function msPrintHTML(job, C, today, cv) {
     ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" +
     ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" +
     "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" +
-    ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" +
-    ".wh{height:18px;background:#2F8A6D}.wh span{position:absolute;top:0;height:18px;line-height:18px;padding-left:4px;font-size:10px;font-weight:800;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap}" +
+    ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:3px;overflow:hidden;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" +
+    ".wh{height:16px;background:#2F8A6D}.wh span{position:absolute;top:0;height:16px;line-height:16px;text-align:center;font-size:8.5px;font-weight:700;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" +
     ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" +
     ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" +
     "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" +
