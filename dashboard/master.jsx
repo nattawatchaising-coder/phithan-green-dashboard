@@ -736,7 +736,7 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
   const addSub = (i) => setRows((L) => { let j = i + 1; while (j < L.length && !L[j].head) j++; const a = L.slice(); a.splice(j, 0, msRow("", false)); return a; });
   const inp = { padding: "7px 9px", fontSize: 12.5, border: "none", borderRadius: "var(--r-tile)", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
   const dIn = Object.assign({}, inp, { fontFamily: "var(--mono)", fontSize: 12 });
-  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(100px,.7fr) 128px 128px 54px 128px 128px 58px 58px 88px";
+  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) 128px 128px 54px 128px 128px 58px 58px 88px";
   const wSum = rows.filter((r) => !r.head || (r.link === "install" && !inst.length)).reduce((t, r) => t + (msW(r.w) || 0), 0)
     + inst.filter((r) => !r.head).reduce((t, r) => t + (msW(r.w) || 0), 0);
   const lab = (t) => narrow ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{t}</span> : null;
@@ -752,7 +752,7 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
       <datalist id="ms-owners">{owners.map((o) => <option key={o} value={o} />)}</datalist>
       {!narrow && (
         <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, padding: "0 12px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-          <span>งาน</span><span>ผู้รับผิดชอบ</span><span>เริ่ม (แผน)</span><span>จบ (แผน)</span><span>วัน</span>
+          <span>งาน</span><span>เริ่ม (แผน)</span><span>จบ (แผน)</span><span>วัน</span>
           <span title="ใส่ % แล้วเติมให้เอง แก้ได้">เริ่มจริง</span><span title="ใส่ 100% แล้วเติมให้เอง แก้ได้">เสร็จจริง</span>
           <span title="% น้ำหนักต่อทั้งโครงการ (รวม 100)">น้ำหนัก</span><span>%</span><span />
         </div>
@@ -772,10 +772,6 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
                 style={Object.assign({}, inp, { fontWeight: r.head ? 800 : 500 }, fieldW(2))} />
               {leaf ? (
                 <React.Fragment>
-                  <label style={Object.assign({ display: "flex", flexDirection: "column", gap: 3 }, fieldW(2))}>
-                    {lab("ผู้รับผิดชอบ")}
-                    <input list="ms-owners" value={r.owner || ""} onChange={(e) => set(i, "owner", e.target.value)} placeholder="ใคร" style={inp} />
-                  </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>{lab("เริ่ม")}
                     <input type="date" value={r.planStart || ""} onChange={(e) => set(i, "planStart", e.target.value)} style={dIn} /></label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>{lab("จบ")}
@@ -796,7 +792,7 @@ function MsEditor({ rows, setRows, inst, narrow, owners, instSteps, onInstEdit, 
                       style={Object.assign({}, inp, { textAlign: "right", fontFamily: "var(--mono)" })} /></label>
                 </React.Fragment>
               ) : (
-                <span style={Object.assign({ gridColumn: narrow ? "span 2" : "2 / span 8", fontSize: 11.5, color: "var(--text-3)" })}>
+                <span style={Object.assign({ gridColumn: narrow ? "span 2" : "2 / span 7", fontSize: 11.5, color: "var(--text-3)" })}>
                   {isInst ? "ขั้นย่อยใช้ตารางขั้นงานชุดเดียวกับรายงานประจำวัน — แก้ได้ที่ปุ่ม \"แก้ขั้นงานติดตั้ง\" ด้านล่าง" : "ช่วงวันและ % คิดจากงานย่อยใต้หัวข้อนี้"}
                 </span>
               )}

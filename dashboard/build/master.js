@@ -1675,7 +1675,7 @@ function MsEditor({
     fontFamily: "var(--mono)",
     fontSize: 12
   });
-  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) minmax(100px,.7fr) 128px 128px 54px 128px 128px 58px 58px 88px";
+  const cols = narrow ? "1fr 1fr" : "minmax(170px,1.4fr) 128px 128px 54px 128px 128px 58px 58px 88px";
   const wSum = rows.filter(r => !r.head || r.link === "install" && !inst.length).reduce((t, r) => t + (msW(r.w) || 0), 0) + inst.filter(r => !r.head).reduce((t, r) => t + (msW(r.w) || 0), 0);
   const lab = t => narrow ? React.createElement("span", {
     style: {
@@ -1731,7 +1731,7 @@ function MsEditor({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21 (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E08\u0E1A (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", {
+  }, React.createElement("span", null, "\u0E07\u0E32\u0E19"), React.createElement("span", null, "\u0E40\u0E23\u0E34\u0E48\u0E21 (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E08\u0E1A (\u0E41\u0E1C\u0E19)"), React.createElement("span", null, "\u0E27\u0E31\u0E19"), React.createElement("span", {
     title: "\u0E43\u0E2A\u0E48 % \u0E41\u0E25\u0E49\u0E27\u0E40\u0E15\u0E34\u0E21\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49"
   }, "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E23\u0E34\u0E07"), React.createElement("span", {
     title: "\u0E43\u0E2A\u0E48 100% \u0E41\u0E25\u0E49\u0E27\u0E40\u0E15\u0E34\u0E21\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49"
@@ -1773,18 +1773,6 @@ function MsEditor({
         fontWeight: r.head ? 800 : 500
       }, fieldW(2))
     }), leaf ? React.createElement(React.Fragment, null, React.createElement("label", {
-      style: Object.assign({
-        display: "flex",
-        flexDirection: "column",
-        gap: 3
-      }, fieldW(2))
-    }, lab("ผู้รับผิดชอบ"), React.createElement("input", {
-      list: "ms-owners",
-      value: r.owner || "",
-      onChange: e => set(i, "owner", e.target.value),
-      placeholder: "\u0E43\u0E04\u0E23",
-      style: inp
-    })), React.createElement("label", {
       style: {
         display: "flex",
         flexDirection: "column",
@@ -1881,7 +1869,7 @@ function MsEditor({
       })
     }))) : React.createElement("span", {
       style: Object.assign({
-        gridColumn: narrow ? "span 2" : "2 / span 8",
+        gridColumn: narrow ? "span 2" : "2 / span 7",
         fontSize: 11.5,
         color: "var(--text-3)"
       })
