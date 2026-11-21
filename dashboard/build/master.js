@@ -682,8 +682,9 @@ function msExportXlsx(job, C, cv, today) {
     border: {}
   }));
   const H0 = 4,
-    W0 = 12;
-  ["No", "Item", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ", ""].forEach((t, c) => {
+    W0 = 10;
+  ["No", "Item", "% Weight", "Day", null, null, "ผลต่าง (วัน)", "% Progress", "สถานะ", ""].forEach((t, c) => {
+    if (t == null) return;
     put(H0, c, t, HDR);
     put(H0 + 1, c, "", HDR);
     merges.push({
@@ -697,6 +698,20 @@ function msExportXlsx(job, C, cv, today) {
       }
     });
   });
+  put(H0, 4, "Duration", HDR);
+  put(H0, 5, "", HDR);
+  merges.push({
+    s: {
+      r: H0,
+      c: 4
+    },
+    e: {
+      r: H0,
+      c: 5
+    }
+  });
+  put(H0 + 1, 4, "Start", HDR);
+  put(H0 + 1, 5, "Finish", HDR);
   let mStart = 0;
   weeks.forEach((w, i) => {
     const dt = new Date(w.d * 86400000),
@@ -785,14 +800,22 @@ function msExportXlsx(job, C, cv, today) {
     }));
     const a = serial(row.planStart),
       b = serial(row.planEnd || row.planStart);
-    left(4, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
-    left(5, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
     const c = serial(row.actStart),
       e = serial(row.actEnd);
-    left(6, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
-    left(7, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
+    const dput = (rr, cc, v) => put(rr, cc, v == null ? "" : v, Object.assign({}, st, {
+      alignment: {
+        horizontal: "center",
+        vertical: "center"
+      }
+    }), v == null ? "s" : "n", "d/m/yyyy");
+    dput(r, 4, a);
+    dput(r, 5, b);
+    if (two) {
+      dput(r + 1, 4, c);
+      dput(r + 1, 5, e);
+    }
     const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
-    left(8, dv == null ? "" : dv, Object.assign({}, st, {
+    left(6, dv == null ? "" : dv, Object.assign({}, st, {
       alignment: {
         horizontal: "right",
         vertical: "center"
@@ -804,13 +827,13 @@ function msExportXlsx(job, C, cv, today) {
         }
       })
     }), dv == null ? "s" : "n", "+0;-0;0");
-    left(9, msPct(row.pct) / 100, Object.assign({}, st, {
+    left(7, msPct(row.pct) / 100, Object.assign({}, st, {
       alignment: {
         horizontal: "right",
         vertical: "center"
       }
     }), "n", "0%");
-    left(10, msStLabel(row), Object.assign({}, st, {
+    left(8, msStLabel(row), Object.assign({}, st, {
       font: font({
         bold: !!head,
         color: {
@@ -822,15 +845,14 @@ function msExportXlsx(job, C, cv, today) {
       pe = msDay(row.planEnd || row.planStart);
     const as = msDay(row.actStart),
       ae = msDay(row.actEnd) != null ? msDay(row.actEnd) : as != null && td != null ? Math.max(as, td) : null;
-    const wp = row.wp || 0,
-      earned = wp * msPct(row.pct) / 100;
+    const pctT = msPct(row.pct);
     if (head) {
-      put(r, 11, "", st);
+      put(r, 9, "", st);
       weeks.forEach((w, i) => wkCell(r, i, "", ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d) ? HEAD_F : null));
       r++;
       return;
     }
-    put(r, 11, "Plan", sty({
+    put(r, 9, "Plan", sty({
       font: font({
         sz: 9,
         bold: true
@@ -844,7 +866,7 @@ function msExportXlsx(job, C, cv, today) {
         }
       }
     }));
-    put(r + 1, 11, "Actual", sty({
+    put(r + 1, 9, "Actual", sty({
       font: font({
         sz: 9,
         bold: true
@@ -860,9 +882,9 @@ function msExportXlsx(job, C, cv, today) {
     }));
     weeks.forEach((w, i) => {
       const inP = ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d);
-      wkCell(r, i, inP ? wp * (Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1) / (pe - ps + 1) : "", inP ? PLAN_F : null);
+      wkCell(r, i, inP ? 100 * (Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1) / (pe - ps + 1) : "", inP ? PLAN_F : null);
       const inA = as != null && ae != null && Math.min(ae, w.d + 6) >= Math.max(as, w.d);
-      wkCell(r + 1, i, inA && earned ? earned * (Math.min(ae, w.d + 6) - Math.max(as, w.d) + 1) / (ae - as + 1) : "", inA ? ACT_F : null);
+      wkCell(r + 1, i, inA && pctT ? pctT * (Math.min(ae, w.d + 6) - Math.max(as, w.d) + 1) / (ae - as + 1) : "", inA ? ACT_F : null);
     });
     r += 2;
   });
@@ -919,7 +941,7 @@ function msExportXlsx(job, C, cv, today) {
   sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, MS_XPCT, "E6F2EC");
   sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, MS_XPCT, "E3ECFB");
   sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, MS_XPCT, "FBEDE3");
-  put(r + 1, 1, "ช่องสัปดาห์ = % ของทั้งโครงการ · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: น้ำหนัก × %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
+  put(r + 1, 1, "ช่องสัปดาห์ = % ของงานนั้น (แถว Plan รวม = 100%) · % ของทั้งโครงการ = ค่านี้ × % Weight (แถวสรุปด้านล่าง) · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
     font: font({
       sz: 9,
       color: {
@@ -949,13 +971,9 @@ function msExportXlsx(job, C, cv, today) {
   }, {
     wch: 6
   }, {
-    wch: 12.5
+    wch: 12
   }, {
-    wch: 12.5
-  }, {
-    wch: 12.5
-  }, {
-    wch: 12.5
+    wch: 12
   }, {
     wch: 8
   }, {
@@ -965,7 +983,7 @@ function msExportXlsx(job, C, cv, today) {
   }, {
     wch: 7
   }].concat(weeks.map(() => ({
-    wch: 6
+    wch: 7
   })));
   ws["!freeze"] = {
     xSplit: W0,
