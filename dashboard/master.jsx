@@ -1353,6 +1353,14 @@ function MsCard({ job, canEdit, currentUser }) {
   const [open, setOpen] = React.useState(false);
   const [exp, setExp] = React.useState(false);
   const [grp, setGrp] = React.useState({});
+  /* กางแล้วเลื่อนให้การ์ดขึ้นมาอยู่บนสุดของลิ้นชัก · กางหมวดแล้วเลื่อนให้เห็นงานย่อย (ผู้ใช้สั่ง 21 พ.ย. 69) */
+  const cardRef = React.useRef(null), grpRef = React.useRef({}), lastGrp = React.useRef(null);
+  React.useEffect(() => { if (exp && cardRef.current) cardRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, [exp]);
+  React.useEffect(() => {
+    const k = lastGrp.current; lastGrp.current = null;
+    const el = k && grp[k] && grpRef.current[k];
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+  }, [grp]);
   const today = msToday();
   const narrow = useMsNarrow(560);
   const hist = useMsHist(job && job.id);
@@ -1386,7 +1394,7 @@ function MsCard({ job, canEdit, currentUser }) {
   );
   return (
     <React.Fragment>
-      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", marginBottom: narrow ? 14 : 16, overflow: "hidden" }}>
+      <div ref={cardRef} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", marginBottom: narrow ? 14 : 16, overflow: "hidden", scrollMarginTop: 8 }}>
         <button onClick={() => setExp((o) => !o)} aria-expanded={exp}
           style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: narrow ? "11px 13px" : "13px 16px",
             background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -1407,8 +1415,8 @@ function MsCard({ job, canEdit, currentUser }) {
               const h = g.h, key = h ? h.id || "g" + gi : "g" + gi, isOpen = !!grp[key];
               const fromDaily = g.kids.some((k) => k.ro) || (h && h.link === "install");
               return (
-                <div key={key + "-" + gi} style={{ background: "var(--surface2)", borderRadius: 10 }}>
-                  <button onClick={() => setGrp((o) => Object.assign({}, o, { [key]: !o[key] }))} aria-expanded={isOpen}
+                <div key={key + "-" + gi} ref={(el) => { grpRef.current[key] = el; }} style={{ background: "var(--surface2)", borderRadius: 10, scrollMarginTop: 8 }}>
+                  <button onClick={() => { lastGrp.current = key; setGrp((o) => Object.assign({}, o, { [key]: !o[key] })); }} aria-expanded={isOpen}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <Icon name="chevronDown" size={13} color="var(--text-3)" style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s", flexShrink: 0 }} />
                     <span style={{ flex: 1, minWidth: 0 }}>

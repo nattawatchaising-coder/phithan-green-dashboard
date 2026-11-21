@@ -3100,6 +3100,24 @@ function MsCard({
   const [open, setOpen] = React.useState(false);
   const [exp, setExp] = React.useState(false);
   const [grp, setGrp] = React.useState({});
+  const cardRef = React.useRef(null),
+    grpRef = React.useRef({}),
+    lastGrp = React.useRef(null);
+  React.useEffect(() => {
+    if (exp && cardRef.current) cardRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, [exp]);
+  React.useEffect(() => {
+    const k = lastGrp.current;
+    lastGrp.current = null;
+    const el = k && grp[k] && grpRef.current[k];
+    if (el) setTimeout(() => el.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    }), 30);
+  }, [grp]);
   const today = msToday();
   const narrow = useMsNarrow(560);
   const hist = useMsHist(job && job.id);
@@ -3148,12 +3166,14 @@ function MsCard({
     }
   }));
   return React.createElement(React.Fragment, null, React.createElement("div", {
+    ref: cardRef,
     style: {
       background: "var(--surface)",
       boxShadow: "var(--shadow-sm)",
       borderRadius: "var(--r-tile)",
       marginBottom: narrow ? 14 : 16,
-      overflow: "hidden"
+      overflow: "hidden",
+      scrollMarginTop: 8
     }
   }, React.createElement("button", {
     onClick: () => setExp(o => !o),
@@ -3237,14 +3257,21 @@ function MsCard({
     const fromDaily = g.kids.some(k => k.ro) || h && h.link === "install";
     return React.createElement("div", {
       key: key + "-" + gi,
+      ref: el => {
+        grpRef.current[key] = el;
+      },
       style: {
         background: "var(--surface2)",
-        borderRadius: 10
+        borderRadius: 10,
+        scrollMarginTop: 8
       }
     }, React.createElement("button", {
-      onClick: () => setGrp(o => Object.assign({}, o, {
-        [key]: !o[key]
-      })),
+      onClick: () => {
+        lastGrp.current = key;
+        setGrp(o => Object.assign({}, o, {
+          [key]: !o[key]
+        }));
+      },
       "aria-expanded": isOpen,
       style: {
         width: "100%",
