@@ -1006,7 +1006,9 @@ function msPrintHTML(job, C, today, cv) {
   /* แบบเดียวกับไฟล์ Excel: งานย่อย 2 แถว Plan / Actual (เริ่ม/จบ = วันแผน / วันทำจริง) · ช่องสัปดาห์ = % ของงานนั้น
      เส้น S-Curve สะสมทับบนแกนต์ — แต่ละแถววาดเส้นเต็มเส้นใน svg ที่ตัดเฉพาะช่วงความสูงของแถวนั้น (viewBox ตามพิกัด y สะสม) ต่อกันเป็นเส้นเดียว */
   const RH = 17, RHH = 21;   // ความสูงแถวงานย่อย (ต่อแถว Plan/Actual) · แถวหัวข้อใหญ่ (px)
-  const nW = A.weeks.length, showWk = nW && 820 / nW >= 26;   // ช่องสัปดาห์กว้างพอค่อยใส่ตัวเลข % (A3 กราฟกว้างราว 820px)
+  /* ยืดกว้างตามจำนวนสัปดาห์แบบไฟล์ Excel (ผู้ใช้สั่ง) — ช่องสัปดาห์กว้างคงที่ WPX ไม่บีบให้พอดี A3 · หน้า PDF กว้าง/สูงเท่าเนื้อหา */
+  const WPX = 40, LW = 678;   // ความกว้างช่องสัปดาห์ · ผลรวมคอลัมน์ซ้าย ID…Plan/Actual (px)
+  const nW = A.weeks.length, GW = Math.max(820, nW * WPX), BODYW = LW + GW, showWk = nW && GW / nW >= 26;
   const bands = [];   // [y0, h] ของแต่ละแถวในแกนต์ ตามลำดับ
   let Ht = 0;
   C.rows.forEach((r) => { if (r.head && r.kids) { bands.push([Ht, RHH]); Ht += RHH; } else { bands.push([Ht, RH]); Ht += RH; bands.push([Ht, RH]); Ht += RH; } });
@@ -1063,7 +1065,7 @@ function msPrintHTML(job, C, today, cv) {
       '<tr class="ax"><td class="ds">' + esc(as != null ? msTH(r.actStart, true) : "") + '</td><td class="df">' + esc(ae0 != null ? msTH(r.actEnd, true) : "") + '</td><td class="pa pq">Actual</td>' +
       gcell(abar + wkTx(as, ae, p, "wa")) + "</tr>";
   }).join("");
-  const wpx = 800 / Math.max(1, A.weeks.length), wide = wpx >= 17;   // ช่องสัปดาห์แคบ → ใส่แค่เลข 1 2 3 4 (A3 แนวนอน กราฟกว้างราว 800px) · กว้างพอ → W1 W2
+  const wpx = GW / Math.max(1, A.weeks.length), wide = wpx >= 17;   // ช่องสัปดาห์แคบ → ใส่แค่เลข 1 2 3 4 (A3 แนวนอน กราฟกว้างราว 800px) · กว้างพอ → W1 W2
   let hd = '<div class="gc mh">' + A.mg.map((g, i) => '<span style="left:' + X(g.d) + "%;width:" + W(g.d, g.d + 7 * g.n - 1) + '%"' + (i ? ' class="b"' : "") + ">" + g.th + "</span>").join("") + "</div>" +
     '<div class="gc wh">' + A.weeks.map((w) => '<span style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (wide ? "W" : "") + w.k + "</span>").join("") + "</div>";
   if (daily) {
@@ -1087,7 +1089,7 @@ function msPrintHTML(job, C, today, cv) {
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")],
     ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter((x) => x[1]);
   const css = "@page{size:420mm 297mm;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
-    "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" +
+    "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;width:" + BODYW + "px}" +
     ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" +
     ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" +
     ".ttl td{padding:1px 10px 1px 0;font-size:11px;white-space:nowrap;border:0;height:auto}.ttl td:first-child{color:#7A8A81}" +
@@ -1140,11 +1142,11 @@ function msPrintHTML(job, C, today, cv) {
     '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" +
     (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' +
       '<span class="scv">แผน ณ วันนี้ <b>' + (Math.round(cv.planNow * 10) / 10) + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" +
-      msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) +
+      msCurveSVG(cv, BODYW, 420, MS_CV_LIGHT) +
       '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' +
       '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") +
-    /* PDF หน้ายาวแผ่นเดียว (ผู้ใช้เลือก): กว้าง A3 แนวนอน · สูงเท่าเนื้อหา — วัดความสูงจริงตอนโหลดและก่อนพิมพ์ แล้วตั้ง @page ใหม่ (Chrome รับขนาดกระดาษเองได้ ≤ 5 ม.) */
-    '<style id="pg"></style><script>(function(){function f(){var h=document.documentElement.scrollHeight,mm=Math.min(5000,Math.max(297,Math.ceil(h*25.4/96)+18+8));document.getElementById("pg").textContent="@page{size:420mm "+mm+"mm;margin:9mm}"}f();addEventListener("load",f);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(f);addEventListener("beforeprint",f)})()</script>' +
+    /* PDF แผ่นเดียว (ผู้ใช้เลือก): กว้าง/สูงเท่าเนื้อหา (ยืดตามจำนวนสัปดาห์) — วัดความสูงจริงตอนโหลดและก่อนพิมพ์ แล้วตั้ง @page ใหม่ (Chrome รับขนาดกระดาษเองได้ ≤ 5 ม.) */
+    '<style id="pg"></style><script>(function(){function f(){var e=document.documentElement,mw=Math.min(5000,Math.max(420,Math.ceil(e.scrollWidth*25.4/96)+18+2)),mh=Math.min(5000,Math.max(297,Math.ceil(e.scrollHeight*25.4/96)+18+8));document.getElementById("pg").textContent="@page{size:"+mw+"mm "+mh+"mm;margin:9mm}"}f();addEventListener("load",f);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(f);addEventListener("beforeprint",f)})()</script>' +
     "</body></html>";
 }
 
