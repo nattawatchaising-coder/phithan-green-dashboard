@@ -1095,7 +1095,6 @@ function MsCard({ job, canEdit, currentUser }) {
           {ms.rows && <MsRing pct={C.pct} size={44} />}
           <Icon name="arrowRight" size={16} color="var(--text-3)" />
         </div>
-        {ms.rows && C.lo != null && <div style={{ marginTop: 8, pointerEvents: "none" }}><MsGantt C={C} today={today} compact narrow={narrow} /></div>}
       </div>
       {/* portal ไป body — ลิ้นชักใบงานมี transform ทำให้ position:fixed ข้างในติดกรอบลิ้นชัก */}
       {open && ReactDOM.createPortal(<MsModal job={job} canEdit={canEdit} currentUser={currentUser} onClose={() => setOpen(false)} />, document.body)}

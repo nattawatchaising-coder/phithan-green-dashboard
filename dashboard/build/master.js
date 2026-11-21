@@ -2501,16 +2501,6 @@ function MsCard({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), ms.rows && C.lo != null && React.createElement("div", {
-    style: {
-      marginTop: 8,
-      pointerEvents: "none"
-    }
-  }, React.createElement(MsGantt, {
-    C: C,
-    today: today,
-    compact: true,
-    narrow: narrow
   }))), open && ReactDOM.createPortal(React.createElement(MsModal, {
     job: job,
     canEdit: canEdit,
