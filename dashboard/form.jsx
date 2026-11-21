@@ -78,6 +78,21 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const installDate = (SF.installDate ? SF.installDate(f) : "");      // วันเริ่ม
   const installEnd = (SF.installEnd ? SF.installEnd(f) : installDate); // วันเสร็จ (>= วันเริ่ม)
   const setInstall = (start, end) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: { start: start, end: end } }) }));
+  /* วันติดตั้งตามแผนงานติดตั้ง (ผู้ใช้ 22 พ.ย. 2026 เลือก "ตามแผนอัตโนมัติ") — งานที่มีตารางขั้นงานใส่วันแล้ว
+     ช่องวันล็อกเป็นวันแรก–วันท้ายของแผน แก้วันที่แผนงานแทน · เปิดฟอร์มแล้ววันไม่ตรงแผน = เติมให้ (กดบันทึกแล้วปฏิทินช่างเห็น) */
+  const [planRg, setPlanRg] = React.useState(null);
+  React.useEffect(() => {
+    if (!f.id || !window.FBDB || !window.drPlanRange) return;
+    const ref = window.FBDB.ref((window.DR_ROOT || "") + "dailyPlan/" + f.id);
+    const h = ref.on("value", (s) => { const v = s.val(); setPlanRg(v && v.steps ? window.drPlanRange(Array.isArray(v.steps) ? v.steps : Object.values(v.steps)) : null); });
+    return () => ref.off("value", h);
+  }, [f.id]);
+  React.useEffect(() => {
+    if (!planRg) return;
+    if (planRg.start !== installDate || planRg.end !== installEnd) setInstall(planRg.start, planRg.end);
+    const d0 = new Date(planRg.start + "T00:00:00");   // ปฏิทินช่างเปิดเดือนที่เริ่มติดตั้ง
+    if (!isNaN(d0)) setFlowMonth({ y: d0.getFullYear(), m: d0.getMonth() });
+  }, [planRg && planRg.start, planRg && planRg.end]);
   /* ล้างวันนัดติดตั้งทั้งช่วง — ลงวันไปแล้วต้องถอนออกได้ (งานเลื่อน/ยกเลิกคิว เกิดขึ้นประจำ) */
   const clearInstall = () => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: null }) }));
   const setInstallStart = (v) => (v ? setInstall(v, (installEnd && installEnd >= v) ? installEnd : v) : clearInstall());   // เลื่อนวันเสร็จตามถ้าจำเป็น
@@ -400,10 +415,12 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, flex: 1, minWidth: 0 }}>
-                  งานที่ติดตั้งหลายวัน ใส่<b style={{ color: "var(--text-2)" }}>วันเริ่ม–วันเสร็จ</b>ได้ · ถ้าวันเดียวใส่แค่วันเริ่ม
+                  {planRg
+                    ? <span>วันติดตั้ง<b style={{ color: "var(--primary-dark)" }}>ตามแผนงานติดตั้ง</b>อัตโนมัติ — วันแรกถึงวันสุดท้ายของแผน · จะเปลี่ยนวันให้แก้ที่แผนงาน (ตารางขั้นงาน)</span>
+                    : <span>งานที่ติดตั้งหลายวัน ใส่<b style={{ color: "var(--text-2)" }}>วันเริ่ม–วันเสร็จ</b>ได้ · ถ้าวันเดียวใส่แค่วันเริ่ม</span>}
                 </div>
                 {/* ถอนวันที่ลงไว้แล้วได้ — ในปฏิทินก็แตะวันเดิมซ้ำเพื่อยกเลิกได้เหมือนกัน */}
-                {installDate && (
+                {installDate && !planRg && (
                   <button type="button" onClick={clearInstall} title="ล้างวันนัดติดตั้งของงานนี้"
                     style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8,
                       border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)",
@@ -414,10 +431,10 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="เริ่มติดตั้ง">
-                  <input type="date" style={inputStyle} value={installDate} max={installEnd || undefined} onChange={(e) => setInstallStart(e.target.value)} />
+                  <input type="date" style={Object.assign({}, inputStyle, planRg ? { opacity: .75, cursor: "not-allowed" } : null)} disabled={!!planRg} value={installDate} max={installEnd || undefined} onChange={(e) => setInstallStart(e.target.value)} />
                 </Field>
                 <Field label="เสร็จติดตั้ง">
-                  <input type="date" style={Object.assign({}, inputStyle, installDate ? null : { opacity: .5, cursor: "not-allowed" })} disabled={!installDate} min={installDate || undefined} value={installEnd} onChange={(e) => setInstallEnd(e.target.value)} />
+                  <input type="date" style={Object.assign({}, inputStyle, installDate && !planRg ? null : { opacity: planRg ? .75 : .5, cursor: "not-allowed" })} disabled={!installDate || !!planRg} min={installDate || undefined} value={installEnd} onChange={(e) => setInstallEnd(e.target.value)} />
                 </Field>
               </div>
               {installDate && f.tech && (() => {
@@ -470,9 +487,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       else if (cnt === 1) { bg = "var(--tint-amber-bg2)"; col = "var(--tint-amber-tx)"; bd = "1px solid #FCD34D"; }
                       return (
                         /* แตะวันที่เป็นวันเริ่มอยู่แล้วซ้ำ = ยกเลิกวันนัด (กดลงไปแล้วต้องถอนออกได้ในที่เดียวกัน) */
-                        <button type="button" key={i} onClick={() => (k === installDate ? clearInstall() : setInstallStart(k))}
-                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง")}
-                          style={{ minHeight: 30, borderRadius: 7, border: isToday && !mine ? "1.5px solid var(--primary)" : bd, background: bg, cursor: "pointer", fontFamily: "inherit",
+                        <button type="button" key={i} onClick={() => { if (planRg) return; k === installDate ? clearInstall() : setInstallStart(k); }}
+                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (planRg ? " — วันติดตั้งตามแผนงาน" : k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง")}
+                          style={{ minHeight: 30, borderRadius: 7, border: isToday && !mine ? "1.5px solid var(--primary)" : bd, background: bg, cursor: planRg ? "default" : "pointer", fontFamily: "inherit",
                             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                           <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>
                           {!mine && cnt > 0 && <span style={{ fontSize: 8, fontWeight: 700, color: col, lineHeight: 1 }}>{cnt} งาน</span>}

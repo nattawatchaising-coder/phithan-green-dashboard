@@ -391,6 +391,7 @@ function useDailyReports(jobId) {
       steps: drRenumber(steps),
       updatedAt: new Date().toISOString()
     });
+    drSyncInstall(jobId, steps);
   }, [jobId]);
   return {
     byDate,
@@ -402,6 +403,30 @@ function useDailyReports(jobId) {
     plan,
     savePlan
   };
+}
+function drPlanRange(steps) {
+  let a = "",
+    b = "";
+  (steps || []).forEach(r => {
+    const s = String(r && r.planStart || "").slice(0, 10),
+      e = String(r && (r.planEnd || r.planStart) || "").slice(0, 10);
+    if (s && (!a || s < a)) a = s;
+    if (e && (!b || e > b)) b = e;
+  });
+  return a ? {
+    start: a,
+    end: b && b >= a ? b : a
+  } : null;
+}
+function drSyncInstall(jobId, steps) {
+  const rg = drPlanRange(steps);
+  if (!rg || !jobId || !_DRFB() || DR_ROOT) return;
+  const ref = window.FBDB.ref("jobs/" + jobId + "/stageDates/install");
+  ref.once("value").then(s => {
+    const v = s.val();
+    if (v && typeof v === "object" && v.start === rg.start && v.end === rg.end) return;
+    return ref.set(rg);
+  }).catch(() => {});
 }
 function useDailyPhotos(jobId, date) {
   const [photos, setPhotos] = React.useState([]);
@@ -908,6 +933,8 @@ Object.assign(window, {
   DR_CLEAN,
   drWhaSteps,
   drHomeSteps,
+  drPlanRange,
+  drSyncInstall,
   drIsBoardSteps,
   drStepsFresh,
   drRenumber,

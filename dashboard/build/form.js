@@ -131,6 +131,25 @@ function JobForm({
       }
     })
   }));
+  const [planRg, setPlanRg] = React.useState(null);
+  React.useEffect(() => {
+    if (!f.id || !window.FBDB || !window.drPlanRange) return;
+    const ref = window.FBDB.ref((window.DR_ROOT || "") + "dailyPlan/" + f.id);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      setPlanRg(v && v.steps ? window.drPlanRange(Array.isArray(v.steps) ? v.steps : Object.values(v.steps)) : null);
+    });
+    return () => ref.off("value", h);
+  }, [f.id]);
+  React.useEffect(() => {
+    if (!planRg) return;
+    if (planRg.start !== installDate || planRg.end !== installEnd) setInstall(planRg.start, planRg.end);
+    const d0 = new Date(planRg.start + "T00:00:00");
+    if (!isNaN(d0)) setFlowMonth({
+      y: d0.getFullYear(),
+      m: d0.getMonth()
+    });
+  }, [planRg && planRg.start, planRg && planRg.end]);
   const clearInstall = () => setF(p => Object.assign({}, p, {
     stageDates: Object.assign({}, p.stageDates, {
       install: null
@@ -996,11 +1015,15 @@ function JobForm({
       flex: 1,
       minWidth: 0
     }
-  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E32\u0E22\u0E27\u0E31\u0E19 \u0E43\u0E2A\u0E48", React.createElement("b", {
+  }, planRg ? React.createElement("span", null, "\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07", React.createElement("b", {
+    style: {
+      color: "var(--primary-dark)"
+    }
+  }, "\u0E15\u0E32\u0E21\u0E41\u0E1C\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u2014 \u0E27\u0E31\u0E19\u0E41\u0E23\u0E01\u0E16\u0E36\u0E07\u0E27\u0E31\u0E19\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E19 \xB7 \u0E08\u0E30\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E27\u0E31\u0E19\u0E43\u0E2B\u0E49\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E19\u0E07\u0E32\u0E19 (\u0E15\u0E32\u0E23\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19)") : React.createElement("span", null, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E32\u0E22\u0E27\u0E31\u0E19 \u0E43\u0E2A\u0E48", React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u2013\u0E27\u0E31\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08"), "\u0E44\u0E14\u0E49 \xB7 \u0E16\u0E49\u0E32\u0E27\u0E31\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E2A\u0E48\u0E41\u0E04\u0E48\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21"), installDate && React.createElement("button", {
+  }, "\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u2013\u0E27\u0E31\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08"), "\u0E44\u0E14\u0E49 \xB7 \u0E16\u0E49\u0E32\u0E27\u0E31\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E2A\u0E48\u0E41\u0E04\u0E48\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21")), installDate && !planRg && React.createElement("button", {
     type: "button",
     onClick: clearInstall,
     title: "\u0E25\u0E49\u0E32\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49",
@@ -1034,7 +1057,11 @@ function JobForm({
     label: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, React.createElement("input", {
     type: "date",
-    style: inputStyle,
+    style: Object.assign({}, inputStyle, planRg ? {
+      opacity: .75,
+      cursor: "not-allowed"
+    } : null),
+    disabled: !!planRg,
     value: installDate,
     max: installEnd || undefined,
     onChange: e => setInstallStart(e.target.value)
@@ -1042,11 +1069,11 @@ function JobForm({
     label: "\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, React.createElement("input", {
     type: "date",
-    style: Object.assign({}, inputStyle, installDate ? null : {
-      opacity: .5,
+    style: Object.assign({}, inputStyle, installDate && !planRg ? null : {
+      opacity: planRg ? .75 : .5,
       cursor: "not-allowed"
     }),
-    disabled: !installDate,
+    disabled: !installDate || !!planRg,
     min: installDate || undefined,
     value: installEnd,
     onChange: e => setInstallEnd(e.target.value)
@@ -1203,14 +1230,17 @@ function JobForm({
       return React.createElement("button", {
         type: "button",
         key: i,
-        onClick: () => k === installDate ? clearInstall() : setInstallStart(k),
-        title: (mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง"),
+        onClick: () => {
+          if (planRg) return;
+          k === installDate ? clearInstall() : setInstallStart(k);
+        },
+        title: (mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (planRg ? " — วันติดตั้งตามแผนงาน" : k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง"),
         style: {
           minHeight: 30,
           borderRadius: 7,
           border: isToday && !mine ? "1.5px solid var(--primary)" : bd,
           background: bg,
-          cursor: "pointer",
+          cursor: planRg ? "default" : "pointer",
           fontFamily: "inherit",
           display: "flex",
           flexDirection: "column",

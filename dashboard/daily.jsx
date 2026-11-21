@@ -361,9 +361,36 @@ function useDailyReports(jobId) {
   const savePlan = React.useCallback((mode, steps) => {
     if (!jobId || !_DRFB() || !steps || !steps.length) return;
     _drRef("dailyPlan/" + jobId).set({ mode: mode || "home", steps: drRenumber(steps), updatedAt: new Date().toISOString() });
+    drSyncInstall(jobId, steps);
   }, [jobId]);
 
   return { byDate, dates, loading, save, patch, remove, plan, savePlan };
+}
+
+/* ── วันติดตั้งของงานตามแผนงานติดตั้ง ──
+   ผู้ใช้ 22 พ.ย. 2026 "น่าจะต้องเอาจากแผนงานติดตั้งแล้วไหม" → เลือก "ตามแผนอัตโนมัติ":
+   งานที่มีตารางขั้นงาน (dailyPlan) ใส่วันแผนแล้ว วันนัดติดตั้ง (stageDates.install ที่ปฏิทินช่าง/ตารางงานใช้) = วันแรกสุด–วันท้ายสุดของแผน
+   ไม่มีวันในแผนเลย = null (ใส่วันเองในหน้าแก้ไขข้อมูลงานเหมือนเดิม) */
+function drPlanRange(steps) {
+  let a = "", b = "";
+  (steps || []).forEach((r) => {
+    const s = String((r && r.planStart) || "").slice(0, 10), e = String((r && (r.planEnd || r.planStart)) || "").slice(0, 10);
+    if (s && (!a || s < a)) a = s;
+    if (e && (!b || e > b)) b = e;
+  });
+  return a ? { start: a, end: b && b >= a ? b : a } : null;
+}
+/* บันทึกตารางขั้นงานเมื่อไร ขยับวันนัดติดตั้งของใบงานตาม (เขียนเฉพาะเมื่อเปลี่ยน — รายงานประจำวันบันทึกตารางทุกครั้งที่แก้)
+   โหมดทดสอบ (DR_ROOT = _sandbox/) ไม่แตะใบงานจริง */
+function drSyncInstall(jobId, steps) {
+  const rg = drPlanRange(steps);
+  if (!rg || !jobId || !_DRFB() || DR_ROOT) return;
+  const ref = window.FBDB.ref("jobs/" + jobId + "/stageDates/install");
+  ref.once("value").then((s) => {
+    const v = s.val();
+    if (v && typeof v === "object" && v.start === rg.start && v.end === rg.end) return;
+    return ref.set(rg);
+  }).catch(() => {});
 }
 
 /* รูปของรายงานวันหนึ่ง — แยกโหนดจากตัวรายงาน (ดูหมายเหตุหัวไฟล์) */
@@ -657,7 +684,7 @@ Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailySigns, useDrMySign, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
-  drWhaSteps, drHomeSteps, drIsBoardSteps, drStepsFresh, drRenumber, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
+  drWhaSteps, drHomeSteps, drPlanRange, drSyncInstall, drIsBoardSteps, drStepsFresh, drRenumber, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drNoEe, drEeIsTech, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
   DrSignPad, drTrimSign, DR_ROOT,
 });
