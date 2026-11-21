@@ -1310,10 +1310,44 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
   );
 }
 
-/* ── การ์ดในใบงาน (แท็บภาพรวม · เฉพาะงานโครงการ) — แกนต์ย่อหัวข้อใหญ่ + % รวม กดเปิดเต็ม ── */
+/* ช่องอัปเดต % ด่วนในการ์ด — พิมพ์แล้วกด Enter/คลิกออก = บันทึก · ปุ่มถูก = 100% */
+function MsQuickPct({ value, onSave }) {
+  const [v, setV] = React.useState(String(value));
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => { setV(String(value)); }, [value]);
+  const commit = (x) => {
+    const n = msPct(x);
+    if (n === msPct(value)) { setV(String(value)); return; }
+    setBusy(true);
+    Promise.resolve(onSave(n)).then(() => setBusy(false), (e) => { setBusy(false); setV(String(value));
+      window.askConfirm({ title: "บันทึกไม่สำเร็จ", body: String((e && e.message) || e), ok: "ตกลง" }); });
+  };
+  const done = msPct(value) >= 100;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+      <span style={{ display: "inline-flex", alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: 8, padding: "0 7px 0 2px", opacity: busy ? 0.5 : 1 }}>
+        <input type="number" min="0" max="100" step="5" value={v} disabled={busy} aria-label="ความคืบหน้า %"
+          onChange={(e) => setV(e.target.value)} onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          style={{ width: 40, border: "none", background: "transparent", padding: "5px 2px", textAlign: "right", fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-1)", outline: "none" }} />
+        <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>%</span>
+      </span>
+      <button title="เสร็จแล้ว (100%)" aria-label="ทำเครื่องหมายว่าเสร็จ" disabled={busy || done} onClick={() => commit(100)}
+        style={{ width: 28, height: 28, border: "none", borderRadius: 8, cursor: done ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0,
+          background: done ? "var(--tint-ok-bg)" : "var(--surface2)", boxShadow: done ? "none" : "var(--shadow-sm)" }}>
+        <Icon name="check" size={14} color={done ? "var(--tint-ok-tx)" : "var(--text-3)"} />
+      </button>
+    </span>
+  );
+}
+
+/* ── การ์ดในใบงาน (แท็บภาพรวม · เฉพาะงานโครงการ) — แบบเมนูกางลงเหมือนการ์ดสเปกระบบ (ผู้ใช้สั่ง 21 พ.ย. 69 "ทำเป็น Dropdown ... เซ็นสัญญา ขออนุญาต ออกแบบ สั่งของ งานติดตั้ง")
+   ปิด = บรรทัดสรุป + วง % · เปิด = หัวข้อใหญ่ทีละหมวด กดกางดูงานย่อย อัปเดต % ได้ทันทีในการ์ด (บันทึกเลย ข้อมูลสดจากฐานข้อมูล)
+   งานติดตั้งดึงจากตารางขั้นงานของรายงานประจำวัน — แก้ที่รายงานประจำวันหรือในหน้าต่างเต็ม · ปุ่มท้ายเปิดหน้าต่างเต็ม (กราฟ · PDF · Excel · แก้แผนทั้งหมด) */
 function MsCard({ job, canEdit, currentUser }) {
   const { ms, inst } = useMsData(job);
   const [open, setOpen] = React.useState(false);
+  const [exp, setExp] = React.useState(false);
+  const [grp, setGrp] = React.useState({});
   const today = msToday();
   const narrow = useMsNarrow(560);
   const hist = useMsHist(job && job.id);
@@ -1325,22 +1359,95 @@ function MsCard({ job, canEdit, currentUser }) {
     window.FBDB.ref("masterScheduleHist/" + job.id + "/" + today).set(C.pct);
   }, [job && job.id, !!ms.rows, hist, today, C.pct]);
   if (!job) return null;
-  const sub = !ms.rows ? "ยังไม่ได้ทำแผน — กดเพื่อเริ่มจากแม่แบบ"
+  const sub = !ms.rows ? "ยังไม่ได้ทำแผน — กดดูทั้งหมดแล้วเปิดแผนงานเต็มเพื่อเริ่มจากแม่แบบ"
     : [C.lo != null ? msSpanTH(msIso(C.lo), msIso(C.hi)) : "ยังไม่ใส่วันแผน", C.cnt.done + "/" + C.leaves + " งานเสร็จ", C.late ? "ล่าช้า " + C.late : ""].filter(Boolean).join(" · ");
+  /* แบ่งเป็นหมวดตามหัวข้อใหญ่ */
+  const groups = [];
+  C.rows.forEach((r) => { if (r.head || !groups.length) groups.push({ h: r.head ? r : null, kids: r.head ? [] : [r] }); else groups[groups.length - 1].kids.push(r); });
+  /* อัปเดต % งานย่อยหนึ่งงาน — เติมวันเริ่ม/เสร็จจริงให้เองแบบเดียวกับตัวแก้แผน แล้วบันทึกทั้งแผน */
+  const can = canEdit && !!ms.rows;
+  const setPct = (id, n) => ms.save(ms.rows.map((r) => {
+    if (r.id !== id) return r;
+    const up = { pct: n };
+    if (n > 0 && !r.actStart) up.actStart = today;
+    if (n >= 100 && !r.actEnd) up.actEnd = today;
+    if (n < 100 && r.actEnd) up.actEnd = "";
+    return Object.assign({}, r, up);
+  }), currentUser);
+  const pad = narrow ? 13 : 16;
+  const bar = (r, w) => (
+    <span style={{ width: w, height: 6, borderRadius: 3, background: MS_TRACK, overflow: "hidden", flexShrink: 0 }}>
+      <span style={{ display: "block", width: msPct(r.pct) + "%", height: "100%", background: (MS_ST[r.st] || MS_ST.todo).bar }} /></span>
+  );
   return (
     <React.Fragment>
-      <div role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(true); }}
-        style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: narrow ? "11px 13px" : "13px 16px",
-          marginBottom: narrow ? 14 : 16, cursor: "pointer" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", marginBottom: narrow ? 14 : 16, overflow: "hidden" }}>
+        <button onClick={() => setExp((o) => !o)} aria-expanded={exp}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: narrow ? "11px 13px" : "13px 16px",
+            background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
           <span style={{ width: 18, height: 20, flexShrink: 0, display: "grid", placeItems: "center" }}><Icon name="calendar" size={15} color="var(--primary)" /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>Master Schedule</span>
+            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>แผนงานโครงการ</span>
             <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.late ? "var(--tint-red-tx)" : "var(--text-1)", marginTop: 2 }}>{sub}</span>
           </span>
           {ms.rows && <MsRing pct={C.pct} size={44} />}
-          <Icon name="arrowRight" size={16} color="var(--text-3)" />
-        </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "var(--primary)", whiteSpace: "nowrap" }}>
+            {exp ? "ย่อ" : "ดูทั้งหมด"}
+            <Icon name="chevronDown" size={14} color="var(--primary)" style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+          </span>
+        </button>
+        {exp && (
+          <div style={{ padding: "0 " + pad + "px " + pad + "px", display: "flex", flexDirection: "column", gap: 6 }}>
+            {groups.map((g, gi) => {
+              const h = g.h, key = h ? h.id || "g" + gi : "g" + gi, isOpen = !!grp[key];
+              const fromDaily = g.kids.some((k) => k.ro) || (h && h.link === "install");
+              return (
+                <div key={key + "-" + gi} style={{ background: "var(--surface2)", borderRadius: 10 }}>
+                  <button onClick={() => setGrp((o) => Object.assign({}, o, { [key]: !o[key] }))} aria-expanded={isOpen}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <Icon name="chevronDown" size={13} color="var(--text-3)" style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s", flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {h ? h.th || "—" : "งานอื่น"}</span>
+                      <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1 }}>
+                        {[h && h.planStart ? msSpanTH(h.planStart, h.planEnd) : "", g.kids.length ? g.kids.filter((k) => msPct(k.pct) >= 100).length + "/" + g.kids.length + " งานเสร็จ" : ""].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    {h && !narrow && bar(h, 54)}
+                    {h && <span style={{ width: 34, textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: "var(--text-1)", flexShrink: 0 }}>{msPct(h.pct)}%</span>}
+                    {h && <MsPill st={h.st} label={msStLabel(h)} small />}
+                  </button>
+                  {isOpen && (
+                    <div style={{ padding: "0 8px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
+                      {fromDaily && <div style={{ fontSize: 10.5, color: "var(--text-3)", padding: "0 4px 2px 25px" }}>อัปเดตจากตารางขั้นงานในรายงานประจำวัน (หรือกด "เปิดแผนงานเต็ม" แล้ว "แก้แผนงาน")</div>}
+                      {!g.kids.length && <div style={{ fontSize: 11.5, color: "var(--text-3)", padding: "2px 4px 4px 25px" }}>ยังไม่มีงานย่อย</div>}
+                      {g.kids.map((k, ki) => (
+                        <div key={(k.id || "k") + ki} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px 7px 10px", background: "var(--surface)", borderRadius: 8 }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-3)", width: 22, flexShrink: 0 }}>{k.no}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={k.th}>{k.th || "—"}</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--text-3)", marginTop: 2, flexWrap: "wrap" }}>
+                              <span>{k.planStart ? msSpanTH(k.planStart, k.planEnd) : "ยังไม่ใส่วัน"}</span>
+                              <MsPill st={k.st} label={msStLabel(k)} small />
+                            </span>
+                          </span>
+                          {can && !k.ro && k.id ? <MsQuickPct value={msPct(k.pct)} onSave={(n) => setPct(k.id, n)} />
+                            : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{!narrow && bar(k, 44)}
+                              <span style={{ width: 34, textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>{msPct(k.pct)}%</span></span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {canEdit && !ms.rows && <div style={{ fontSize: 11.5, color: "var(--text-3)", padding: "2px 2px 0" }}>ยังไม่ได้ทำแผน — เปิดแผนงานเต็มแล้วกด "แก้แผนงาน" ใส่วันและบันทึกก่อน จึงอัปเดต % ในการ์ดนี้ได้</div>}
+            <button onClick={() => setOpen(true)}
+              style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 12px", border: "none", borderRadius: "var(--r-tile)",
+                background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <Icon name="calendar" size={14} /> เปิดแผนงานเต็ม · กราฟ · PDF · Excel{canEdit ? " · แก้แผนงาน" : ""}
+            </button>
+          </div>
+        )}
       </div>
       {/* portal ไป body — ลิ้นชักใบงานมี transform ทำให้ position:fixed ข้างในติดกรอบลิ้นชัก */}
       {open && ReactDOM.createPortal(<MsModal job={job} canEdit={canEdit} currentUser={currentUser} onClose={() => setOpen(false)} />, document.body)}
