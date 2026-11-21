@@ -1962,6 +1962,7 @@ function MsGantt({
     }, "Actual")) : React.createElement("span", null))), React.createElement("div", {
       style: {
         position: "relative",
+        isolation: "isolate",
         height: rh,
         borderTop: line,
         background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent"

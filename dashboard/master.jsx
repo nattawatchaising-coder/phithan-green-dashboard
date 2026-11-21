@@ -844,7 +844,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
                 {full && <span><MsPill st={r.st} label={msStLabel(r)} small /></span>}
                 {full && (sub ? <span style={Object.assign({}, pa2, { fontWeight: 700, fontSize: 10 })}><span style={{ color: "var(--tint-ok-tx)" }}>Plan</span><span style={{ color: MS_ACT_TX }}>Actual</span></span> : <span />)}
               </div>
-              <div style={{ position: "relative", height: rh, borderTop: line, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent" }}>
+              <div style={{ position: "relative", isolation: "isolate", height: rh, borderTop: line, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent" }}>
                 {!compact && weekend.map((d) => <span key={d} style={{ position: "absolute", left: A.X(d) + "%", width: A.W(d, d) + "%", top: 0, bottom: 0, background: "color-mix(in srgb, var(--text-3) 7%, transparent)" }} />)}
                 {!compact && A.weeks.map((w) => <span key={"g" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", top: 0, bottom: 0, width: 1, background: "var(--divider)", zIndex: 2 }} />)}
                 {!compact && sub && (() => {
