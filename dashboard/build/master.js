@@ -648,6 +648,7 @@ function msExportXlsx(job, C, cv, today) {
     }
   });
   const weeks = cv ? cv.weeks : [];
+  const wl = msWkLab(weeks);
   const ws = {},
     merges = [];
   const put = (r, c, v, st, t, z) => {
@@ -698,7 +699,7 @@ function msExportXlsx(job, C, cv, today) {
   let mStart = 0;
   weeks.forEach((w, i) => {
     const dt = new Date(w.d * 86400000);
-    put(H0 + 1, W0 + i, "W" + w.n, HDR);
+    put(H0 + 1, W0 + i, "W" + wl[i].k, HDR);
     const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
     const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
     if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
@@ -937,7 +938,7 @@ function msExportXlsx(job, C, cv, today) {
   }));
   ["สัปดาห์", "เริ่มสัปดาห์", "แผนรายสัปดาห์ %", "แผนสะสม %", "จริงสะสม %", "ต่างจากแผน %"].forEach((t, c) => cput(1, c, t, HDR));
   weeks.forEach((w, i) => {
-    cput(2 + i, 0, "W" + w.n, sty());
+    cput(2 + i, 0, wl[i].lab, sty());
     cput(2 + i, 1, w.d + 25569, sty(), "n", "d/m/yyyy");
     cput(2 + i, 2, Math.round(w.plan * 100) / 100, sty(), "n", "0.00");
     cput(2 + i, 3, Math.round(w.planAcc * 100) / 100, sty(), "n", "0.00");
@@ -995,6 +996,20 @@ function msExportXlsx(job, C, cv, today) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+function msWkLab(weeks) {
+  let key = null,
+    k = 0;
+  return weeks.map(w => {
+    const x = new Date(w.d * 86400000),
+      kk = x.getUTCFullYear() * 12 + x.getUTCMonth();
+    k = kk === key ? k + 1 : 1;
+    key = kk;
+    return {
+      k,
+      lab: MS_MON[x.getUTCMonth()] + " W" + k
+    };
+  });
+}
 function msAddChart(CFB, bytes, weeks, lastRow) {
   const z = CFB.read(bytes, {
     type: "array"
@@ -1013,7 +1028,7 @@ function msAddChart(CFB, bytes, weeks, lastRow) {
   const N = weeks.length,
     r0 = 3,
     r1 = lastRow;
-  const cat = "<c:cat><c:strRef><c:f>'S-Curve'!$A$" + r0 + ":$A$" + r1 + "</c:f><c:strCache><c:ptCount val=\"" + N + "\"/>" + weeks.map((w, i) => '<c:pt idx="' + i + '"><c:v>W' + w.n + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
+  const cat = "<c:cat><c:strRef><c:f>'S-Curve'!$A$" + r0 + ":$A$" + r1 + "</c:f><c:strCache><c:ptCount val=\"" + N + "\"/>" + msWkLab(weeks).map((w, i) => '<c:pt idx="' + i + '"><c:v>' + xe(w.lab) + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
   const ser = (idx, col, title, rgb, vals, dash) => "<c:ser><c:idx val=\"" + idx + "\"/><c:order val=\"" + idx + "\"/><c:tx><c:v>" + xe(title) + "</c:v></c:tx>" + '<c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill>' + (dash ? '<a:prstDash val="dash"/>' : "") + '<a:round/></a:ln></c:spPr>' + (idx ? '<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill></c:spPr></c:marker>' : '<c:marker><c:symbol val="none"/></c:marker>') + cat + "<c:val><c:numRef><c:f>'S-Curve'!$" + col + "$" + r0 + ":$" + col + "$" + r1 + "</c:f><c:numCache><c:formatCode>0.00</c:formatCode><c:ptCount val=\"" + N + "\"/>" + vals.map((v, i) => v == null ? "" : '<c:pt idx="' + i + '"><c:v>' + Math.round(v * 100) / 100 + "</c:v></c:pt>").join("") + '</c:numCache></c:numRef></c:val><c:smooth val="0"/></c:ser>';
   const chart = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' + '<c:roundedCorners val="0"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:p><a:pPr><a:defRPr sz="1400" b="1"/></a:pPr><a:r><a:rPr lang="th-TH" sz="1400" b="1"/><a:t>EPC S-Curve</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>' + '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/><c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + ser(0, "D", "แผนสะสม (Plan)", "1B9B75", weeks.map(w => w.planAcc)) + ser(1, "E", "ทำได้จริงสะสม (Actual)", "2563EB", weeks.map(w => w.act)) + '<c:marker val="1"/><c:axId val="50010001"/><c:axId val="50010002"/></c:lineChart>' + '<c:catAx><c:axId val="50010001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' + '<c:valAx><c:axId val="50010002"/><c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr><a:ln><a:solidFill><a:srgbClr val="E3E9E5"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="0&quot;%&quot;" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="50010001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/><c:majorUnit val="20"/></c:valAx>' + '</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
   const drawing = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + '<xdr:twoCellAnchor><xdr:from><xdr:col>7</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' + '<xdr:to><xdr:col>22</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>28</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' + '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="S-Curve"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>' + '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">' + '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>' + '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>';

@@ -329,6 +329,7 @@ function msExportXlsx(job, C, cv, today) {
   const HDR = sty({ font: font({ bold: true, color: { rgb: "FFFFFF" } }), fill: { fgColor: { rgb: "1B5E4A" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true } });
   const HEAD = sty({ font: font({ bold: true }), fill: { fgColor: { rgb: "E6F2EC" } } });
   const weeks = cv ? cv.weeks : [];
+  const wl = msWkLab(weeks);   // หัวสัปดาห์ W1-W4/5 นับใหม่ทุกเดือน (ตรงกับแกนต์)
   const ws = {}, merges = [];
   const put = (r, c, v, st, t, z) => { const a = X.utils.encode_cell({ r, c }); ws[a] = { v: v == null ? "" : v, t: t || (typeof v === "number" ? "n" : "s"), s: st }; if (z) ws[a].z = z; };
   const name = [job.code, job.name].filter(Boolean).join(" · ");
@@ -340,7 +341,7 @@ function msExportXlsx(job, C, cv, today) {
   let mStart = 0;
   weeks.forEach((w, i) => {
     const dt = new Date(w.d * 86400000);
-    put(H0 + 1, W0 + i, "W" + w.n, HDR);
+    put(H0 + 1, W0 + i, "W" + wl[i].k, HDR);
     const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
     const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
     if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
@@ -413,7 +414,7 @@ function msExportXlsx(job, C, cv, today) {
   cput(0, 0, "S-Curve — " + name, sty({ font: font({ bold: true, sz: 13 }), border: {} }));
   ["สัปดาห์", "เริ่มสัปดาห์", "แผนรายสัปดาห์ %", "แผนสะสม %", "จริงสะสม %", "ต่างจากแผน %"].forEach((t, c) => cput(1, c, t, HDR));
   weeks.forEach((w, i) => {
-    cput(2 + i, 0, "W" + w.n, sty());
+    cput(2 + i, 0, wl[i].lab, sty());
     cput(2 + i, 1, w.d + 25569, sty(), "n", "d/m/yyyy");
     cput(2 + i, 2, Math.round(w.plan * 100) / 100, sty(), "n", "0.00");
     cput(2 + i, 3, Math.round(w.planAcc * 100) / 100, sty(), "n", "0.00");
@@ -437,6 +438,15 @@ function msExportXlsx(job, C, cv, today) {
   const a = document.createElement("a"); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+/* ป้ายสัปดาห์แบบนับในเดือน (ตามวันจันทร์ของสัปดาห์): k = 1,2,3… · lab = "พ.ย. W1" */
+function msWkLab(weeks) {
+  let key = null, k = 0;
+  return weeks.map((w) => {
+    const x = new Date(w.d * 86400000), kk = x.getUTCFullYear() * 12 + x.getUTCMonth();
+    k = kk === key ? k + 1 : 1; key = kk;
+    return { k, lab: MS_MON[x.getUTCMonth()] + " W" + k };
+  });
+}
 /* เติมกราฟเส้น S-Curve ลงชีตที่ 2 (sheet2.xml) — rows = แถวข้อมูลสุดท้าย (1-based) */
 function msAddChart(CFB, bytes, weeks, lastRow) {
   const z = CFB.read(bytes, { type: "array" });
@@ -446,7 +456,7 @@ function msAddChart(CFB, bytes, weeks, lastRow) {
   const xe = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const N = weeks.length, r0 = 3, r1 = lastRow;
   const cat = "<c:cat><c:strRef><c:f>'S-Curve'!$A$" + r0 + ":$A$" + r1 + "</c:f><c:strCache><c:ptCount val=\"" + N + "\"/>" +
-    weeks.map((w, i) => '<c:pt idx="' + i + '"><c:v>W' + w.n + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
+    msWkLab(weeks).map((w, i) => '<c:pt idx="' + i + '"><c:v>' + xe(w.lab) + "</c:v></c:pt>").join("") + "</c:strCache></c:strRef></c:cat>";
   const ser = (idx, col, title, rgb, vals, dash) => "<c:ser><c:idx val=\"" + idx + "\"/><c:order val=\"" + idx + "\"/><c:tx><c:v>" + xe(title) + "</c:v></c:tx>" +
     '<c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill>' + (dash ? '<a:prstDash val="dash"/>' : "") + '<a:round/></a:ln></c:spPr>' +
     (idx ? '<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill></c:spPr></c:marker>' : '<c:marker><c:symbol val="none"/></c:marker>') +
