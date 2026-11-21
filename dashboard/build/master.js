@@ -1266,6 +1266,7 @@ const MsPill = ({
     }
   }, label || s.th);
 };
+const msSolid = c => "linear-gradient(" + c + "," + c + ") var(--bg)";
 function MsGantt({
   C,
   today,
@@ -1322,7 +1323,7 @@ function MsGantt({
       position: "sticky",
       left: 0,
       zIndex: 3,
-      background: "var(--surface)",
+      background: msSolid("var(--surface)"),
       height: headH,
       display: "grid",
       gridTemplateColumns: cols,
@@ -1450,7 +1451,7 @@ function MsGantt({
         position: "sticky",
         left: 0,
         zIndex: 2,
-        background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)",
+        background: msSolid(r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)"),
         height: rh,
         display: "grid",
         gridTemplateColumns: cols,

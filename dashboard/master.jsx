@@ -608,6 +608,8 @@ const MsPill = ({ st, small, label }) => {
 
 /* ── กราฟแกนต์ — แถบเดียวต่องาน (ช่วงแผน) ระบายทับตาม % แบบไฟล์ตัวอย่าง · ตารางซ้ายค้างไว้ เลื่อนแนวนอนได้ ──
    compact = การ์ดในใบงาน (หัวข้อใหญ่อย่างเดียว ไม่เลื่อน) */
+/* คอลัมน์ซ้ายที่ล็อกตอนเลื่อน ต้องพื้นทึบ — ธีมกระจก --surface โปร่งแสง แกนต์จะเห็นทะลุ → ซ้อนสีบนพื้น --bg */
+const msSolid = (c) => "linear-gradient(" + c + "," + c + ") var(--bg)";
 function MsGantt({ C, today, compact, narrow, mid, wcol }) {
   if (C.lo == null) {
     return <div style={{ padding: "18px 4px", fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีวันในแผน — กด "แก้แผนงาน" แล้วใส่วันเริ่ม/จบ</div>;
@@ -632,7 +634,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
     <div style={{ overflowX: compact ? "hidden" : "auto", WebkitOverflowScrolling: "touch" }}>
       <div style={{ display: "grid", gridTemplateColumns: labW + "px 1fr", minWidth: compact ? 0 : labW + A.span * pxDay }}>
         {/* หัวตาราง */}
-        <div style={{ position: "sticky", left: 0, zIndex: 3, background: "var(--surface)", height: headH, display: "grid", gridTemplateColumns: cols,
+        <div style={{ position: "sticky", left: 0, zIndex: 3, background: msSolid("var(--surface)"), height: headH, display: "grid", gridTemplateColumns: cols,
           alignItems: "end", gap: 6, paddingBottom: 4, paddingRight: 8, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {!compact && (narrow ? <><span style={thS}>งาน</span><span style={Object.assign({}, thS, { textAlign: "right" })}>%</span></>
             : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
@@ -668,7 +670,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
           const p = msPct(r.pct);
           return (
             <React.Fragment key={r.id + "-" + i}>
-              <div style={{ position: "sticky", left: 0, zIndex: 2, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)",
+              <div style={{ position: "sticky", left: 0, zIndex: 2, background: msSolid(r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)"),
                 height: rh, display: "grid", gridTemplateColumns: cols, alignItems: "center", gap: 6, paddingRight: 8, borderTop: line, minWidth: 0 }}>
                 {full && <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", paddingLeft: 4 }}>{r.no}</span>}
                 <span style={{ minWidth: 0, paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 12 : 0 }}>
