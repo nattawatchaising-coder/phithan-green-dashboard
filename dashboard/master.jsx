@@ -335,14 +335,38 @@ function msExportXlsx(job, C, cv, today) {
   const ws = {}, merges = [];
   const put = (r, c, v, st, t, z) => { const a = X.utils.encode_cell({ r, c }); ws[a] = { v: v == null ? "" : v, t: t || (typeof v === "number" ? "n" : "s"), s: st }; if (z) ws[a].z = z; };
   const name = [job.code, job.name].filter(Boolean).join(" · ");
-  put(0, 0, "MASTER SCHEDULE — EPC S-Curve", sty({ font: font({ bold: true, sz: 16 }), border: {} }));
-  put(1, 0, "โครงการ: " + name + (job.kw ? " · " + job.kw + " kWp" : ""), sty({ font: font({ sz: 11 }), border: {} }));
-  put(2, 0, "ข้อมูล ณ " + msTH(today, true) + " · ทำได้จริง " + C.pct + "% · แผน ณ วันนี้ " + (cv ? Math.round(cv.planNow * 10) / 10 : 0) + "%", sty({ border: {} }));
   const H0 = 4, W0 = 10;   // แถวหัวตาราง · คอลัมน์สัปดาห์แรก (คอลัมน์ 9 = ป้าย Plan/Actual)
-  /* Start/Finish คู่เดียว ใต้หัว Duration — แถว Plan = วันตามแผน · แถว Actual = วันทำจริง (แบบไฟล์ S-Curve ทั่วไป) */
-  ["No", "Item", "% Weight", "Day", null, null, "ผลต่าง (วัน)", "% Progress", "สถานะ", ""].forEach((t, c) => { if (t == null) return; put(H0, c, t, HDR); put(H0 + 1, c, "", HDR); merges.push({ s: { r: H0, c }, e: { r: H0 + 1, c } }); });
-  put(H0, 4, "Duration", HDR); put(H0, 5, "", HDR); merges.push({ s: { r: H0, c: 4 }, e: { r: H0, c: 5 } });
-  put(H0 + 1, 4, "Start", HDR); put(H0 + 1, 5, "Finish", HDR);
+  /* หัวเอกสารแบบเดียวกับ PDF: ชื่อ + ข้อมูลโครงการ (ซ้าย) · กล่องสรุป (ป้าย/ค่า 2 แถวบน คอลัมน์ %W…สถานะ ต่อด้วยช่องสัปดาห์คู่ละกล่อง) */
+  const TH_DATE = "[$-7041E]d mmm yy";   /* 07 = ปฏิทินพุทธ (bb ใน Excel ยังได้ปี ค.ศ.) */ //   // วันที่ไทยแบบ PDF เช่น 9 พ.ย. 69
+  put(0, 0, "MASTER SCHEDULE", sty({ font: font({ bold: true, sz: 16, color: { rgb: "1B5E4A" } }), border: {} }));
+  put(1, 0, "แผนงานหลักโครงการ · ณ วันที่ " + msTH(today, true), sty({ font: font({ sz: 10, color: { rgb: "4A5A51" } }), border: {} }));
+  const addr = [job.address, job.province].filter(Boolean).join(" ");
+  put(2, 0, "โครงการ  " + name + (job.kw ? "  ·  ขนาดระบบ " + job.kw + " kWp" : ""), sty({ font: font({ bold: true, sz: 10 }), border: {} }));
+  put(3, 0, [addr && "สถานที่  " + addr, job.eeName && "ผู้ดูแลโครงการ  " + job.eeName, (job.customer || job.customerName) && "ลูกค้า  " + (job.customer || job.customerName)].filter(Boolean).join("   ·   "), sty({ font: font({ sz: 9, color: { rgb: "4A5A51" } }), border: {} }));
+  {
+    const tdd = msDay(today), left = C.hi != null && tdd != null ? C.hi - tdd : null;
+    const wb2 = { top: { style: "medium", color: { rgb: "FFFFFF" } }, bottom: { style: "medium", color: { rgb: "FFFFFF" } }, left: { style: "medium", color: { rgb: "FFFFFF" } }, right: { style: "medium", color: { rgb: "FFFFFF" } } };
+    const KC = { "": ["F3F6F4", "5A6B62", "15211A"], ok: ["E3F4EC", "15803D", "15803D"], am: ["FDF1DC", "935F07", "935F07"], rd: ["FDE6E6", "B91C1C", "B91C1C"] };
+    const kp = [["ทำได้จริง", C.pct / 100, "ok", "0%"], ["รวม (วัน)", C.lo != null ? C.hi - C.lo + 1 : "", ""],
+      ["เริ่ม", C.lo != null ? C.lo + 25569 : "", "", TH_DATE], ["จบ", C.hi != null ? C.hi + 25569 : "", "", TH_DATE],
+      [left == null || C.pct >= 100 ? "เหลือ (วัน)" : left >= 0 ? "เหลือ (วัน)" : "เลยกำหนด (วัน)", C.pct >= 100 ? "เสร็จ" : left == null ? "" : Math.abs(left), left != null && left < 0 && C.pct < 100 ? "rd" : ""],
+      ["แผน ณ วันนี้", (cv ? cv.planNow : 0) / 100, "", "0.0%"], ["งานทั้งหมด", C.leaves, ""]];
+    const kq = [["เสร็จแล้ว", C.cnt.done, "ok"], ["กำลังทำ", C.cnt.doing, "am"], ["ยังไม่เริ่ม", C.cnt.todo, ""]].concat(C.cnt.late ? [["ล่าช้า", C.cnt.late, "rd"]] : []);
+    const box = (c0, c1, k) => {
+      const col = KC[k[2]];
+      for (let c = c0; c <= c1; c++) {
+        put(0, c, c === c0 ? k[0] : "", sty({ border: wb2, font: font({ sz: 8, bold: true, color: { rgb: col[1] } }), fill: { fgColor: { rgb: col[0] } }, alignment: { horizontal: "center", vertical: "bottom" } }));
+        put(1, c, c === c0 ? k[1] : "", sty({ border: wb2, font: font({ sz: k[3] === TH_DATE ? 11 : 13, bold: true, color: { rgb: col[2] } }), fill: { fgColor: { rgb: col[0] } }, alignment: { horizontal: "center", vertical: "center" } }), null, c === c0 ? k[3] : null);
+      }
+      if (c1 > c0) { merges.push({ s: { r: 0, c: c0 }, e: { r: 0, c: c1 } }); merges.push({ s: { r: 1, c: c0 }, e: { r: 1, c: c1 } }); }
+    };
+    kp.forEach((k, i) => box(2 + i, 2 + i, k));   // คอลัมน์ %W … สถานะ (กว้างพอใส่ค่า)
+    kq.forEach((k, i) => box(W0 + i * 2, W0 + i * 2 + 1, k));   // ต่อในช่องสัปดาห์ คู่ละกล่อง
+  }
+  /* หัวตารางภาษาเดียวกับ PDF · เริ่ม/จบคู่เดียว — แถว Plan = วันตามแผน · แถว Actual = วันทำจริง */
+  ["ID", "รายการงาน", "%W", "วัน", null, null, "ผลต่าง (วัน)", "ความคืบหน้า", "สถานะ", ""].forEach((t, c) => { if (t == null) return; put(H0, c, t, HDR); put(H0 + 1, c, "", HDR); merges.push({ s: { r: H0, c }, e: { r: H0 + 1, c } }); });
+  put(H0, 4, "ช่วงเวลา", HDR); put(H0, 5, "", HDR); merges.push({ s: { r: H0, c: 4 }, e: { r: H0, c: 5 } });
+  put(H0 + 1, 4, "เริ่ม", HDR); put(H0 + 1, 5, "จบ", HDR);
   let mStart = 0;
   weeks.forEach((w, i) => {
     const dt = new Date(w.d * 86400000);
@@ -359,7 +383,7 @@ function msExportXlsx(job, C, cv, today) {
   let r = H0 + 2;
   const r0data = r;
   const td = msDay(today);
-  const PLAN_F = "BFE6D6", ACT_F = "C7DBFB", HEAD_F = "9FD6C1";   // เขียว = แผน · ฟ้า = ทำจริง (สีเดียวกับเส้นกราฟ)
+  const PLAN_F = "BFE6D6", ACT_F = "C7DBFB", HEAD_F = "C9E9DD", HEAD_DONE = "6CC3A3", LATE_F = "F7C5C5";   // เขียว = แผน · ฟ้า = ทำจริง (สีเดียวกับเส้นกราฟ)
   const wkCell = (rr, i, v, fill) => put(rr, W0 + i, v === "" || v == null || Math.abs(v) < 0.005 ? "" : Math.round(v * 100) / 100,
     sty({ font: font({ sz: 8 }), alignment: { horizontal: "center" }, fill: fill ? { fgColor: { rgb: fill } } : undefined }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", MS_XPCT);
   C.rows.forEach((row) => {
@@ -373,24 +397,29 @@ function msExportXlsx(job, C, cv, today) {
     left(3, du || "", Object.assign({}, st, { alignment: { horizontal: "right", vertical: "center" } }));
     const a = serial(row.planStart), b = serial(row.planEnd || row.planStart);
     const c = serial(row.actStart), e = serial(row.actEnd);
-    const dput = (rr, cc, v) => put(rr, cc, v == null ? "" : v, Object.assign({}, st, { alignment: { horizontal: "center", vertical: "center" } }), v == null ? "s" : "n", "d/m/yyyy");
+    const dput = (rr, cc, v, blue) => put(rr, cc, v == null ? "" : v, Object.assign({}, st, { alignment: { horizontal: "center", vertical: "center" } }, blue ? { font: font({ color: { rgb: "1D4ED8" } }) } : {}), v == null ? "s" : "n", TH_DATE);
     dput(r, 4, a); dput(r, 5, b);
-    if (two) { dput(r + 1, 4, c); dput(r + 1, 5, e); }
+    if (two) { dput(r + 1, 4, c, true); dput(r + 1, 5, e, true); }   // วันทำจริง = ตัวฟ้า (แบบ PDF)
     const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
     left(6, dv == null ? "" : dv, Object.assign({}, st, { alignment: { horizontal: "right", vertical: "center" }, font: font({ bold: !!head, color: { rgb: dv > 0 ? "B91C1C" : dv < 0 ? "15803D" : "15211A" } }) }), dv == null ? "s" : "n", "+0;-0;0");
     left(7, msPct(row.pct) / 100, Object.assign({}, st, { alignment: { horizontal: "right", vertical: "center" } }), "n", "0%");
-    left(8, msStLabel(row), Object.assign({}, st, { font: font({ bold: !!head, color: { rgb: row.st === "late" || row.st === "donelate" ? "B91C1C" : row.st === "done" ? "15803D" : "15211A" } }) }));
+    /* สถานะเป็นป้ายสีแบบ PDF: เสร็จ เขียว · กำลังทำ ส้ม · ล่าช้า แดง · ยังไม่เริ่ม เทา */
+    const pc = { done: ["DDF3E8", "15803D"], doing: ["FCE9C6", "935F07"], late: ["FDE0E0", "B91C1C"], donelate: ["FDE0E0", "B91C1C"] }[row.st] || ["ECEFED", "4A5A51"];
+    left(8, msStLabel(row), Object.assign({}, st, { fill: { fgColor: { rgb: pc[0] } }, alignment: { horizontal: "center", vertical: "center" }, font: font({ sz: 9, bold: true, color: { rgb: pc[1] } }) }));
     const ps = msDay(row.planStart), pe = msDay(row.planEnd || row.planStart);
     const as = msDay(row.actStart), ae = msDay(row.actEnd) != null ? msDay(row.actEnd) : as != null && td != null ? Math.max(as, td) : null;
     const pctT = msPct(row.pct);
     if (head) {
       put(r, 9, "", st);
-      weeks.forEach((w, i) => wkCell(r, i, "", ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d) ? HEAD_F : null));
+      /* แถบหัวข้อใหญ่แบบ PDF: ช่วงแผนสีอ่อน · ส่วนที่ทำแล้ว (ตาม %) สีเข้ม — ล่าช้า = แดง */
+      const done = ps != null ? ps + ((pe - ps + 1) * pctT) / 100 : null, lateH = row.st === "late" || row.st === "donelate";
+      weeks.forEach((w, i) => wkCell(r, i, "", ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d) ? (pctT && w.d < done ? (lateH ? "F08A8A" : row.st === "done" ? "5FB98A" : HEAD_DONE) : HEAD_F) : null));
       r++;
       return;
     }
     put(r, 9, "Plan", sty({ font: font({ sz: 9, bold: true }), alignment: { horizontal: "center" }, fill: { fgColor: { rgb: PLAN_F } } }));
     put(r + 1, 9, "Actual", sty({ font: font({ sz: 9, bold: true }), alignment: { horizontal: "center" }, fill: { fgColor: { rgb: ACT_F } } }));
+    const lateA = pe != null && ae != null && ae > pe;   // ทำจริงเลยวันจบตามแผน → แถว Actual สีแดง (แบบ PDF)
     weeks.forEach((w, i) => {
       /* ช่องสัปดาห์ = % ของงานนั้นเอง (รวมทั้งแถวแผน = 100%) — % ของทั้งโครงการ = ค่านี้ × % Weight (ดูแถวสรุปด้านล่าง) (ผู้ใช้สั่ง)
          แผน: สัดส่วนวันแผนที่ตกในสัปดาห์ */
@@ -398,7 +427,7 @@ function msExportXlsx(job, C, cv, today) {
       wkCell(r, i, inP ? (100 * (Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1)) / (pe - ps + 1) : "", inP ? PLAN_F : null);
       /* ทำจริง: %คืบหน้าของงาน กระจายตามวันในช่วงทำจริง — ไม่มีประวัติรายสัปดาห์รายงาน จึงเป็นค่าประมาณ */
       const inA = as != null && ae != null && Math.min(ae, w.d + 6) >= Math.max(as, w.d);
-      wkCell(r + 1, i, inA && pctT ? (pctT * (Math.min(ae, w.d + 6) - Math.max(as, w.d) + 1)) / (ae - as + 1) : "", inA ? ACT_F : null);
+      wkCell(r + 1, i, inA && pctT ? (pctT * (Math.min(ae, w.d + 6) - Math.max(as, w.d) + 1)) / (ae - as + 1) : "", inA ? (lateA ? LATE_F : ACT_F) : null);
     });
     r += 2;
   });
@@ -416,11 +445,11 @@ function msExportXlsx(job, C, cv, today) {
   sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", (w) => w.act, MS_XPCT, "E3ECFB");
   sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", (w) => (w.act == null ? null : w.act - w.planAcc), MS_XPCT, "FBEDE3");
   /* ตำนานสีช่องสัปดาห์ */
-  put(r + 1, 1, "ช่องสัปดาห์ = % ของงานนั้น (แถว Plan รวม = 100%) · % ของทั้งโครงการ = ค่านี้ × % Weight (แถวสรุปด้านล่าง) · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({ font: font({ sz: 9, color: { rgb: "5A6B62" } }), border: {} }));
+  put(r + 1, 1, "ช่องสัปดาห์ = % ของงานนั้น (แถว Plan รวม = 100%) · % ของทั้งโครงการ = ค่านี้ × % Weight (แถวสรุปด้านล่าง) · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: %คืบหน้า กระจายตามวันที่ทำจริง) · แถว Actual แดง = เลยวันจบตามแผน · หัวข้อใหญ่: สีเข้ม = ส่วนที่ทำแล้ว · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · เส้นแดงตั้ง = วันนี้ · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({ font: font({ sz: 9, color: { rgb: "5A6B62" } }), border: {} }));
   r += 1;
   ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 12) } });
   ws["!merges"] = merges;
-  ws["!rows"] = []; for (let i = r0data; i <= r1data; i++) ws["!rows"][i] = { hpt: MS_XROW };   // สูงเท่ากันทุกแถว → ป้าย % บนเส้น S-Curve วางตรงจุด
+  ws["!rows"] = [{ hpt: 15 }, { hpt: 26 }]; for (let i = r0data; i <= r1data; i++) ws["!rows"][i] = { hpt: MS_XROW };   // สูงเท่ากันทุกแถว → ป้าย % บนเส้น S-Curve วางตรงจุด
   ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 9 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 9 }, { wch: 17 }, { wch: 7 }].concat(weeks.map(() => ({ wch: 7 })));
   ws["!freeze"] = { xSplit: W0, ySplit: H0 + 2 };
   ws["!views"] = [{ state: "frozen", xSplit: W0, ySplit: H0 + 2 }];
@@ -448,7 +477,7 @@ function msExportXlsx(job, C, cv, today) {
   const buf = X.write(wb, { type: "array", bookType: "xlsx" });
   let out = buf;
   if (weeks.length) {
-    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, { x: W0, y: H0 + 2 }, r1data >= r0data ? { c0: W0, r0: r0data, r1: r1data, rowEmu: MS_XROW * 12700, colEmu: Math.round((7 * 7 + 5) * 9525) } : null); } catch (e) { console.warn("S-Curve chart", e); }
+    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, { x: W0, y: H0 + 2 }, r1data >= r0data ? { c0: W0, r0: r0data, r1: r1data, rowEmu: MS_XROW * 12700, colEmu: Math.round((7 * 7 + 5) * 9525), td, bar: "H" + (r0data + 1) + ":H" + (r1data + 1) } : null); } catch (e) { console.warn("S-Curve chart", e); }
   }
   const fn = (window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "")) + ".xlsx";
   const url = URL.createObjectURL(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -532,6 +561,16 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
         '<a:pathLst><a:path w="' + PW + '" h="' + PH + '" fill="none">' + path + '</a:path></a:pathLst></a:custGeom><a:noFill/>' +
         '<a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill><a:round/></a:ln></xdr:spPr></xdr:sp><xdr:clientData/></xdr:twoCellAnchor>';
     };
+    /* เส้นแดงตั้ง "วันนี้" แบบ PDF (กลางวันนั้นในสัปดาห์) */
+    const todayLine = () => {
+      if (ov.td == null || !N) return "";
+      const x = Math.round(((ov.td - weeks[0].d + 0.5) / 7) * 1000);
+      if (x < 0 || x > PW) return "";
+      return '<xdr:twoCellAnchor editAs="twoCell">' + from + '<xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="วันนี้"/><xdr:cNvSpPr/></xdr:nvSpPr>' +
+        '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/>' +
+        '<a:pathLst><a:path w="' + PW + '" h="' + PH + '" fill="none"><a:moveTo><a:pt x="' + x + '" y="0"/></a:moveTo><a:lnTo><a:pt x="' + x + '" y="' + PH + '"/></a:lnTo></a:path></a:pathLst></a:custGeom><a:noFill/>' +
+        '<a:ln w="19050"><a:solidFill><a:srgbClr val="DC2626"/></a:solidFill></a:ln></xdr:spPr></xdr:sp><xdr:clientData/></xdr:twoCellAnchor>';
+    };
     /* ป้าย % บนเส้น (กล่องเล็ก) เป็นช่วง ๆ ทุก step สัปดาห์ + จุดสุดท้าย — แผนอยู่เหนือจุด (เขียว) · จริงอยู่ใต้จุด (ฟ้า) */
     const step = Math.max(1, Math.ceil(N / 20));
     const label = (i, v, rgb, below) => {
@@ -545,7 +584,7 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
     };
     const drawing2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
-      line("S-Curve แผนสะสม", weeks.map((w) => w.planAcc), "1B9B75") + line("S-Curve ทำได้จริงสะสม", weeks.map((w) => w.act), "2563EB") +
+      todayLine() + line("S-Curve แผนสะสม", weeks.map((w) => w.planAcc), "1B9B75") + line("S-Curve ทำได้จริงสะสม", weeks.map((w) => w.act), "2563EB") +
       weeks.map((w, i) => {
         const lastA = weeks.reduce((m, x, j) => (x.act != null ? j : m), -1);
         const at = (j, end) => j % step === 0 || j === end;
@@ -560,6 +599,11 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
     set(relP1, rel1);
     let s1d = get("/xl/worksheets/sheet1.xml");
     if (!/xmlns:r=/.test(s1d)) s1d = s1d.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+    /* ความคืบหน้าเป็นแถบในช่อง (Data Bar) แบบ PDF — xlsx-js-style เขียน conditional formatting ไม่ได้ เลยเติม XML เอง (ต้องอยู่หลัง mergeCells ก่อน pageMargins) */
+    if (ov.bar) {
+      const cf = '<conditionalFormatting sqref="' + ov.bar + '"><cfRule type="dataBar" priority="1"><dataBar minLength="0" maxLength="100"><cfvo type="num" val="0"/><cfvo type="num" val="1"/><color rgb="FF1B9B75"/></dataBar></cfRule></conditionalFormatting>';
+      s1d = /<\/mergeCells>/.test(s1d) ? s1d.replace("</mergeCells>", "</mergeCells>" + cf) : s1d.replace("</sheetData>", "</sheetData>" + cf);
+    }
     s1d = s1d.replace("</worksheet>", '<drawing r:id="rIdMsDr2"/></worksheet>');
     set("/xl/worksheets/sheet1.xml", s1d);
   }
