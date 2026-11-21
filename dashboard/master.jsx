@@ -1086,7 +1086,7 @@ function msPrintHTML(job, C, today, cv) {
   const kpi = (lab, v, cls) => '<div class="k ' + (cls || "") + '"><span>' + lab + "</span><b>" + v + "</b></div>";
   const info = [["โครงการ", [job.code, job.name].filter(Boolean).join(" · ")], ["ขนาดระบบ", job.kw ? job.kw + " kWp" : ""], ["สถานที่", [job.address, job.province].filter(Boolean).join(" ")],
     ["ผู้ดูแลโครงการ", job.eeName || ""], ["ลูกค้า", job.customer || job.customerName || ""]].filter((x) => x[1]);
-  const css = "@page{size:A3 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+  const css = "@page{size:420mm 297mm;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
     "body{margin:0;font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:10.5px;background:#fff;min-width:1500px}" +
     ".hd{display:flex;gap:14px;align-items:stretch;margin-bottom:10px}.ttl{flex:1.2;min-width:0;border-left:5px solid #1B9B75;padding:2px 0 2px 12px}" +
     ".ttl h1{margin:0;font-size:24px;letter-spacing:.03em}.ttl .sub{color:#4A5A51;font-size:12px;margin-top:2px}.ttl table{margin-top:6px;border-collapse:collapse}" +
@@ -1121,7 +1121,7 @@ function msPrintHTML(job, C, today, cv) {
     "b.bar{position:absolute;top:2px;height:10px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:3px;height:9px}b.ab{position:absolute;top:14px;height:4px;border-radius:2px;background:#15803D;z-index:1}tr.h b.ab{top:15px}b.ab.lt{background:#DC2626}b.ab.op{opacity:.55}" +
     "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" +
     ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" +
-    ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" +
+    ".sc{margin-top:22px;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" +
     ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}" +
     /* จอ: เลื่อนแนวนอนแล้วคอลัมน์ ID…สถานะ ล็อกอยู่ (ซ้าย = ผลรวมความกว้างคอลัมน์ก่อนหน้า ตาม .n .t .d … ด้านบน) · หัวตารางล็อกบน · ตอนพิมพ์ไม่ใช้ */
     "@media screen{table.t1 .n,table.t1 .t,table.t1 .w,table.t1 .u,table.t1 .ds,table.t1 .df,table.t1 .p,table.t1 .st,table.t1 .pa{position:sticky;z-index:6;background:#fff}table.t1 .n{left:0px}table.t1 .t{left:36px}table.t1 .w{left:256px}table.t1 .u{left:296px}table.t1 .ds{left:326px}table.t1 .df{left:392px}table.t1 .p{left:458px}table.t1 .st{left:542px}table.t1 .pa{left:634px}table.t1 tr.h td.n,table.t1 tr.h td.t,table.t1 tr.h td.w,table.t1 tr.h td.u,table.t1 tr.h td.ds,table.t1 tr.h td.df,table.t1 tr.h td.p,table.t1 tr.h td.st,table.t1 tr.h td.pa{background:#EEF4F0}table.t1 td.pp{background:#D5EEE5}table.t1 td.pq{background:#DCE7FB}table.t1 thead th{position:sticky;top:0;z-index:7}table.t1 thead th.n,table.t1 thead th.t,table.t1 thead th.w,table.t1 thead th.u,table.t1 thead th.ds,table.t1 thead th.df,table.t1 thead th.p,table.t1 thead th.st,table.t1 thead th.pa{z-index:8;background:#1B5E4A}table.t1 .pa{box-shadow:3px 0 4px -2px rgba(0,0,0,.18)}}";
@@ -1143,6 +1143,8 @@ function msPrintHTML(job, C, today, cv) {
       msCurveSVG(cv, 1500, 420, MS_CV_LIGHT) +
       '<div class="lg"><span><i style="background:#1B9B75;height:3px"></i>แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>ทำได้จริงสะสม</span>' +
       '<span><i style="background:#CFEDE2"></i>แผนรายสัปดาห์</span><span><i style="background:#fff;border:1.5px solid #2563EB;width:8px;border-radius:4px"></i>ประมาณจากรายงานประจำวัน</span></div></div>' : "") +
+    /* PDF หน้ายาวแผ่นเดียว (ผู้ใช้เลือก): กว้าง A3 แนวนอน · สูงเท่าเนื้อหา — วัดความสูงจริงตอนโหลดและก่อนพิมพ์ แล้วตั้ง @page ใหม่ (Chrome รับขนาดกระดาษเองได้ ≤ 5 ม.) */
+    '<style id="pg"></style><script>(function(){function f(){var h=document.documentElement.scrollHeight,mm=Math.min(5000,Math.max(297,Math.ceil(h*25.4/96)+18+8));document.getElementById("pg").textContent="@page{size:420mm "+mm+"mm;margin:9mm}"}f();addEventListener("load",f);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(f);addEventListener("beforeprint",f)})()</script>' +
     "</body></html>";
 }
 
