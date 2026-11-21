@@ -319,6 +319,7 @@ function MsSCurve({ cv, C, narrow }) {
 
 /* ── ส่งออก Excel: ชีต Master Schedule (แบบไฟล์ EPC S-Curve) + ชีต S-Curve มีกราฟเส้นของ Excel จริง ──
    xlsx-js-style เขียนกราฟไม่ได้ → เขียนสมุดก่อน แล้วเปิด zip (XLSX.CFB) เติม drawing + chart เอง */
+const MS_XROW = 15;   // ความสูงแถวงานในไฟล์ Excel (pt)
 const MS_XPCT = '0.00"%"';   // ช่องสัปดาห์ใน Excel โชว์เป็น % (ค่าในเซลล์ยังเป็นตัวเลข เช่น 1.25 → 1.25%)
 function msExportXlsx(job, C, cv, today) {
   const X = window.XLSX;
@@ -419,6 +420,7 @@ function msExportXlsx(job, C, cv, today) {
   r += 1;
   ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 12) } });
   ws["!merges"] = merges;
+  ws["!rows"] = []; for (let i = r0data; i <= r1data; i++) ws["!rows"][i] = { hpt: MS_XROW };   // สูงเท่ากันทุกแถว → ป้าย % บนเส้น S-Curve วางตรงจุด
   ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 9 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 9 }, { wch: 17 }, { wch: 7 }].concat(weeks.map(() => ({ wch: 7 })));
   ws["!freeze"] = { xSplit: W0, ySplit: H0 + 2 };
   ws["!views"] = [{ state: "frozen", xSplit: W0, ySplit: H0 + 2 }];
@@ -446,7 +448,7 @@ function msExportXlsx(job, C, cv, today) {
   const buf = X.write(wb, { type: "array", bookType: "xlsx" });
   let out = buf;
   if (weeks.length) {
-    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, { x: W0, y: H0 + 2 }, r1data >= r0data ? { c0: W0, r0: r0data, r1: r1data } : null); } catch (e) { console.warn("S-Curve chart", e); }
+    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, { x: W0, y: H0 + 2 }, r1data >= r0data ? { c0: W0, r0: r0data, r1: r1data, rowEmu: MS_XROW * 12700, colEmu: Math.round((7 * 7 + 5) * 9525) } : null); } catch (e) { console.warn("S-Curve chart", e); }
   }
   const fn = (window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "")) + ".xlsx";
   const url = URL.createObjectURL(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -508,33 +510,43 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
   if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
   sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
   set("/xl/worksheets/sheet2.xml", sh);
-  /* เส้น S-Curve ทับบนแกนต์ในชีตแรก (แบบไฟล์ S-Curve ทั่วไป): กราฟโปร่งใส ไม่มีแกน พื้นที่พล็อตเต็มกรอบ
-     กรอบวางตรงช่องสัปดาห์ (คอลัมน์ ov.c0 … +N · แถวงานแรก … สุดท้าย) → จุดของแต่ละสัปดาห์อยู่กลางคอลัมน์ของสัปดาห์นั้นพอดี */
+  /* เส้น S-Curve ทับบนแกนต์ในชีตแรก — วาดเป็น "เส้นอิสระ" (freeform ไม่มีพื้น) แทนกราฟ Excel:
+     กราฟ Excel กินคลิกทั้งกรอบ กดแก้ช่องด้านหลังไม่ได้ (ผู้ใช้แจ้ง) · เส้นไม่มีพื้นรับคลิกเฉพาะตัวเส้น ช่องรอบ ๆ กดแก้ได้ปกติ
+     กรอบเส้นวางตรงช่องสัปดาห์ (คอลัมน์ ov.c0 … +N · แถวงานแรก … สุดท้าย) จุดของสัปดาห์อยู่กลางคอลัมน์ · ค่าเป็นภาพนิ่ง ณ ตอนส่งออก */
   if (ov) {
-    const lbl = N <= 40;   // ป้ายตัวเลขบนเส้นแผน — สัปดาห์เยอะเกินจะทับกัน
-    const dl = '<c:dLbls><c:numFmt formatCode="0.00&quot;%&quot;" sourceLinked="0"/><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="700" b="1"><a:solidFill><a:srgbClr val="1B5E4A"/></a:solidFill></a:defRPr></a:pPr><a:endParaRPr lang="th-TH"/></a:p></c:txPr><c:dLblPos val="t"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>';
-    const s0 = ser(0, "D", "แผนสะสม (Plan)", "1B9B75", weeks.map((w) => w.planAcc)), s1x = ser(1, "E", "ทำได้จริงสะสม (Actual)", "2563EB", weeks.map((w) => w.act));
-    const chart2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-      '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-      '<c:roundedCorners val="0"/><c:chart><c:autoTitleDeleted val="1"/><c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0"/><c:y val="0"/><c:w val="1"/><c:h val="1"/></c:manualLayout></c:layout>' +
-      '<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + (lbl ? s0.replace("</c:marker>", "</c:marker>" + dl) : s0) + s1x +
-      '<c:marker val="1"/><c:axId val="50020001"/><c:axId val="50020002"/></c:lineChart>' +
-      '<c:catAx><c:axId val="50020001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="none"/><c:crossAx val="50020002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' +
-      '<c:valAx><c:axId val="50020002"/><c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling><c:delete val="1"/><c:axPos val="l"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="none"/><c:crossAx val="50020001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>' +
-      '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:plotArea><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>' +
-      '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:chartSpace>';
+    const PW = N * 1000, PH = 10000, nR = ov.r1 - ov.r0 + 1, ROW = ov.rowEmu, COL = ov.colEmu;
+    const px = (i) => i * 1000 + 500, py = (v) => Math.round(((100 - Math.max(0, Math.min(100, v))) / 100) * PH);
+    const from = '<xdr:from><xdr:col>' + ov.c0 + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + ov.r0 + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+      '<xdr:to><xdr:col>' + (ov.c0 + N) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (ov.r1 + 1) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>';
+    let sid = 10;
+    const line = (name, vals, rgb) => {
+      let path = "", open = false;
+      vals.forEach((v, i) => {
+        if (v == null) { open = false; return; }
+        path += (open ? "<a:lnTo>" : "<a:moveTo>") + '<a:pt x="' + px(i) + '" y="' + py(v) + '"/>' + (open ? "</a:lnTo>" : "</a:moveTo>");
+        open = true;
+      });
+      if (!path) return "";
+      return '<xdr:twoCellAnchor editAs="twoCell">' + from + '<xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="' + xe(name) + '"/><xdr:cNvSpPr/></xdr:nvSpPr>' +
+        '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/>' +
+        '<a:pathLst><a:path w="' + PW + '" h="' + PH + '" fill="none">' + path + '</a:path></a:pathLst></a:custGeom><a:noFill/>' +
+        '<a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill><a:round/></a:ln></xdr:spPr></xdr:sp><xdr:clientData/></xdr:twoCellAnchor>';
+    };
+    /* ป้าย % บนเส้นแผน (กล่องเล็กเหนือจุด) — สัปดาห์เยอะเกิน 40 ป้ายจะทับกัน เลยไม่ใส่ */
+    const label = (i, v) => {
+      const y = ov.r0 * 1 + ((100 - Math.max(0, Math.min(100, v))) / 100) * nR - 0.95;   // เป็นหน่วยแถว · ยกขึ้นเหนือจุดเกือบ 1 แถว
+      const row = Math.max(ov.r0, Math.floor(y)), off = Math.max(0, Math.round((y - row) * ROW));
+      return '<xdr:oneCellAnchor><xdr:from><xdr:col>' + (ov.c0 + i) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + row + '</xdr:row><xdr:rowOff>' + off + '</xdr:rowOff></xdr:from>' +
+        '<xdr:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/><xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="ป้ายแผน ' + (i + 1) + '"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr>' +
+        '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>' +
+        '<xdr:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" anchor="b"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="700" b="1"><a:solidFill><a:srgbClr val="1B5E4A"/></a:solidFill></a:rPr>' +
+        '<a:t>' + (Math.round(v * 100) / 100).toFixed(2) + '%</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:oneCellAnchor>';
+    };
     const drawing2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
-      '<xdr:twoCellAnchor><xdr:from><xdr:col>' + ov.c0 + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + ov.r0 + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
-      '<xdr:to><xdr:col>' + (ov.c0 + N) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (ov.r1 + 1) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' +
-      '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="3" name="S-Curve บนแกนต์"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>' +
-      '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">' +
-      '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>' +
-      '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>';
-    set("/xl/charts/chart2.xml", chart2);
+      line("S-Curve แผนสะสม", weeks.map((w) => w.planAcc), "1B9B75") + line("S-Curve ทำได้จริงสะสม", weeks.map((w) => w.act), "2563EB") +
+      (N <= 40 ? weeks.map((w, i) => label(i, w.planAcc)).join("") : "") + "</xdr:wsDr>";
     set("/xl/drawings/drawing2.xml", drawing2);
-    set("/xl/drawings/_rels/drawing2.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart2.xml"/></Relationships>');
     const relP1 = "/xl/worksheets/_rels/sheet1.xml.rels";
     let rel1 = get(relP1);
     const drRel1 = '<Relationship Id="rIdMsDr2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing2.xml"/>';
@@ -559,7 +571,7 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
   let ct = get("/[Content_Types].xml");
   ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
     '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>' +
-    (ov ? '<Override PartName="/xl/drawings/drawing2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/><Override PartName="/xl/charts/chart2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>' : "") + "</Types>");
+    (ov ? '<Override PartName="/xl/drawings/drawing2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' : "") + "</Types>");
   set("/[Content_Types].xml", ct);
   return CFB.write(z, { fileType: "zip", type: "array" });
 }
