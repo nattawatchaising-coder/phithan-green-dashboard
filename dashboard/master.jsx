@@ -1046,19 +1046,22 @@ function msPrintHTML(job, C, today, cv) {
       return '<u class="' + cls + '" style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (v < 1 ? "<1" : Math.round(v)) + "%</u>";
     }).join("");
   };
+  /* แถบเต็มช่องสัปดาห์แบบ Excel (ผู้ใช้สั่ง): ปัดต้น/ท้ายแถบไปขอบสัปดาห์ที่วันนั้นตกอยู่ — ตัวเลข % อยู่ในแถบพอดี */
+  const wk0 = (d) => { const w = A.weeks.find((x) => d >= x.d && d <= x.d + 6); return w ? w.d : d; };
+  const SX = (a) => X(wk0(a)), SW = (a, b) => W(wk0(a), wk0(b) + 6);
   const body = C.rows.map((r) => {
     const ps = msDay(r.planStart), pe = msDay(r.planEnd || r.planStart), p = msPct(r.pct);
     const pill = '<span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + "</span>";
     const prog = '<span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + "%";
     const wTx = r.wp ? Math.round(r.wp * 10) / 10 : "";
     if (r.head && r.kids) {
-      const bar = ps != null ? '<b class="bar h ' + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
+      const bar = ps != null ? '<b class="bar h ' + stCls[r.st] + '" style="left:' + SX(ps) + "%;width:" + SW(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
       return '<tr class="h"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="w">' + wTx + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") +
         '</td><td class="ds">' + esc(msTH(r.planStart, true)) + '</td><td class="df">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="p">' + prog + '</td><td class="st">' + pill + '</td><td class="pa"></td>' + gcell(bar) + "</tr>";
     }
     const as = msDay(r.actStart), ae0 = msDay(r.actEnd), ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
-    const pbar = ps != null ? '<b class="bp" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"></b>' : "";
-    const abar = as != null && ae != null ? '<b class="ba' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>' : "";
+    const pbar = ps != null ? '<b class="bp" style="left:' + SX(ps) + "%;width:" + SW(ps, pe) + '%"></b>' : "";
+    const abar = as != null && ae != null ? '<b class="ba' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + SX(as) + "%;width:" + SW(as, ae) + '%"></b>' : "";
     return '<tr class="pl"><td class="n" rowspan="2">' + esc(r.no) + '</td><td class="t" rowspan="2">' + esc(r.th) + '</td><td class="w" rowspan="2">' + wTx + '</td><td class="u" rowspan="2">' + (msDur(r.planStart, r.planEnd) || "") +
       '</td><td class="ds">' + esc(msTH(r.planStart, true)) + '</td><td class="df">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="p" rowspan="2">' + prog + '</td><td class="st" rowspan="2">' + pill +
       '</td><td class="pa pp">Plan</td>' + gcell(pbar + wkTx(ps, pe, 100, "wp")) + "</tr>" +
@@ -1110,7 +1113,7 @@ function msPrintHTML(job, C, today, cv) {
     ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" +
     ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" +
     "td.g{padding:0;overflow:visible;position:relative}td.g>.gc{position:absolute;left:0;right:0;top:0;bottom:0;height:auto}table.t1 td.g{border-bottom:0;overflow:clip}td.g>.gc{overflow:clip}td.g>.gc{box-shadow:inset 0 -1px #E6ECE8}tr.pl td.g>.gc{box-shadow:inset 0 -1px #F0F3F1}.gc{position:relative;height:" + RH + "px}tr.h .gc{height:" + RHH + "px}" +
-    "b.bp{position:absolute;top:3px;bottom:3px;border-radius:2px;background:#C9E9DD;z-index:1}b.ba{position:absolute;top:3px;bottom:3px;border-radius:2px;background:#BFD3FA;z-index:1}b.ba.lt{background:#F7C5C5}b.ba.op{opacity:.6}" +
+    "b.bp{position:absolute;top:1px;bottom:1px;background:#BFE6D6;z-index:1}b.ba{position:absolute;top:1px;bottom:1px;background:#C7DBFB;z-index:1}b.ba.lt{background:#F7C5C5}b.ba.op{opacity:.6}" +
     "u.wp,u.wa{position:absolute;top:0;bottom:0;text-decoration:none;text-align:center;font-size:7.5px;line-height:" + RH + "px;color:#1B5E4A;z-index:2;font-family:monospace}u.wa{color:#1D4ED8}" +
     "svg.cv{position:absolute;left:0;top:-1px;width:100%;height:calc(100% + 2px);overflow:hidden;z-index:4;pointer-events:none}" +
     "svg.cv polyline{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}svg.cv .cp{stroke:#1B9B75}svg.cv .ca{stroke:#2563EB}" +
@@ -1119,7 +1122,7 @@ function msPrintHTML(job, C, today, cv) {
     ".wh{height:16px;background:#2F8A6D}.wh span{position:absolute;top:0;height:16px;line-height:16px;text-align:center;font-size:8.5px;font-weight:700;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" +
     ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" +
     ".dh span.su{color:#9AA8A0}.dh span.tdh{color:#DC2626;font-weight:800}" +
-    "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" +
+    "i.wk{position:absolute;top:0;bottom:0;width:1px;background:#DCE5E0;z-index:2}i.we{position:absolute;top:0;bottom:0;background:#F4F6F5}i.td{position:absolute;top:0;bottom:0;width:1.5px;background:#DC2626;z-index:2}" +
     "b.bar{position:absolute;top:2px;height:10px;border-radius:3px;background:#C9E9DD;overflow:hidden;z-index:1}tr.h b.bar{top:3px;height:9px}b.ab{position:absolute;top:14px;height:4px;border-radius:2px;background:#15803D;z-index:1}tr.h b.ab{top:15px}b.ab.lt{background:#DC2626}b.ab.op{opacity:.55}" +
     "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" +
     ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" +
