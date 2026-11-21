@@ -959,15 +959,65 @@ function msPrintHTML(job, C, today, cv) {
   if (daily) for (let d = A.lo; d <= A.hi; d++) if (new Date(d * 86400000).getUTCDay() === 0) grid += '<i class="we" style="left:' + X(d) + "%;width:" + W(d, d) + '%"></i>';
   if (A.td != null && A.td >= A.lo && A.td <= A.hi) grid += '<i class="td" style="left:' + X(A.td + 0.5) + '%"></i>';
   const stCls = { done: "done", doing: "doing", late: "late", todo: "todo", donelate: "late" };
+  /* แบบเดียวกับไฟล์ Excel: งานย่อย 2 แถว Plan / Actual (เริ่ม/จบ = วันแผน / วันทำจริง) · ช่องสัปดาห์ = % ของงานนั้น
+     เส้น S-Curve สะสมทับบนแกนต์ — แต่ละแถววาดเส้นเต็มเส้นใน svg ที่ตัดเฉพาะช่วงความสูงของแถวนั้น (viewBox ตามพิกัด y สะสม) ต่อกันเป็นเส้นเดียว */
+  const RH = 17, RHH = 21;   // ความสูงแถวงานย่อย (ต่อแถว Plan/Actual) · แถวหัวข้อใหญ่ (px)
+  const nW = A.weeks.length, showWk = nW && 820 / nW >= 26;   // ช่องสัปดาห์กว้างพอค่อยใส่ตัวเลข % (A3 กราฟกว้างราว 820px)
+  const bands = [];   // [y0, h] ของแต่ละแถวในแกนต์ ตามลำดับ
+  let Ht = 0;
+  C.rows.forEach((r) => { if (r.head && r.kids) { bands.push([Ht, RHH]); Ht += RHH; } else { bands.push([Ht, RH]); Ht += RH; bands.push([Ht, RH]); Ht += RH; } });
+  const cy = (v) => ((100 - Math.max(0, Math.min(100, v))) / 100) * Ht;
+  const cx = (w) => A.X(w.d + 3.5);
+  const cvW = cv ? cv.weeks.filter((w) => w.d >= A.lo && w.d <= A.hi) : [];
+  const ptsOf = (key) => { const segs = [[]]; cvW.forEach((w) => { if (w[key] == null) { if (segs[segs.length - 1].length) segs.push([]); return; } segs[segs.length - 1].push(cx(w).toFixed(2) + "," + cy(w[key]).toFixed(1)); }); return segs.filter((s) => s.length > 1); };
+  const plP = ptsOf("planAcc"), acP = ptsOf("act");
+  const polys = plP.map((p) => '<polyline class="cp" points="' + p.join(" ") + '"/>').join("") + acP.map((p) => '<polyline class="ca" points="' + p.join(" ") + '"/>').join("");
+  /* ป้าย % บนเส้น เป็นช่วง ๆ (~20 ป้าย + จุดสุดท้าย) — วางในแถวที่ป้ายตกอยู่ */
+  const step = Math.max(1, Math.ceil(cvW.length / 20)), labs = bands.map(() => "");
+  const lastA = cvW.reduce((m, w, j) => (w.act != null ? j : m), -1);
+  const putLab = (x, yC, tx, cls) => {
+    const k = bands.findIndex((b) => yC >= b[0] && yC < b[0] + b[1]);
+    const bi = k < 0 ? bands.length - 1 : k, b = bands[bi];
+    if (!b) return;
+    labs[bi] += '<em class="' + cls + '" style="left:' + x.toFixed(2) + "%;top:" + Math.max(0, Math.min(b[1] - 10, yC - b[0] - 5)).toFixed(1) + 'px">' + tx + "</em>";
+  };
+  cvW.forEach((w, j) => {
+    const at = (end) => j % step === 0 || j === end;
+    if (at(cvW.length - 1)) putLab(cx(w), Math.max(5, cy(w.planAcc) - 9), (Math.round(w.planAcc * 100) / 100).toFixed(2) + "%", "lp");
+    if (w.act != null && at(lastA)) putLab(cx(w), Math.min(Ht - 5, cy(w.act) + 9), (Math.round(w.act * 100) / 100).toFixed(2) + "%", "la");
+  });
+  let bi = 0;
+  const gcell = (inner) => {
+    const b = bands[bi], l = labs[bi]; bi++;
+    return '<td class="g"><div class="gc">' + grid + inner + (polys ? '<svg class="cv" viewBox="0 ' + (b[0] - 1) + " 100 " + (b[1] + 2) + '" preserveAspectRatio="none">' + polys + "</svg>" : "") + l + "</div></td>";
+  };
+  const wkTx = (s, e, tot, cls) => {
+    if (!showWk || s == null || e == null || !tot) return "";
+    return A.weeks.map((w) => {
+      const ov = Math.min(e, w.d + 6) - Math.max(s, w.d) + 1;
+      if (ov <= 0) return "";
+      const v = (tot * ov) / (e - s + 1);
+      return '<u class="' + cls + '" style="left:' + X(w.d) + "%;width:" + W(w.d, w.d + 6) + '%">' + (v < 1 ? "<1" : Math.round(v)) + "%</u>";
+    }).join("");
+  };
   const body = C.rows.map((r) => {
     const ps = msDay(r.planStart), pe = msDay(r.planEnd || r.planStart), p = msPct(r.pct);
-    let bar = ps != null ? '<b class="bar ' + (r.head ? "h " : "") + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
+    const pill = '<span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + "</span>";
+    const prog = '<span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p + "%";
+    const wTx = r.wp ? Math.round(r.wp * 10) / 10 : "";
+    if (r.head && r.kids) {
+      const bar = ps != null ? '<b class="bar h ' + stCls[r.st] + '" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"><s style="width:' + p + '%"></s></b>' : "";
+      return '<tr class="h"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="w">' + wTx + '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") +
+        '</td><td class="ds">' + esc(msTH(r.planStart, true)) + '</td><td class="df">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="p">' + prog + '</td><td class="st">' + pill + '</td><td class="pa"></td>' + gcell(bar) + "</tr>";
+    }
     const as = msDay(r.actStart), ae0 = msDay(r.actEnd), ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
-    if (as != null && ae != null) bar += '<b class="ab' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>';
-    const actTx = as == null ? "" : msTH(r.actStart) + " – " + (ae0 != null ? msTH(r.actEnd) : "…");
-    return '<tr class="' + (r.head ? "h" : "s") + '"><td class="n">' + esc(r.no) + '</td><td class="t">' + esc(r.th) + '</td><td class="d">' + esc(msTH(r.planStart, true)) + '</td><td class="d">' + esc(msTH(r.planEnd || r.planStart, true)) +
-      '</td><td class="u">' + (msDur(r.planStart, r.planEnd) || "") + '</td><td class="w">' + (r.wp ? (Math.round(r.wp * 10) / 10) : "") + '</td><td class="p"><span class="pb"><span class="' + stCls[r.st] + '" style="width:' + p + '%"></span></span>' + p +
-      '%</td><td class="ac">' + esc(actTx) + '</td><td class="st"><span class="pill ' + (r.st === "done" ? "done" : stCls[r.st]) + '">' + esc(msStLabel(r)) + '</span></td><td class="g"><div class="gc">' + grid + bar + "</div></td></tr>";
+    const pbar = ps != null ? '<b class="bp" style="left:' + X(ps) + "%;width:" + W(ps, pe) + '%"></b>' : "";
+    const abar = as != null && ae != null ? '<b class="ba' + (pe != null && ae > pe ? " lt" : "") + (ae0 == null ? " op" : "") + '" style="left:' + X(as) + "%;width:" + W(as, ae) + '%"></b>' : "";
+    return '<tr class="pl"><td class="n" rowspan="2">' + esc(r.no) + '</td><td class="t" rowspan="2">' + esc(r.th) + '</td><td class="w" rowspan="2">' + wTx + '</td><td class="u" rowspan="2">' + (msDur(r.planStart, r.planEnd) || "") +
+      '</td><td class="ds">' + esc(msTH(r.planStart, true)) + '</td><td class="df">' + esc(msTH(r.planEnd || r.planStart, true)) + '</td><td class="p" rowspan="2">' + prog + '</td><td class="st" rowspan="2">' + pill +
+      '</td><td class="pa pp">Plan</td>' + gcell(pbar + wkTx(ps, pe, 100, "wp")) + "</tr>" +
+      '<tr class="ax"><td class="ds">' + esc(as != null ? msTH(r.actStart, true) : "") + '</td><td class="df">' + esc(ae0 != null ? msTH(r.actEnd, true) : "") + '</td><td class="pa pq">Actual</td>' +
+      gcell(abar + wkTx(as, ae, p, "wa")) + "</tr>";
   }).join("");
   const wpx = 800 / Math.max(1, A.weeks.length), wide = wpx >= 17;   // ช่องสัปดาห์แคบ → ใส่แค่เลข 1 2 3 4 (A3 แนวนอน กราฟกว้างราว 800px) · กว้างพอ → W1 W2
   let hd = '<div class="gc mh">' + A.mg.map((g, i) => '<span style="left:' + X(g.d) + "%;width:" + W(g.d, g.d + 7 * g.n - 1) + '%"' + (i ? ' class="b"' : "") + ">" + g.th + "</span>").join("") + "</div>" +
@@ -980,8 +1030,8 @@ function msPrintHTML(job, C, today, cv) {
     }
     hd += '<div class="gc dh">' + dd + "</div>";
   }
-  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="d">เริ่ม</th><th class="d">จบ</th><th class="u">วัน</th><th class="w">%W</th>' +
-    '<th class="p">ความคืบหน้า</th><th class="ac">ทำจริง</th><th class="st">สถานะ</th><th class="g">' + hd + "</th></tr>";
+  const head = '<tr><th class="n">ID</th><th class="t">รายการงาน</th><th class="w">%W</th><th class="u">วัน</th><th class="ds">เริ่ม</th><th class="df">จบ</th>' +
+    '<th class="p">ความคืบหน้า</th><th class="st">สถานะ</th><th class="pa"></th><th class="g">' + hd + "</th></tr>";
   const title = window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "");
   const td = msDay(today), days = C.lo != null ? C.hi - C.lo + 1 : null, left = C.hi != null && td != null ? C.hi - td : null;
   const leftTx = left == null ? "—" : C.pct >= 100 ? "เสร็จแล้ว" : left > 0 ? "เหลือ " + left + " วัน" : left === 0 ? "ครบกำหนดวันนี้" : "เลยกำหนด " + -left + " วัน";
@@ -1006,12 +1056,19 @@ function msPrintHTML(job, C, today, cv) {
     "table.t1 th.g{padding:0;background:#24745C;vertical-align:top}" +
     "table.t1 td{padding:0 5px;height:20px;border-bottom:1px solid #E6ECE8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}" +
     "tr.h td{font-weight:800;background:#EEF4F0;height:22px}tr.s td.t{padding-left:14px}" +
-    ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.o{width:110px}td.o{color:#4A5A51}.d{width:66px}.u{width:30px;text-align:right}.w{width:40px;text-align:right}.p{width:84px}.ac{width:96px}td.ac{color:#4A5A51;font-size:9.5px}.st{width:92px}" +
+    ".n{width:36px}td.n{font-family:monospace;color:#7A8A81}.t{width:220px}.ds,.df{width:66px;text-align:center}.u{width:30px;text-align:right}.w{width:40px;text-align:right}.p{width:84px}.st{width:92px}.pa{width:44px;text-align:center;font-size:9px;font-weight:700}" +
+    "td.pp{background:#D5EEE5}td.pq{background:#DCE7FB}tr.ax td.ds,tr.ax td.df{color:#1D4ED8}" +
+    "tr.pl td,tr.ax td{height:" + RH + "px;line-height:" + (RH - 4) + "px}tr.pl td{border-bottom:1px solid #F0F3F1}tr.h td{height:" + RHH + "px;line-height:" + (RHH - 4) + "px}" +
     "td.p{font-family:monospace;font-size:9.5px}.pb{display:inline-block;width:42px;height:6px;border-radius:3px;background:#D5EEE5;margin-right:5px;vertical-align:middle;overflow:hidden}" +
     ".pb span{display:block;height:100%;background:#1B9B75}.pb span.done{background:#15803D}.pb span.late{background:#DC2626}" +
     ".pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:9px;font-weight:700;background:#ECEFED;color:#4A5A51}" +
     ".pill.done{background:#DDF3E8;color:#15803D}.pill.doing{background:#FCE9C6;color:#935F07}.pill.late{background:#FDE0E0;color:#B91C1C}" +
-    "td.g{padding:0}.gc{position:relative;height:20px}tr.h .gc{height:22px}" +
+    "td.g{padding:0;overflow:visible;position:relative}td.g>.gc{position:absolute;left:0;right:0;top:0;bottom:0;height:auto}table.t1 td.g{border-bottom:0}td.g>.gc{box-shadow:inset 0 -1px #E6ECE8}tr.pl td.g>.gc{box-shadow:inset 0 -1px #F0F3F1}.gc{position:relative;height:" + RH + "px}tr.h .gc{height:" + RHH + "px}" +
+    "b.bp{position:absolute;top:3px;bottom:3px;border-radius:2px;background:#C9E9DD;z-index:1}b.ba{position:absolute;top:3px;bottom:3px;border-radius:2px;background:#BFD3FA;z-index:1}b.ba.lt{background:#F7C5C5}b.ba.op{opacity:.6}" +
+    "u.wp,u.wa{position:absolute;top:0;bottom:0;text-decoration:none;text-align:center;font-size:7.5px;line-height:" + RH + "px;color:#1B5E4A;z-index:2;font-family:monospace}u.wa{color:#1D4ED8}" +
+    "svg.cv{position:absolute;left:0;top:-1px;width:100%;height:calc(100% + 2px);overflow:hidden;z-index:4;pointer-events:none}" +
+    "svg.cv polyline{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}svg.cv .cp{stroke:#1B9B75}svg.cv .ca{stroke:#2563EB}" +
+    "em.lp,em.la{position:absolute;transform:translateX(-50%);font-style:normal;font-size:7.5px;font-weight:800;line-height:10px;white-space:nowrap;z-index:5;color:#1B5E4A;background:rgba(255,255,255,.75);padding:0 1px;border-radius:2px}em.la{color:#1D4ED8}" +
     ".mh{height:17px}.mh span{position:absolute;top:2px;padding-left:3px;overflow:hidden;font-size:10px;font-weight:800;color:#fff;white-space:nowrap}.mh span.b{border-left:1px solid rgba(255,255,255,.5)}" +
     ".wh{height:16px;background:#2F8A6D}.wh span{position:absolute;top:0;height:16px;line-height:16px;text-align:center;font-size:8.5px;font-weight:700;color:#fff;border-left:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden}" +
     ".dh{height:24px;background:#fff}.dh span{position:absolute;top:2px;text-align:center;font-size:9px;line-height:1.05;color:#15211A;font-weight:600}.dh span em{display:block;font-style:normal;font-size:7.5px;color:#7A8A81}" +
@@ -1023,7 +1080,7 @@ function msPrintHTML(job, C, today, cv) {
     ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" +
     ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}" +
     /* จอ: เลื่อนแนวนอนแล้วคอลัมน์ ID…สถานะ ล็อกอยู่ (ซ้าย = ผลรวมความกว้างคอลัมน์ก่อนหน้า ตาม .n .t .d … ด้านบน) · หัวตารางล็อกบน · ตอนพิมพ์ไม่ใช้ */
-    "@media screen{table.t1 tr>:nth-child(-n+9){position:sticky;z-index:3;background:#fff}table.t1 tr.h>td:nth-child(-n+9){background:#EEF4F0}table.t1 thead th{position:sticky;top:0;z-index:5}table.t1 thead th:nth-child(-n+9){z-index:6;background:#1B5E4A}table.t1 tr>:nth-child(1){left:0px}table.t1 tr>:nth-child(2){left:36px}table.t1 tr>:nth-child(3){left:256px}table.t1 tr>:nth-child(4){left:322px}table.t1 tr>:nth-child(5){left:388px}table.t1 tr>:nth-child(6){left:418px}table.t1 tr>:nth-child(7){left:458px}table.t1 tr>:nth-child(8){left:542px}table.t1 tr>:nth-child(9){left:638px}table.t1 tr>:nth-child(9){box-shadow:3px 0 4px -2px rgba(0,0,0,.18)}}";
+    "@media screen{table.t1 .n,table.t1 .t,table.t1 .w,table.t1 .u,table.t1 .ds,table.t1 .df,table.t1 .p,table.t1 .st,table.t1 .pa{position:sticky;z-index:6;background:#fff}table.t1 .n{left:0px}table.t1 .t{left:36px}table.t1 .w{left:256px}table.t1 .u{left:296px}table.t1 .ds{left:326px}table.t1 .df{left:392px}table.t1 .p{left:458px}table.t1 .st{left:542px}table.t1 .pa{left:634px}table.t1 tr.h td.n,table.t1 tr.h td.t,table.t1 tr.h td.w,table.t1 tr.h td.u,table.t1 tr.h td.ds,table.t1 tr.h td.df,table.t1 tr.h td.p,table.t1 tr.h td.st,table.t1 tr.h td.pa{background:#EEF4F0}table.t1 td.pp{background:#D5EEE5}table.t1 td.pq{background:#DCE7FB}table.t1 thead th{position:sticky;top:0;z-index:7}table.t1 thead th.n,table.t1 thead th.t,table.t1 thead th.w,table.t1 thead th.u,table.t1 thead th.ds,table.t1 thead th.df,table.t1 thead th.p,table.t1 thead th.st,table.t1 thead th.pa{z-index:8;background:#1B5E4A}table.t1 .pa{box-shadow:3px 0 4px -2px rgba(0,0,0,.18)}}";
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" +
     '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" +
@@ -1033,8 +1090,9 @@ function msPrintHTML(job, C, today, cv) {
     '<div class="ks">' + kpi("งานทั้งหมด", C.leaves) + kpi("เสร็จแล้ว", C.cnt.done, "ok") + kpi("กำลังทำ", C.cnt.doing, "am") + kpi("ยังไม่เริ่ม", C.cnt.todo) +
     (C.cnt.late ? kpi("ล่าช้า", C.cnt.late, "rd") : "") + "</div></div>" +
     '<table class="t1"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>" +
-    '<div class="lg"><span><i style="background:#C9E9DD"></i>ช่วงแผน</span><span><i style="background:#1B9B75"></i>ทำไปแล้ว (ระบายตาม %)</span>' +
-    '<span><i style="background:#15803D"></i>เสร็จ</span><span><i style="background:#DC2626"></i>ล่าช้า</span><span><i style="background:#15803D;height:4px"></i>ทำจริง (แดง = เลยกำหนด)</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' +
+    '<div class="lg"><span><i style="background:#C9E9DD"></i>Plan ช่วงแผน</span><span><i style="background:#BFD3FA"></i>Actual ช่วงทำจริง (แดง = เลยกำหนด)</span>' +
+    '<span><i style="background:#1B9B75;height:3px"></i>S-Curve แผนสะสม</span><span><i style="background:#2563EB;height:3px"></i>S-Curve ทำได้จริงสะสม</span><span><i style="background:#DC2626;width:2px"></i>วันนี้</span>' +
+    (showWk ? "<span>ตัวเลขในช่องสัปดาห์ = % ของงานนั้น</span>" : "") +
     '<span style="margin-left:auto">ออกเอกสาร ' + esc(msTH(msToday(), true)) + "</span></div>" +
     (cv ? '<div class="sc"><div class="sch"><b>EPC S-Curve</b><span>% สะสมรายสัปดาห์ · แผนจากน้ำหนักงาน × ช่วงวันแผน · จริงจากภาพรวมที่จดไว้รายวัน</span>' +
       '<span class="scv">แผน ณ วันนี้ <b>' + (Math.round(cv.planNow * 10) / 10) + '%</b></span><span class="scv">ทำได้จริง <b>' + C.pct + "%</b></span></div>" +
