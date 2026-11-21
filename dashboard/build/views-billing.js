@@ -304,7 +304,7 @@ function BlPayModal({
       margin: "0 auto",
       background: "var(--surface)",
       borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-lg)",
+      boxShadow: "var(--shadow-modal)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -875,7 +875,7 @@ function BlPhotoPick({
       margin: "0 auto",
       background: "var(--surface)",
       borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-lg)",
+      boxShadow: "var(--shadow-modal)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -1602,7 +1602,7 @@ function BlSetupModal({
       margin: "0 auto",
       background: "var(--surface)",
       borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-lg)",
+      boxShadow: "var(--shadow-modal)",
       overflow: "hidden"
     }
   }, React.createElement("div", {

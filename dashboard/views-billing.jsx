@@ -176,7 +176,7 @@ function BlPayModal({ row, onCancel, onOk }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
       <div style={{ maxWidth: 480, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)",
-        boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
+        boxShadow: "var(--shadow-modal)", overflow: "hidden" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "18px 20px 0" }}>
           <span style={{ width: 38, height: 38, borderRadius: "var(--r-tile)", flexShrink: 0, display: "grid", placeItems: "center",
             background: "#10B9811a" }}>
@@ -444,7 +444,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-modal)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--divider)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>
@@ -803,7 +803,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 180, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-modal)", overflow: "hidden" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: "1px solid var(--divider)" }}>
           <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>

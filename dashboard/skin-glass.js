@@ -183,6 +183,11 @@
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']," + L + " .su-sheet," + L + " .su-rep-hd{--surface:rgba(250,252,252,.86)}",
     D + " [style*='var(--shadow-modal)']," + D + " [style*='var(--shadow-sheet)']," + D + " .su-sheet," + D + " .su-rep-hd{--surface:rgba(28,31,40,.9)}",
     G + " [style*='var(--shadow-modal)']," + G + " [style*='var(--shadow-sheet)']," + G + " .su-sheet," + G + " .su-rep-hd{-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5)}",
+    /* หน้าต่างลอยทุกตัว (แผ่นที่เป็นลูกตรงของฉากหลังเต็มจอ) ทึบเท่าโมดัล — ไม่ต้องพึ่งว่าใส่เงา --shadow-modal ไว้หรือเปล่า
+       (ผู้ใช้เจอ "หน้าต่างสีเทาทะลุ" เช่น ตั้งงวดงาน · เดิมพื้น .58 เห็นใบงาน/หน้ารวมข้างหลังทะลุ) */
+    L + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{--surface:rgba(250,252,252,.86)}",
+    D + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{--surface:rgba(28,31,40,.9)}",
+    G + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5)}",
     /* แท็บแฟ้มเหนือลิ้นชัก/โมดัล (.ld-tab) ต้องทึบเท่าตัวใบ ไม่งั้นแท็บที่เลือกสีไม่ต่อกับหัวใบ — แยกบรรทัดเพราะ :has ไม่รองรับจะทิ้งทั้งกฎ */
     L + " .ld-tabs:has(+ [style*='var(--shadow-sheet)'],+ [style*='var(--shadow-modal)']){--surface:rgba(250,252,252,.86)}",
     D + " .ld-tabs:has(+ [style*='var(--shadow-sheet)'],+ [style*='var(--shadow-modal)']){--surface:rgba(28,31,40,.9)}",
