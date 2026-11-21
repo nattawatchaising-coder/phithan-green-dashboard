@@ -646,9 +646,9 @@ function MtSiteOverview({ s, st, isAdmin, now }) {
   });
   const thisDayK = mtDayKwh(days, day, reg, live);
   const dayMax = dayBars.reduce((m, b) => Math.max(m, b.value || 0), 0);
-  /* ช่วงเวลาในกราฟ: อย่างน้อย 05:00–19:00 ขยายตามช่วงที่มีไฟ (แบบกราฟวันของหน้า Monitoring) */
-  const onT = dayBars.filter((b) => (b.value || 0) > 0.01).map((b) => b.t);
-  const t0 = Math.min(300, onT.length ? Math.floor(onT[0] / 60) * 60 : 300), t1 = Math.max(1140, onT.length ? Math.ceil(onT[onT.length - 1] / 60) * 60 : 1140);
+  /* ช่วงเวลาในกราฟ: เต็มวัน 00:00–24:00 เสมอ (ผู้ใช้ 22 พ.ย. 2026 "ทำไมกราฟมันไม่ครบ 24 ชม")
+     มิเตอร์วัดไฟเข้า/ใช้ไฟได้ทั้งกลางคืน ไม่ใช่แค่ช่วงแดด — เดิมอย่างน้อย 05:00–19:00 ขยายตามช่วงที่มีไฟแบบหน้า Monitoring */
+  const t0 = 0, t1 = 1440;
   const pre = ym.replace("-", "");
   const monBars = Object.keys(days || {}).filter((x) => x.slice(0, 6) === pre).sort().map((x) => {
     const val = mtDayKwh(days, x, reg, live);

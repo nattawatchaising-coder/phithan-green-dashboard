@@ -1473,9 +1473,8 @@ function MtSiteOverview({
   });
   const thisDayK = mtDayKwh(days, day, reg, live);
   const dayMax = dayBars.reduce((m, b) => Math.max(m, b.value || 0), 0);
-  const onT = dayBars.filter(b => (b.value || 0) > 0.01).map(b => b.t);
-  const t0 = Math.min(300, onT.length ? Math.floor(onT[0] / 60) * 60 : 300),
-    t1 = Math.max(1140, onT.length ? Math.ceil(onT[onT.length - 1] / 60) * 60 : 1140);
+  const t0 = 0,
+    t1 = 1440;
   const pre = ym.replace("-", "");
   const monBars = Object.keys(days || {}).filter(x => x.slice(0, 6) === pre).sort().map(x => {
     const val = mtDayKwh(days, x, reg, live);
