@@ -3128,7 +3128,7 @@ function MsCard({
     window.FBDB.ref("masterScheduleHist/" + job.id + "/" + today).set(C.pct);
   }, [job && job.id, !!ms.rows, hist, today, C.pct]);
   if (!job) return null;
-  const sub = !ms.rows ? "ยังไม่ได้ทำแผน — กดดูทั้งหมดแล้วเปิดแผนงานเต็มเพื่อเริ่มจากแม่แบบ" : [C.lo != null ? msSpanTH(msIso(C.lo), msIso(C.hi)) : "ยังไม่ใส่วันแผน", C.cnt.done + "/" + C.leaves + " งานเสร็จ", C.late ? "ล่าช้า " + C.late : ""].filter(Boolean).join(" · ");
+  const sub = !ms.rows ? "ยังไม่ได้ทำแผน" : [C.lo != null ? msSpanTH(msIso(C.lo), msIso(C.hi)) : "ยังไม่ใส่วันแผน", C.cnt.done + "/" + C.leaves + " งานเสร็จ", C.late ? "ล่าช้า " + C.late : ""].filter(Boolean).join(" · ");
   const groups = [];
   C.rows.forEach(r => {
     if (r.head || !groups.length) groups.push({
