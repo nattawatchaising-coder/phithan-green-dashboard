@@ -405,8 +405,8 @@ function msExportXlsx(job, C, cv, today) {
   ws["!ref"] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: r, c: Math.max(W0 + weeks.length - 1, 11) } });
   ws["!merges"] = merges;
   ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 9 }, { wch: 6 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 12.5 }, { wch: 8 }, { wch: 9 }, { wch: 17 }].concat(weeks.map(() => ({ wch: 5.5 })));
-  ws["!freeze"] = { xSplit: 2, ySplit: H0 + 2 };
-  ws["!views"] = [{ state: "frozen", xSplit: 2, ySplit: H0 + 2 }];
+  ws["!freeze"] = { xSplit: W0, ySplit: H0 + 2 };
+  ws["!views"] = [{ state: "frozen", xSplit: W0, ySplit: H0 + 2 }];
 
   /* ชีต S-Curve: ตาราง + กราฟ */
   const cs = {};
@@ -431,7 +431,7 @@ function msExportXlsx(job, C, cv, today) {
   const buf = X.write(wb, { type: "array", bookType: "xlsx" });
   let out = buf;
   if (weeks.length) {
-    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1); } catch (e) { console.warn("S-Curve chart", e); }
+    try { out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, { x: W0, y: H0 + 2 }); } catch (e) { console.warn("S-Curve chart", e); }
   }
   const fn = (window.rpFileName ? window.rpFileName(job, "MS") : "Master Schedule " + (job.code || "")) + ".xlsx";
   const url = URL.createObjectURL(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -448,7 +448,7 @@ function msWkLab(weeks) {
   });
 }
 /* เติมกราฟเส้น S-Curve ลงชีตที่ 2 (sheet2.xml) — rows = แถวข้อมูลสุดท้าย (1-based) */
-function msAddChart(CFB, bytes, weeks, lastRow) {
+function msAddChart(CFB, bytes, weeks, lastRow, freeze) {
   const z = CFB.read(bytes, { type: "array" });
   const enc = (t) => new TextEncoder().encode(t), dec = (u) => new TextDecoder().decode(u);
   const get = (p) => { const e = CFB.find(z, p); return e ? dec(e.content) : null; };
@@ -493,6 +493,16 @@ function msAddChart(CFB, bytes, weeks, lastRow) {
   if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
   sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
   set("/xl/worksheets/sheet2.xml", sh);
+  /* ตรึงแนว (Freeze Panes) ชีตแรก: คอลัมน์ No…สถานะ + หัวตาราง 2 แถว — xlsx-js-style ไม่เขียน !freeze ให้ เลยเขียน sheetViews เอง */
+  let s1 = get("/xl/worksheets/sheet1.xml");
+  if (s1 && freeze) {
+    const tl = String.fromCharCode(65 + freeze.x) + (freeze.y + 1);
+    const sv = '<sheetViews><sheetView workbookViewId="0"><pane xSplit="' + freeze.x + '" ySplit="' + freeze.y + '" topLeftCell="' + tl + '" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="' + tl + '" sqref="' + tl + '"/></sheetView></sheetViews>';
+    const svRe = /<sheetViews[\s\S]*?<\/sheetViews>|<sheetViews\/>/;
+    if (svRe.test(s1)) s1 = s1.replace(svRe, sv);
+    else s1 = s1.replace(/<sheetFormatPr|<cols>|<sheetData/, (m) => sv + m);
+    set("/xl/worksheets/sheet1.xml", s1);
+  }
   let ct = get("/[Content_Types].xml");
   ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
     '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>');

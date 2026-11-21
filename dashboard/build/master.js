@@ -908,12 +908,12 @@ function msExportXlsx(job, C, cv, today) {
     wch: 5.5
   })));
   ws["!freeze"] = {
-    xSplit: 2,
+    xSplit: W0,
     ySplit: H0 + 2
   };
   ws["!views"] = [{
     state: "frozen",
-    xSplit: 2,
+    xSplit: W0,
     ySplit: H0 + 2
   }];
   const cs = {};
@@ -979,7 +979,10 @@ function msExportXlsx(job, C, cv, today) {
   let out = buf;
   if (weeks.length) {
     try {
-      out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1);
+      out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, {
+        x: W0,
+        y: H0 + 2
+      });
     } catch (e) {
       console.warn("S-Curve chart", e);
     }
@@ -1010,7 +1013,7 @@ function msWkLab(weeks) {
     };
   });
 }
-function msAddChart(CFB, bytes, weeks, lastRow) {
+function msAddChart(CFB, bytes, weeks, lastRow, freeze) {
   const z = CFB.read(bytes, {
     type: "array"
   });
@@ -1044,6 +1047,14 @@ function msAddChart(CFB, bytes, weeks, lastRow) {
   if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
   sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
   set("/xl/worksheets/sheet2.xml", sh);
+  let s1 = get("/xl/worksheets/sheet1.xml");
+  if (s1 && freeze) {
+    const tl = String.fromCharCode(65 + freeze.x) + (freeze.y + 1);
+    const sv = '<sheetViews><sheetView workbookViewId="0"><pane xSplit="' + freeze.x + '" ySplit="' + freeze.y + '" topLeftCell="' + tl + '" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="' + tl + '" sqref="' + tl + '"/></sheetView></sheetViews>';
+    const svRe = /<sheetViews[\s\S]*?<\/sheetViews>|<sheetViews\/>/;
+    if (svRe.test(s1)) s1 = s1.replace(svRe, sv);else s1 = s1.replace(/<sheetFormatPr|<cols>|<sheetData/, m => sv + m);
+    set("/xl/worksheets/sheet1.xml", s1);
+  }
   let ct = get("/[Content_Types].xml");
   ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' + '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>');
   set("/[Content_Types].xml", ct);
