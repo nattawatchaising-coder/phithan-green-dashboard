@@ -1314,6 +1314,7 @@ function MsModal({ job, canEdit, currentUser, onClose }) {
 function MsQuickPct({ value, onSave }) {
   const [v, setV] = React.useState(String(value));
   const [busy, setBusy] = React.useState(false);
+  const [foc, setFoc] = React.useState(false);
   React.useEffect(() => { setV(String(value)); }, [value]);
   const commit = (x) => {
     const n = msPct(x);
@@ -1325,12 +1326,16 @@ function MsQuickPct({ value, onSave }) {
   const done = msPct(value) >= 100;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-      <span style={{ display: "inline-flex", alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: 8, padding: "0 7px 0 2px", opacity: busy ? 0.5 : 1 }}>
-        <input type="number" min="0" max="100" step="5" value={v} disabled={busy} aria-label="ความคืบหน้า %"
-          onChange={(e) => setV(e.target.value)} onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-          style={{ width: 40, border: "none", background: "transparent", padding: "5px 2px", textAlign: "right", fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-1)", outline: "none" }} />
-        <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>%</span>
-      </span>
+      {/* หลุมเดียว (ช่อง input ปิดเงา/พื้นของตัวเอง ไม่งั้นซ้อนเป็นกล่องในกล่อง) · ใช้ text+numeric ไม่มีปุ่มลูกศรของ number */}
+      <label style={{ display: "inline-flex", alignItems: "center", height: 28, width: 62, boxSizing: "border-box", padding: "0 9px 0 4px", borderRadius: 8, cursor: "text",
+        background: "var(--surface2)", boxShadow: foc ? "inset 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-soft)" : "var(--shadow-inset)", opacity: busy ? 0.5 : 1 }}>
+        <input type="text" inputMode="numeric" value={v} disabled={busy} aria-label="ความคืบหน้า %"
+          onChange={(e) => setV(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} onFocus={(e) => { setFoc(true); e.target.select(); }}
+          onBlur={(e) => { setFoc(false); commit(e.target.value); }} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setV(String(value)); e.currentTarget.blur(); } }}
+          style={{ flex: 1, minWidth: 0, width: "100%", height: "100%", border: "none", background: "transparent", boxShadow: "none", padding: 0, margin: 0, textAlign: "right",
+            fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", outline: "none" }} />
+        <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700, marginLeft: 2 }}>%</span>
+      </label>
       <button title="เสร็จแล้ว (100%)" aria-label="ทำเครื่องหมายว่าเสร็จ" disabled={busy || done} onClick={() => commit(100)}
         style={{ width: 28, height: 28, border: "none", borderRadius: 8, cursor: done ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0,
           background: done ? "var(--tint-ok-bg)" : "var(--surface2)", boxShadow: done ? "none" : "var(--shadow-sm)" }}>

@@ -2975,6 +2975,7 @@ function MsQuickPct({
 }) {
   const [v, setV] = React.useState(String(value));
   const [busy, setBusy] = React.useState(false);
+  const [foc, setFoc] = React.useState(false);
   React.useEffect(() => {
     setV(String(value));
   }, [value]);
@@ -3004,37 +3005,55 @@ function MsQuickPct({
       flexShrink: 0
     },
     onClick: e => e.stopPropagation()
-  }, React.createElement("span", {
+  }, React.createElement("label", {
     style: {
       display: "inline-flex",
       alignItems: "center",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
+      height: 28,
+      width: 62,
+      boxSizing: "border-box",
+      padding: "0 9px 0 4px",
       borderRadius: 8,
-      padding: "0 7px 0 2px",
+      cursor: "text",
+      background: "var(--surface2)",
+      boxShadow: foc ? "inset 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-soft)" : "var(--shadow-inset)",
       opacity: busy ? 0.5 : 1
     }
   }, React.createElement("input", {
-    type: "number",
-    min: "0",
-    max: "100",
-    step: "5",
+    type: "text",
+    inputMode: "numeric",
     value: v,
     disabled: busy,
     "aria-label": "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32 %",
-    onChange: e => setV(e.target.value),
-    onBlur: e => commit(e.target.value),
+    onChange: e => setV(e.target.value.replace(/[^0-9]/g, "").slice(0, 3)),
+    onFocus: e => {
+      setFoc(true);
+      e.target.select();
+    },
+    onBlur: e => {
+      setFoc(false);
+      commit(e.target.value);
+    },
     onKeyDown: e => {
       if (e.key === "Enter") e.currentTarget.blur();
+      if (e.key === "Escape") {
+        setV(String(value));
+        e.currentTarget.blur();
+      }
     },
     style: {
-      width: 40,
+      flex: 1,
+      minWidth: 0,
+      width: "100%",
+      height: "100%",
       border: "none",
       background: "transparent",
-      padding: "5px 2px",
+      boxShadow: "none",
+      padding: 0,
+      margin: 0,
       textAlign: "right",
       fontFamily: "var(--mono)",
-      fontSize: 12,
+      fontSize: 12.5,
       fontWeight: 700,
       color: "var(--text-1)",
       outline: "none"
@@ -3043,7 +3062,8 @@ function MsQuickPct({
     style: {
       fontSize: 11,
       color: "var(--text-3)",
-      fontWeight: 700
+      fontWeight: 700,
+      marginLeft: 2
     }
   }, "%")), React.createElement("button", {
     title: "\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27 (100%)",
