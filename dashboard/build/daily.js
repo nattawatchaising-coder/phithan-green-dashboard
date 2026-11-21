@@ -151,7 +151,7 @@ const DR_CLEAN = [{
   key: "all",
   th: "เก็บงานทั้งหมด"
 }];
-const DR_WHA_TREE = [["Civil Work — งานโยธา", [["Walkway Installation", 2], ["Mounting Structure Alignment", 1], ["Mounting Structure Installation", 3], ["Lifeline and Safety line Fabrication", 1], ["Lifeline and Safety line Installation", 1], ["PV Module Installation", 5], ["PV Module Set Alignment", 3], ["Inverter Room Structure", 3], ["Water Cleaning Installation", 1]]], ["Electrical Work — งานไฟฟ้า", [["DC cable tray installation", 2], ["DC pulling and wiring", 2.5], ["AC cable tray and Raceway installation", 3], ["AC cables pulling and wiring", 3], ["String inverter installation", 2], ["MDB Solar Installation", 1], ["Grounding system for DC", 2], ["Grounding system for AC", 2], ["Communication cables and signaling", 1.5], ["CCTV Installation", 0.5], ["Shut-Down and Connection to PEA", 1], ["Test and Inspection", 2], ["Pre-commissioning and inverter commissioning", 1.5], ["Commissioning", 1.5], ["Zero Export Testing", 1], ["Plant performance test", 1], ["Hand over + Training", 1]]]];
+const DR_WHA_TREE = [["Pre-Construction & Site Preparation", [["Safety Training"], ["Roof Inspection"], ["Roof Hand Over"], ["Site Mobilization"]]], ["Civil Work", [["Mounting structure installation"], ["Walkway installation"], ["Guardrail installation"], ["Lifeline installation"], ["PV module installation"], ["PV module set alignment"], ["Inverter Support installation"], ["Water cleaning installation"]]], ["Electrical Work", [["DC perforated tray installation"], ["DC pulling and wiring"], ["AC perforated tray & ladder installation"], ["AC pulling and wiring"], ["SMDB installation"], ["String inverter installation"], ["Grounding system for DC"], ["Grounding system for AC"], ["Communication cables and signaling"], ["Weather station installation"], ["Shut-Down and Connection to MEA"], ["Test and Inspection"], ["Commissioning"], ["Hand over + Training"], ["Punch list"], ["COD"]]]];
 function drWhaSteps() {
   const out = [];
   DR_WHA_TREE.forEach((grp, i) => {
@@ -166,17 +166,18 @@ function drWhaSteps() {
       pct: 0
     });
     grp[1].forEach((sub, k) => {
-      out.push({
+      const st = {
         no: i + 1 + "." + (k + 1),
         th: sub[0],
-        w: sub[1],
         head: false,
         planStart: "",
         planEnd: "",
         actStart: "",
         actEnd: "",
         pct: 0
-      });
+      };
+      if (sub[1] != null) st.w = sub[1];
+      out.push(st);
     });
   });
   return out;

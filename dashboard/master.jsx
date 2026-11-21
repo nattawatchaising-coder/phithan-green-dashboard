@@ -12,20 +12,24 @@
           ช่างอัปเดต % ที่รายงานประจำวันที่เดียว Master Schedule ขยับตาม
    ================================================================== */
 
-/* แม่แบบตามไฟล์ EPC S-Curve ที่ผู้ใช้ส่งมา (Project Schedule Tissin Food 717.60 kWp · 17 พ.ย. 2026 "แผนงานติดตั้งเปลี่ยนเป็นตามที่เลยก็ได้")
-   [หัวข้อ, [[งาน, % น้ำหนัก, วัน], …], link] · น้ำหนักรวมทั้งโครงการ 100 (A 10.5 · B 6 · C 35 · D 20 · E 28.5)
-   หมวด D งานโยธา + E งานไฟฟ้า = ตารางขั้นงานของรายงานประจำวัน (DR_WHA_TREE ใน daily.jsx) ช่างอัปเดต % ที่นั่น */
+/* แม่แบบตั้งต้นของงานโครงการทุกงาน = หมวด/งานย่อยตามแผนงาน Patouch (SF-2463)
+   ผู้ใช้ 22 พ.ย. 2026 "อยากใช้ฟอร์มนี้เป็นฟอร์มเริ่มต้นของทุกๆ งาน" เลือกแบบเอาแค่หัวข้อ — ไม่มีวันที่/%/น้ำหนัก/จำนวนวัน ใส่เองรายงาน
+   (เดิม 17 พ.ย. แม่แบบ EPC S-Curve Tissin Food: Permission · Engineering · Procurement มี % น้ำหนัก + วัน)
+   [หัวข้อ, [[งาน], …], link] · หมวดงานติดตั้ง (link install) = ตารางขั้นงานของรายงานประจำวัน (DR_WHA_TREE ใน daily.jsx) */
 const MS_TEMPLATE = [
-  ["Permission Work — งานขออนุญาต", [
-    ["ใบโอนสิทธิ์ (กนอ.01/3)", 1, 15], ["ขออนุญาตให้ใช้ที่ดินในนามผู้ลงทุน กนอ.01/1", 1, 15], ["ขออนุญาตดัดแปลงอาคาร กนอ.02/1", 1.5, 45],
-    ["ขออนุญาตรับรองอาคาร กนอ.02/5", 1.5, 45], ["ขอแจ้งเริ่มประกอบอุตสาหกรรม กนอ.03/1", 1, 60], ["ขออนุญาตผลิตพลังงานควบคุม พ.ค.2", 1, 240],
-    ["PEA: ยื่นเอกสารเพื่อรับพิจารณาในระบบ PPIM", 1, 45], ["PEA: จัดทำสัญญา 3 ฝ่าย", 0.5, 90], ["PEA: ตรวจสอบอุปกรณ์", 1, 30], ["PEA: First Sync", 1, 30]]],
-  ["Engineering work for approval — งานวิศวกรรม", [
-    ["Roof inspection and handover", 2, 30], ["Site Mobilization", 1, 5], ["Calculation", 0.5, 40], ["Material Specification", 0.5, 30], ["Electrical & Civil drawings", 2, 45]]],
-  ["Procurement and Material delivery — จัดซื้อ & ส่งของ", [
-    ["Mounting Structure", 5, 31], ["PV Module", 10, 60], ["Inverter", 5, 30], ["Walk way", 2, 30], ["MDB Solar", 1, 60],
-    ["Cable tray and Perforated Tray", 2, 30], ["Lifeline and Safety line", 2, 30], ["PV cable", 4, 30], ["AC cable", 3, 30], ["Mechanical + Electrical material", 1, 60]]],
-  ["งานติดตั้ง (Civil + Electrical)", null, "install"],
+  ["Project Management & Engineering", [
+    ["Sign Contract"], ["Kick off Meeting"], ["Insurance of Construction"], ["Site Survey and Make Drawing"],
+    ["Submit and Approve Shop Drawing"], ["Submit Material Approved"]]],
+  ["Permit & License Application", [
+    ["Building Certificate Issuance"], ["Controlled Energy Production Permit Application (Phor.Khor. 2)"],
+    ["Application for Permission to Connect the Power Generation System to MEA's Grid"],
+    ["Submit Application and Upload Documents via My Energy System"], ["Internal Wiring Inspection"],
+    ["Electricity Meter Replacement"], ["Contract Signing"], ["Commercial Operation Date (COD)"]]],
+  ["Procurement and Material delivery", [
+    ["PV Module"], ["Inverter"], ["SMDB"], ["Mounting structure"], ["Walkway"], ["Guardrail"], ["Lifeline"],
+    ["DC & AC Perforated Tray"], ["AC Cable"], ["DC Cable"], ["Weather Station"], ["Water system equipment"], ["Communication cables"]]],
+  ["Building Structural Reinforcement", [["Zone 1&2"], ["Zone 3&4"], ["Zone 5"]]],
+  ["งานติดตั้ง", null, "install"],
 ];
 const MS_MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const MS_DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];

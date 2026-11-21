@@ -124,19 +124,18 @@ const DR_CLEAN = [
   { key: "all",   th: "เก็บงานทั้งหมด" },
 ];
 
-/* ── ชุดขั้นงานของงานโครงการ — หมวด D งานโยธา + E งานไฟฟ้า ตามไฟล์ EPC S-Curve (Tissin Food 717.60 kWp)
-   ผู้ใช้ 17 พ.ย. 2026 "แผนงานติดตั้งเปลี่ยนเป็นตามที่เลยก็ได้" (เดิม 10 หัวข้อ 30 ขั้นตามเทมเพลต WHA)
-   [ชื่อ, % น้ำหนักต่อทั้งโครงการ] — น้ำหนักใช้ใน Master Schedule / S-Curve (master.jsx) · หมวด A–C อยู่ในแม่แบบ Master Schedule
-   เป็นแค่ "ค่าตั้งต้น" ของงานใหม่ · แต่ละงานแก้/เพิ่ม/ลบหัวข้อของตัวเองได้ */
+/* ── ชุดขั้นงานตั้งต้นของงานโครงการ = ตารางขั้นงานของงาน Patouch (SF-2463)
+   ผู้ใช้ 22 พ.ย. 2026 "อยากใช้ฟอร์มนี้เป็นฟอร์มเริ่มต้นของทุกๆ งาน" — เอาแค่หัวข้อ ไม่มีน้ำหนัก (Master Schedule แบ่งน้ำหนักตามจำนวนวันเอง)
+   (เดิม 17 พ.ย. หมวด D/E ตามไฟล์ EPC S-Curve Tissin Food มี % น้ำหนัก) · [ชื่อ, % น้ำหนัก (ไม่ใส่ได้)]
+   เป็นแค่ "ค่าตั้งต้น" ของงานใหม่ · แต่ละงานแก้/เพิ่ม/ลบหัวข้อของตัวเองได้ · งานที่มีตารางแล้วไม่เปลี่ยน */
 const DR_WHA_TREE = [
-  ["Civil Work — งานโยธา", [["Walkway Installation", 2], ["Mounting Structure Alignment", 1], ["Mounting Structure Installation", 3],
-    ["Lifeline and Safety line Fabrication", 1], ["Lifeline and Safety line Installation", 1], ["PV Module Installation", 5],
-    ["PV Module Set Alignment", 3], ["Inverter Room Structure", 3], ["Water Cleaning Installation", 1]]],
-  ["Electrical Work — งานไฟฟ้า", [["DC cable tray installation", 2], ["DC pulling and wiring", 2.5], ["AC cable tray and Raceway installation", 3],
-    ["AC cables pulling and wiring", 3], ["String inverter installation", 2], ["MDB Solar Installation", 1], ["Grounding system for DC", 2],
-    ["Grounding system for AC", 2], ["Communication cables and signaling", 1.5], ["CCTV Installation", 0.5], ["Shut-Down and Connection to PEA", 1],
-    ["Test and Inspection", 2], ["Pre-commissioning and inverter commissioning", 1.5], ["Commissioning", 1.5], ["Zero Export Testing", 1],
-    ["Plant performance test", 1], ["Hand over + Training", 1]]],
+  ["Pre-Construction & Site Preparation", [["Safety Training"], ["Roof Inspection"], ["Roof Hand Over"], ["Site Mobilization"]]],
+  ["Civil Work", [["Mounting structure installation"], ["Walkway installation"], ["Guardrail installation"], ["Lifeline installation"],
+    ["PV module installation"], ["PV module set alignment"], ["Inverter Support installation"], ["Water cleaning installation"]]],
+  ["Electrical Work", [["DC perforated tray installation"], ["DC pulling and wiring"], ["AC perforated tray & ladder installation"],
+    ["AC pulling and wiring"], ["SMDB installation"], ["String inverter installation"], ["Grounding system for DC"], ["Grounding system for AC"],
+    ["Communication cables and signaling"], ["Weather station installation"], ["Shut-Down and Connection to MEA"], ["Test and Inspection"],
+    ["Commissioning"], ["Hand over + Training"], ["Punch list"], ["COD"]]],
 ];
 /* แผ่ต้นไม้เป็นแถวตาราง — หัวข้อใหญ่เลข "1" ลูกเป็น "1.1" · w = น้ำหนัก % ของขั้นย่อย (หัวข้อไม่ใส่ ไม่งั้น drRollup ของงานบ้าน/LINE เปลี่ยน) */
 function drWhaSteps() {
@@ -144,7 +143,9 @@ function drWhaSteps() {
   DR_WHA_TREE.forEach((grp, i) => {
     out.push({ no: String(i + 1), th: grp[0], head: true, planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0 });
     grp[1].forEach((sub, k) => {
-      out.push({ no: (i + 1) + "." + (k + 1), th: sub[0], w: sub[1], head: false, planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0 });
+      const st = { no: (i + 1) + "." + (k + 1), th: sub[0], head: false, planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0 };
+      if (sub[1] != null) st.w = sub[1];   // ไม่มีน้ำหนักก็ไม่ใส่ฟิลด์ (Firebase ไม่รับ undefined)
+      out.push(st);
     });
   });
   return out;
