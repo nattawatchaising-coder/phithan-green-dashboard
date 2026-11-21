@@ -188,13 +188,20 @@
     L + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{--surface:rgba(250,252,252,.86)}",
     D + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{--surface:rgba(28,31,40,.9)}",
     G + " [style*='position: fixed'][style*='inset: 0']>[style*='background: var(--surface)']{-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5)}",
+    /* แผ่นที่ซ้อนอยู่ลึกกว่าลูกตรงของฉากหลังมืด (ฉากหลังเป็น rgba) — ตั้งตัวแปรที่ตัวฉากหลังเลย ใครข้างในใช้ --surface ก็ทึบตาม */
+    L + " [style*='position: fixed'][style*='inset: 0'][style*='background: rgba(']{--surface:rgba(250,252,252,.86)}",
+    D + " [style*='position: fixed'][style*='inset: 0'][style*='background: rgba(']{--surface:rgba(28,31,40,.9)}",
+    /* เมนูเด้ง/ป๊อปโอเวอร์ (--shadow-pop) ลอยทับเนื้อหา ต้องทึบ+เบลอ ไม่งั้นตัวหนังสือข้างหลังซ้อนกับรายการเมนู */
+    L + " [style*='var(--shadow-pop)']{--surface:rgba(250,252,252,.9)}",
+    D + " [style*='var(--shadow-pop)']{--surface:rgba(28,31,40,.92)}",
+    G + " [style*='var(--shadow-pop)']{-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}",
     /* แท็บแฟ้มเหนือลิ้นชัก/โมดัล (.ld-tab) ต้องทึบเท่าตัวใบ ไม่งั้นแท็บที่เลือกสีไม่ต่อกับหัวใบ — แยกบรรทัดเพราะ :has ไม่รองรับจะทิ้งทั้งกฎ */
     L + " .ld-tabs:has(+ [style*='var(--shadow-sheet)'],+ [style*='var(--shadow-modal)']){--surface:rgba(250,252,252,.86)}",
     D + " .ld-tabs:has(+ [style*='var(--shadow-sheet)'],+ [style*='var(--shadow-modal)']){--surface:rgba(28,31,40,.9)}",
     G + " .ld-tabs:has(+ [style*='var(--shadow-sheet)'],+ [style*='var(--shadow-modal)']) .ld-tab{-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5)}",
     /* backdrop-filter ทำให้กล่องนั้นเป็นกรอบของลูกที่ position:fixed — หน้าจอเต็ม (BOQ · ห้องอุปกรณ์ · ออกแบบระบบ · ปฏิทิน · ป๊อปอัปเต็มจอ)
        ที่เปิดจากในการ์ด/หน้าต่างกระจกจึงโดนขังเหลือแค่ขนาดกล่อง → ถอด blur ของกล่องที่มีหน้าจอเต็มอยู่ข้างในออกชั่วคราว (ของเต็มจอบังอยู่แล้ว มองไม่เห็นต่าง) */
-    G + " :is(.pnl,.sidebar,.app-header,.bd-col,.stat-rail>button,.ov-hero-fig,[style*='var(--shadow-card)'],[style*='var(--shadow-modal)'],[style*='var(--shadow-sheet)'],[style*='background: var(--surface)'])" +
+    G + " :is(.pnl,.sidebar,.app-header,.bd-col,.stat-rail>button,.ov-hero-fig,[style*='var(--shadow-card)'],[style*='var(--shadow-modal)'],[style*='var(--shadow-sheet)'],[style*='var(--shadow-pop)'],[style*='background: var(--surface)'])" +
       ":has(.bq,.bqq-bd,.pgdp-wrap,.er,.su,.dv-bd,[style*='position: fixed'][style*='inset: 0']){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}",
 
     /* พิมพ์เอกสาร: ไม่มีภาพพื้นหลัง */
