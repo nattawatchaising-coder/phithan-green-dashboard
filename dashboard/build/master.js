@@ -1637,6 +1637,39 @@ function MsGantt({
     color: "var(--text-3)",
     whiteSpace: "nowrap"
   };
+  const wk0 = d => {
+    const w = A.weeks.find(x => d >= x.d && d <= x.d + 6);
+    return w ? w.d : d;
+  };
+  const SX = a => A.X(wk0(a)),
+    SW = (a, b) => A.W(wk0(a), wk0(b) + 6);
+  const showWk = pxDay * 7 >= 26;
+  const wkTx = (s0, e0, tot, top, h, col) => !showWk || s0 == null || e0 == null || !tot ? null : A.weeks.map(w => {
+    const ov = Math.min(e0, w.d + 6) - Math.max(s0, w.d) + 1;
+    if (ov <= 0) return null;
+    const v = tot * ov / (e0 - s0 + 1);
+    return React.createElement("span", {
+      key: "t" + w.d,
+      style: {
+        position: "absolute",
+        left: A.X(w.d) + "%",
+        width: A.W(w.d, w.d + 6) + "%",
+        top,
+        height: h,
+        lineHeight: h + "px",
+        textAlign: "center",
+        fontSize: 9,
+        fontWeight: 700,
+        fontFamily: "var(--mono)",
+        color: col,
+        zIndex: 2,
+        whiteSpace: "nowrap",
+        overflow: "hidden"
+      }
+    }, v < 1 ? "<1" : Math.round(v), "%");
+  });
+  const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)",
+    ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return React.createElement("div", {
     style: {
       overflowX: compact ? "hidden" : "auto",
@@ -1903,28 +1936,69 @@ function MsGantt({
         top: 0,
         bottom: 0,
         width: 1,
-        background: "var(--divider)"
+        background: "var(--divider)",
+        zIndex: 2
       }
-    })), !compact && (() => {
+    })), !compact && sub && (() => {
       const as = msDay(r.actStart),
         ae0 = msDay(r.actEnd),
         ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
-      if (as == null || ae == null) return null;
-      const lt = pe != null && ae > pe;
-      return React.createElement("div", {
+      const hh = rh / 2,
+        lt = pe != null && ae != null && ae > pe;
+      return React.createElement(React.Fragment, null, ps != null && React.createElement("div", {
+        title: r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd),
+        style: {
+          position: "absolute",
+          left: SX(ps) + "%",
+          width: SW(ps, pe) + "%",
+          top: 1,
+          height: hh - 1.5,
+          background: PLAN_C,
+          zIndex: 1
+        }
+      }), wkTx(ps, pe, 100, 0, hh, "var(--text-1)"), as != null && ae != null && React.createElement("div", {
         title: "ทำจริง " + msSpanTH(r.actStart, r.actEnd || "") + (r.actEnd ? "" : " (ยังทำอยู่)"),
         style: {
           position: "absolute",
-          left: A.X(as) + "%",
-          width: A.W(as, ae) + "%",
-          top: rh / 2 + 5,
-          height: 5,
-          borderRadius: 3,
-          background: lt ? "var(--tint-red-tx)" : "var(--tint-ok-tx)",
-          opacity: r.actEnd ? 1 : 0.6
+          left: SX(as) + "%",
+          width: SW(as, ae) + "%",
+          top: hh + 0.5,
+          height: hh - 1.5,
+          zIndex: 1,
+          background: lt ? "color-mix(in srgb, var(--tint-red-tx) 30%, transparent)" : ACT_C,
+          opacity: ae0 != null ? 1 : 0.7
         }
-      });
-    })(), ps != null && React.createElement("div", {
+      }), as != null && wkTx(as, ae, p, hh, hh, lt ? "var(--tint-red-tx)" : "var(--text-1)"), React.createElement("span", {
+        style: {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: hh,
+          height: 1,
+          background: "color-mix(in srgb, var(--divider) 60%, transparent)"
+        }
+      }));
+    })(), !compact && !sub && ps != null && React.createElement("div", {
+      title: r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%",
+      style: {
+        position: "absolute",
+        left: SX(ps) + "%",
+        width: SW(ps, pe) + "%",
+        top: 3,
+        bottom: 3,
+        background: MS_TRACK,
+        overflow: "hidden",
+        zIndex: 1,
+        boxShadow: r.st === "late" ? "inset 0 0 0 1px var(--tint-red-tx)" : "none"
+      }
+    }, React.createElement("div", {
+      style: {
+        width: p + "%",
+        height: "100%",
+        background: st.bar,
+        opacity: 0.85
+      }
+    })), compact && ps != null && React.createElement("div", {
       title: r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%",
       style: {
         position: "absolute",
@@ -1952,7 +2026,7 @@ function MsGantt({
         bottom: 0,
         width: 1.5,
         background: "var(--tint-red-tx)",
-        zIndex: 1
+        zIndex: 3
       }
     })));
   })));

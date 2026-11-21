@@ -765,6 +765,18 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
   const weekend = [];
   if (pxDay >= 5) for (let d = A.lo; d <= A.hi; d++) { const w = new Date(d * 86400000).getUTCDay(); if (w === 0) weekend.push(d); }
   const thS = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap" };
+  /* แบบเดียวกับ PDF/Excel (ผู้ใช้สั่ง): แถบปัดเต็มช่องสัปดาห์ · งานย่อยครึ่งบน = แผน ครึ่งล่าง = ทำจริง · ตัวเลข % ของงานนั้นในแต่ละสัปดาห์อยู่ในแถบ */
+  const wk0 = (d) => { const w = A.weeks.find((x) => d >= x.d && d <= x.d + 6); return w ? w.d : d; };
+  const SX = (a) => A.X(wk0(a)), SW = (a, b) => A.W(wk0(a), wk0(b) + 6);
+  const showWk = pxDay * 7 >= 26;
+  const wkTx = (s0, e0, tot, top, h, col) => !showWk || s0 == null || e0 == null || !tot ? null : A.weeks.map((w) => {
+    const ov = Math.min(e0, w.d + 6) - Math.max(s0, w.d) + 1;
+    if (ov <= 0) return null;
+    const v = (tot * ov) / (e0 - s0 + 1);
+    return <span key={"t" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", width: A.W(w.d, w.d + 6) + "%", top, height: h, lineHeight: h + "px", textAlign: "center",
+      fontSize: 9, fontWeight: 700, fontFamily: "var(--mono)", color: col, zIndex: 2, whiteSpace: "nowrap", overflow: "hidden" }}>{v < 1 ? "<1" : Math.round(v)}%</span>;
+  });
+  const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)", ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return (
     <div style={{ overflowX: compact ? "hidden" : "auto", WebkitOverflowScrolling: "touch" }}>
       <div style={{ display: "grid", gridTemplateColumns: labW + "px 1fr", minWidth: compact ? 0 : labW + A.span * pxDay }}>
@@ -827,24 +839,36 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
               </div>
               <div style={{ position: "relative", height: rh, borderTop: line, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent" }}>
                 {!compact && weekend.map((d) => <span key={d} style={{ position: "absolute", left: A.X(d) + "%", width: A.W(d, d) + "%", top: 0, bottom: 0, background: "color-mix(in srgb, var(--text-3) 7%, transparent)" }} />)}
-                {!compact && A.weeks.map((w) => <span key={"g" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", top: 0, bottom: 0, width: 1, background: "var(--divider)" }} />)}
-                {/* แถบจริง (บาง ใต้แถบแผน): เริ่มจริง → เสร็จจริง (ยังไม่เสร็จ = ถึงวันนี้) · เลยวันจบแผน = แดง */}
-                {!compact && (() => {
+                {!compact && A.weeks.map((w) => <span key={"g" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", top: 0, bottom: 0, width: 1, background: "var(--divider)", zIndex: 2 }} />)}
+                {!compact && sub && (() => {
+                  /* ครึ่งบน = แผน (ตัวเลข % กระจายตามวันในแต่ละสัปดาห์ รวม 100) · ครึ่งล่าง = ทำจริง (รวม = % ที่ทำได้) · เลยวันจบแผน = แดง · ยังทำอยู่ = จาง */
                   const as = msDay(r.actStart), ae0 = msDay(r.actEnd), ae = ae0 != null ? ae0 : as != null && A.td != null ? Math.max(as, A.td) : null;
-                  if (as == null || ae == null) return null;
-                  const lt = pe != null && ae > pe;
-                  return <div title={"ทำจริง " + msSpanTH(r.actStart, r.actEnd || "") + (r.actEnd ? "" : " (ยังทำอยู่)")}
-                    style={{ position: "absolute", left: A.X(as) + "%", width: A.W(as, ae) + "%", top: rh / 2 + 5, height: 5, borderRadius: 3,
-                      background: lt ? "var(--tint-red-tx)" : "var(--tint-ok-tx)", opacity: r.actEnd ? 1 : 0.6 }} />;
+                  const hh = rh / 2, lt = pe != null && ae != null && ae > pe;
+                  return <>
+                    {ps != null && <div title={r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd)} style={{ position: "absolute", left: SX(ps) + "%", width: SW(ps, pe) + "%", top: 1, height: hh - 1.5, background: PLAN_C, zIndex: 1 }} />}
+                    {wkTx(ps, pe, 100, 0, hh, "var(--text-1)")}
+                    {as != null && ae != null && <div title={"ทำจริง " + msSpanTH(r.actStart, r.actEnd || "") + (r.actEnd ? "" : " (ยังทำอยู่)")}
+                      style={{ position: "absolute", left: SX(as) + "%", width: SW(as, ae) + "%", top: hh + 0.5, height: hh - 1.5, zIndex: 1,
+                        background: lt ? "color-mix(in srgb, var(--tint-red-tx) 30%, transparent)" : ACT_C, opacity: ae0 != null ? 1 : 0.7 }} />}
+                    {as != null && wkTx(as, ae, p, hh, hh, lt ? "var(--tint-red-tx)" : "var(--text-1)")}
+                    <span style={{ position: "absolute", left: 0, right: 0, top: hh, height: 1, background: "color-mix(in srgb, var(--divider) 60%, transparent)" }} />
+                  </>;
                 })()}
-                {ps != null && (
+                {!compact && !sub && ps != null && (
+                  <div title={r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%"}
+                    style={{ position: "absolute", left: SX(ps) + "%", width: SW(ps, pe) + "%", top: 3, bottom: 3, background: MS_TRACK, overflow: "hidden", zIndex: 1,
+                      boxShadow: r.st === "late" ? "inset 0 0 0 1px var(--tint-red-tx)" : "none" }}>
+                    <div style={{ width: p + "%", height: "100%", background: st.bar, opacity: 0.85 }} />
+                  </div>
+                )}
+                {compact && ps != null && (
                   <div title={r.th + " · แผน " + msSpanTH(r.planStart, r.planEnd) + " · " + p + "%"}
                     style={{ position: "absolute", left: A.X(ps) + "%", width: A.W(ps, pe) + "%", top: compact ? rh / 2 - 4 : rh / 2 - (r.head ? 9 : 10), height: compact ? 8 : r.head ? 10 : 12,
                       borderRadius: compact ? 3 : 4, background: MS_TRACK, overflow: "hidden", boxShadow: r.st === "late" && !compact ? "inset 0 0 0 1px var(--tint-red-tx)" : "none" }}>
                     <div style={{ width: p + "%", height: "100%", background: st.bar, opacity: r.head ? 0.85 : 1 }} />
                   </div>
                 )}
-                {showToday && <span style={{ position: "absolute", left: A.X(A.td + 0.5) + "%", top: 0, bottom: 0, width: 1.5, background: "var(--tint-red-tx)", zIndex: 1 }} />}
+                {showToday && <span style={{ position: "absolute", left: A.X(A.td + 0.5) + "%", top: 0, bottom: 0, width: 1.5, background: "var(--tint-red-tx)", zIndex: 3 }} />}
               </div>
             </React.Fragment>
           );
