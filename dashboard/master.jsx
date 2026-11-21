@@ -319,6 +319,7 @@ function MsSCurve({ cv, C, narrow }) {
 
 /* ── ส่งออก Excel: ชีต Master Schedule (แบบไฟล์ EPC S-Curve) + ชีต S-Curve มีกราฟเส้นของ Excel จริง ──
    xlsx-js-style เขียนกราฟไม่ได้ → เขียนสมุดก่อน แล้วเปิด zip (XLSX.CFB) เติม drawing + chart เอง */
+const MS_XPCT = '0.00"%"';   // ช่องสัปดาห์ใน Excel โชว์เป็น % (ค่าในเซลล์ยังเป็นตัวเลข เช่น 1.25 → 1.25%)
 function msExportXlsx(job, C, cv, today) {
   const X = window.XLSX;
   if (!X || !X.CFB) { window.askConfirm && window.askConfirm({ title: "ส่งออก Excel ไม่ได้", body: "ไลบรารี Excel ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง", ok: "ตกลง" }); return; }
@@ -356,7 +357,7 @@ function msExportXlsx(job, C, cv, today) {
   const td = msDay(today);
   const PLAN_F = "BFE6D6", ACT_F = "C7DBFB", HEAD_F = "9FD6C1";   // เขียว = แผน · ฟ้า = ทำจริง (สีเดียวกับเส้นกราฟ)
   const wkCell = (rr, i, v, fill) => put(rr, W0 + i, v === "" || v == null || Math.abs(v) < 0.005 ? "" : Math.round(v * 100) / 100,
-    sty({ font: font({ sz: 8 }), alignment: { horizontal: "center" }, fill: fill ? { fgColor: { rgb: fill } } : undefined }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", "0.00");
+    sty({ font: font({ sz: 8 }), alignment: { horizontal: "center" }, fill: fill ? { fgColor: { rgb: fill } } : undefined }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", MS_XPCT);
   C.rows.forEach((row) => {
     const head = row.head && row.kids, st = head ? HEAD : sty();
     const two = !head;   // งานย่อย = 2 แถว Plan / Actual · หัวข้อใหญ่ = แถวเดียว (แถบช่วงแผน)
@@ -406,10 +407,10 @@ function msExportXlsx(job, C, cv, today) {
     r++;
   };
   r++;
-  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", (w) => w.plan, "0.00", "F3F6F4");
-  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", (w) => w.planAcc, "0.00", "E6F2EC");
-  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", (w) => w.act, "0.00", "E3ECFB");
-  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", (w) => (w.act == null ? null : w.act - w.planAcc), "0.00", "FBEDE3");
+  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", (w) => w.plan, MS_XPCT, "F3F6F4");
+  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", (w) => w.planAcc, MS_XPCT, "E6F2EC");
+  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", (w) => w.act, MS_XPCT, "E3ECFB");
+  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", (w) => (w.act == null ? null : w.act - w.planAcc), MS_XPCT, "FBEDE3");
   /* ตำนานสีช่องสัปดาห์ */
   put(r + 1, 1, "ช่องสัปดาห์ = % ของทั้งโครงการ · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: น้ำหนัก × %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({ font: font({ sz: 9, color: { rgb: "5A6B62" } }), border: {} }));
   r += 1;

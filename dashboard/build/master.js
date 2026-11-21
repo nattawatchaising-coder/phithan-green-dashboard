@@ -568,6 +568,7 @@ function MsSCurve({
     }
   }), "\u0E41\u0E1C\u0E19\u0E23\u0E32\u0E22\u0E2A\u0E31\u0E1B\u0E14\u0E32\u0E2B\u0E4C")));
 }
+const MS_XPCT = '0.00"%"';
 function msExportXlsx(job, C, cv, today) {
   const X = window.XLSX;
   if (!X || !X.CFB) {
@@ -746,7 +747,7 @@ function msExportXlsx(job, C, cv, today) {
         rgb: fill
       }
     } : undefined
-  }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", "0.00");
+  }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", MS_XPCT);
   C.rows.forEach(row => {
     const head = row.head && row.kids,
       st = head ? HEAD : sty();
@@ -914,10 +915,10 @@ function msExportXlsx(job, C, cv, today) {
     r++;
   };
   r++;
-  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", w => w.plan, "0.00", "F3F6F4");
-  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, "0.00", "E6F2EC");
-  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, "0.00", "E3ECFB");
-  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, "0.00", "FBEDE3");
+  sumRow("ESTIMATED WEEKLY IN % — แผนรายสัปดาห์", w => w.plan, MS_XPCT, "F3F6F4");
+  sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, MS_XPCT, "E6F2EC");
+  sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, MS_XPCT, "E3ECFB");
+  sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, MS_XPCT, "FBEDE3");
   put(r + 1, 1, "ช่องสัปดาห์ = % ของทั้งโครงการ · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: น้ำหนัก × %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
     font: font({
       sz: 9,
