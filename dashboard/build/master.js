@@ -41,6 +41,7 @@ function msStLabel(r) {
   return (MS_ST[r.st] || MS_ST.todo).th;
 }
 const MS_ACT_TX = "color-mix(in srgb, #2563EB 80%, var(--text-1))";
+const MS_HALF_LN = "1px dashed color-mix(in srgb, var(--divider) 80%, transparent)";
 const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 let _msSeq = 0;
 const msId = () => "r" + Date.now().toString(36) + (_msSeq++).toString(36);
@@ -1673,13 +1674,27 @@ function MsGantt({
     display: "grid",
     gridTemplateRows: "1fr 1fr",
     height: rh,
-    alignItems: "center",
     fontSize: 11,
     color: "var(--text-2)",
     whiteSpace: "nowrap",
     fontVariantNumeric: "tabular-nums",
-    borderLeft: "none"
+    margin: "0 -3px"
   };
+  const hf = (tx, st2) => React.createElement("span", {
+    style: Object.assign({
+      display: "flex",
+      alignItems: "center",
+      padding: "0 3px",
+      minWidth: 0,
+      overflow: "hidden"
+    }, st2)
+  }, tx);
+  const half = (a, b, bc, st2) => React.createElement("span", {
+    style: Object.assign({}, pa2, st2)
+  }, hf(a), hf(b, {
+    color: bc,
+    borderTop: MS_HALF_LN
+  }));
   const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)",
     ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return React.createElement("div", {
@@ -1821,7 +1836,7 @@ function MsGantt({
       pe = msDay(r.planEnd || r.planStart);
     const st = MS_ST[r.st] || MS_ST.todo;
     const sub = !r.head;
-    const line = r.head && i && !compact ? "1px solid var(--divider)" : "none";
+    const line = !i || compact ? "none" : r.head ? "1px solid var(--divider)" : "1px solid color-mix(in srgb, var(--divider) 70%, transparent)";
     const p = msPct(r.pct);
     return React.createElement(React.Fragment, {
       key: r.id + "-" + i
@@ -1870,26 +1885,14 @@ function MsGantt({
         textAlign: "right",
         fontFamily: "var(--mono)"
       }
-    }, msDur(r.planStart, r.planEnd) || ""), dates && (sub ? React.createElement("span", {
-      style: pa2
-    }, React.createElement("span", null, msTH(r.planStart)), React.createElement("span", {
-      style: {
-        color: MS_ACT_TX
-      }
-    }, r.actStart ? msTH(r.actStart) : "")) : React.createElement("span", {
+    }, msDur(r.planStart, r.planEnd) || ""), dates && (sub ? half(msTH(r.planStart), r.actStart ? msTH(r.actStart) : "", MS_ACT_TX) : React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--text-2)",
         whiteSpace: "nowrap",
         fontVariantNumeric: "tabular-nums"
       }
-    }, msTH(r.planStart))), dates && (sub ? React.createElement("span", {
-      style: pa2
-    }, React.createElement("span", null, msTH(r.planEnd || r.planStart)), React.createElement("span", {
-      style: {
-        color: MS_ACT_TX
-      }
-    }, r.actEnd ? msTH(r.actEnd) : "")) : React.createElement("span", {
+    }, msTH(r.planStart))), dates && (sub ? half(msTH(r.planEnd || r.planStart), r.actEnd ? msTH(r.actEnd) : "", MS_ACT_TX) : React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--text-2)",
@@ -1946,20 +1949,15 @@ function MsGantt({
       st: r.st,
       label: msStLabel(r),
       small: true
-    })), full && (sub ? React.createElement("span", {
-      style: Object.assign({}, pa2, {
-        fontWeight: 700,
-        fontSize: 10
-      })
-    }, React.createElement("span", {
+    })), full && (sub ? half(React.createElement("span", {
       style: {
         color: "var(--tint-ok-tx)"
       }
-    }, "Plan"), React.createElement("span", {
-      style: {
-        color: MS_ACT_TX
-      }
-    }, "Actual")) : React.createElement("span", null))), React.createElement("div", {
+    }, "Plan"), "Actual", MS_ACT_TX, {
+      fontWeight: 700,
+      fontSize: 10,
+      marginRight: -8
+    }) : React.createElement("span", null))), React.createElement("div", {
       style: {
         position: "relative",
         isolation: "isolate",
@@ -2023,8 +2021,7 @@ function MsGantt({
           left: 0,
           right: 0,
           top: hh,
-          height: 1,
-          background: "color-mix(in srgb, var(--divider) 60%, transparent)"
+          borderTop: MS_HALF_LN
         }
       }));
     })(), !compact && !sub && ps != null && React.createElement("div", {
