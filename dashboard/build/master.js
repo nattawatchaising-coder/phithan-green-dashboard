@@ -681,8 +681,8 @@ function msExportXlsx(job, C, cv, today) {
     border: {}
   }));
   const H0 = 4,
-    W0 = 11;
-  ["No", "Item", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ"].forEach((t, c) => {
+    W0 = 12;
+  ["No", "Item", "% Weight", "Day", "Planned Start", "Planned Finish", "Actual Start", "Actual Finish", "ผลต่าง (วัน)", "% Progress", "สถานะ", ""].forEach((t, c) => {
     put(H0, c, t, HDR);
     put(H0 + 1, c, "", HDR);
     merges.push({
@@ -698,8 +698,9 @@ function msExportXlsx(job, C, cv, today) {
   });
   let mStart = 0;
   weeks.forEach((w, i) => {
-    const dt = new Date(w.d * 86400000);
-    put(H0 + 1, W0 + i, "W" + wl[i].k, HDR);
+    const dt = new Date(w.d * 86400000),
+      de = new Date((w.d + 6) * 86400000);
+    put(H0 + 1, W0 + i, dt.getUTCDate() + "-" + de.getUTCDate(), HDR, "s");
     const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
     const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
     if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
@@ -728,35 +729,72 @@ function msExportXlsx(job, C, cv, today) {
     }
   });
   let r = H0 + 2;
+  const r0data = r;
   const td = msDay(today);
+  const PLAN_F = "BFE6D6",
+    ACT_F = "C7DBFB",
+    HEAD_F = "9FD6C1";
+  const wkCell = (rr, i, v, fill) => put(rr, W0 + i, v === "" || v == null || Math.abs(v) < 0.005 ? "" : Math.round(v * 100) / 100, sty({
+    font: font({
+      sz: 8
+    }),
+    alignment: {
+      horizontal: "center"
+    },
+    fill: fill ? {
+      fgColor: {
+        rgb: fill
+      }
+    } : undefined
+  }), v === "" || v == null || Math.abs(v) < 0.005 ? "s" : "n", "0.00");
   C.rows.forEach(row => {
     const head = row.head && row.kids,
       st = head ? HEAD : sty();
-    put(r, 0, row.no, st);
-    put(r, 1, (head ? "" : "   ") + row.th, st);
-    put(r, 2, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, {
+    const two = !head;
+    const left = (c, v, s2, t, z) => {
+      put(r, c, v, s2, t, z);
+      if (two) {
+        put(r + 1, c, "", s2);
+        merges.push({
+          s: {
+            r,
+            c
+          },
+          e: {
+            r: r + 1,
+            c
+          }
+        });
+      }
+    };
+    left(0, row.no, st);
+    left(1, (head ? "" : "   ") + row.th, st);
+    left(2, Math.round((row.wp || 0) * 100) / 100, Object.assign({}, st, {
       alignment: {
-        horizontal: "right"
+        horizontal: "right",
+        vertical: "center"
       }
     }), "n", "0.00");
     const du = msDur(row.planStart, row.planEnd);
-    put(r, 3, du || "", Object.assign({}, st, {
+    left(3, du || "", Object.assign({}, st, {
       alignment: {
-        horizontal: "right"
+        horizontal: "right",
+        vertical: "center"
       }
     }));
     const a = serial(row.planStart),
       b = serial(row.planEnd || row.planStart);
-    put(r, 4, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
-    put(r, 5, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
+    left(4, a == null ? "" : a, st, a == null ? "s" : "n", "d/m/yyyy");
+    left(5, b == null ? "" : b, st, b == null ? "s" : "n", "d/m/yyyy");
     const c = serial(row.actStart),
       e = serial(row.actEnd);
-    put(r, 6, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
-    put(r, 7, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
+    left(6, c == null ? "" : c, st, c == null ? "s" : "n", "d/m/yyyy");
+    left(7, e == null ? "" : e, st, e == null ? "s" : "n", "d/m/yyyy");
     const dv = row.var != null ? row.var : row.lateBy != null ? row.lateBy : null;
-    put(r, 8, dv == null ? "" : dv, Object.assign({}, st, {
+    left(8, dv == null ? "" : dv, Object.assign({}, st, {
       alignment: {
-        horizontal: "right"
+        horizontal: "right",
+        vertical: "center"
       },
       font: font({
         bold: !!head,
@@ -765,12 +803,13 @@ function msExportXlsx(job, C, cv, today) {
         }
       })
     }), dv == null ? "s" : "n", "+0;-0;0");
-    put(r, 9, msPct(row.pct) / 100, Object.assign({}, st, {
+    left(9, msPct(row.pct) / 100, Object.assign({}, st, {
       alignment: {
-        horizontal: "right"
+        horizontal: "right",
+        vertical: "center"
       }
     }), "n", "0%");
-    put(r, 10, msStLabel(row), Object.assign({}, st, {
+    left(10, msStLabel(row), Object.assign({}, st, {
       font: font({
         bold: !!head,
         color: {
@@ -782,33 +821,51 @@ function msExportXlsx(job, C, cv, today) {
       pe = msDay(row.planEnd || row.planStart);
     const as = msDay(row.actStart),
       ae = msDay(row.actEnd) != null ? msDay(row.actEnd) : as != null && td != null ? Math.max(as, td) : null;
-    weeks.forEach((w, i) => {
-      let v = "";
-      let fill = null;
-      const inP = ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d);
-      const inA = as != null && ae != null && Math.min(ae, w.d + 6) >= Math.max(as, w.d);
-      if (inP) {
-        const ov = Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1;
-        fill = head ? "9FD6C1" : "BFE6D6";
-        if (!head) v = Math.round(ov / (pe - ps + 1) * 1000) / 10;
+    const wp = row.wp || 0,
+      earned = wp * msPct(row.pct) / 100;
+    if (head) {
+      put(r, 11, "", st);
+      weeks.forEach((w, i) => wkCell(r, i, "", ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d) ? HEAD_F : null));
+      r++;
+      return;
+    }
+    put(r, 11, "Plan", sty({
+      font: font({
+        sz: 9,
+        bold: true
+      }),
+      alignment: {
+        horizontal: "center"
+      },
+      fill: {
+        fgColor: {
+          rgb: PLAN_F
+        }
       }
-      if (inA) fill = inP ? "5DBB97" : "F4B4B4";
-      put(r, W0 + i, v, sty({
-        font: font({
-          sz: 8
-        }),
-        alignment: {
-          horizontal: "center"
-        },
-        fill: fill ? {
-          fgColor: {
-            rgb: fill
-          }
-        } : undefined
-      }));
+    }));
+    put(r + 1, 11, "Actual", sty({
+      font: font({
+        sz: 9,
+        bold: true
+      }),
+      alignment: {
+        horizontal: "center"
+      },
+      fill: {
+        fgColor: {
+          rgb: ACT_F
+        }
+      }
+    }));
+    weeks.forEach((w, i) => {
+      const inP = ps != null && Math.min(pe, w.d + 6) >= Math.max(ps, w.d);
+      wkCell(r, i, inP ? wp * (Math.min(pe, w.d + 6) - Math.max(ps, w.d) + 1) / (pe - ps + 1) : "", inP ? PLAN_F : null);
+      const inA = as != null && ae != null && Math.min(ae, w.d + 6) >= Math.max(as, w.d);
+      wkCell(r + 1, i, inA && earned ? earned * (Math.min(ae, w.d + 6) - Math.max(as, w.d) + 1) / (ae - as + 1) : "", inA ? ACT_F : null);
     });
-    r++;
+    r += 2;
   });
+  const r1data = r - 1;
   const sumRow = (label, val, z, rgb) => {
     put(r, 0, label, sty({
       font: font({
@@ -861,7 +918,7 @@ function msExportXlsx(job, C, cv, today) {
   sumRow("ESTIMATED PERCENTAGE ACCUMULATE — แผนสะสม", w => w.planAcc, "0.00", "E6F2EC");
   sumRow("ACTUAL PERCENT PROJECT COMPLETED ACCUMULATE — ทำได้จริงสะสม", w => w.act, "0.00", "E3ECFB");
   sumRow("DIFF. PERCENTAGE ACCUMULATE — ต่างจากแผน", w => w.act == null ? null : w.act - w.planAcc, "0.00", "FBEDE3");
-  put(r + 1, 1, "สีช่องสัปดาห์: เขียวอ่อน = ช่วงแผน (ตัวเลข = % ของงานนั้นในสัปดาห์) · เขียวเข้ม = ทำจริงในช่วงแผน · แดงอ่อน = ทำจริงนอกช่วงแผน · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
+  put(r + 1, 1, "ช่องสัปดาห์ = % ของทั้งโครงการ · แถว Plan (เขียว) = แผน · แถว Actual (ฟ้า) = ทำได้จริง (ประมาณ: น้ำหนัก × %คืบหน้า กระจายตามวันที่ทำจริง) · เส้นบนแกนต์ = S-Curve สะสม (เขียว แผน / ฟ้า จริง) · ผลต่าง (วัน): + ช้า / − เร็วกว่าแผน", sty({
     font: font({
       sz: 9,
       color: {
@@ -878,7 +935,7 @@ function msExportXlsx(job, C, cv, today) {
     },
     e: {
       r: r,
-      c: Math.max(W0 + weeks.length - 1, 11)
+      c: Math.max(W0 + weeks.length - 1, 12)
     }
   });
   ws["!merges"] = merges;
@@ -904,8 +961,10 @@ function msExportXlsx(job, C, cv, today) {
     wch: 9
   }, {
     wch: 17
+  }, {
+    wch: 7
   }].concat(weeks.map(() => ({
-    wch: 5.5
+    wch: 6
   })));
   ws["!freeze"] = {
     xSplit: W0,
@@ -982,7 +1041,11 @@ function msExportXlsx(job, C, cv, today) {
       out = msAddChart(X.CFB, new Uint8Array(buf), weeks, last + 1, {
         x: W0,
         y: H0 + 2
-      });
+      }, r1data >= r0data ? {
+        c0: W0,
+        r0: r0data,
+        r1: r1data
+      } : null);
     } catch (e) {
       console.warn("S-Curve chart", e);
     }
@@ -1013,7 +1076,7 @@ function msWkLab(weeks) {
     };
   });
 }
-function msAddChart(CFB, bytes, weeks, lastRow, freeze) {
+function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
   const z = CFB.read(bytes, {
     type: "array"
   });
@@ -1047,6 +1110,26 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze) {
   if (!/xmlns:r=/.test(sh)) sh = sh.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
   sh = sh.replace("</worksheet>", '<drawing r:id="rIdMsDr1"/></worksheet>');
   set("/xl/worksheets/sheet2.xml", sh);
+  if (ov) {
+    const lbl = N <= 40;
+    const dl = '<c:dLbls><c:numFmt formatCode="0.00&quot;%&quot;" sourceLinked="0"/><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="700" b="1"><a:solidFill><a:srgbClr val="1B5E4A"/></a:solidFill></a:defRPr></a:pPr><a:endParaRPr lang="th-TH"/></a:p></c:txPr><c:dLblPos val="t"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>';
+    const s0 = ser(0, "D", "แผนสะสม (Plan)", "1B9B75", weeks.map(w => w.planAcc)),
+      s1x = ser(1, "E", "ทำได้จริงสะสม (Actual)", "2563EB", weeks.map(w => w.act));
+    const chart2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' + '<c:roundedCorners val="0"/><c:chart><c:autoTitleDeleted val="1"/><c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0"/><c:y val="0"/><c:w val="1"/><c:h val="1"/></c:manualLayout></c:layout>' + '<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + (lbl ? s0.replace("</c:marker>", "</c:marker>" + dl) : s0) + s1x + '<c:marker val="1"/><c:axId val="50020001"/><c:axId val="50020002"/></c:lineChart>' + '<c:catAx><c:axId val="50020001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="1"/><c:axPos val="b"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="none"/><c:crossAx val="50020002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' + '<c:valAx><c:axId val="50020002"/><c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling><c:delete val="1"/><c:axPos val="l"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="none"/><c:crossAx val="50020001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>' + '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:plotArea><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>' + '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:chartSpace>';
+    const drawing2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + '<xdr:twoCellAnchor><xdr:from><xdr:col>' + ov.c0 + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + ov.r0 + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' + '<xdr:to><xdr:col>' + (ov.c0 + N) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (ov.r1 + 1) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' + '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="3" name="S-Curve บนแกนต์"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>' + '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">' + '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>' + '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>';
+    set("/xl/charts/chart2.xml", chart2);
+    set("/xl/drawings/drawing2.xml", drawing2);
+    set("/xl/drawings/_rels/drawing2.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart2.xml"/></Relationships>');
+    const relP1 = "/xl/worksheets/_rels/sheet1.xml.rels";
+    let rel1 = get(relP1);
+    const drRel1 = '<Relationship Id="rIdMsDr2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing2.xml"/>';
+    rel1 = rel1 ? rel1.replace("</Relationships>", drRel1 + "</Relationships>") : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + drRel1 + "</Relationships>";
+    set(relP1, rel1);
+    let s1d = get("/xl/worksheets/sheet1.xml");
+    if (!/xmlns:r=/.test(s1d)) s1d = s1d.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+    s1d = s1d.replace("</worksheet>", '<drawing r:id="rIdMsDr2"/></worksheet>');
+    set("/xl/worksheets/sheet1.xml", s1d);
+  }
   let s1 = get("/xl/worksheets/sheet1.xml");
   if (s1 && freeze) {
     const tl = String.fromCharCode(65 + freeze.x) + (freeze.y + 1);
@@ -1056,7 +1139,7 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze) {
     set("/xl/worksheets/sheet1.xml", s1);
   }
   let ct = get("/[Content_Types].xml");
-  ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' + '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>');
+  ct = ct.replace("</Types>", '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' + '<Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>' + (ov ? '<Override PartName="/xl/drawings/drawing2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/><Override PartName="/xl/charts/chart2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>' : "") + "</Types>");
   set("/[Content_Types].xml", ct);
   return CFB.write(z, {
     fileType: "zip",
