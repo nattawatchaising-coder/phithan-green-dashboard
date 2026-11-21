@@ -1623,9 +1623,9 @@ function MsGantt({
   const full = !compact && !narrow;
   const dates = full && !mid;
   const wc = !!wcol && !compact && !narrow;
-  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 30px 62px 62px") + (wc ? " 44px" : "") + " 74px 104px 40px";
-  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 472 : 668) + (wc ? 50 : 0);
-  const rh = compact ? 20 : 34;
+  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "30px minmax(150px,1fr)" : "30px minmax(170px,1fr) 150px") + (wc ? " 40px" : "") + " 96px 108px";
+  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 440 : 610) + (wc ? 48 : 0);
+  const rh = compact ? 20 : 40;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
   const weekend = [];
@@ -1670,31 +1670,6 @@ function MsGantt({
       }
     }, v < 1 ? "<1" : Math.round(v), "%");
   });
-  const pa2 = {
-    display: "grid",
-    gridTemplateRows: "1fr 1fr",
-    height: rh,
-    fontSize: 11,
-    color: "var(--text-2)",
-    whiteSpace: "nowrap",
-    fontVariantNumeric: "tabular-nums",
-    margin: "0 -3px"
-  };
-  const hf = (tx, st2) => React.createElement("span", {
-    style: Object.assign({
-      display: "flex",
-      alignItems: "center",
-      padding: "0 3px",
-      minWidth: 0,
-      overflow: "hidden"
-    }, st2)
-  }, tx);
-  const half = (a, b, bc, st2) => React.createElement("span", {
-    style: Object.assign({}, pa2, st2)
-  }, hf(a), hf(b, {
-    color: bc,
-    borderTop: MS_HALF_LN
-  }));
   const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)",
     ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return React.createElement("div", {
@@ -1730,18 +1705,26 @@ function MsGantt({
       textAlign: "right"
     })
   }, "%")) : React.createElement(React.Fragment, null, React.createElement("span", {
-    style: thS
+    style: Object.assign({}, thS, {
+      paddingLeft: 8
+    })
   }, "ID"), React.createElement("span", {
     style: thS
   }, "\u0E07\u0E32\u0E19"), dates && React.createElement("span", {
-    style: Object.assign({}, thS, {
-      textAlign: "right"
-    })
-  }, "\u0E27\u0E31\u0E19"), dates && React.createElement("span", {
     style: thS
-  }, "\u0E40\u0E23\u0E34\u0E48\u0E21"), dates && React.createElement("span", {
-    style: thS
-  }, "\u0E08\u0E1A"), wc && React.createElement("span", {
+  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 ", React.createElement("span", {
+    style: {
+      fontWeight: 500
+    }
+  }, "(", React.createElement("span", {
+    style: {
+      color: "var(--tint-ok-tx)"
+    }
+  }, "\u0E41\u0E1C\u0E19"), " / ", React.createElement("span", {
+    style: {
+      color: MS_ACT_TX
+    }
+  }, "\u0E17\u0E33\u0E08\u0E23\u0E34\u0E07"), ")")), wc && React.createElement("span", {
     style: Object.assign({}, thS, {
       textAlign: "right"
     }),
@@ -1750,7 +1733,7 @@ function MsGantt({
     style: thS
   }, "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32"), React.createElement("span", {
     style: thS
-  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"), React.createElement("span", null)))), React.createElement("div", {
+  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30")))), React.createElement("div", {
     style: {
       position: "relative",
       height: headH,
@@ -1845,27 +1828,35 @@ function MsGantt({
         position: "sticky",
         left: 0,
         zIndex: 2,
-        background: msSolid(r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)"),
+        background: msSolid(compact ? "var(--surface)" : "var(--surface)"),
         height: rh,
+        minWidth: 0,
+        padding: compact ? 0 : "3px 8px 3px 2px",
+        boxSizing: "border-box"
+      }
+    }, React.createElement("div", {
+      style: {
+        height: "100%",
         display: "grid",
         gridTemplateColumns: cols,
         alignItems: "center",
-        gap: 6,
-        paddingRight: 8,
-        borderTop: line,
-        minWidth: 0
+        gap: compact ? 6 : 8,
+        minWidth: 0,
+        paddingRight: compact ? 8 : 6,
+        borderRadius: compact ? 0 : 8,
+        background: compact ? "transparent" : r.head ? "color-mix(in srgb, var(--primary) 11%, var(--surface2))" : "var(--surface2)"
       }
     }, full && React.createElement("span", {
       style: {
         fontFamily: "var(--mono)",
         fontSize: 10.5,
         color: "var(--text-3)",
-        paddingLeft: 4
+        paddingLeft: 8
       }
     }, r.no), React.createElement("span", {
       style: {
         minWidth: 0,
-        paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 12 : 0
+        paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 8 : 0
       }
     }, React.createElement("span", {
       style: {
@@ -1878,28 +1869,52 @@ function MsGantt({
         textOverflow: "ellipsis"
       },
       title: r.th
-    }, r.th || "—")), dates && React.createElement("span", {
+    }, r.th || "—"), full && msDur(r.planStart, r.planEnd) ? React.createElement("span", {
       style: {
-        fontSize: 11,
+        display: "block",
+        fontSize: 10,
         color: "var(--text-3)",
-        textAlign: "right",
-        fontFamily: "var(--mono)"
+        fontFamily: "var(--mono)",
+        marginTop: 1
       }
-    }, msDur(r.planStart, r.planEnd) || ""), dates && (sub ? half(msTH(r.planStart), r.actStart ? msTH(r.actStart) : "", MS_ACT_TX) : React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-2)",
-        whiteSpace: "nowrap",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, msTH(r.planStart))), dates && (sub ? half(msTH(r.planEnd || r.planStart), r.actEnd ? msTH(r.actEnd) : "", MS_ACT_TX) : React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-2)",
-        whiteSpace: "nowrap",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, msTH(r.planEnd || r.planStart))), wc && React.createElement("span", {
+    }, msDur(r.planStart, r.planEnd) + " วัน", mid && r.planStart ? " · " + msTH(r.planStart) + " → " + msTH(r.planEnd || r.planStart) : "") : null), dates && (() => {
+      const ln = (sw, a, b, col) => React.createElement("span", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          color: col,
+          whiteSpace: "nowrap",
+          overflow: "hidden"
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 8,
+          height: 8,
+          borderRadius: 2,
+          background: sw,
+          flexShrink: 0
+        }
+      }), a, b != null ? " → " + b : "");
+      const pl = r.planStart ? ln(PLAN_C, msTH(r.planStart), msTH(r.planEnd || r.planStart), "var(--text-2)") : ln(PLAN_C, "—", null, "var(--text-3)");
+      if (!sub) return React.createElement("span", {
+        style: {
+          fontSize: 11,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, pl);
+      const ac = r.actStart ? ln(ACT_C, msTH(r.actStart), r.actEnd ? msTH(r.actEnd) : "ยังทำอยู่", MS_ACT_TX) : ln(ACT_C, "—", null, "var(--text-3)");
+      return React.createElement("span", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          fontSize: 11,
+          fontVariantNumeric: "tabular-nums",
+          minWidth: 0
+        }
+      }, pl, ac);
+    })(), wc && React.createElement("span", {
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
@@ -1945,19 +1960,16 @@ function MsGantt({
         fontWeight: 700,
         color: r.st === "late" ? st.tx : "var(--text-1)"
       }
-    }, p, "%"), full && React.createElement("span", null, React.createElement(MsPill, {
+    }, p, "%"), full && React.createElement("span", {
+      style: {
+        minWidth: 0,
+        overflow: "hidden"
+      }
+    }, React.createElement(MsPill, {
       st: r.st,
       label: msStLabel(r),
       small: true
-    })), full && (sub ? half(React.createElement("span", {
-      style: {
-        color: "var(--tint-ok-tx)"
-      }
-    }, "Plan"), "Actual", MS_ACT_TX, {
-      fontWeight: 700,
-      fontSize: 10,
-      marginRight: -8
-    }) : React.createElement("span", null))), React.createElement("div", {
+    })))), React.createElement("div", {
       style: {
         position: "relative",
         isolation: "isolate",
@@ -2641,6 +2653,11 @@ function MsModal({
     daily,
     crew
   } = useMsData(job);
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
   const today = msToday();
   const [instEdit, setInstEdit] = React.useState(null);
   const inst = React.useMemo(() => instEdit ? msInstallRowsOf(instEdit, crew) : inst0, [instEdit, inst0, crew]);

@@ -759,9 +759,10 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
   const dates = full && !mid;                // จอกว้างพอค่อยโชว์คอลัมน์เริ่ม/จบ (จอกลางดูจากแกนต์แทน)
   /* คอลัมน์ซ้าย: ID · งาน(+ผู้รับผิดชอบ) · เริ่ม · จบ · % · สถานะ (จอกลางตัดเริ่ม/จบ · จอแคบเหลือ งาน + %) */
   const wc = !!wcol && !compact && !narrow;      // คอลัมน์ % น้ำหนัก (แผนแบบไฟล์ S-Curve)
-  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 30px 62px 62px") + (wc ? " 44px" : "") + " 74px 104px 40px";
-  const labW = (compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 472 : 668) + (wc ? 50 : 0);
-  const rh = compact ? 20 : 34;
+  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : (mid ? "30px minmax(150px,1fr)" : "30px minmax(170px,1fr) 150px") + (wc ? " 40px" : "") + " 96px 108px";
+  /* แบบ A แถวการ์ด (ผู้ใช้เลือก 21 พ.ย. 69): ช่วงเวลาคอลัมน์เดียว บรรทัดบน = แผน (ช่องเขียว) ล่าง = ทำจริง (ช่องฟ้า) · จำนวนวันใต้ชื่องาน · แต่ละงานเป็นแผ่นแยก */
+  const labW = (compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 440 : 610) + (wc ? 48 : 0);
+  const rh = compact ? 20 : 40;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
   const weekend = [];
@@ -778,10 +779,6 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
     return <span key={"t" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", width: A.W(w.d, w.d + 6) + "%", top, height: h, lineHeight: h + "px", textAlign: "center",
       fontSize: 9, fontWeight: 700, fontFamily: "var(--mono)", color: col, zIndex: 2, whiteSpace: "nowrap", overflow: "hidden" }}>{v < 1 ? "<1" : Math.round(v)}%</span>;
   });
-  /* ช่องแบ่งครึ่ง บน = แผน · ล่าง = ทำจริง มีเส้นประคั่นกลาง ต่อกับเส้นกลางแถวในแกนต์ */
-  const pa2 = { display: "grid", gridTemplateRows: "1fr 1fr", height: rh, fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", margin: "0 -3px" };
-  const hf = (tx, st2) => <span style={Object.assign({ display: "flex", alignItems: "center", padding: "0 3px", minWidth: 0, overflow: "hidden" }, st2)}>{tx}</span>;
-  const half = (a, b, bc, st2) => <span style={Object.assign({}, pa2, st2)}>{hf(a)}{hf(b, { color: bc, borderTop: MS_HALF_LN })}</span>;
   const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)", ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return (
     <div style={{ overflowX: compact ? "hidden" : "auto", WebkitOverflowScrolling: "touch" }}>
@@ -790,7 +787,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
         <div style={{ position: "sticky", left: 0, zIndex: 3, background: msSolid("var(--surface)"), height: headH, display: "grid", gridTemplateColumns: cols,
           alignItems: "end", gap: 6, paddingBottom: 4, paddingRight: 8, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {!compact && (narrow ? <><span style={thS}>งาน</span><span style={Object.assign({}, thS, { textAlign: "right" })}>%</span></>
-            : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={Object.assign({}, thS, { textAlign: "right" })}>วัน</span>}{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span><span /></>)}
+            : <><span style={Object.assign({}, thS, { paddingLeft: 8 })}>ID</span><span style={thS}>งาน</span>{dates && <span style={thS}>ช่วงเวลา <span style={{ fontWeight: 500 }}>(<span style={{ color: "var(--tint-ok-tx)" }}>แผน</span> / <span style={{ color: MS_ACT_TX }}>ทำจริง</span>)</span></span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
         </div>
         <div style={{ position: "relative", height: headH, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {compact ? A.months.map((m) => (
@@ -823,19 +820,26 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
           const p = msPct(r.pct);
           return (
             <React.Fragment key={r.id + "-" + i}>
-              <div style={{ position: "sticky", left: 0, zIndex: 2, background: msSolid(r.head && !compact ? "color-mix(in srgb, var(--surface2) 70%, var(--surface))" : "var(--surface)"),
-                height: rh, display: "grid", gridTemplateColumns: cols, alignItems: "center", gap: 6, paddingRight: 8, borderTop: line, minWidth: 0 }}>
-                {full && <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", paddingLeft: 4 }}>{r.no}</span>}
-                <span style={{ minWidth: 0, paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 12 : 0 }}>
+              <div style={{ position: "sticky", left: 0, zIndex: 2, background: msSolid(compact ? "var(--surface)" : "var(--surface)"), height: rh, minWidth: 0,
+                padding: compact ? 0 : "3px 8px 3px 2px", boxSizing: "border-box" }}>
+                <div style={{ height: "100%", display: "grid", gridTemplateColumns: cols, alignItems: "center", gap: compact ? 6 : 8, minWidth: 0,
+                  paddingRight: compact ? 8 : 6, borderRadius: compact ? 0 : 8,
+                  background: compact ? "transparent" : r.head ? "color-mix(in srgb, var(--primary) 11%, var(--surface2))" : "var(--surface2)" }}>
+                {full && <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", paddingLeft: 8 }}>{r.no}</span>}
+                <span style={{ minWidth: 0, paddingLeft: sub && !compact && narrow ? 10 : sub && full ? 8 : 0 }}>
                   <span style={{ display: "block", fontSize: compact ? 11.5 : sub ? 12 : 12.5, fontWeight: r.head ? 800 : 500, color: "var(--text-1)",
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={r.th}>{r.th || "—"}</span>
+                  {full && msDur(r.planStart, r.planEnd) ? <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 1 }}>
+                    {msDur(r.planStart, r.planEnd) + " วัน"}{mid && r.planStart ? " · " + msTH(r.planStart) + " → " + msTH(r.planEnd || r.planStart) : ""}</span> : null}
                 </span>
-                {dates && <span style={{ fontSize: 11, color: "var(--text-3)", textAlign: "right", fontFamily: "var(--mono)" }}>{msDur(r.planStart, r.planEnd) || ""}</span>}
-                {/* แบบ PDF/Excel: งานย่อยแบ่งครึ่ง บน = วันแผน · ล่าง = วันทำจริง (ฟ้า) */}
-                {dates && (sub ? half(msTH(r.planStart), r.actStart ? msTH(r.actStart) : "", MS_ACT_TX)
-                  : <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planStart)}</span>)}
-                {dates && (sub ? half(msTH(r.planEnd || r.planStart), r.actEnd ? msTH(r.actEnd) : "", MS_ACT_TX)
-                  : <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planEnd || r.planStart)}</span>)}
+                {dates && (() => {
+                  const ln = (sw, a, b, col) => <span style={{ display: "flex", alignItems: "center", gap: 5, color: col, whiteSpace: "nowrap", overflow: "hidden" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: sw, flexShrink: 0 }} />{a}{b != null ? " → " + b : ""}</span>;
+                  const pl = r.planStart ? ln(PLAN_C, msTH(r.planStart), msTH(r.planEnd || r.planStart), "var(--text-2)") : ln(PLAN_C, "—", null, "var(--text-3)");
+                  if (!sub) return <span style={{ fontSize: 11, fontVariantNumeric: "tabular-nums" }}>{pl}</span>;
+                  const ac = r.actStart ? ln(ACT_C, msTH(r.actStart), r.actEnd ? msTH(r.actEnd) : "ยังทำอยู่", MS_ACT_TX) : ln(ACT_C, "—", null, "var(--text-3)");
+                  return <span style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 11, fontVariantNumeric: "tabular-nums", minWidth: 0 }}>{pl}{ac}</span>;
+                })()}
                 {wc && <span style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right", fontFamily: "var(--mono)", fontWeight: r.head ? 700 : 400 }}>{r.wp ? Math.round(r.wp * 10) / 10 : ""}</span>}
                 {full ? (
                   <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -845,8 +849,8 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
                 ) : (
                   <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: compact ? 10.5 : 11.5, fontWeight: 700, color: r.st === "late" ? st.tx : "var(--text-1)" }}>{p}%</span>
                 )}
-                {full && <span><MsPill st={r.st} label={msStLabel(r)} small /></span>}
-                {full && (sub ? half(<span style={{ color: "var(--tint-ok-tx)" }}>Plan</span>, "Actual", MS_ACT_TX, { fontWeight: 700, fontSize: 10, marginRight: -8 }) : <span />)}
+                {full && <span style={{ minWidth: 0, overflow: "hidden" }}><MsPill st={r.st} label={msStLabel(r)} small /></span>}
+                </div>
               </div>
               <div style={{ position: "relative", isolation: "isolate", height: rh, borderTop: line, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent" }}>
                 {!compact && weekend.map((d) => <span key={d} style={{ position: "absolute", left: A.X(d) + "%", width: A.W(d, d) + "%", top: 0, bottom: 0, background: "color-mix(in srgb, var(--text-3) 7%, transparent)" }} />)}
@@ -1191,6 +1195,9 @@ function msPrintHTML(job, C, today, cv) {
 /* ── หน้าต่าง Master Schedule ── */
 function MsModal({ job, canEdit, currentUser, onClose }) {
   const { ms, inst: inst0, daily, crew } = useMsData(job);
+  /* ข้อมูลแผน/ขั้นงานอัปเดตสดจาก Firebase อยู่แล้ว · นาฬิกานี้ให้ "วันนี้" (เส้นแดง/สถานะล่าช้า) เปลี่ยนเองเมื่อข้ามวันแม้เปิดหน้าต่างค้างไว้ */
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 60000); return () => clearInterval(t); }, []);
   const today = msToday();
   /* แก้ขั้นงานติดตั้งได้จากที่นี่ (ผู้ใช้ 17 พ.ย. 2026 "ถ้าไม่ต้องไปอยู่ที่ดำเนินการ จะแก้ไขได้ไหม เพราะบางทีเราทำแผนก่อนเข้าติดตั้งจริง")
      เดิมต้องแก้ที่ตารางขั้นงานในรายงานประจำวัน ซึ่งงานยังไม่ถึงขั้นติดตั้งเข้าไม่ถึง · บันทึกลง dailyPlan/{jobId} ที่เดียวกัน (รายงานวันแรกเริ่มจากชุดนี้)
