@@ -714,9 +714,8 @@ function msExportXlsx(job, C, cv, today) {
   put(H0 + 1, 5, "Finish", HDR);
   let mStart = 0;
   weeks.forEach((w, i) => {
-    const dt = new Date(w.d * 86400000),
-      de = new Date((w.d + 6) * 86400000);
-    put(H0 + 1, W0 + i, dt.getUTCDate() + "-" + de.getUTCDate(), HDR, "s");
+    const dt = new Date(w.d * 86400000);
+    put(H0 + 1, W0 + i, "W" + wl[i].k, HDR, "s");
     const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
     const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
     if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {

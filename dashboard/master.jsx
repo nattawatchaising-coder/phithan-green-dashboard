@@ -344,8 +344,8 @@ function msExportXlsx(job, C, cv, today) {
   put(H0 + 1, 4, "Start", HDR); put(H0 + 1, 5, "Finish", HDR);
   let mStart = 0;
   weeks.forEach((w, i) => {
-    const dt = new Date(w.d * 86400000), de = new Date((w.d + 6) * 86400000);
-    put(H0 + 1, W0 + i, dt.getUTCDate() + "-" + de.getUTCDate(), HDR, "s");   // หัวสัปดาห์เป็นช่วงวันที่ จันทร์-อาทิตย์ (แบบ S-Curve ที่ใช้กันทั่วไป)
+    const dt = new Date(w.d * 86400000);
+    put(H0 + 1, W0 + i, "W" + wl[i].k, HDR, "s");   // W1-W4/5 นับใหม่ทุกเดือน (ผู้ใช้เลือกแบบนี้แทนช่วงวันที่)
     const m = MS_MON[dt.getUTCMonth()] + " " + String(dt.getUTCFullYear() + 543).slice(2);
     const prev = i ? new Date(weeks[i - 1].d * 86400000) : null;
     if (!prev || prev.getUTCMonth() !== dt.getUTCMonth()) {
