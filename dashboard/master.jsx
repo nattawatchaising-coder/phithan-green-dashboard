@@ -950,7 +950,9 @@ function msPrintHTML(job, C, today, cv) {
     "b.bar s{display:block;height:100%;background:#1B9B75}b.bar.done s{background:#15803D}b.bar.late{box-shadow:inset 0 0 0 1px #DC2626}b.bar.late s{background:#DC2626}" +
     ".lg{display:flex;gap:16px;margin-top:8px;font-size:10px;color:#4A5A51;align-items:center}.lg i{display:inline-block;width:18px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}" +
     ".sc{break-before:page;page-break-before:always;padding-top:4px}.sch{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}.sch b{font-size:18px}.sch span{font-size:11px;color:#5A6B62}" +
-    ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}";
+    ".sch .scv{margin-left:auto;font-size:12px;color:#15211A}.sch .scv+.scv{margin-left:0}.sch .scv b{font-size:14px;font-family:monospace}" +
+    /* จอ: เลื่อนแนวนอนแล้วคอลัมน์ ID…สถานะ ล็อกอยู่ (ซ้าย = ผลรวมความกว้างคอลัมน์ก่อนหน้า ตาม .n .t .d … ด้านบน) · หัวตารางล็อกบน · ตอนพิมพ์ไม่ใช้ */
+    "@media screen{table.t1 tr>:nth-child(-n+9){position:sticky;z-index:3;background:#fff}table.t1 tr.h>td:nth-child(-n+9){background:#EEF4F0}table.t1 thead th{position:sticky;top:0;z-index:5}table.t1 thead th:nth-child(-n+9){z-index:6;background:#1B5E4A}table.t1 tr>:nth-child(1){left:0px}table.t1 tr>:nth-child(2){left:36px}table.t1 tr>:nth-child(3){left:256px}table.t1 tr>:nth-child(4){left:322px}table.t1 tr>:nth-child(5){left:388px}table.t1 tr>:nth-child(6){left:418px}table.t1 tr>:nth-child(7){left:458px}table.t1 tr>:nth-child(8){left:542px}table.t1 tr>:nth-child(9){left:638px}table.t1 tr>:nth-child(9){box-shadow:3px 0 4px -2px rgba(0,0,0,.18)}}";
   return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(title) + "</title>" +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' + css + "</style></head><body>" +
     '<div class="hd"><div class="ttl"><h1>MASTER SCHEDULE</h1><div class="sub">แผนงานหลักโครงการ · ณ วันที่ ' + esc(msTH(today, true)) + "</div><table>" +
