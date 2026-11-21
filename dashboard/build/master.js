@@ -1159,13 +1159,18 @@ function msAddChart(CFB, bytes, weeks, lastRow, freeze, ov) {
       if (!path) return "";
       return '<xdr:twoCellAnchor editAs="twoCell">' + from + '<xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="' + xe(name) + '"/><xdr:cNvSpPr/></xdr:nvSpPr>' + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/>' + '<a:pathLst><a:path w="' + PW + '" h="' + PH + '" fill="none">' + path + '</a:path></a:pathLst></a:custGeom><a:noFill/>' + '<a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill><a:round/></a:ln></xdr:spPr></xdr:sp><xdr:clientData/></xdr:twoCellAnchor>';
     };
-    const label = (i, v) => {
-      const y = ov.r0 * 1 + (100 - Math.max(0, Math.min(100, v))) / 100 * nR - 0.95;
+    const step = Math.max(1, Math.ceil(N / 20));
+    const label = (i, v, rgb, below) => {
+      const y = ov.r0 * 1 + (100 - Math.max(0, Math.min(100, v))) / 100 * nR + (below ? 0.15 : -0.95);
       const row = Math.max(ov.r0, Math.floor(y)),
         off = Math.max(0, Math.round((y - row) * ROW));
-      return '<xdr:oneCellAnchor><xdr:from><xdr:col>' + (ov.c0 + i) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + row + '</xdr:row><xdr:rowOff>' + off + '</xdr:rowOff></xdr:from>' + '<xdr:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/><xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="ป้ายแผน ' + (i + 1) + '"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr>' + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>' + '<xdr:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" anchor="b"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="700" b="1"><a:solidFill><a:srgbClr val="1B5E4A"/></a:solidFill></a:rPr>' + '<a:t>' + (Math.round(v * 100) / 100).toFixed(2) + '%</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:oneCellAnchor>';
+      return '<xdr:oneCellAnchor><xdr:from><xdr:col>' + (ov.c0 + i) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + row + '</xdr:row><xdr:rowOff>' + off + '</xdr:rowOff></xdr:from>' + '<xdr:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/><xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="' + sid++ + '" name="ป้าย ' + (below ? "จริง " : "แผน ") + (i + 1) + '"/><xdr:cNvSpPr txBox="1"/></xdr:nvSpPr>' + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + COL + '" cy="' + Math.round(ROW * 0.8) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr>' + '<xdr:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" anchor="b"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="700" b="1"><a:solidFill><a:srgbClr val="' + rgb + '"/></a:solidFill></a:rPr>' + '<a:t>' + (Math.round(v * 100) / 100).toFixed(2) + '%</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:oneCellAnchor>';
     };
-    const drawing2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + line("S-Curve แผนสะสม", weeks.map(w => w.planAcc), "1B9B75") + line("S-Curve ทำได้จริงสะสม", weeks.map(w => w.act), "2563EB") + (N <= 40 ? weeks.map((w, i) => label(i, w.planAcc)).join("") : "") + "</xdr:wsDr>";
+    const drawing2 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + line("S-Curve แผนสะสม", weeks.map(w => w.planAcc), "1B9B75") + line("S-Curve ทำได้จริงสะสม", weeks.map(w => w.act), "2563EB") + weeks.map((w, i) => {
+      const lastA = weeks.reduce((m, x, j) => x.act != null ? j : m, -1);
+      const at = (j, end) => j % step === 0 || j === end;
+      return (at(i, N - 1) ? label(i, w.planAcc, "1B5E4A", false) : "") + (w.act != null && at(i, lastA) ? label(i, w.act, "1D4ED8", true) : "");
+    }).join("") + "</xdr:wsDr>";
     set("/xl/drawings/drawing2.xml", drawing2);
     const relP1 = "/xl/worksheets/_rels/sheet1.xml.rels";
     let rel1 = get(relP1);
