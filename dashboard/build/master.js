@@ -40,6 +40,7 @@ function msStLabel(r) {
   if (r.st === "late") return "ล่าช้า " + r.lateBy + " วัน";
   return (MS_ST[r.st] || MS_ST.todo).th;
 }
+const MS_ACT_TX = "color-mix(in srgb, #2563EB 80%, var(--text-1))";
 const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 let _msSeq = 0;
 const msId = () => "r" + Date.now().toString(36) + (_msSeq++).toString(36);
@@ -1621,8 +1622,8 @@ function MsGantt({
   const full = !compact && !narrow;
   const dates = full && !mid;
   const wc = !!wcol && !compact && !narrow;
-  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 104px";
-  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 426 : 586) + (wc ? 50 : 0);
+  const cols = compact ? narrow ? "1fr 34px" : "1fr 38px" : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 30px 62px 62px") + (wc ? " 44px" : "") + " 74px 104px 40px";
+  const labW = (compact ? narrow ? 124 : 150 : narrow ? 168 : mid ? 472 : 668) + (wc ? 50 : 0);
   const rh = compact ? 20 : 34;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
@@ -1668,6 +1669,17 @@ function MsGantt({
       }
     }, v < 1 ? "<1" : Math.round(v), "%");
   });
+  const pa2 = {
+    display: "grid",
+    gridTemplateRows: "1fr 1fr",
+    height: rh,
+    alignItems: "center",
+    fontSize: 11,
+    color: "var(--text-2)",
+    whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums",
+    borderLeft: "none"
+  };
   const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)",
     ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return React.createElement("div", {
@@ -1707,6 +1719,10 @@ function MsGantt({
   }, "ID"), React.createElement("span", {
     style: thS
   }, "\u0E07\u0E32\u0E19"), dates && React.createElement("span", {
+    style: Object.assign({}, thS, {
+      textAlign: "right"
+    })
+  }, "\u0E27\u0E31\u0E19"), dates && React.createElement("span", {
     style: thS
   }, "\u0E40\u0E23\u0E34\u0E48\u0E21"), dates && React.createElement("span", {
     style: thS
@@ -1719,7 +1735,7 @@ function MsGantt({
     style: thS
   }, "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32"), React.createElement("span", {
     style: thS
-  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30")))), React.createElement("div", {
+  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"), React.createElement("span", null)))), React.createElement("div", {
     style: {
       position: "relative",
       height: headH,
@@ -1850,18 +1866,37 @@ function MsGantt({
     }, r.th || "—")), dates && React.createElement("span", {
       style: {
         fontSize: 11,
-        color: "var(--text-2)",
-        whiteSpace: "nowrap",
-        fontVariantNumeric: "tabular-nums"
+        color: "var(--text-3)",
+        textAlign: "right",
+        fontFamily: "var(--mono)"
       }
-    }, msTH(r.planStart)), dates && React.createElement("span", {
+    }, msDur(r.planStart, r.planEnd) || ""), dates && (sub ? React.createElement("span", {
+      style: pa2
+    }, React.createElement("span", null, msTH(r.planStart)), React.createElement("span", {
+      style: {
+        color: MS_ACT_TX
+      }
+    }, r.actStart ? msTH(r.actStart) : "")) : React.createElement("span", {
       style: {
         fontSize: 11,
         color: "var(--text-2)",
         whiteSpace: "nowrap",
         fontVariantNumeric: "tabular-nums"
       }
-    }, msTH(r.planEnd || r.planStart)), wc && React.createElement("span", {
+    }, msTH(r.planStart))), dates && (sub ? React.createElement("span", {
+      style: pa2
+    }, React.createElement("span", null, msTH(r.planEnd || r.planStart)), React.createElement("span", {
+      style: {
+        color: MS_ACT_TX
+      }
+    }, r.actEnd ? msTH(r.actEnd) : "")) : React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-2)",
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, msTH(r.planEnd || r.planStart))), wc && React.createElement("span", {
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
@@ -1911,7 +1946,20 @@ function MsGantt({
       st: r.st,
       label: msStLabel(r),
       small: true
-    }))), React.createElement("div", {
+    })), full && (sub ? React.createElement("span", {
+      style: Object.assign({}, pa2, {
+        fontWeight: 700,
+        fontSize: 10
+      })
+    }, React.createElement("span", {
+      style: {
+        color: "var(--tint-ok-tx)"
+      }
+    }, "Plan"), React.createElement("span", {
+      style: {
+        color: MS_ACT_TX
+      }
+    }, "Actual")) : React.createElement("span", null))), React.createElement("div", {
       style: {
         position: "relative",
         height: rh,

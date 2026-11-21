@@ -45,6 +45,7 @@ function msStLabel(r) {
   if (r.st === "late") return "ล่าช้า " + r.lateBy + " วัน";
   return (MS_ST[r.st] || MS_ST.todo).th;
 }
+const MS_ACT_TX = "color-mix(in srgb, #2563EB 80%, var(--text-1))";   // วันทำจริง/Actual ตัวฟ้า แบบ PDF/Excel
 const MS_TRACK = "color-mix(in srgb, var(--primary) 20%, var(--surface2))";
 
 let _msSeq = 0;
@@ -757,8 +758,8 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
   const dates = full && !mid;                // จอกว้างพอค่อยโชว์คอลัมน์เริ่ม/จบ (จอกลางดูจากแกนต์แทน)
   /* คอลัมน์ซ้าย: ID · งาน(+ผู้รับผิดชอบ) · เริ่ม · จบ · % · สถานะ (จอกลางตัดเริ่ม/จบ · จอแคบเหลือ งาน + %) */
   const wc = !!wcol && !compact && !narrow;      // คอลัมน์ % น้ำหนัก (แผนแบบไฟล์ S-Curve)
-  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 62px 62px") + (wc ? " 44px" : "") + " 74px 104px";
-  const labW = (compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 426 : 586) + (wc ? 50 : 0);
+  const cols = compact ? (narrow ? "1fr 34px" : "1fr 38px") : narrow ? "1fr 40px" : (mid ? "38px minmax(150px,1fr)" : "38px minmax(180px,1fr) 30px 62px 62px") + (wc ? " 44px" : "") + " 74px 104px 40px";
+  const labW = (compact ? (narrow ? 124 : 150) : narrow ? 168 : mid ? 472 : 668) + (wc ? 50 : 0);
   const rh = compact ? 20 : 34;
   const headH = compact ? 16 : dayHead ? 46 : 30;
   const showToday = A.td != null && A.td >= A.lo && A.td <= A.hi;
@@ -776,6 +777,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
     return <span key={"t" + w.d} style={{ position: "absolute", left: A.X(w.d) + "%", width: A.W(w.d, w.d + 6) + "%", top, height: h, lineHeight: h + "px", textAlign: "center",
       fontSize: 9, fontWeight: 700, fontFamily: "var(--mono)", color: col, zIndex: 2, whiteSpace: "nowrap", overflow: "hidden" }}>{v < 1 ? "<1" : Math.round(v)}%</span>;
   });
+  const pa2 = { display: "grid", gridTemplateRows: "1fr 1fr", height: rh, alignItems: "center", fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", borderLeft: "none" };
   const PLAN_C = "color-mix(in srgb, var(--primary) 30%, transparent)", ACT_C = "color-mix(in srgb, #3B82F6 32%, transparent)";
   return (
     <div style={{ overflowX: compact ? "hidden" : "auto", WebkitOverflowScrolling: "touch" }}>
@@ -784,7 +786,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
         <div style={{ position: "sticky", left: 0, zIndex: 3, background: msSolid("var(--surface)"), height: headH, display: "grid", gridTemplateColumns: cols,
           alignItems: "end", gap: 6, paddingBottom: 4, paddingRight: 8, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {!compact && (narrow ? <><span style={thS}>งาน</span><span style={Object.assign({}, thS, { textAlign: "right" })}>%</span></>
-            : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span></>)}
+            : <><span style={thS}>ID</span><span style={thS}>งาน</span>{dates && <span style={Object.assign({}, thS, { textAlign: "right" })}>วัน</span>}{dates && <span style={thS}>เริ่ม</span>}{dates && <span style={thS}>จบ</span>}{wc && <span style={Object.assign({}, thS, { textAlign: "right" })} title="% น้ำหนักต่อทั้งโครงการ">น้ำหนัก</span>}<span style={thS}>ความคืบหน้า</span><span style={thS}>สถานะ</span><span /></>)}
         </div>
         <div style={{ position: "relative", height: headH, borderBottom: compact ? "none" : "1px solid var(--divider)" }}>
           {compact ? A.months.map((m) => (
@@ -824,8 +826,12 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
                   <span style={{ display: "block", fontSize: compact ? 11.5 : sub ? 12 : 12.5, fontWeight: r.head ? 800 : 500, color: "var(--text-1)",
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={r.th}>{r.th || "—"}</span>
                 </span>
-                {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planStart)}</span>}
-                {dates && <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planEnd || r.planStart)}</span>}
+                {dates && <span style={{ fontSize: 11, color: "var(--text-3)", textAlign: "right", fontFamily: "var(--mono)" }}>{msDur(r.planStart, r.planEnd) || ""}</span>}
+                {/* แบบ PDF/Excel: งานย่อยแบ่งครึ่ง บน = วันแผน · ล่าง = วันทำจริง (ฟ้า) */}
+                {dates && (sub ? <span style={pa2}><span>{msTH(r.planStart)}</span><span style={{ color: MS_ACT_TX }}>{r.actStart ? msTH(r.actStart) : ""}</span></span>
+                  : <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planStart)}</span>)}
+                {dates && (sub ? <span style={pa2}><span>{msTH(r.planEnd || r.planStart)}</span><span style={{ color: MS_ACT_TX }}>{r.actEnd ? msTH(r.actEnd) : ""}</span></span>
+                  : <span style={{ fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{msTH(r.planEnd || r.planStart)}</span>)}
                 {wc && <span style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right", fontFamily: "var(--mono)", fontWeight: r.head ? 700 : 400 }}>{r.wp ? Math.round(r.wp * 10) / 10 : ""}</span>}
                 {full ? (
                   <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -836,6 +842,7 @@ function MsGantt({ C, today, compact, narrow, mid, wcol }) {
                   <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: compact ? 10.5 : 11.5, fontWeight: 700, color: r.st === "late" ? st.tx : "var(--text-1)" }}>{p}%</span>
                 )}
                 {full && <span><MsPill st={r.st} label={msStLabel(r)} small /></span>}
+                {full && (sub ? <span style={Object.assign({}, pa2, { fontWeight: 700, fontSize: 10 })}><span style={{ color: "var(--tint-ok-tx)" }}>Plan</span><span style={{ color: MS_ACT_TX }}>Actual</span></span> : <span />)}
               </div>
               <div style={{ position: "relative", height: rh, borderTop: line, background: r.head && !compact ? "color-mix(in srgb, var(--surface2) 45%, transparent)" : "transparent" }}>
                 {!compact && weekend.map((d) => <span key={d} style={{ position: "absolute", left: A.X(d) + "%", width: A.W(d, d) + "%", top: 0, bottom: 0, background: "color-mix(in srgb, var(--text-3) 7%, transparent)" }} />)}
